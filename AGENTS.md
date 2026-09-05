@@ -5,12 +5,7 @@
 Reproduced verbatim (headings demoted to fit this document) from
 [andrej-karpathy-skills](https://github.com/multica-ai/andrej-karpathy-skills/blob/main/CLAUDE.md),
 MIT-licensed — see [`NOTICE`](NOTICE) for the attribution — so anyone working in
-this repo has them without installing anything. Everything after them
-is this repo's own — the change loop, and two places it meets a repo rule;
-don't read any of it as an exception to them.
-
-Behavioral guidelines to reduce common LLM coding mistakes. Merge with
-project-specific instructions as needed.
+this repo has them without installing anything.
 
 **Tradeoff:** These guidelines bias toward caution over speed. For trivial
 tasks, use judgment.
@@ -75,7 +70,7 @@ Strong success criteria let you loop independently. Weak criteria ("make it work
 
 **These guidelines are working if:** fewer unnecessary changes in diffs, fewer rewrites due to overcomplication, and clarifying questions come before implementation rather than after mistakes.
 
-#### The change loop
+### The change loop
 
 **For any change:** specification → suite red → code → suite green → write
 prose.
