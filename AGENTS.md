@@ -5,8 +5,7 @@
 Reproduced verbatim (headings demoted to fit this document) from
 [andrej-karpathy-skills](https://github.com/multica-ai/andrej-karpathy-skills/blob/main/CLAUDE.md),
 MIT-licensed — see [`NOTICE`](NOTICE) for the attribution — so anyone working in
-this repo has them without installing anything. None of these was written after
-something went wrong in Ratect — they are general habits. Everything after them
+this repo has them without installing anything. Everything after them
 is this repo's own — the change loop, and two places it meets a repo rule;
 don't read any of it as an exception to them.
 
