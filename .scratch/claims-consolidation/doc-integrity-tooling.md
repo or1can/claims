@@ -1,14 +1,14 @@
 # Documentation-integrity tooling — notes toward a project
 
-**Status:** working notes, uncommitted, written 2026-09-02 during Ratect 0.26.0.
-Not a plan yet.
+**Status:** working notes, written 2026-09-02 during Ratect 0.26.0, committed
+here as supporting evidence for the `claims-consolidation` map
+([map.md](map.md)) — that map is the plan; this file is background.
 
 **Evidence boundary, stated up front:** everything concrete below was observed in
-**Ratect only**, mostly across two code-review rounds on one release. Kevin
-reports the same classes recurring across three projects, with the same tooling
-rebuilt each time. Those two other projects' instances need adding before any of
-this is treated as generalised — right now the sample is one repo and one author,
-which is exactly the size that makes a pattern look sharper than it is.
+**Ratect only**, mostly across two code-review rounds on one release.
+[tool-survey.md](tool-survey.md) is the other two projects' instances this
+file called for — the same classes recurred, with the same tooling rebuilt
+each time, confirming the pattern generalises past one repo and one author.
 
 ---
 

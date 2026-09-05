@@ -20,7 +20,7 @@ registration/extension point in the shared runner.
 ## Notes
 
 Domain: consolidating existing claim-checking tooling — see
-[tool-survey.md](tool-survey.md), [../../doc-integrity-tooling.md](../../doc-integrity-tooling.md)
+[tool-survey.md](tool-survey.md), [doc-integrity-tooling.md](doc-integrity-tooling.md)
 (this repo's own prior working notes — Ratect-only evidence, external OSS
 survey, failure-class taxonomy), and [prior-art-notes.md](prior-art-notes.md)
 (a condensed, anonymised synthesis of design lessons from one of the source
@@ -37,8 +37,8 @@ Standing decisions carried into every ticket:
 - Judgment-agent (the "claims no command settles" class) in scope, shaped as
   the skill+subagent pairing above.
 - Licensing: this repo is going public under Apache-2.0 or MIT. The private
-  Swift project's relevant code has confirmed sign-off to be relicensed and
-  ported in (same author, sole rights holder); `ratect` is already
+  Swift project's rights holder (same author as this repo) has confirmed its
+  relevant code can be relicensed and ported in; `ratect` is already
   Apache-2.0. Nothing from either private source project is referenced by
   name, linked, or pointed at by path anywhere in this repo — content is
   ported in and rewritten, never linked out.
