@@ -44,7 +44,9 @@ Standing decisions carried into every ticket:
   ported in and rewritten, never linked out.
 - Orchestrator scope, if built at all, is claims-checks only — never test/build
   orchestration.
-- Invocation is on-demand/agent-invoked to start.
+- Invocation launches as an on-demand skill/subagent plus a `PreToolUse` hook
+  matched on `Bash(git commit *)`, gate-vs-advise split by check type
+  (see ticket 02) — commit-time only, no push checkpoint.
 
 Skills to consult: `/grilling` and `/domain-modeling` for `grilling` tickets,
 `/research` for `research` tickets.
@@ -56,6 +58,12 @@ Skills to consult: `/grilling` and `/domain-modeling` for `grilling` tickets,
   Code hook events, and pure on-demand all reach a live agent turn under some
   condition, each with a different feedback shape and setup cost — ticket 02
   now unblocked to choose between them.
+- [Invocation-mechanism decision](issues/02-invocation-mechanism-decision.md)
+  — launches as an on-demand skill/subagent plus a `PreToolUse` hook matched
+  on `Bash(git commit *)`, split gate-vs-advise by check type (deterministic
+  checks block, candidate-list checks only inform), uniform across consuming
+  projects, commit-time only (no push checkpoint). How the hook actually gets
+  installed per project is deferred to ticket 03.
 - [Judgment-agent candidate-list](issues/04-judgment-agent-candidate-list.md)
   — the missing operation is a diff-scoped subject delta (which code subjects
   this specific diff added/removed/renamed); none of the six tools surveyed
@@ -85,7 +93,9 @@ Skills to consult: `/grilling` and `/domain-modeling` for `grilling` tickets,
 
 - CI/PR-gate as the primary invocation trigger — ruled out; by the time CI
   runs, the commit/push already happened, which is the failure demand this
-  effort exists to cut. (Local git hook stays open — see tickets 01/02.)
+  effort exists to cut. (A raw git hook was considered and not chosen —
+  ticket 02 picked a Claude Code `PreToolUse` hook instead, since it reaches
+  the agent natively rather than only a human terminal.)
 - Test/build orchestration inside the shared orchestrator — stays each
   consuming repo's own CI concern.
 - Adopting external OSS tools as literal dependencies — considered and
