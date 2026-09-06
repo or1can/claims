@@ -81,15 +81,27 @@ Skills to consult: `/grilling` and `/domain-modeling` for `grilling` tickets,
   extraction (backticked names/paths), not open keyword grep — reconciling
   the mechanism with the "never grep the prose" constraint
   (prior-art-notes.md §3).
+- [Restatement-check reconciliation](issues/05-restatement-check-reconciliation.md)
+  — `echoed-claims.py` and `split-claims.py` merge into one `restatement`
+  check running both matching signals (n-gram-run, whole-line), verbatim-only
+  by design with the paraphrase blind spot documented rather than solved (a
+  third project found verbatim-only matching caught none of its real
+  failures — see tool-survey.md), reports the finding only with no
+  architectural nudge, and file-type scope is configurable per project,
+  seeded with the union of both source tools' coverage as the default.
 
 ## Not yet specified
 
 - Language-agnostic core + per-language adapter **design** — the internal
   interface between the core and each language's check scripts (Rust/Swift/
-  Python) — too coarse until the restatement-check reconciliation (ticket 05)
-  settles what the core components actually are. Distinct from ticket 03's
-  packaging decision (all adapters ship bundled in one plugin repo) — that's
-  settled; this is about the interface between them, not where they live.
+  Python). Partially answered by ticket 05: file-type scope is a config
+  surface, not a hardcoded list (seeded with a sensible default). Still
+  open: the actual interface a check uses to invoke a language-specific
+  symbol/AST resolver (needed by, e.g., spliced-docs and check-citations),
+  which has no concrete case yet to generalise from. Distinct from ticket
+  03's packaging decision (all adapters ship bundled in one plugin repo) —
+  that's settled; this is about the interface between them, not where they
+  live.
 - Orchestrator design/value — acknowledged unclear even to the person driving
   this map; revisit once the core components are consolidated and there's
   something to orchestrate.
