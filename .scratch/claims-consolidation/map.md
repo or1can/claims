@@ -47,6 +47,10 @@ Standing decisions carried into every ticket:
 - Invocation launches as an on-demand skill/subagent plus a `PreToolUse` hook
   matched on `Bash(git commit *)`, gate-vs-advise split by check type
   (see ticket 02) — commit-time only, no push checkpoint.
+- Distribution is a direct git-URL Claude Code plugin (no marketplace),
+  pinned at install with an explicit update step, bundling every language
+  adapter in the one plugin repo, with a config toggle to disable the
+  auto-hook without uninstalling (see ticket 03).
 
 Skills to consult: `/grilling` and `/domain-modeling` for `grilling` tickets,
 `/research` for `research` tickets.
@@ -64,6 +68,11 @@ Skills to consult: `/grilling` and `/domain-modeling` for `grilling` tickets,
   checks block, candidate-list checks only inform), uniform across consuming
   projects, commit-time only (no push checkpoint). How the hook actually gets
   installed per project is deferred to ticket 03.
+- [Distribution mechanism](issues/03-distribution-mechanism.md) — a direct
+  git-URL plugin (no marketplace), pinned at install with an explicit update
+  step, all language adapters bundled in one repo, hook opt-out via a config
+  toggle rather than uninstalling. Resolves the map's former
+  versioning/update fog item.
 - [Judgment-agent candidate-list](issues/04-judgment-agent-candidate-list.md)
   — the missing operation is a diff-scoped subject delta (which code subjects
   this specific diff added/removed/renamed); none of the six tools surveyed
@@ -75,9 +84,12 @@ Skills to consult: `/grilling` and `/domain-modeling` for `grilling` tickets,
 
 ## Not yet specified
 
-- Language-agnostic core + per-language adapter design (Rust/Swift/Python) —
-  too coarse until the restatement-check reconciliation (ticket 05) settles
-  what the core components actually are.
+- Language-agnostic core + per-language adapter **design** — the internal
+  interface between the core and each language's check scripts (Rust/Swift/
+  Python) — too coarse until the restatement-check reconciliation (ticket 05)
+  settles what the core components actually are. Distinct from ticket 03's
+  packaging decision (all adapters ship bundled in one plugin repo) — that's
+  settled; this is about the interface between them, not where they live.
 - Orchestrator design/value — acknowledged unclear even to the person driving
   this map; revisit once the core components are consolidated and there's
   something to orchestrate.
@@ -86,8 +98,6 @@ Skills to consult: `/grilling` and `/domain-modeling` for `grilling` tickets,
 - Judgment-agent subagent's exact spec/prompt, and the candidate-list question
   prior-art-notes.md §3 itself left open — depends on ticket 04 resolving
   first (partially answered — see Decisions so far).
-- Versioning/update mechanism for consuming repos once packaged — depends on
-  ticket 03 (distribution) resolving first.
 
 ## Out of scope
 
