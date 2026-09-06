@@ -9,15 +9,12 @@ from __future__ import annotations
 import unittest
 from pathlib import Path
 
-from claims import runner
 from claims.runner import Finding, register_check, run
 
+from support import RegistryClearingTestCase
 
-class RunnerTests(unittest.TestCase):
-    def setUp(self) -> None:
-        runner.clear_registry()
-        self.addCleanup(runner.clear_registry)
 
+class RunnerTests(RegistryClearingTestCase):
     def test_zero_checks_registered_reports_zero_checked(self) -> None:
         result = run(Path("/repo"), "HEAD", {})
         self.assertEqual(result.checks_run, ())
@@ -91,13 +88,6 @@ class RunnerTests(unittest.TestCase):
         run(Path("/repo"), "HEAD", {"check-b": {"pattern": "*.md"}})
 
         self.assertEqual(seen_configs["a"], {})
-
-    def test_register_check_as_a_decorator(self) -> None:
-        @register_check("decorated")
-        def my_check(repo_root, diff_range, config):
-            return []
-
-        self.assertIn("decorated", runner.registered_checks())
 
 
 if __name__ == "__main__":

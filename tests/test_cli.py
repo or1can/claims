@@ -8,16 +8,13 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from claims import runner
 from claims.cli import main, parse_args
 from claims.runner import Finding, register_check
 
+from support import RegistryClearingTestCase
 
-class CliTests(unittest.TestCase):
-    def setUp(self) -> None:
-        runner.clear_registry()
-        self.addCleanup(runner.clear_registry)
 
+class CliTests(RegistryClearingTestCase):
     def _run_main(self, argv: list[str]) -> tuple[int, str]:
         out = io.StringIO()
         with contextlib.redirect_stdout(out):

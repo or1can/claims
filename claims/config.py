@@ -17,7 +17,7 @@ class ConfigError(Exception):
     """Raised when `claims.toml` exists but can't be parsed."""
 
 
-def load_config(repo_root: Path) -> dict[str, object]:
+def load_config(repo_root: Path) -> dict[str, dict[str, object]]:
     config_path = repo_root / CONFIG_FILENAME
     if not config_path.is_file():
         return {}

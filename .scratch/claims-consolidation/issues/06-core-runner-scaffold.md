@@ -32,8 +32,7 @@ projects' checks are Python) and the spec's testing decision to reuse their
 
 - `claims/runner.py` — `Finding` (frozen dataclass: `file`, `line`,
   `message`, `mode`, `gate`, plus a `citation` property for `file:line`),
-  `register_check(name, fn=None)` (usable as a decorator or called
-  directly; raises on a duplicate name), and
+  `register_check(name, fn)` (raises on a duplicate name), and
   `run(repo_root, diff_range, config) -> RunResult`. Each registered check
   receives only `config.get(check_name, {})` — never the full project
   config — satisfying the per-check isolation requirement.
@@ -45,10 +44,23 @@ projects' checks are Python) and the spec's testing decision to reuse their
   `--diff-range` (default `HEAD`, i.e. working tree against `HEAD`). Exits
   1 with "0 checked" when no checks are registered, 1 when any gate
   finding is present, 2 on a malformed config file, 0 otherwise.
-- 17 tests across `tests/test_runner.py`, `tests/test_cli.py`,
+- 16 tests across `tests/test_runner.py`, `tests/test_cli.py`,
   `tests/test_config.py` (run via
   `python3 -m unittest discover -s tests -p 'test_*.py'` — no `pytest`
   available in this environment). All green.
+
+Post-review trim (`/code-review` against this ticket flagged both as
+unrequested on the Standards and Spec axes independently): dropped
+`register_check`'s decorator calling convention and the unused
+`registered_checks()` accessor — the ticket only asked for
+self-registration, not a second API shape. Also unified `runner.py`'s
+typing imports with `config.py`'s (`collections.abc` generics throughout,
+no bare `typing.Mapping`/`Callable`/`Sequence`), tightened
+`load_config`'s return type to `dict[str, dict[str, object]]` to match
+what `run()` actually assumes about config shape, and pulled the
+duplicated `clear_registry()` `setUp`/`addCleanup` pair out of
+`test_runner.py`/`test_cli.py` into a shared `tests/support.py` base
+class.
 
 Deferred, not this ticket's scope: no actual checks registered yet
 (tickets 07–13), no plugin packaging (ticket 18) — this is only the seam

@@ -7,9 +7,9 @@ a check list.
 
 from __future__ import annotations
 
+from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Callable, Mapping, Sequence
 
 CheckFn = Callable[[Path, str, Mapping[str, object]], Sequence["Finding"]]
 
@@ -44,29 +44,16 @@ class RunResult:
 _registry: dict[str, CheckFn] = {}
 
 
-def register_check(name: str, fn: CheckFn | None = None) -> CheckFn:
-    """Register `fn` under `name`. Usable as a decorator or called directly.
+def register_check(name: str, fn: CheckFn) -> None:
+    """Register `fn` under `name`.
 
     Raises if `name` is already registered — two checks silently sharing a
     name would mean one of them never runs.
     """
 
-    if fn is None:
-
-        def decorator(f: CheckFn) -> CheckFn:
-            register_check(name, f)
-            return f
-
-        return decorator  # type: ignore[return-value]
-
     if name in _registry:
         raise ValueError(f"check {name!r} is already registered")
     _registry[name] = fn
-    return fn
-
-
-def registered_checks() -> tuple[str, ...]:
-    return tuple(_registry)
 
 
 def clear_registry() -> None:
