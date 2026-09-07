@@ -66,3 +66,14 @@ the answer is inconvenient.
 You produce a verdict. You do not fix the claim, edit any file, or run any
 command that would alter the working tree or the commit in progress. Report
 your verdict and stop.
+
+**Known limitation, not a silently accepted gap:** your tool grant includes
+`Bash` (needed for the "run the command the claim implicitly asserts" case
+above), and nothing at the tool-grant level stops that from running a
+command that mutates the working tree — this Scope section is the only
+thing enforcing it. A caller that needs a stronger guarantee than "the
+model follows its instructions" must scope tools per invocation (e.g. drop
+`Bash` from the grant, or use `--allowedTools`/`--disallowedTools` with a
+command pattern) rather than relying on this file alone; the golden-fixture
+harness at `scripts/run_judgment_agent_golden.py` does exactly that, running
+without `Bash` at all since its fixtures never need a command run.

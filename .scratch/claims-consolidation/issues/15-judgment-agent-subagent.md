@@ -77,6 +77,37 @@ ticket since 06 touches `map.md` on resolve (that convention belongs to the
 here alone would be inconsistent with the whole batch. Logged the doc/
 practice drift in `TODO.md` instead.
 
+Second `/code-review` pass (Standards + Spec axes, against the resolved
+ticket), fixed before a follow-up commit:
+
+- Standards flagged `_extract_verdict`'s greedy `re.compile(r"\{.*\}",
+  re.DOTALL)` — first-`{`-to-last-`}` silently grabs the wrong span if the
+  model ever wraps its verdict object in extra text. Replaced with a
+  balanced-brace scan from the first `{`.
+- Spec flagged that checkbox 3 ("verified by checking it reads/executes
+  the actual code path") was earned only indirectly — the harness checked
+  the final verdict string, never the subagent's actual tool calls, so a
+  lucky grep-and-hallucinate could pass undetected. Switched the harness to
+  `--output-format stream-json`, which exposes every tool call the
+  subagent made; it now asserts no `Grep` call's pattern matches the
+  claim's own descriptive vocabulary (as opposed to a citation's exact
+  symbol/file name, which is a legitimate Grep target) and that some tool
+  call actually referenced the cited file. Re-ran both fixtures against
+  the strengthened harness — both still pass, `known_true` and
+  `known_false` each confirmed to have read `cache.py` directly rather
+  than matched on vocabulary.
+- Standards also noted (judgement call, not a hard violation — no prior
+  subagent file in this repo to set a narrower convention) that the
+  subagent's `Bash` grant has no tool-level restriction stopping a mutating
+  command, so "advisory only" is enforced by the prompt's own Scope
+  section alone. Documented this explicitly in
+  `claims/subagent/judgment_agent.md` as a known limitation, rather than
+  leaving it an implicit gap — a caller needing a stronger guarantee scopes
+  tools per invocation instead, which is exactly what the golden harness
+  itself already does (`--allowedTools Read,Glob,Grep`, no `Bash`).
+
+111 pre-existing tests still green throughout.
+
 **Two design decisions surfaced to the user before building, both taken as
 recommended:** (1) the subagent file's location, given ticket 18 hasn't
 built the plugin scaffold yet — `claims/subagent/judgment_agent.md`,
