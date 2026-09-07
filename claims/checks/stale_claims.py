@@ -1,0 +1,155 @@
+"""The `stale-claims` check.
+
+Ranks prose sections in tracked Markdown by how much the code they name has
+changed since the section was last touched. A churn-ranked candidate list,
+not a verdict: a hot file makes an accurate claim look suspicious, and a
+claim can rot while its subject sits still. Registered as an **advisory**
+check — see spec.md's check inventory — so it never fails the run.
+
+A claim is a Markdown *section* (heading to next heading, or the whole file
+if it has none). Its subject is the code it names: an explicit relative path
+that exists in the tree, or a backtick-quoted bare name that uniquely
+matches a tracked file's stem — a stem shared by more than one file names no
+single subject and is dropped rather than guessed at. `CHANGELOG.md` is
+excluded: its entries describe a release as it shipped, so their subjects
+moving afterwards is expected, not suspicious.
+
+Score is the largest fraction of any subject's commit history that happened
+strictly after the section was last touched (via `git blame`), so a claim
+predating most of a quiet file's life outranks one predating a sliver of a
+busier one.
+
+**Known blind spot, not a silently accepted gap:** a claim and its subject
+edited in the same commit score zero for that subject — the commit that
+touched both isn't counted as "after" the claim, since it *is* the claim's
+last touch. The comparison is by committer timestamp (`git blame`'s
+`committer-time`, second resolution), so two genuinely separate commits that
+happen to share a timestamp hit the same gap. A same-commit (or
+same-timestamp) rewrite of a claim to match a matching code change is
+therefore invisible to this check; nothing here catches it, and nothing
+here claims to.
+
+Ported from `ratect`'s `stale-claims.py` (Apache-2.0 prior art, same author),
+generalised: no per-language file-extension pattern and no per-project
+directory allowlist for bare-name matches — a bare-name match applies
+uniformly here, at the cost of the noise a project-specific allowlist would
+otherwise have filtered.
+
+Not diff-scoped, matching the check inventory: every tracked `*.md` file is
+swept, not just one a diff touched.
+"""
+
+from __future__ import annotations
+
+import bisect
+import re
+import subprocess
+from collections.abc import Mapping
+from pathlib import Path
+
+from ..runner import Finding, register_check
+
+NAME = "stale-claims"
+
+PATH_RE = re.compile(r"\b(?:[\w.-]+/)+[\w.-]+\.[A-Za-z0-9]+\b")
+MODULE_RE = re.compile(r"`([A-Za-z_][A-Za-z0-9_-]*)`")
+HEADING_RE = re.compile(r"^(#{1,6})\s+(.*)")
+
+
+def _git(repo_root: Path, *args: str) -> str:
+    return subprocess.run(
+        ["git", "-C", str(repo_root), *args],
+        capture_output=True,
+        text=True,
+        errors="replace",
+    ).stdout
+
+
+def _module_index(tracked: list[str]) -> dict[str, str]:
+    """Maps a file stem to its path, dropping any stem shared by >1 file."""
+
+    stems: dict[str, list[str]] = {}
+    for rel in tracked:
+        stems.setdefault(Path(rel).stem, []).append(rel)
+    return {stem: files[0] for stem, files in stems.items() if len(files) == 1}
+
+
+def check(
+    repo_root: Path, diff_range: str, config: Mapping[str, object]
+) -> list[Finding]:
+    tracked = [rel for rel in _git(repo_root, "ls-files").splitlines() if rel]
+    tracked_set = set(tracked)
+    modules = _module_index(tracked)
+    docs = sorted(
+        rel
+        for rel in tracked
+        if rel.endswith(".md") and Path(rel).name.lower() != "changelog.md"
+    )
+
+    history: dict[str, list[int]] = {}
+
+    def commits(path: str) -> list[int]:
+        if path not in history:
+            history[path] = sorted(
+                int(t) for t in _git(repo_root, "log", "--format=%ct", "--", path).split()
+            )
+        return history[path]
+
+    ranked: list[tuple[float, str, int, str]] = []
+    for rel in docs:
+        lines = (repo_root / rel).read_text(encoding="utf-8", errors="replace").splitlines()
+        if not lines:
+            continue
+        starts = [i for i, l in enumerate(lines) if HEADING_RE.match(l)] or [0]
+        for start, end in zip(starts, starts[1:] + [len(lines)]):
+            matched = HEADING_RE.match(lines[start])
+            body = "\n".join(lines[start:end])
+            subjects = {m for m in PATH_RE.findall(body) if m in tracked_set}
+            subjects |= {modules[m] for m in MODULE_RE.findall(body) if m in modules}
+            if not subjects:
+                continue
+
+            blame = _git(
+                repo_root, "blame", "-L", f"{start + 1},{end}", "--line-porcelain", "--", rel
+            )
+            stamps = [
+                int(l.split()[1])
+                for l in blame.splitlines()
+                if l.startswith("committer-time ")
+            ]
+            if not stamps:
+                continue
+            touched = max(stamps)
+
+            moved: dict[str, tuple[int, float]] = {}
+            for subject in sorted(subjects):
+                times = commits(subject)
+                if not times:
+                    continue
+                # Strictly-after: a commit that also touched the claim (same
+                # timestamp) is the claim's own last touch, not drift since
+                # it — this is the same-commit-move blind spot documented
+                # above, not an oversight here.
+                since = len(times) - bisect.bisect_right(times, touched)
+                if since:
+                    moved[subject] = (since, since / len(times))
+            if not moved:
+                continue
+
+            score = max(fraction for _, fraction in moved.values())
+            label = matched.group(2).strip() if matched else rel
+            detail = ", ".join(
+                f"{Path(p).name} {n} commit{'s' if n != 1 else ''} ({f:.0%} of its history)"
+                for p, (n, f) in sorted(moved.items(), key=lambda kv: -kv[1][1])[:3]
+            )
+            message = f"'{label}' names code {score:.0%} changed since last touched — {detail}"
+            ranked.append((score, rel, start + 1, message))
+
+    ranked.sort(key=lambda item: item[0], reverse=True)
+    return [
+        Finding(file=rel, line=line, message=message, mode=NAME, gate=False)
+        for _, rel, line, message in ranked
+    ]
+
+
+register_check(NAME, check)

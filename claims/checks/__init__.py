@@ -8,3 +8,4 @@ skill) must import this package before calling `run()`.
 from __future__ import annotations
 
 from . import executable_claims  # noqa: F401
+from . import stale_claims  # noqa: F401
