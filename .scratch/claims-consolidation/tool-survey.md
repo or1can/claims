@@ -8,10 +8,7 @@ generically below:
 - **Project A** — `ratect`, a Rust project, Apache-2.0, this repo's sibling
   and already public-licensed.
 - **Project B** — a private Swift application, same author.
-- **Project C** — a private MCP-server project (a different codebase, same
-  author, built for a client engagement). Excludes an unrelated
-  incident-comparison reporting tool found alongside its claims-checking
-  scripts — not part of the claims-checking family.
+- **Project C** — a private Python application, same author.
 
 ## 1. Project A's `tools/` (Rust)
 
