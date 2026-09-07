@@ -21,6 +21,7 @@ skill) must import this package before calling `run()`.
 
 from __future__ import annotations
 
+from . import check_citations  # noqa: F401
 from . import claim_words  # noqa: F401
 from . import executable_claims  # noqa: F401
 from . import restatement  # noqa: F401
