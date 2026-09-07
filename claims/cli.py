@@ -6,6 +6,7 @@ import argparse
 import sys
 from pathlib import Path
 
+from . import checks  # noqa: F401
 from .config import ConfigError, load_config
 from .runner import run
 
