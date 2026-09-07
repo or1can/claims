@@ -123,6 +123,45 @@ class CheckCitationsTests(RegistryClearingTestCase):
         self.assertEqual(len(findings), 1)
         self.assertEqual(findings[0].citation, "Sources/Room.swift:2")
 
+    def test_a_swift_was_marker_exempts_a_deliberately_historical_reference(
+        self,
+    ) -> None:
+        with Repo() as repo:
+            repo.write("Sources/Room.swift", "func loadWidget() -> Widget {}\n")
+            repo.commit()
+            repo.write(
+                "Sources/Room.swift",
+                "func loadGadget() -> Gadget {}\n"
+                "// was: loadWidget\n"
+                "// loadGadget replaced `loadWidget`.\n",
+            )
+            repo.commit()
+
+            findings = self._findings(repo.root)
+
+        self.assertEqual(findings, [])
+
+    def test_a_swift_comment_with_trailing_prose_is_not_a_marker(self) -> None:
+        # The marker must be the whole comment, not just start with "was:" —
+        # trailing prose after it must not ride along as if it were the
+        # marker (regression: this used to pass with a bare `startswith`
+        # check).
+        with Repo() as repo:
+            repo.write("Sources/Room.swift", "func loadWidget() -> Widget {}\n")
+            repo.commit()
+            repo.write(
+                "Sources/Room.swift",
+                "func loadGadget() -> Gadget {}\n"
+                "// was: loadWidget, replaced by loadGadget\n"
+                "// still references `loadWidget` here.\n",
+            )
+            repo.commit()
+
+            findings = self._findings(repo.root)
+
+        self.assertEqual(len(findings), 1)
+        self.assertEqual(findings[0].citation, "Sources/Room.swift:3")
+
     def test_a_citation_to_a_test_target_name_is_not_flagged(self) -> None:
         # A directory named like a test target is never itself a declared
         # symbol, but prose citing it must not be read as a dead citation.

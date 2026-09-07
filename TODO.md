@@ -21,3 +21,17 @@
   italics, or a fixed lead-in phrase) is private to that one check. If a
   future check (e.g. ticket 11's `spliced-docs`) needs the same judgment,
   promote it to a shared module instead of reimplementing it.
+- `claims/checks/check_citations.py`'s `_declared_ever` re-walks the whole
+  repository's history (`git log -p` over every `*.swift` commit) on every
+  invocation, with nothing persisted between runs. Fine at this repo's
+  scale; on a large, long-lived Swift repo run as a pre-commit hook, this
+  cost is paid in full on every single commit. Noticed while implementing
+  ticket 12; a fix would need a cache keyed on the last-seen commit SHA,
+  which is a bigger change than this ticket's scope.
+- `claims/checks/check_citations.py`'s `_findings_in` doesn't de-duplicate:
+  the same dead name cited twice in one line produces two identical
+  `Finding`s (same file/line/message). Harmless noise for an advisory
+  check, but this one is a **gate** check, so a commit gets blocked with a
+  duplicated reason for what is really one problem. Noticed while
+  implementing ticket 12; not fixed there since it's cosmetic, not a
+  correctness gap.

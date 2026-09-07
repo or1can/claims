@@ -82,6 +82,10 @@ EXEMPT_RE = re.compile(r"was:\s*([A-Za-z_][A-Za-z_0-9]*)")
 # was: `loadWidget`"), so the exemption only applies inside an HTML comment
 # in Markdown, or when a Swift comment *is* the marker start-to-end.
 MARKDOWN_MARKER_RE = re.compile(r"<!--(.*?)-->")
+# The whole Swift comment, start to end — not just a comment that *starts*
+# with "was:", which would still let trailing prose ("was: loadWidget,
+# replaced by loadGadget") ride along as if it were part of the marker.
+SWIFT_MARKER_RE = re.compile(r"^was:\s*([A-Za-z_][A-Za-z_0-9]*)\s*$", re.IGNORECASE)
 
 
 class _UnusableRepository(Exception):
@@ -199,9 +203,8 @@ def _exempt_names(text: str, markdown: bool) -> set[str]:
     if markdown:
         comments = MARKDOWN_MARKER_RE.findall(text)
         return {name for comment in comments for name in EXEMPT_RE.findall(comment)}
-    if not text.strip().lower().startswith("was:"):
-        return set()
-    return set(EXEMPT_RE.findall(text))
+    match = SWIFT_MARKER_RE.match(text.strip())
+    return {match.group(1)} if match else set()
 
 
 def _findings_in(rel: str, lines: list[str], current: set[str], gone: set[str], extract):
