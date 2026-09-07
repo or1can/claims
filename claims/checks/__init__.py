@@ -24,4 +24,5 @@ from __future__ import annotations
 from . import claim_words  # noqa: F401
 from . import executable_claims  # noqa: F401
 from . import restatement  # noqa: F401
+from . import spliced_docs  # noqa: F401
 from . import stale_claims  # noqa: F401
