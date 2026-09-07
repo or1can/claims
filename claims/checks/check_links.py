@@ -53,9 +53,10 @@ from ..runner import Finding, register_check
 
 NAME = "check-links"
 
-# `]\(...\)`, one match per line — a well-formed markdown link's destination
-# never itself contains a literal `)`, the same assumption the source tool's
-# line-based scan makes.
+# `]\(...\)` — every match on a line, not just the first, so a line with
+# more than one link still gets each of them. `[^)]*` assumes a well-formed
+# markdown link's destination never itself contains a literal `)`, the same
+# assumption the source tool's line-based scan makes.
 LINK_RE = re.compile(r"\]\(([^)]*)\)")
 # Only a target naming another `.md` file (with or without `#anchor`), or a
 # bare `#anchor`, is in scope — this is what excludes images, source-file
@@ -129,6 +130,10 @@ def _target_slugs(repo_root: Path, repo_real: Path, resolved: str) -> set[str] |
     return _slugs_of(text)
 
 
+def _finding(rel: str, line_no: int, message: str) -> Finding:
+    return Finding(file=rel, line=line_no, message=message, mode=NAME, gate=True)
+
+
 def check(repo_root: Path, diff_range: str, config: Mapping[str, object]) -> list[Finding]:
     repo_real = repo_root.resolve()
     # Keyed on the resolved target path, not per link: a heavily cross-linked
@@ -151,26 +156,14 @@ def check(repo_root: Path, diff_range: str, config: Mapping[str, object]) -> lis
                     slug_cache[resolved] = _target_slugs(repo_root, repo_real, resolved)
                 slugs = slug_cache[resolved]
                 if slugs is None:
-                    findings.append(
-                        Finding(
-                            file=rel,
-                            line=line_no,
-                            message=f"broken link: {target}",
-                            mode=NAME,
-                            gate=True,
-                        )
-                    )
+                    findings.append(_finding(rel, line_no, f"broken link: {target}"))
                 elif anchor and anchor not in slugs:
                     findings.append(
-                        Finding(
-                            file=rel,
-                            line=line_no,
-                            message=(
-                                f"broken anchor: {target} "
-                                f"({resolved} has no heading with that slug)"
-                            ),
-                            mode=NAME,
-                            gate=True,
+                        _finding(
+                            rel,
+                            line_no,
+                            f"broken anchor: {target} "
+                            f"({resolved} has no heading with that slug)",
                         )
                     )
     return findings
