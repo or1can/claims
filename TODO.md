@@ -35,3 +35,15 @@
   duplicated reason for what is really one problem. Noticed while
   implementing ticket 12; not fixed there since it's cosmetic, not a
   correctness gap.
+- `docs/agents/issue-tracker.md`'s Resolve convention ("append a context
+  pointer to the map's Decisions-so-far in `map.md`") describes the
+  5-ticket wayfinder phase (tickets 01–05), already fully resolved and
+  superseded by `spec.md` via `/to-spec`. No implementation ticket since
+  (06 through at least 15) touches `map.md` on resolve, and none should —
+  the map no longer tracks their state, `spec.md` and each ticket's own
+  `## Answer` do. The doc's wording doesn't say this convention stopped
+  applying once the map was collapsed, which reads as a live requirement
+  every later ticket is silently skipping. Noticed while implementing
+  ticket 15 (a `/code-review` finding flagged the "violation" against the
+  literal text); not fixed here since it's a docs-only clarification
+  belonging to whichever ticket next touches `docs/agents/issue-tracker.md`.
