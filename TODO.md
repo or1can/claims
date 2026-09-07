@@ -1,17 +1,13 @@
 # TODO
 
-- `claims/checks/claim_words.py`'s `_added_lines` (ticket 10) parses the
-  same unified-diff hunk format `restatement.py`'s `_diff_by_file` already
-  does independently — a candidate for promotion to `claims/git.py`, the
-  way `tracked_files` unified two checks' own `ls-files` calls after ticket
-  08. Not done in ticket 10's own commit; a follow-up gardening commit
-  should do it.
-- `claims/checks/claim_words.py`'s `_added_lines` only recognizes git's
-  default `+++ b/<path>` diff-header prefix — inherited as-is from
-  Project B's `tools/claim-words.py`, its source. A repo with
-  `diff.mnemonicPrefix` or `diff.noprefix` set produces a different prefix,
-  and `claim-words` silently sees zero added lines for the whole run rather
-  than erroring. Not fixed here — out of ticket 10's scope.
+- `claims/git.py`'s `added_lines_by_file` (ticket 10, promoted from
+  `claim_words.py`'s own diff parser in the follow-up gardening commit)
+  only recognizes git's default `+++ b/<path>` diff-header prefix —
+  inherited as-is from Project B's `tools/claim-words.py`, its source. A
+  repo with `diff.mnemonicPrefix` or `diff.noprefix` set produces a
+  different prefix, and `claim-words` silently sees zero added lines for
+  the whole run rather than erroring. Not fixed here — out of ticket 10's
+  scope.
 - `claims/runner.py`'s `run()` has no per-check exception isolation: a
   check that raises (a malformed check-specific config value, a `git diff`
   against an unborn `HEAD`) propagates straight out of `run()` and crashes

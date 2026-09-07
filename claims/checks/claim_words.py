@@ -59,10 +59,11 @@ from __future__ import annotations
 
 import fnmatch
 import re
-import subprocess
 from collections.abc import Mapping, Sequence
 from pathlib import Path
+from typing import NamedTuple
 
+from ..git import added_lines_by_file
 from ..runner import Finding, register_check
 
 NAME = "claim-words"
@@ -150,33 +151,6 @@ BLOCKQUOTE_RE = re.compile(r"^>(\s|$)")
 LEAD_IN = "previously said:"
 
 
-def _added_lines(repo_root: Path, diff_range: str) -> dict[str, set[int]]:
-    """`{path: {added line numbers, in the new file}}` for `diff_range`."""
-
-    diff = subprocess.run(
-        ["git", "diff", "--unified=0", "--no-color", diff_range or "HEAD"],
-        cwd=repo_root,
-        capture_output=True,
-        text=True,
-        check=True,
-    ).stdout
-
-    added: dict[str, set[int]] = {}
-    path = None
-    line_no = 0
-    for line in diff.splitlines():
-        if line.startswith("+++ b/"):
-            path = line[6:]
-        elif line.startswith("@@"):
-            header = re.search(r"\+(\d+)", line)
-            line_no = int(header.group(1)) if header else 0
-        elif line.startswith("+") and not line.startswith("+++"):
-            if path:
-                added.setdefault(path, set()).add(line_no)
-            line_no += 1
-    return added
-
-
 def _files(config: Mapping[str, object]) -> Sequence[str]:
     patterns = config.get("files", [])
     # A project meaning to designate one file (`files = "record.md"`) is a
@@ -225,15 +199,21 @@ def _classify(sentence: str) -> list[str]:
     return modes
 
 
-def _sentences_from(text: str) -> list[tuple[str, int, int]]:
-    """`(sentence, start_line, end_line)`, 0-based inclusive line indices.
+class _Sentence(NamedTuple):
+    text: str
+    start: int  # 0-based, inclusive
+    end: int  # 0-based, inclusive
+
+
+def _sentences_from(text: str) -> list[_Sentence]:
+    """Every sentence in `text`, with the line span it occupies.
 
     Paragraphs (blank-line separated) are joined before splitting into
     sentences, so a sentence soft-wrapped across lines is read whole.
     """
 
     lines = text.splitlines()
-    results: list[tuple[str, int, int]] = []
+    results: list[_Sentence] = []
     para_start = 0
     for i in range(len(lines) + 1):
         at_end = i == len(lines)
@@ -246,7 +226,7 @@ def _sentences_from(text: str) -> list[tuple[str, int, int]]:
                     end = para_start + para_text[: match.end()].count("\n")
                     sentence = " ".join(match.group(0).split())
                     if sentence:
-                        results.append((sentence, start, end))
+                        results.append(_Sentence(sentence, start, end))
             para_start = i + 1
     return results
 
@@ -258,7 +238,7 @@ def check(
     if not patterns:
         return []
 
-    added = _added_lines(repo_root, diff_range)
+    added = added_lines_by_file(repo_root, diff_range)
     findings: list[Finding] = []
 
     for path, added_line_numbers in sorted(added.items()):

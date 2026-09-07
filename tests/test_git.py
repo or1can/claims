@@ -18,7 +18,7 @@ from __future__ import annotations
 
 import unittest
 
-from claims.git import tracked_files
+from claims.git import added_lines_by_file, tracked_files
 
 from support import Repo
 
@@ -41,6 +41,39 @@ class TrackedFilesTests(unittest.TestCase):
         with Repo() as repo:
             files = tracked_files(repo.root)
         self.assertEqual(files, [])
+
+
+class AddedLinesByFileTests(unittest.TestCase):
+    def test_added_line_numbers_are_in_the_new_file(self) -> None:
+        with Repo() as repo:
+            repo.write("doc.md", "one\ntwo\nthree\n")
+            repo.commit()
+            repo.write("doc.md", "one\ntwo\nadded\nthree\n")
+
+            added = added_lines_by_file(repo.root, "HEAD")
+
+        self.assertEqual(added, {"doc.md": {3}})
+
+    def test_a_removed_only_line_adds_nothing(self) -> None:
+        with Repo() as repo:
+            repo.write("doc.md", "one\ntwo\nthree\n")
+            repo.commit()
+            repo.write("doc.md", "one\nthree\n")
+
+            added = added_lines_by_file(repo.root, "HEAD")
+
+        self.assertEqual(added, {})
+
+    def test_a_file_with_no_added_lines_is_absent(self) -> None:
+        with Repo() as repo:
+            repo.write("doc.md", "text\n")
+            repo.write("other.md", "text\n")
+            repo.commit()
+            repo.write("other.md", "text\nmore\n")
+
+            added = added_lines_by_file(repo.root, "HEAD")
+
+        self.assertEqual(added, {"other.md": {2}})
 
 
 if __name__ == "__main__":
