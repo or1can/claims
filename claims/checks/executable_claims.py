@@ -21,6 +21,7 @@ import subprocess
 from collections.abc import Mapping, Sequence
 from pathlib import Path
 
+from ..git import tracked_files
 from ..runner import Finding, register_check
 
 NAME = "executable-claims"
@@ -78,11 +79,7 @@ def check(
     # failure reported, twice.
     seen: set[Path] = set()
 
-    tracked = subprocess.run(
-        ["git", "-C", str(repo_root), "ls-files", "*.md"],
-        capture_output=True,
-        text=True,
-    ).stdout.split()
+    tracked = tracked_files(repo_root, "*.md")
 
     for rel in tracked:
         real = (repo_root / rel).resolve()

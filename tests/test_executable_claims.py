@@ -12,9 +12,7 @@ from __future__ import annotations
 import contextlib
 import io
 import shlex
-import subprocess
 import sys
-import tempfile
 import unittest
 from pathlib import Path
 
@@ -22,25 +20,7 @@ from claims.checks.executable_claims import NAME, check
 from claims.cli import main
 from claims.runner import Finding, register_check, run
 
-from support import RegistryClearingTestCase
-
-
-class Repo:
-    """A throwaway git repository — the check finds files with `git
-    ls-files`, so an unversioned directory has nothing to check."""
-
-    def __enter__(self) -> "Repo":
-        self._temp = tempfile.TemporaryDirectory()
-        self.root = Path(self._temp.name)
-        subprocess.run(["git", "init", "-q", str(self.root)], check=True)
-        return self
-
-    def __exit__(self, *_exc: object) -> None:
-        self._temp.cleanup()
-
-    def write(self, name: str, text: str) -> None:
-        (self.root / name).write_text(text, encoding="utf-8")
-        subprocess.run(["git", "-C", str(self.root), "add", name], check=True)
+from support import RegistryClearingTestCase, Repo
 
 
 def marked(command: str, body: str) -> str:
@@ -109,6 +89,12 @@ class ExecutableClaimsTests(RegistryClearingTestCase):
     def test_the_prompt_line_of_a_transcript_is_not_compared(self) -> None:
         with Repo() as repo:
             repo.write("doc.md", marked(echo("hello\n"), "$ some-command\nhello"))
+            findings = self._findings(repo.root)
+        self.assertEqual(findings, [])
+
+    def test_a_tracked_filename_containing_a_space_is_still_swept(self) -> None:
+        with Repo() as repo:
+            repo.write("release notes.md", marked(echo("hello\n"), "hello"))
             findings = self._findings(repo.root)
         self.assertEqual(findings, [])
 

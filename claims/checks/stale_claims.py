@@ -46,10 +46,19 @@ import re
 import subprocess
 from collections.abc import Mapping
 from pathlib import Path
+from typing import NamedTuple
 
+from ..git import tracked_files
 from ..runner import Finding, register_check
 
 NAME = "stale-claims"
+
+
+class _Candidate(NamedTuple):
+    score: float
+    file: str
+    line: int
+    message: str
 
 PATH_RE = re.compile(r"\b(?:[\w.-]+/)+[\w.-]+\.[A-Za-z0-9]+\b")
 MODULE_RE = re.compile(r"`([A-Za-z_][A-Za-z0-9_-]*)`")
@@ -77,7 +86,7 @@ def _module_index(tracked: list[str]) -> dict[str, str]:
 def check(
     repo_root: Path, diff_range: str, config: Mapping[str, object]
 ) -> list[Finding]:
-    tracked = [rel for rel in _git(repo_root, "ls-files").splitlines() if rel]
+    tracked = tracked_files(repo_root)
     tracked_set = set(tracked)
     modules = _module_index(tracked)
     docs = sorted(
@@ -95,7 +104,7 @@ def check(
             )
         return history[path]
 
-    ranked: list[tuple[float, str, int, str]] = []
+    ranked: list[_Candidate] = []
     for rel in docs:
         lines = (repo_root / rel).read_text(encoding="utf-8", errors="replace").splitlines()
         if not lines:
@@ -143,12 +152,12 @@ def check(
                 for p, (n, f) in sorted(moved.items(), key=lambda kv: -kv[1][1])[:3]
             )
             message = f"'{label}' names code {score:.0%} changed since last touched — {detail}"
-            ranked.append((score, rel, start + 1, message))
+            ranked.append(_Candidate(score, rel, start + 1, message))
 
-    ranked.sort(key=lambda item: item[0], reverse=True)
+    ranked.sort(key=lambda candidate: candidate.score, reverse=True)
     return [
-        Finding(file=rel, line=line, message=message, mode=NAME, gate=False)
-        for _, rel, line, message in ranked
+        Finding(file=c.file, line=c.line, message=c.message, mode=NAME, gate=False)
+        for c in ranked
     ]
 
 
