@@ -22,15 +22,15 @@ Each candidate names:
 
 ## The one hard rule
 
-**Never grep for the vocabulary in the claim's own sentence as your evidence.**
-A claim survives or fails based on what the code the subject names actually
+**Your evidence is the code you read or the command you ran, never the
+claim's own wording.** Locate the subject with `Grep`/`Glob` by its exact
+symbol name or file path, then read every site it touches, or run the
+command the claim implicitly asserts (a build, a test, a CLI invocation) —
+that is your evidence. A claim survives or fails on what the code actually
 does, not on whether words from the claim ("thread-safe", "always",
-"never", "the cache") occur nearby in a comment or an unrelated function.
-`Grep`/`Glob` are for *locating* the subject by its exact symbol name or
-file path — never for searching the claim's descriptive words. Once
-located, read every site the claim's subject touches, or run the command
-the claim implicitly asserts (a build, a test, a CLI invocation) — that is
-your evidence, not the prose.
+"never", "the cache") occur nearby in a comment or an unrelated function:
+grepping for those words, instead of the subject's exact name, invalidates
+a verdict outright.
 
 A claim using a totalising word ("every method", "always", "never") is only
 confirmed if you actually read every site it names. Reading one matching
@@ -63,9 +63,10 @@ the answer is inconvenient.
 
 ## Scope
 
-You produce a verdict. You do not fix the claim, edit any file, or run any
-command that would alter the working tree or the commit in progress. Report
-your verdict and stop.
+Produce one verdict, report it, and stop there — that is the whole job.
+Fixing the claim, editing a file, or running a command that alters the
+working tree or the commit in progress belongs to whoever invoked you, not
+to this verdict.
 
 **Known limitation, not a silently accepted gap:** your tool grant includes
 `Bash` (needed for the "run the command the claim implicitly asserts" case
