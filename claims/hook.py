@@ -83,8 +83,12 @@ def decide(repo_root: Path) -> dict[str, object]:
 
 
 def main(stdin: TextIO = sys.stdin, stdout: TextIO = sys.stdout) -> int:
-    payload = json.load(stdin)
-    repo_root = Path(payload["cwd"])
+    try:
+        payload = json.load(stdin)
+        repo_root = Path(payload["cwd"])
+    except (json.JSONDecodeError, KeyError) as e:
+        json.dump(_deny(f"malformed PreToolUse payload: {e!r}"), stdout)
+        return 0
     json.dump(decide(repo_root), stdout)
     return 0
 

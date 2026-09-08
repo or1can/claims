@@ -137,6 +137,15 @@ class HookTests(RegistryClearingTestCase):
         self.assertEqual(hook_output["permissionDecision"], "deny")
         self.assertIn("claims.toml", hook_output["permissionDecisionReason"])
 
+    def test_malformed_stdin_payload_denies_rather_than_crashing(self) -> None:
+        stdin = io.StringIO("not valid json")
+        stdout = io.StringIO()
+        code = main(stdin, stdout)
+        self.assertEqual(code, 0)
+
+        output = json.loads(stdout.getvalue())
+        self.assertEqual(output["hookSpecificOutput"]["permissionDecision"], "deny")
+
 
 if __name__ == "__main__":
     unittest.main()

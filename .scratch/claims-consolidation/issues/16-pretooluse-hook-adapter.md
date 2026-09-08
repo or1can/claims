@@ -50,11 +50,33 @@ own working principles, not a scenario the ticket's checklist enumerates.
 7 tests in `tests/test_hook.py`, fixture stdin/stdout JSON only — no live
 Claude Code session. All 118 project tests green; `pyright` clean.
 
-Post-`/code-review` (both axes): fixed the hook's zero-checks-registered path
-(it fell through to a silent `{}` allow — a real fail-open the CLI's own
-"0 checked ≠ clean pass" precedent already guards against) and folded
-advisory findings into the deny reason alongside gate findings. Also
-extracted the `[GATE|advisory] file:line (mode) message` formatting
-`cli.py` and `hook.py` had each written out independently into
-`Finding.__str__` on `runner.py`, landed as a separate gardening commit —
-no behavior change, so no new red for that part.
+Post-`/code-review` (round 1, both axes): fixed the hook's zero-checks-
+registered path (it fell through to a silent `{}` allow — a real fail-open
+the CLI's own "0 checked ≠ clean pass" precedent already guards against) and
+folded advisory findings into the deny reason alongside gate findings. Also
+extracted the `[GATE|advisory] file:line (mode) message` formatting `cli.py`
+and `hook.py` had each written out independently into `Finding.__str__` on
+`runner.py`, landed as a separate gardening commit — no behavior change, so
+no new red for that part.
+
+Post-`/code-review` (round 2, both axes, run against the full ticket diff
+after round 1's fixes): two real findings, both fixed. First,
+`main()`'s stdin/`payload["cwd"]` parsing was unguarded while the adjacent
+`claims.toml` parsing right next to it was already caught — the same
+"crash leaves no valid JSON on stdout" failure mode the `ConfigError`
+handling exists to avoid, just not applied symmetrically; now `main()`
+catches `json.JSONDecodeError`/`KeyError` and denies with a reason, same as
+the config path, with a new test. Second — and more serious — the first
+round's feature commit (`23a84a2`, since rewritten as `0d670b8`) was
+red in isolation: `hook.py`'s `_summarize` had already been switched to call
+`str(f)` in that commit, but `Finding.__str__` wasn't added until the
+*next* commit, so checking out the feature commit alone failed 3 of 7
+tests — an atomicity bug in how the two commits were split, not a defect in
+the shipped `HEAD` state. Fixed by rewriting both (still-unpushed) commits:
+the feature commit keeps `hook.py`'s original inline formatting and is
+independently green (verified by stashing the gardening files and rerunning
+the suite before committing); the gardening commit now carries `hook.py`'s
+switch to `str(f)` alongside `Finding.__str__` and `cli.py`'s reuse of it,
+where it belongs. The round-1 Answer's "9 tests" claim was also just wrong
+(actual count, then and now: 7) — corrected in place rather than compounding
+the error with a round-2 caveat.
