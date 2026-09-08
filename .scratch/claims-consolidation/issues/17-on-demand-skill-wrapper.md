@@ -59,3 +59,15 @@ the description entirely, so the body's claim is actually true. Spec found
 nothing: all three checklist items map onto `claims.cli`/`checks/__init__.py`
 behavior already covered by `tests/test_cli.py`, no ticket-18 territory
 touched.
+
+Post-`/writing-for-agents`: the ticket-18 reference in "Running it" leaked
+this repo's internal issue-tracker jargon into an artifact meant to ship —
+already wrong the moment ticket 18 packages the plugin, since nothing
+would still be "installing wherever ticket 18" does. Reworded to state the
+durable fact ("the plugin's root directory") instead of naming the ticket.
+Also collapsed the description's four near-synonym trigger phrasings
+("check claims, verify documentation accuracy, audit prose against code,
+or run the claims checks") down to the two that cover genuinely distinct
+branches, and reworded "Why there's nothing else here" from a negation
+("this skill never lists which checks exist") to the positive fact it was
+protecting, trimmed to one paragraph.
