@@ -92,10 +92,11 @@ ticket), fixed before a follow-up commit:
   subagent made; it now asserts no `Grep` call's pattern matches the
   claim's own descriptive vocabulary (as opposed to a citation's exact
   symbol/file name, which is a legitimate Grep target) and that some tool
-  call actually referenced the cited file. Re-ran both fixtures against
-  the strengthened harness — both still pass, `known_true` and
-  `known_false` each confirmed to have read `cache.py` directly rather
-  than matched on vocabulary.
+  call referenced the cited file. Re-ran both fixtures against the
+  strengthened harness — both still pass. (This "referenced" check turned
+  out to be weaker than it reads — see the third review round below, which
+  tightened it to an actual `Read` and corrects this paragraph's original,
+  overstated "confirmed to have read `cache.py` directly.")
 - Standards also noted (judgement call, not a hard violation — no prior
   subagent file in this repo to set a narrower convention) that the
   subagent's `Bash` grant has no tool-level restriction stopping a mutating
@@ -107,6 +108,36 @@ ticket), fixed before a follow-up commit:
   itself already does (`--allowedTools Read,Glob,Grep`, no `Bash`).
 
 111 pre-existing tests still green throughout.
+
+A third `/code-review` pass (Standards + Spec, against all three commits so
+far) found the second round's fixes hadn't fully closed what they claimed
+to:
+
+- **Spec's core finding**: the "cited file referenced" check accepted
+  *any* tool call naming the file — including a `Grep` scoped to that
+  path — so a subagent that only ever grepped for `self._lock` and counted
+  hits (never opening the file with `Read`) could still pass. That's the
+  exact grep-and-guess failure mode checkbox 3 exists to catch, and the
+  previous round's Answer text overstated what was actually verified.
+  Fixed by requiring a genuine `Read` tool call on the cited file
+  specifically, not any tool call merely mentioning its name.
+- Spec also found the vocabulary-dodge check missed plural/inflected
+  forms: the claim says "threads", a Grep pattern of "thread" wouldn't
+  match `\bthreads\b` and evaded detection. Fixed by stemming both the
+  claim's forbidden words and the Grep pattern's words (strip one trailing
+  suffix — `s`/`es`/`ing`/`ed`/`tion`/`ational`/`ization`) before
+  comparing as sets; documented in the new `_stem` docstring as a
+  heuristic, not a real lemmatizer — it closes the specific plural case
+  found, not every synonym or inflection.
+- Standards found the balanced-brace scan wasn't string-aware: a `{`/`}`
+  inside a quoted JSON string value (e.g. a `reasoning` field quoting code
+  like `self._store = {}`) would desync the depth counter. Fixed by
+  tracking quote/escape state during the scan.
+
+Re-ran both fixtures against the doubly-strengthened harness — both still
+pass, and this time the passing run's own transcript shows a `Read` call
+on `cache.py` in both cases (not just a `Grep`), which is what the fix
+was for. 111 pre-existing tests still green.
 
 **Two design decisions surfaced to the user before building, both taken as
 recommended:** (1) the subagent file's location, given ticket 18 hasn't

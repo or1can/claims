@@ -68,13 +68,27 @@ def _extract_verdict(result_text: str) -> dict[str, Any]:
     # A balanced-brace scan from the first `{`, not a greedy regex — a
     # regex spanning first-`{`-to-last-`}` would silently grab the wrong
     # span if the model ever wraps the object in extra text despite being
-    # told to output nothing else.
+    # told to output nothing else. String-aware (tracks quotes and escapes)
+    # so a `{`/`}` inside a JSON string value — e.g. a `reasoning` field
+    # quoting code like `self._store = {}` — doesn't desync the depth count.
     start = result_text.find("{")
     if start == -1:
         raise ValueError(f"no JSON object found in subagent output: {result_text!r}")
     depth = 0
+    in_string = False
+    escaped = False
     for index, char in enumerate(result_text[start:], start):
-        if char == "{":
+        if in_string:
+            if escaped:
+                escaped = False
+            elif char == "\\":
+                escaped = True
+            elif char == '"':
+                in_string = False
+            continue
+        if char == '"':
+            in_string = True
+        elif char == "{":
             depth += 1
         elif char == "}":
             depth -= 1
@@ -93,8 +107,23 @@ def _cited_file(claim: str) -> str | None:
     return None
 
 
+_SUFFIXES = ("ization", "ational", "tion", "ing", "ed", "es", "s")
+
+
+def _stem(word: str) -> str:
+    """Strip one trailing suffix — enough to match "threads" against a Grep
+    for "thread", not a real lemmatizer. A stemmed match is still only a
+    heuristic: it won't catch every synonym or inflection, only the plain
+    plural/verb-form case this check exists to close."""
+
+    for suffix in _SUFFIXES:
+        if word.endswith(suffix) and len(word) - len(suffix) >= 3:
+            return word[: -len(suffix)]
+    return word
+
+
 def _forbidden_vocabulary(claim: str) -> set[str]:
-    """The claim's own descriptive prose, as whole words, minus its backticked citations and stopwords.
+    """The claim's own descriptive prose, as stemmed words, minus its backticked citations and stopwords.
 
     Citations (backticked symbol/file names) are legitimate Grep/Glob
     targets — locating a subject by its exact name is the check's job. This
@@ -105,7 +134,7 @@ def _forbidden_vocabulary(claim: str) -> set[str]:
 
     without_citations = re.sub(r"`[^`]*`", " ", claim)
     words = {w.lower() for w in re.findall(r"[A-Za-z]+", without_citations)}
-    return words - _STOPWORDS
+    return {_stem(w) for w in words - _STOPWORDS}
 
 
 def _tool_calls(events: list[dict[str, Any]]) -> list[dict[str, Any]]:
@@ -174,14 +203,22 @@ def _run_fixture(fixture_dir: Path, system_prompt: str) -> tuple[bool, str]:
         if call.get("name") != "Grep":
             continue
         pattern = str(call.get("input", {}).get("pattern", "")).lower()
-        hit = next((w for w in forbidden if re.search(rf"\b{re.escape(w)}\b", pattern)), None)
+        pattern_words = {_stem(w) for w in re.findall(r"[A-Za-z]+", pattern)}
+        hit = forbidden & pattern_words
         if hit:
-            return False, f"Grep pattern {pattern!r} used claim vocabulary {hit!r}, not a symbol lookup"
+            return False, f"Grep pattern {pattern!r} used claim vocabulary {sorted(hit)!r}, not a symbol lookup"
 
+    # Require an actual `Read` of the cited file, not merely a tool call
+    # that *names* it (e.g. a `Grep` scoped to that path) — a grep-the-
+    # symbol-and-count-hits strategy never reads the code and must not pass.
     cited_file = _cited_file(claim)
-    inputs_seen = " ".join(str(v) for call in tool_calls for v in call.get("input", {}).values())
-    if cited_file and cited_file not in inputs_seen:
-        return False, f"no tool call read/referenced the cited file {cited_file!r} — tool inputs: {inputs_seen!r}"
+    read_paths = [
+        str(call.get("input", {}).get("file_path", ""))
+        for call in tool_calls
+        if call.get("name") == "Read"
+    ]
+    if cited_file and not any(cited_file in path for path in read_paths):
+        return False, f"no Read call opened the cited file {cited_file!r} — Read calls: {read_paths!r}"
 
     return True, f"verdict={verdict['verdict']!r} evidence={verdict['evidence']!r}"
 
