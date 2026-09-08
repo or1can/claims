@@ -56,8 +56,7 @@ def main(argv: list[str] | None = None) -> int:
         return 1
 
     for finding in result.findings:
-        marker = "GATE" if finding.gate else "advisory"
-        print(f"[{marker}] {finding.citation} ({finding.mode}) {finding.message}")
+        print(finding)
 
     gate_findings = [f for f in result.findings if f.gate]
     print(

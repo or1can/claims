@@ -48,6 +48,10 @@ class Finding:
     def citation(self) -> str:
         return f"{self.file}:{self.line}"
 
+    def __str__(self) -> str:
+        marker = "GATE" if self.gate else "advisory"
+        return f"[{marker}] {self.citation} ({self.mode}) {self.message}"
+
 
 @dataclass(frozen=True)
 class RunResult:

@@ -37,10 +37,7 @@ HOOK_EVENT_NAME = "PreToolUse"
 
 
 def _summarize(findings: tuple[Finding, ...]) -> str:
-    return "\n".join(
-        f"[{'GATE' if f.gate else 'advisory'}] {f.citation} ({f.mode}) {f.message}"
-        for f in findings
-    )
+    return "\n".join(str(f) for f in findings)
 
 
 def _deny(reason: str) -> dict[str, object]:
