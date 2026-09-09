@@ -20,15 +20,35 @@ it if the resolved target stays within `repo_root`, keep refusing it
 
 **Blocked by:** 13.
 
-**Status:** ready-for-agent
+**Status:** resolved
 
-- [ ] A tracked file that is a symlink to another tracked file inside the
+- [x] A tracked file that is a symlink to another tracked file inside the
       repo (the `CLAUDE.md` → `AGENTS.md` pattern, or an equivalent fixture)
       is read through and its heading anchors validated normally — not
       reported as a broken link.
-- [ ] A symlink whose resolved target lands outside `repo_root` is still
+- [x] A symlink whose resolved target lands outside `repo_root` is still
       refused and reported broken, not silently followed.
-- [ ] A regression test reproduces the `CLAUDE.md`/`AGENTS.md` shape
+- [x] A regression test reproduces the `CLAUDE.md`/`AGENTS.md` shape
       directly (a fixture repo with that symlink pair), not just asserted
       against `ratect`'s real tree.
-- [ ] Full test suite and `pyright claims tests` stay clean.
+- [x] Full test suite and `pyright claims tests` stay clean.
+
+## Comments
+
+Fixed in `check_links.py`'s `_target_slugs` (the function that actually
+resolves a link's *target*, not `_read`, which only reads the citing file —
+the ticket's `_read_text` reference predates a since-renamed helper). It was
+bailing on `candidate.is_symlink()` before ever checking where the symlink
+led. Removed that early return; `real = candidate.resolve()` plus the
+existing `real.is_relative_to(repo_real)` check (added for ticket 13's
+symlinked-directory case) already does the confinement — a symlink target
+landing inside `repo_root` is now read and its headings validated, one
+outside it is still refused and reported broken.
+
+Two regression tests added: one reproducing the `CLAUDE.md` -> `AGENTS.md`
+shape directly (a tracked symlink whose target is a real in-repo file, with
+an anchor that resolves against the target's headings — not flagged), one
+for a tracked file-level symlink whose target resolves outside `repo_root`
+(still flagged, not followed). The pre-existing symlinked-directory-escape
+and dangling-symlink tests still pass unchanged. 128 tests total, all green;
+`pyright claims tests` clean. `/code-review` (medium) found nothing to fix.
