@@ -12,11 +12,10 @@ request instead of automatically.
 
 ## Running it
 
-From the plugin's root directory (wherever the `claims` package was
-installed), run:
+Run, from anywhere:
 
 ```bash
-python3 -m claims.cli --repo-root <path to the project being checked>
+PYTHONPATH="${CLAUDE_PLUGIN_ROOT}" python3 -m claims.cli --repo-root <path to the project being checked>
 ```
 
 Add `--diff-range <range>` to check something other than the working tree

@@ -1,0 +1,15 @@
+{
+  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
+  "name": "claims",
+  "description": "Direct git-URL source for the claims plugin (no central marketplace listing) — see spec.md's Distribution decision.",
+  "owner": {
+    "name": "Orican Ltd"
+  },
+  "plugins": [
+    {
+      "name": "claims",
+      "description": "Checks documentation and agent-instruction claims against the code they describe.",
+      "source": "./"
+    }
+  ]
+}
