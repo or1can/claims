@@ -128,6 +128,25 @@ class StaleClaimsTests(RegistryClearingTestCase):
 
         self.assertFalse(any(f.file == "CHANGELOG.md" for f in findings))
 
+    def test_a_backtick_bare_name_with_an_extension_still_names_its_subject(self) -> None:
+        # `` `subject.py` `` (extension included), not a full path — the
+        # original's `MODULE_RE` strips a trailing `.rs` before the stem
+        # lookup so this still resolves; a naive port that requires the
+        # backtick content to be exactly the bare stem would silently drop
+        # every `` `name.ext` `` reference in prose, which is the common
+        # way to write one.
+        with Repo() as repo:
+            repo.write("doc.md", "## stale\nSee `subject.py` for details.\n")
+            repo.write("src/subject.py", "v0")
+            repo.commit(BASE)
+            repo.write("src/subject.py", "v1")
+            repo.commit(BASE + 100)
+            findings = self._findings(repo.root)
+
+        self.assertEqual(len(findings), 1)
+        self.assertEqual(findings[0].citation, "doc.md:1")
+        self.assertIn("subject.py", findings[0].message)
+
     def test_a_tracked_filename_containing_a_space_does_not_crash_the_check(self) -> None:
         # A naive `ls-files` output split on whitespace would shred this
         # filename into two bogus paths and crash `read_text` on the

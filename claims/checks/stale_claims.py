@@ -44,10 +44,14 @@ therefore invisible to this check; nothing here catches it, and nothing
 here claims to.
 
 Ported from `ratect`'s `stale-claims.py` (Apache-2.0 prior art, same author),
-generalised: no per-language file-extension pattern and no per-project
-directory allowlist for bare-name matches — a bare-name match applies
-uniformly here, at the cost of the noise a project-specific allowlist would
-otherwise have filtered.
+generalised: `PATH_RE` (explicit relative paths) has no per-language
+extension pattern, and no per-project directory allowlist gates a bare-name
+match — a bare-name match applies uniformly here, at the cost of the noise a
+project-specific allowlist would otherwise have filtered. `MODULE_RE` (bare
+backtick names) keeps the original's one behaviour worth keeping exactly —
+an optional trailing extension is stripped before the stem lookup, so
+`` `docker.rs` `` and `` `docker` `` name the same subject — generalised past
+`.rs` to any extension, so this stays useful outside a Rust-only repo.
 
 Not diff-scoped, matching the check inventory: every tracked `*.md` file is
 swept, not just one a diff touched.
@@ -75,7 +79,7 @@ class _Candidate(NamedTuple):
     message: str
 
 PATH_RE = re.compile(r"\b(?:[\w.-]+/)+[\w.-]+\.[A-Za-z0-9]+\b")
-MODULE_RE = re.compile(r"`([A-Za-z_][A-Za-z0-9_-]*)`")
+MODULE_RE = re.compile(r"`([A-Za-z_][A-Za-z0-9_-]*)(?:\.[A-Za-z0-9]+)?`")
 HEADING_RE = re.compile(r"^(#{1,6})\s+(.*)")
 
 
