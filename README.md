@@ -68,7 +68,8 @@ Distributed as a direct git-URL Claude Code plugin — no marketplace listing
 — pinned at install rather than always-latest, so an unreviewed upstream
 change can't silently start gating a commit differently mid-project. The
 automatic hook can be disabled per project without uninstalling, via
-`[hook]\nenabled = false` in that project's `claims.toml`.
+`[hook]\nenabled = false` in that project's `claims.toml`. See
+[`docs/installation.md`](docs/installation.md) for the actual commands.
 
 ## License
 

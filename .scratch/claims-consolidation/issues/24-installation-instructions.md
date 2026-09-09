@@ -27,16 +27,56 @@ defaults.
 
 **Blocked by:** 18.
 
-**Status:** ready-for-agent
+**Status:** resolved
 
-- [ ] A human (or agent) with no prior context can follow the doc alone,
+- [x] A human (or agent) with no prior context can follow the doc alone,
       in a real project, to get the plugin installed and both the skill and
       hook live — verified by actually doing it once, not just written from
       the manifest.
-- [ ] States the pin-and-explicit-update-step story from ticket 03's
+- [x] States the pin-and-explicit-update-step story from ticket 03's
       decision, not just "install it."
-- [ ] Documents the `[hook] enabled = false` toggle in `claims.toml`
+- [x] Documents the `[hook] enabled = false` toggle in `claims.toml`
       (`claims/hook.py`) that disables the automatic gate without
       uninstalling the plugin, by its actual key name.
-- [ ] `claims.toml`'s shape and defaults are documented with at least one
+- [x] `claims.toml`'s shape and defaults are documented with at least one
       worked example (e.g. `restatement`'s `extensions` list).
+
+## Answer
+
+Added `docs/installation.md`, linked from README's (ticket 23) previously
+dead-ended "Installing" paragraph. Documents `claude plugin marketplace add
+<git-url> && claude plugin install claims@claims` (`--scope user` for a
+global install) as the actual commands behind ticket 03's decision, `claude
+plugin update claims` for the explicit-update half of that same decision,
+the `[hook]\nenabled = false` `claims.toml` toggle `claims/hook.py` reads,
+and `claims.toml`'s shape (absent file = every check's defaults, one
+top-level table per check) with `restatement`'s `extensions` list as the
+worked example, per the ticket's own suggestion.
+
+**Verified by actually doing it**, not written from the manifest alone: a
+disposable scratch project, `claude plugin marketplace add
+/Users/kevin/git/or1can/claims --scope project` (a local path stands in for
+the git URL pre-publish — same manifest-driven mechanism, ticket 03's Answer
+confirms pinning is the installer's own behaviour, not something either URL
+form changes) followed by `claude plugin install claims@claims --scope
+project -y`. `claude plugin details claims@claims` confirmed both `Skills
+(1) check-claims` and `Hooks (1) PreToolUse` live from that one install,
+matching `.claude/settings.json`'s resulting `extraKnownMarketplaces`/
+`enabledPlugins` shape exactly as documented. Repeated at `--scope user` to
+rule out a project-scope-only effect. A direct call to `claims.hook.decide()`
+against the scratch project with `[hook]\nenabled = false` in its
+`claims.toml` returned `{}` (no-op), confirming the toggle actually
+short-circuits the hook, not just that the key is read. Both the
+marketplace and the plugin were removed afterward at both scopes; `git
+status`/`~/.claude/settings.json` confirmed the real global config was back
+to its pre-test state, and the scratch project deleted — this repo's own
+checkout was never touched.
+
+**One tangent, not followed up.** `claude plugin details claims@claims`
+reported `Agents (0)` at both scopes, against `plugin.json`'s one declared
+agent — looked like a real gap until a nested `claude -p` session in the
+same scratch project was asked to list its available subagent types and
+`claims:judgment-agent` was there, invokable, matching ticket 19's earlier
+finding. `details`' agent count is Claude Code's own CLI, not this repo;
+not this repo's bug to carry, and the thing this ticket actually needs
+proven — the subagent is live — already was.
