@@ -47,3 +47,13 @@
   ticket 15 (a `/code-review` finding flagged the "violation" against the
   literal text); not fixed here since it's a docs-only clarification
   belonging to whichever ticket next touches `docs/agents/issue-tracker.md`.
+- `claims/checks/check_links.py`'s `SLUG_STRIP_RE` (`[^a-z0-9 -]`) strips
+  underscores when computing a heading's anchor slug; GitHub's real slugger
+  keeps them. Any heading containing one — a backtick-quoted identifier like
+  `` `RUST_LOG` ``, or a word like `additional_args` — gets a slug that never
+  matches its own real anchor, so a correct link to it is reported as a
+  **gate** failure. Confirmed against `ratect`: 8 of 12 `check-links` gate
+  findings on its current `main` are this one root cause. Noticed while
+  running ticket 19's parity validation against `ratect`'s real tree; not
+  fixed here since `check_links.py` belongs to ticket 13, not this ticket's
+  scope (07/08/09/11).
