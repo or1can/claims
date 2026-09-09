@@ -9,14 +9,10 @@ never true, no drift required (see `.scratch/claims-consolidation/doc-integrity-
 artifact — running a command, resolving a symbol, walking git history —
 never by grepping for words that happen to appear near a claim.
 
-It ships as a `PreToolUse` hook that runs automatically on `git commit`
-(some checks gate the commit, some are advisory-only — see below), plus an
-on-demand skill and a judgment subagent for checking claims mid-task,
-outside of commit time.
-
 ## What it checks
 
-Seven mechanical checks, plus one judgment-shaped subagent:
+Seven mechanical checks, plus a judgment-shaped eighth that hands off to an
+agent rather than deciding by itself:
 
 - **executable-claims** (gate) — runs the command in a `<!-- verify: -->`
   marker and diffs its real output against the fenced block underneath.
@@ -35,14 +31,30 @@ Seven mechanical checks, plus one judgment-shaped subagent:
 - **claim-words** (advisory) — sweeps added lines in files a project opts
   in as record-like for totalising words ("every", "never") and counts,
   which are claims a check can't itself verify.
-- **judgment-agent** (advisory) — a subagent that verifies the
-  claims none of the above can settle mechanically (an architecture or
-  intent claim), by reading the cited code directly rather than pattern-matching
-  its wording. Never blocks a commit.
+- **judgment-agent** (advisory) — computes which architecture-or-intent
+  claims have a subject touched by the diff and surfaces each as a
+  candidate. It never itself judges true or false; the `judgment-agent`
+  subagent (see below) does that, one candidate at a time.
 
 A gate finding blocks the commit it's attached to; an advisory finding is
 surfaced but never fails the run. See each check's module docstring
 (`claims/checks/`) for what it does and, as importantly, what it misses.
+
+## Using it
+
+Three invocation surfaces, same underlying checks:
+
+- **Automatically, on commit.** A `PreToolUse` hook fires on `git commit`
+  and runs every check above; a gate finding blocks the commit, an advisory
+  finding is reported alongside it.
+- **On demand, mid-task.** The `check-claims` skill runs the same checks
+  outside of commit time — ask an agent to check claims, or invoke it
+  directly, and it reports every finding the same way the hook would.
+- **The `judgment-agent` subagent.** Fed one candidate at a time from the
+  `judgment-agent` check above, it reads the cited code (or runs the
+  command a claim implies) and returns a verdict with cited evidence —
+  never by pattern-matching the claim's own wording. Advisory only: like
+  every check it feeds, it never blocks a commit.
 
 ## What it isn't
 
