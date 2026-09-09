@@ -23,17 +23,39 @@ or fold the essential parts in if it's pruned before publishing (see ticket
 state (all four consolidated checks plus check-citations/check-links/
 claim-words/judgment-agent, the skill+hook+plugin packaging).
 
-**Status:** ready-for-agent
+**Status:** resolved
 
-- [ ] States what the plugin does in the first paragraph, without requiring
+- [x] States what the plugin does in the first paragraph, without requiring
       `plugin.json` or the working notes to understand it.
-- [ ] Lists the checks it ships (mechanical: executable-claims, stale-claims,
+- [x] Lists the checks it ships (mechanical: executable-claims, stale-claims,
       restatement, spliced-docs, claim-words, check-citations, check-links;
       judgment-shaped: the judgment-agent subagent), each in one line —
       what it catches, gate or advisory.
-- [ ] Links to or summarizes the licensing/provenance story (Apache-2.0,
+- [x] Links to or summarizes the licensing/provenance story (Apache-2.0,
       ported prior art from `ratect` and two private projects — see NOTICE
       and ticket 03's Answer) accurately, not just "Apache-2.0" bare.
-- [ ] Does not restate installation steps in full if ticket 24 owns that —
+- [x] Does not restate installation steps in full if ticket 24 owns that —
       links to it (or the file it produces) instead of forking the story in
       two places.
+
+## Answer
+
+Added a top-level `README.md`: first paragraph states what the plugin does
+and why (the wrong-on-arrival vs. drift distinction from
+`doc-integrity-tooling.md` §3), a "What it checks" section listing all seven
+mechanical checks plus the judgment-agent subagent (one line each, tagged
+gate/advisory), a "What it isn't" line, a short "Installing" paragraph
+(mechanism only — pinned git-URL plugin, hook opt-out — not full steps,
+since ticket 24 owns those and hasn't landed a target file yet to link to
+without creating a dead link), and a "License" section.
+
+**Correction to this ticket's own citation:** the checklist item above
+points at "ticket 03's Answer" for the licensing story, but ticket
+03 (`03-distribution-mechanism.md`) is entirely about the distribution
+mechanism and contains no licensing note. The actual licensing decision
+(Apache-2.0, `ratect` already Apache-2.0, the private Swift project's rights
+holder confirming relicensing, neither private project named/linked/pathed
+anywhere in this repo) is `map.md`'s "Decisions so far", not ticket 03. The
+README links `NOTICE` and summarizes `map.md`'s decision inline rather than
+citing ticket 03. Flagging this rather than quietly propagating a wrong
+citation, given what this repo checks for.
