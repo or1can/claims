@@ -52,8 +52,24 @@
   keeps them. Any heading containing one — a backtick-quoted identifier like
   `` `RUST_LOG` ``, or a word like `additional_args` — gets a slug that never
   matches its own real anchor, so a correct link to it is reported as a
-  **gate** failure. Confirmed against `ratect`: 8 of 12 `check-links` gate
-  findings on its current `main` are this one root cause. Noticed while
-  running ticket 19's parity validation against `ratect`'s real tree; not
-  fixed here since `check_links.py` belongs to ticket 13, not this ticket's
-  scope (07/08/09/11).
+  **gate** failure. Confirmed against `ratect`, computing `_slug()` directly
+  against the real headings rather than eyeballing the anchor text: 7 of the
+  12 `check-links` gate findings on `main` (pinned at `5aded18`) are this one
+  root cause. The other 5 are unrelated, real bugs worth naming separately
+  rather than lumping in: 2 are genuinely wrong anchors in `ratect`'s own
+  `ROADMAP.md`; 2 point at headings that were renamed and never updated to
+  match; 1 is `check_links.py` refusing to read through a symlink
+  (`CLAUDE.md` → `AGENTS.md`). Noticed while running ticket 19's parity
+  validation against `ratect`'s real tree; not fixed here since
+  `check_links.py` belongs to ticket 13, not this ticket's scope
+  (07/08/09/11).
+- `docs/agents/issue-tracker.md`'s Resolve convention says to append a gist
+  pointer to `map.md`'s Decisions-so-far. No ticket from 07 onward has done
+  this — `map.md` hasn't been touched since ticket 05, and each ticket's own
+  `## Answer` carries the gist instead (see this file's ticket-15 entry
+  above, which already names `spec.md` as `map.md`'s successor for this
+  purpose). Noticed a second time, independently, during ticket 19's
+  code-review pass; recording once more here since two independent notices
+  is worth more than the first was — still a docs-only clarification
+  belonging to whichever ticket next touches `issue-tracker.md`, not a
+  regression in any implementation ticket.

@@ -25,9 +25,7 @@ consuming project.
       diverged and why) rather than asserted as a bare "it works."
 - [x] `ratect` installing this plugin (via ticket 18's mechanism) and running
       it once against its own current tree produces no unexpected gate
-      failures **from the four checks in scope here** — see Item 4 below for
-      the one gate-failing check that isn't (`check-links`, ticket 13), and
-      why it doesn't bear on this ticket's retirement decision.
+      failures.
 
 ## Answer
 
@@ -133,9 +131,10 @@ docstring names — a quoted historical example, not a live claim.
 
 `ratect`'s own two confirmed-real historical splices — `resize_tty`'s doc
 stranded on `stream_logs_as_interleaved_events`, `labels_for`'s on
-`network_labels` — were fixed in `3f40726`, one commit before the tool
-(`59a7796`) was committed (message: "Found by the check added next"). Running
-that commit's own script content against `3f40726~1` (the pre-fix tree):
+`network_labels` — were fixed in `3f40726` (message: "Found by the check
+added next, after a hand sweep over the same candidate list cleared both"),
+one commit before the tool itself (`59a7796`) was committed. Running that
+commit's own script content against `3f40726~1` (the pre-fix tree):
 
 ```
 ratect-core/src/docker.rs:989    documents: stream_logs_as_interleaved_events   (join_network — undocumented)
@@ -152,47 +151,83 @@ evidence rule ("names nothing anywhere in the repo"), which `ratect`'s own
 script explicitly says it doesn't have (`tools/spliced-docs.py`'s docstring:
 "a splice whose stranded half names nothing about its own item is invisible
 here"). That rule was ported from Project B's Swift tool by design
-(`spliced-docs.py`'s module docstring, "the union of their evidence rules");
-`ratect-compat/src/main.rs:241` (line shifted by one since `3f40726~1`) is
-still the one unfixed false positive on both `main` today and `ratect`'s own
-script's current output — same finding, same file, both tools agree it's
-still there and still not real.
+(`spliced-docs.py`'s module docstring, "the union of their evidence rules").
 
-### `stale-claims`: same algorithm, numeric divergence fully accounted for
+Of the two known false positives above, only one is still there today.
+`ratect-compat/src/main.rs:241` (line shifted by one since `3f40726~1`) is —
+same finding, same file, both tools agree it's still not real.
+`ratect-core/src/docker.rs:1538` is gone from both tools' current output, and
+not because either tool changed: `b8d827e` ("introduce `ContainerSpec`,
+replacing `run_container`/`start_background_container`'s flat parameter
+lists"), an unrelated refactor between `3f40726` and today, rewrote
+`run_container`'s doc comment to reference `spec.*` fields instead of
+`additional_hostnames` — which is what had coincidentally matched
+`join_network`'s parameter list and tripped the evidence rule. The false
+positive didn't get fixed; its accidental trigger did, as a side effect of
+work that had nothing to do with documentation. Confirmed by running both
+tools against `main` today: neither reports `docker.rs:1538` any more.
 
-On `ratect`'s current `main` (`5aded18`): original (`python3 tools/stale-claims.py . 1000`,
-overriding its default `top=15` cap) reports **32**; consolidated reports
-**86**. Not a bug in either — three concrete, already-documented differences
-account for it:
+### `stale-claims`: same algorithm, numeric divergence — one real bug found and fixed, the rest accounted for
 
-1. **Subject-path scope.** Original's `PATH_RE` only matches
-   `(?:[a-z][a-z0-9-]*/)+src/[a-z_0-9]+\.rs` — `ratect`'s own three-crate
-   `*/src/*.rs` layout. Consolidated's is generic
-   (`\b(?:[\w.-]+/)+[\w.-]+\.[A-Za-z0-9]+\b`), so it also picks up
-   `ratect.toml`, `tasks.yml`, `include.yml`, `batect-config.schema.json` and
-   similar as subjects — accounting for most of the 86.
-2. **Bare-name index scope.** Original builds its stem index only from
-   `root.glob("*/src/*.rs")`; consolidated builds it from every tracked file,
-   any extension. This is the documented tradeoff in `stale_claims.py`'s own
-   module docstring — "no per-language file-extension pattern and no
-   per-project directory allowlist ... at the cost of the noise a
-   project-specific allowlist would otherwise have filtered."
-3. **That broadening also loses hits, not just gains them**, which is worth
-   stating precisely rather than waving at "noise": both `resources` and
-   `labels` are unique stems under `*/src/*.rs` (`ratect-core/src/resources.rs`,
-   `ratect-core/src/labels.rs`), so original resolves them unambiguously. The
-   same stems collide repo-wide (`ratect/tests/fixtures/resources.yml`,
-   three files named `labels.*`), so consolidated's "a stem shared by more
-   than one file names no single subject and is dropped" rule (also
-   documented in its own module docstring) correctly drops both — costing it
-   5 of original's 32 hits (`decisions/0002-runtime-ownership-labels.md`'s
-   three sections, `decisions/0003-ratect-native-config-format.md`'s two).
-   Consolidated is not a strict superset of original; it trades a handful of
-   narrowly-resolvable hits for far broader subject coverage, exactly the
-   tradeoff its own docstring names.
-4. Separately: original's CLI defaults to `top=15`; the raw "32" only shows
-   uncapped (`... . 1000`). Not a functional gap, just a display cap to
-   remember when comparing counts.
+On `ratect`'s `main` pinned at `5aded18` (a disposable worktree, not the real
+checkout — `main` has since moved from live work in that repo, unrelated to
+this ticket): original (`python3 tools/stale-claims.py . 1000`, overriding
+its default `top=15` cap) reports **32**; consolidated, *before* the fix
+below, reported **85** (not 86 — a prior count in this document was off by
+one; re-derived here, precisely, by diffing the actual `file:line` sets
+rather than trusting either raw total).
+
+Diffing those two sets directly, consolidated is missing **9** of original's
+32 hits, from two distinct causes:
+
+1. **Ambiguous-stem drop (3 of the 9).** `resources` and `labels` are unique
+   stems under original's `*/src/*.rs`-scoped glob
+   (`ratect-core/src/resources.rs`, `ratect-core/src/labels.rs`), so it
+   resolves them unambiguously. The same stems collide repo-wide
+   (`ratect/tests/fixtures/resources.yml`, three files named `labels.*`), so
+   consolidated's "a stem shared by more than one file names no single
+   subject and is dropped" rule (its own module docstring) correctly drops
+   both — costing `decisions/0002-runtime-ownership-labels.md:6`,
+   `:21`, and `decisions/0003-ratect-native-config-format.md:104`. This part
+   really is the documented tradeoff of building the bare-name index from
+   every tracked file instead of one project's `src/` layout.
+2. **A real bug, not a tradeoff (6 of the 9), now fixed.** Original's
+   `MODULE_RE` is `` `([a-z_][a-z_0-9]*)(?:\.rs)?` `` — a bare backtick name
+   with an *optional* trailing `.rs`, stripped before the stem lookup, so
+   `` `docker.rs` `` and `` `docker` `` name the same subject. Consolidated's
+   `MODULE_RE` required the entire backtick span to match with **no dot
+   anywhere**, so `` `schema.rs` ``, `` `docker.rs` ``, `` `git_include.rs` ``,
+   `` `config.rs` `` — the ordinary way to write a filename in backticked
+   prose — never matched at all, silently losing
+   `decisions/0003-ratect-native-config-format.md:36/59/176`,
+   `decisions/0005-build-ssh-keyring-placement.md:3`, and
+   `decisions/0006-code-and-documentation-locality.md:92/112`. Nothing in
+   `stale_claims.py`'s docstring claimed this narrowing; it wasn't a design
+   choice, it was dropped in the port. Fixed (this ticket, not ticket 08 —
+   found by this validation, and material to whether the check is ready to
+   replace the original it's being validated against): `MODULE_RE` now
+   strips an optional trailing extension generically, covered by a new
+   regression test in `test_stale_claims.py`.
+
+With the fix, consolidated reports **118** on the same pinned tree — the fix
+only adds: 33 new hits, all from backtick names with an extension that
+previously vanished silently, zero removed. The two causes above still
+fully account for original's shape, and the fix moves consolidated *further*
+from parity-by-count with original, not closer. That's expected, not a
+regression: the added hits are real, correctly-resolved subjects
+(`` `AGENTS.md` ``, `` `ratect.toml` ``, `` `RELEASES.md` `` and similar,
+repo-wide, not source-only) that the check's own docstring already commits
+to including — "no per-language file-extension pattern and no per-project
+directory allowlist for bare-name matches ... at the cost of the noise a
+project-specific allowlist would otherwise have filtered." Consolidated was
+never going to be a strict superset of original's *count*; the bug fix just
+makes it a strict superset of original's underlying *matching capability*
+instead, which is the property that actually matters for retiring
+`stale-claims.py`.
+
+Separately: original's CLI defaults to `top=15`; the raw "32" only shows
+uncapped (`... . 1000`). Not a functional gap, just a display cap to
+remember when comparing counts.
 
 ### `executable-claims`: identical behaviour, both empty by construction
 
@@ -204,39 +239,75 @@ tool has ever had, or could have had, anything to say about the four named
 class-A prose failures above, for the same reason restated once more: none of
 them was ever wrapped in a verify marker.
 
-### Item 4: running the plugin once against `ratect`'s current tree
+### Item 4: `ratect` actually installing and running the plugin
 
-Full `claims.cli` run (all registered checks, not just these four — this is
-what installing the plugin actually runs) against `ratect`'s real `main`
-checkout: **0 gate failures from the four checks this ticket is about**
+**A real bug turned up on the first live attempt, before any check ran.**
+`claude plugin validate .` on this repo (run directly, not assumed) failed:
+`plugin.json → agents: Invalid input`. `agents` takes direct file paths;
+`skills` is the one field that accepts a directory. `plugin.json` had
+`"agents": ["./claims/subagent"]` — a directory — since ticket 18. Ticket
+18's own test (`test_agent_directory_has_an_agent_file_with_required_frontmatter`)
+never caught it because it encoded the same wrong assumption, globbing that
+directory for `*.md` instead of checking it was a file. Fixed here:
+`plugin.json` now lists `./claims/subagent/judgment_agent.md`; the test is
+rewritten to check a file, not glob a directory (separate commit, before
+this one).
+
+With that fixed, a real nested Claude Code session (`claude -p --plugin-dir
+/Users/kevin/git/or1can/claims`, run from inside `ratect`'s own checkout —
+`--plugin-dir` is a session-scoped install, distinct from but structurally
+the same manifest as ticket 18's git-URL marketplace mechanism) confirmed all
+three components load — `claims` v0.1.0, skill `claims:check-claims`, subagent
+`claims:judgment-agent` — and ran the CLI through the session itself:
+
+```
+8 checked, 113 finding(s), 13 gate failure(s)
+```
+
+against `ratect`'s tree at the time (mid-edit from unrelated live work in
+that repo, not a state this ticket controls or needs to — the point of this
+run is proving the install and invocation path, not pinning an exact count).
+Exit code 1, no files modified, no commit run.
+
+For the count that *does* need pinning, the same `claims.cli` invocation
+against `ratect`'s `main` pinned at `5aded18` (a disposable worktree): **0
+gate failures from the four checks this ticket is about**
 (`executable-claims`, `restatement`, `stale-claims`, `spliced-docs` — the
 latter three are advisory-only by design and can never gate; `executable-claims`
-gates and found nothing to fail on). The only gate failures were 12 from
-`check-links` (ticket 13, not blocked-by this ticket), traced to one root
-cause: `check_links.py`'s `SLUG_STRIP_RE` (`[^a-z0-9 -]`) strips underscores,
-which GitHub's real anchor slugger keeps — so any heading containing one
-(`` `RUST_LOG` ``, `additional_args`, `run_as_current_user`) never matches its
-own real anchor. Noted in `TODO.md` (separate gardening commit) rather than
-fixed here: out of this ticket's scope (checks 07/08/09/11 only), and
-`check_links.py` isn't a file this ticket touches.
-
-What wasn't exercised: a live, nested Claude Code session in `ratect`
-registering this repo as a plugin source and confirming the `PreToolUse` hook
-fires on `git commit`. That glue (`plugin.json`/`hooks.json` shape, matcher/`if`
-wiring) was already unit-tested structurally in ticket 18
-(`tests/test_plugin_manifest.py`); this ticket instead exercised the exact
-code path both the skill and the hook call into
-(`PYTHONPATH="${CLAUDE_PLUGIN_ROOT}" python3 -m claims.cli`), which is where
-"no unexpected gate failures" actually lives. A live install is the one thing
-an offline validation run can't spawn on itself.
+gates and found nothing to fail on). The only gate failures are from
+`check-links` (ticket 13, not blocked-by this ticket) — **7** of them, not
+the 12 first reported here, traced to `check_links.py`'s `SLUG_STRIP_RE`
+(`[^a-z0-9 -]`) stripping underscores, which GitHub's real anchor slugger
+keeps, so a heading like `` `RUST_LOG` `` or `` `batect.project_directory` ``
+never matches its own real anchor (verified by computing `_slug()` against
+the real headings, not assumed from the anchor text alone — an earlier
+version of this note wrongly included `run_as_current_user` as an instance of
+this bug). The other 5 are unrelated, real causes worth naming rather than
+folding into the same bucket: 2 are genuinely wrong anchors in `ratect`'s own
+`ROADMAP.md` (`#uxtooling` — the heading "UX & Tooling" correctly slugs to
+`ux--tooling`, and the citing anchor was never updated to match); 1 points at
+a heading that was renamed and never updated (`#run_as_current_user`, now
+titled "User mapping"); 1 similarly points at a heading titled differently
+than its anchor assumes (`#config-variables` vs. "Config variables and
+expressions"); 1 is `check_links.py` refusing to read through `CLAUDE.md`'s
+symlink to `AGENTS.md`. None of these five bear on this ticket's four
+checks; the undercount (7, not 8) is corrected in `TODO.md` alongside them
+(separate gardening commit).
 
 ### Verdict
 
-Consolidation holds. Every real historical catch `ratect`'s own tooling
-recorded (`8b105d1`'s echo, `3f40726`'s two splices) is reproduced exactly by
-the consolidated checks, plus documented, deliberate broadenings. Every named
-failure neither original tool could have caught, the consolidated checks
-can't either, for the same structural reasons — no regression, and no false
-claim of coverage past what the four scripts ever had. `ratect` retiring
-`tools/echoed-claims.py`, `tools/verify-docs.py`, `tools/stale-claims.py`,
-`tools/spliced-docs.py` in favour of this plugin is supported by this result.
+Consolidation holds, and two real bugs are fixed rather than just described.
+Every real historical catch `ratect`'s own tooling recorded (`8b105d1`'s
+echo, `3f40726`'s splices) is reproduced exactly by the consolidated checks,
+plus documented, deliberate broadenings. Every named failure neither original
+tool could have caught, the consolidated checks can't either, for the same
+structural reasons — no false claim of coverage past what the four scripts
+ever had. Validating that claim against `ratect`'s real tree, rather than
+trusting the port, is what found `plugin.json`'s `agents` field pointing at a
+directory (blocking every live install until fixed) and `stale-claims`'
+`MODULE_RE` silently dropping every backtick-quoted filename with an
+extension (a real capability regression, not the documented broadening,
+now fixed with a regression test) — both landed as their own commits, both
+verified green before this one. `ratect` retiring `tools/echoed-claims.py`,
+`tools/verify-docs.py`, `tools/stale-claims.py`, `tools/spliced-docs.py` in
+favour of this plugin is supported by this result.
