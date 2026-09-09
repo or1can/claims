@@ -199,6 +199,39 @@ class CheckLinksTests(RegistryClearingTestCase):
 
         self.assertEqual(findings, [])
 
+    def test_a_symlink_to_an_in_repo_target_is_followed_and_validated(self) -> None:
+        # Ticket 20: the CLAUDE.md -> AGENTS.md convention (executable_claims.py's
+        # own comment) — a link to a tracked symlink whose resolved target is
+        # still inside repo_root must be read through, not reported broken.
+        with Repo() as repo:
+            repo.write("AGENTS.md", "# Setup\n\nBody.\n")
+            os.symlink("AGENTS.md", repo.root / "CLAUDE.md")
+            subprocess.run(["git", "-C", str(repo.root), "add", "CLAUDE.md"], check=True)
+            repo.write("decisions/0001.md", "See [setup](../CLAUDE.md#setup).\n")
+            repo.commit()
+
+            findings = self._findings(repo.root)
+
+        self.assertEqual(findings, [])
+
+    def test_a_symlinked_file_escaping_the_repo_is_still_flagged_not_followed(
+        self,
+    ) -> None:
+        with Repo() as repo, tempfile.TemporaryDirectory() as outside_dir:
+            outside = Path(outside_dir)
+            (outside / "leak.md").write_text("# Leak\n", encoding="utf-8")
+            repo.write("README.md", "See [leak](escaped-leak.md).\n")
+            os.symlink(outside / "leak.md", repo.root / "escaped-leak.md")
+            subprocess.run(
+                ["git", "-C", str(repo.root), "add", "escaped-leak.md"], check=True
+            )
+            repo.commit()
+
+            findings = self._findings(repo.root)
+
+        self.assertEqual(len(findings), 1)
+        self.assertIn("escaped-leak.md", findings[0].message)
+
     def test_a_link_through_a_symlinked_directory_escaping_the_repo_is_flagged(
         self,
     ) -> None:

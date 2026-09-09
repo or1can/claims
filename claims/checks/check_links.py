@@ -115,11 +115,12 @@ def _target_slugs(repo_root: Path, repo_real: Path, resolved: str) -> set[str] |
     string check on `resolved` — a lexical `../` guard alone would miss a
     tracked symlinked *directory* pointing outside the repo, which still
     produces a `resolved` string with no `..` or leading `/` in it at all.
+    `candidate` itself may be a symlink (the `CLAUDE.md` -> `AGENTS.md`
+    convention `executable_claims.py` names): it's followed, not refused
+    outright, since the same real-path check confines where it may lead.
     """
 
     candidate = repo_root / resolved
-    if candidate.is_symlink():
-        return None
     real = candidate.resolve()
     if not real.is_relative_to(repo_real) or not real.is_file():
         return None
