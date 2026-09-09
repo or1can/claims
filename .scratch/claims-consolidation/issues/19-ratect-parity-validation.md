@@ -25,7 +25,9 @@ consuming project.
       diverged and why) rather than asserted as a bare "it works."
 - [x] `ratect` installing this plugin (via ticket 18's mechanism) and running
       it once against its own current tree produces no unexpected gate
-      failures.
+      failures **from the four checks in scope here** — see Item 4 below for
+      the one gate-failing check that isn't (`check-links`, ticket 13), and
+      why it doesn't bear on this ticket's retirement decision.
 
 ## Answer
 
@@ -39,24 +41,38 @@ via `PYTHONPATH=<claims repo> python3 -m claims.runner`-backed
 checkout was never touched (confirmed via `git status`/`git reflog` before
 and after).
 
-**First finding, before any comparison: three of `doc-integrity-tooling.md`'s
-four named instances predate the tool that would catch their class.**
-`tools/echoed-claims.py` was added at `c9f1b23` (2026-09-02 11:35); the
-`--cleanup`/"MCP server" instances (`7db8c34` → `d7e203a`, 2026-09-01) and the
-`docker network inspect` interface-name instance (`3188961` → `c773384`,
-2026-09-02 09:12–09:16) all landed before it existed in `ratect`'s history.
-Neither the original nor the consolidated tooling could have caught these —
-not a gap in either, a fact about when the tool was written relative to when
-the bugs were.
+Four named instances tracked below: (1) the never-existed `ratect-compat
+--cleanup` flag, (2) the "run as an MCP server" claim — both introduced by
+the same commit, `7db8c34`, and both fixed or not-fixed by the two commits
+after it — (3) the `docker network inspect` interface-name claim, and (4) the
+"0.5.0 ships two fixes" miscount.
 
-### The one instance `ratect`'s own tooling did catch, reproduced exactly
+**First finding, before any comparison: instances (1)–(3) predate the tool
+that would catch their class.** `tools/echoed-claims.py` was added at
+`c9f1b23` (2026-09-02 11:35); `7db8c34` → `d7e203a` (2026-09-01, instances 1–2)
+and `3188961` → `c773384` (2026-09-02 09:12–09:16, instance 3) all landed
+before it existed in `ratect`'s history. Neither the original nor the
+consolidated tooling could have caught these — not a gap in either, a fact
+about when the tool was written relative to when the bugs were.
+
+### A fifth echo, not one of the four named instances, that `ratect`'s own tooling did catch — reproduced exactly
 
 `8b105d1` ("correct the default-bridge claim, and stop scoping the entry to
-Linux") is the real test case: its own commit message says running
-`echoed-claims.py` over its diff caught a live echo — `docs/config-reference.md`
-still said the `host.docker.internal` entry resolves "there" (Linux-scoped)
-after `ROADMAP.md` had already recorded it as landing on every platform.
+Linux") fixes the self-contradiction behind instance (3)'s twin claim (see
+below) and, separately, is the one commit in this history whose own message
+reports `echoed-claims.py` catching something live: run over this diff, it
+found `docs/config-reference.md` still describing the `host.docker.internal`
+entry as Linux-only after `ROADMAP.md` had already recorded it landing on
+every platform — a self-catch during authorship, folded into this same
+commit, that isn't independently replayable (there's no prior commit state
+where the fix was half-done).
 
+What *is* independently replayable from this same commit: its `CHANGELOG.md`
+edit separately reworded "the entry is added only when a URL was actually
+rewritten" — a phrase from the same paragraph, describing when the
+`host.docker.internal` entry is added rather than which platforms get it —
+and that phrase still appears verbatim in `ROADMAP.md` and
+`docs/differences-from-batect.md`, neither of which this commit touches.
 Running the *actual* original tool's logic (copied from the commit that added
 it) against `8b105d1`'s diff:
 
@@ -79,26 +95,32 @@ in `restatement.py`), not a bug, and the `tools/echoed-claims.py:124` hit is
 itself the legitimate "appears twice on purpose" case the check's own
 docstring names — a quoted historical example, not a live claim.
 
-### The other three named instances: neither tool catches them, for reasons both state up front
+### The four named instances themselves: neither tool catches any of them, for reasons both state up front
 
-- **`ratect-compat --cleanup`** (`7db8c34`) and **"run as an MCP server"**
-  (same commit) are first appearances — nothing is retracted yet, so
+- **(1) `ratect-compat --cleanup`** and **(2) "run as an MCP server"**
+  (both `7db8c34`) are first appearances — nothing is retracted yet, so
   `restatement`/`echoed-claims.py` have nothing to diff against, and neither
   claim sits under a `<!-- verify: -->` marker, so `executable-claims`/
   `verify-docs.py` never see them either. Confirmed empirically: running the
   consolidated checks against `7db8c34`'s own diff produces zero
-  `restatement` findings. The "MCP server" wording was, by policy
+  `restatement` findings. Instance (1) is fixed atomically across `ROADMAP.md`,
+  `CHANGELOG.md`, and `docs/differences-from-batect.md` in `d7e203a` — before
+  either tool ever meets it, this echo across three files never exists as a
+  visible git state to replay. Instance (2)'s wording was, by policy
   (`1889a18`, folded into `AGENTS.md`), never mechanically corrected at all —
   it's still there today, struck through, in `RELEASES.md:1030` — so there
   will never be a diff for either tool to catch it against.
-- **`docker network inspect` reports "both" the subnet and the interface
+- **(3) `docker network inspect` reports "both" the subnet and the interface
   name** (`3188961` → `c773384`) is the same shape: wrong on arrival, no
   verify marker. Confirmed empirically against `c773384`'s diff — no
   `executable-claims`/`restatement` finding names it (the only findings in
   that neighbourhood are unrelated `stale-claims` churn candidates pointing
   at `docs/config-reference.md` generally, which is exactly what that check
-  claims to be — attention-ranking, not a verdict).
-- **"ratect 0.5.0 ships 0.26.0's two fixes"**, actually three (`361b2fb` →
+  claims to be — attention-ranking, not a verdict). Instance (3)'s twin
+  self-contradiction ("Ratect never uses the default bridge... `--use-network`
+  names," which allows naming the bridge it says it never uses) is what
+  `8b105d1` above fixes; that fix itself is a live echo-catch, covered above.
+- **(4) "ratect 0.5.0 ships 0.26.0's two fixes"**, actually three (`361b2fb` →
   `158a56d`) is a count-consistency claim across `CHANGELOG.md`'s unreleased
   section and `ROADMAP.md`'s prose. None of the four checks in scope here
   claims to reconcile a count; `doc-integrity-tooling.md`'s own §4 coverage
