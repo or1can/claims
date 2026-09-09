@@ -24,6 +24,7 @@ art, same author) for the n-gram half.
 
 from __future__ import annotations
 
+import unittest
 from pathlib import Path
 
 from claims.checks.restatement import MODE_NGRAM, MODE_WHOLE_LINE, NAME, check
@@ -180,3 +181,7 @@ class RestatementTests(RegistryClearingTestCase):
 
         self.assertTrue(findings)
         self.assertEqual({f.file for f in findings}, {"b.rs"})
+
+
+if __name__ == "__main__":
+    unittest.main()
