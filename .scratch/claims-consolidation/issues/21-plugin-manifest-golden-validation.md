@@ -21,14 +21,33 @@ dependency.
 
 **Blocked by:** 18.
 
-**Status:** ready-for-agent
+**Status:** resolved
 
-- [ ] A test invokes `claude plugin validate .` (or the equivalent
+- [x] A test invokes `claude plugin validate .` (or the equivalent
       programmatic entry point, if one exists) against this repo's real
       `.claude-plugin/` manifests and asserts it exits successfully.
-- [ ] The test skips cleanly (not a failure) when the `claude` CLI isn't
+- [x] The test skips cleanly (not a failure) when the `claude` CLI isn't
       available, rather than breaking the suite in an environment without
       it.
-- [ ] Reverting `plugin.json`'s `agents` field to `["./claims/subagent"]`
+- [x] Reverting `plugin.json`'s `agents` field to `["./claims/subagent"]`
       (the exact bug ticket 19 found and fixed) makes this new test fail,
       where the pre-existing structural tests didn't.
+
+## Answer
+
+Added `test_claude_plugin_validate_passes_against_the_real_manifests` to
+`tests/test_plugin_manifest.py`: `shutil.which("claude")` gates the test —
+`self.skipTest(...)` when absent, matching the missing-`pytest` tolerance
+pattern already used for the test runner. When present, it shells out to
+`claude plugin validate .` from `REPO_ROOT` and asserts `returncode == 0`
+(no `--strict`, so the pre-existing `author`-missing warning stays a pass).
+30s `timeout=` guards the call, matching `executable_claims.py`'s own
+subprocess-hang guard for shelling out to an external command
+(`code-review` caught the initial version's missing timeout).
+
+Verified red independently of the fix: reverted `plugin.json`'s `agents` to
+`["./claims/subagent"]` (ticket 19's exact bug) and reran the file directly —
+the new test failed with `plugin.json → agents: Invalid input`
+(`Validation failed`, exit 1), confirming it (and, incidentally, the
+already-fixed `test_agent_entry_is_a_file_with_required_frontmatter`) catches
+what the ticket described. Reverted back to green before committing.

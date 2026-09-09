@@ -24,6 +24,8 @@ from __future__ import annotations
 
 import json
 import re
+import shutil
+import subprocess
 import unittest
 from pathlib import Path
 
@@ -73,6 +75,31 @@ class PluginManifestTests(unittest.TestCase):
         self.assertEqual(handler["if"], "Bash(git commit *)")
         self.assertIn("claims.hook", handler["command"])
         self.assertIn("CLAUDE_PLUGIN_ROOT", handler["command"])
+
+    def test_claude_plugin_validate_passes_against_the_real_manifests(self) -> None:
+        # Structural checks above can't catch what `claude plugin validate`
+        # itself rejects (ticket 19: `agents` pointing at a directory passed
+        # every assertion here but failed live). No `--strict`: an
+        # `author`-missing warning is acceptable, only errors should fail
+        # this test.
+        claude = shutil.which("claude")
+        if claude is None:
+            self.skipTest("claude CLI not found on PATH")
+        try:
+            result = subprocess.run(
+                [claude, "plugin", "validate", "."],
+                cwd=REPO_ROOT,
+                capture_output=True,
+                text=True,
+                timeout=30,
+            )
+        except subprocess.TimeoutExpired:
+            self.fail("claude plugin validate . timed out after 30s")
+        self.assertEqual(
+            result.returncode,
+            0,
+            f"claude plugin validate . failed:\n{result.stdout}\n{result.stderr}",
+        )
 
     def test_marketplace_json_lists_this_plugin_by_the_same_name(self) -> None:
         plugin = _load(".claude-plugin/plugin.json")
