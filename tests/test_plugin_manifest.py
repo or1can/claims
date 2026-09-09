@@ -51,15 +51,18 @@ class PluginManifestTests(unittest.TestCase):
         for skill_dir in manifest["skills"]:
             self.assertTrue((REPO_ROOT / skill_dir / "SKILL.md").is_file())
 
-    def test_agent_directory_has_an_agent_file_with_required_frontmatter(self) -> None:
+    def test_agent_entry_is_a_file_with_required_frontmatter(self) -> None:
+        # Unlike `skills`, which takes a directory, `agents` takes direct
+        # file paths — `claude plugin validate` rejects a directory here
+        # (caught by actually running it, not by this test, which used to
+        # glob a directory and so never noticed the manifest passed one).
         manifest = _load(".claude-plugin/plugin.json")
-        for agent_dir in manifest["agents"]:
-            agent_files = list((REPO_ROOT / agent_dir).glob("*.md"))
-            self.assertTrue(agent_files, f"no agent files under {agent_dir}")
-            for agent_file in agent_files:
-                text = agent_file.read_text(encoding="utf-8")
-                self.assertIn("name:", text)
-                self.assertIn("description:", text)
+        for agent_file in manifest["agents"]:
+            path = REPO_ROOT / agent_file
+            self.assertTrue(path.is_file(), f"{agent_file} is not a file")
+            text = path.read_text(encoding="utf-8")
+            self.assertIn("name:", text)
+            self.assertIn("description:", text)
 
     def test_hooks_file_gates_pretooluse_on_git_commit_only(self) -> None:
         manifest = _load(".claude-plugin/plugin.json")

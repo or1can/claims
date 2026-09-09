@@ -7,7 +7,7 @@
     "./claims/skill"
   ],
   "agents": [
-    "./claims/subagent"
+    "./claims/subagent/judgment_agent.md"
   ],
   "hooks": "./claims/hooks.json"
 }
