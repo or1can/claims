@@ -1,0 +1,13 @@
+{
+  "extraKnownMarketplaces": {
+    "claims": {
+      "source": {
+        "source": "directory",
+        "path": "."
+      }
+    }
+  },
+  "enabledPlugins": {
+    "claims@claims": true
+  }
+}

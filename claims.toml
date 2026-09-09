@@ -1,0 +1,4 @@
+# This repo's own config for the `claims` plugin it installs on itself
+# (ticket 25). Empty: every check runs with its defaults — see
+# `claims/config.py` and each check's own module docstring for what those
+# defaults are.

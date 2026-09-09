@@ -110,6 +110,15 @@ and you have a tidier repo and a reviewable history. What stays out of scope is
 work you cannot finish or verify to the same standard as the change you came
 for — note that in `TODO.md` instead.
 
+### Typechecking
+
+`pyright claims tests` stays clean:
+
+<!-- verify: pyright claims tests -->
+```
+0 errors, 0 warnings, 0 informations
+```
+
 ## Agent skills
 
 ### Issue tracker
