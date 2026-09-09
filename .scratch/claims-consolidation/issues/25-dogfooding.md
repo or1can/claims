@@ -87,10 +87,22 @@ read as "everything passed"). This repo had never had a marker, so it was
 tripping its own gate. Fixed by adding one real marker to `AGENTS.md`
 (`### Typechecking`, verifying `pyright claims tests` stays clean) — the
 same command every ticket's Answer already claims to run by hand, now
-mechanically checked. Committing this ticket's own changes (this commit)
-is the live demonstration the checklist asks for: the `PreToolUse` hook
-fires on the real `Bash(git commit *)` call through the plugin installed
-above, running the actual gate.
+mechanically checked.
+
+Installing the plugin mid-session doesn't retroactively wire it into the
+already-running session doing this work, so this session's own commit of
+these changes is not by itself good evidence the hook fires — that would be
+assuming it from the manifest again, the exact thing this checklist item
+rules out. Demonstrated properly instead, the same way ticket 19 did:
+a fresh, separate `claude -p` process started against this repo (the
+install above being project-scoped, a fresh process picks it up without
+`--plugin-dir`) issuing a real `git commit --dry-run --allow-empty` Bash
+call. Observed output: the claims `PreToolUse` hook fired and reported its
+findings (34 advisory `stale-claims` hits, 0 gate failures, matching this
+run's shape) before the git command itself ran — git then exited 1 for its
+own, unrelated reason (`--dry-run` and `--allow-empty` don't combine; a
+clean tree makes `--dry-run` exit 1 regardless). The hook engaging, not
+git's own exit code, is what this checklist item is about.
 
 **`claims.toml`**: added at the repo root, empty (a comment only) — every
 check runs with its defaults, matching `claims/config.py`'s documented
