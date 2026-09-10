@@ -73,3 +73,15 @@
   is worth more than the first was — still a docs-only clarification
   belonging to whichever ticket next touches `issue-tracker.md`, not a
   regression in any implementation ticket.
+- `tests/fixtures/judgment_agent_golden/known_true` (ticket 15) failed
+  twice in a row (`python3 scripts/run_judgment_agent_golden.py`, then a
+  standalone rerun) with zero `Read` tool calls in the subagent's
+  transcript, even though its final `confirmed` verdict was correct — the
+  un-grounded-verdict failure mode the harness exists to catch, not a
+  false alarm in the harness itself. A third, manual run of the same
+  fixture did call `Read` and passed. Noticed while running ticket 22's
+  new `count_consistency_known_false` fixture through the same harness
+  invocation; not investigated further here since it's ticket 15's
+  subagent/fixture, not ticket 22's count-consistency scope — matches the
+  harness's own documented nondeterminism, but worth someone confirming
+  that's really all it is rather than a prompt regression.
