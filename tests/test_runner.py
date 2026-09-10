@@ -103,6 +103,34 @@ class RunnerTests(RegistryClearingTestCase):
 
         self.assertEqual(seen_configs["a"], {})
 
+    def test_a_check_that_raises_does_not_crash_the_run(self) -> None:
+        def boom(repo_root, diff_range, config):
+            raise ValueError("kaboom")
+
+        def ok(repo_root, diff_range, config):
+            return [Finding(file="a.md", line=1, message="hi", mode="ok", gate=False)]
+
+        register_check("boom", boom)
+        register_check("ok", ok)
+
+        result = run(Path("/repo"), "HEAD", {})
+
+        self.assertEqual(result.checks_run, ("boom", "ok"))
+        ok_findings = [f for f in result.findings if f.mode == "ok"]
+        self.assertEqual(len(ok_findings), 1)
+
+    def test_a_check_that_raises_produces_a_gate_finding_naming_it(self) -> None:
+        def boom(repo_root, diff_range, config):
+            raise ValueError("kaboom")
+
+        register_check("boom", boom)
+
+        result = run(Path("/repo"), "HEAD", {})
+
+        crash_findings = [f for f in result.findings if f.gate and f.mode == "boom"]
+        self.assertEqual(len(crash_findings), 1)
+        self.assertIn("kaboom", crash_findings[0].message)
+
 
 if __name__ == "__main__":
     unittest.main()

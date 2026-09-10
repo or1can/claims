@@ -80,6 +80,16 @@ def clear_registry() -> None:
     _registry.clear()
 
 
+def _crash_finding(name: str, exc: Exception) -> Finding:
+    return Finding(
+        file=".",
+        line=0,
+        message=f"check {name!r} crashed: {type(exc).__name__}: {exc}",
+        mode=name,
+        gate=True,
+    )
+
+
 def run(
     repo_root: Path, diff_range: str, config: Mapping[str, Mapping[str, object]]
 ) -> RunResult:
@@ -88,10 +98,18 @@ def run(
     `repo_root` and `diff_range` are passed through to every check
     unchanged. Each check receives only its own section of `config`
     (keyed by the check's registered name), never the whole project config.
+
+    A check that raises doesn't crash the run: it's caught here and turned
+    into one gate finding naming the check and the exception, so every
+    other registered check still runs and the crash is reported rather
+    than silently swallowed.
     """
 
     findings: list[Finding] = []
     for name, check in _registry.items():
         check_config = config.get(name, {})
-        findings.extend(check(repo_root, diff_range, check_config))
+        try:
+            findings.extend(check(repo_root, diff_range, check_config))
+        except Exception as exc:
+            findings.append(_crash_finding(name, exc))
     return RunResult(checks_run=tuple(_registry), findings=tuple(findings))
