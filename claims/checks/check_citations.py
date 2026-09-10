@@ -57,6 +57,7 @@ ported for `spliced-docs` avoids reintroducing that exact drift.
 
 from __future__ import annotations
 
+import json
 import re
 import subprocess
 from collections.abc import Mapping
@@ -144,8 +145,70 @@ def _declared_now(repo_root: Path) -> set[str]:
     return names
 
 
-def _declared_ever(repo_root: Path) -> set[str]:
-    """Every name tracked `*.swift` has ever declared, across full history.
+_CACHE_RELATIVE_PATH = Path("claims-cache") / "check-citations.json"
+
+
+def _cache_path(repo_root: Path) -> Path:
+    """Where this check's history-walk cache lives for `repo_root`.
+
+    Under the real git dir (`git rev-parse --git-dir`, not an assumed
+    `repo_root / ".git"`) so a worktree checkout resolves to its shared
+    gitdir rather than a bare directory that isn't there. Living under the
+    git dir at all means it's local to this checkout and never tracked —
+    no `.gitignore` entry needed, and a fresh clone naturally starts cold.
+    """
+
+    git_dir = _git(repo_root, "rev-parse", "--git-dir").strip()
+    return (repo_root / git_dir / _CACHE_RELATIVE_PATH).resolve()
+
+
+def _load_cache(cache_path: Path) -> tuple[str, set[str]] | None:
+    """The cached `(head sha, declared-ever names)`, or `None` on any miss.
+
+    Any failure — missing file, corrupt JSON, wrong shape — is a cache
+    miss, never an error: `_declared_ever` falls back to a full walk, which
+    is slower but exactly as correct as if caching didn't exist at all.
+    """
+
+    try:
+        raw = json.loads(cache_path.read_text(encoding="utf-8"))
+        return raw["head"], set(raw["names"])
+    except (OSError, ValueError, KeyError, TypeError):
+        return None
+
+
+def _save_cache(cache_path: Path, head: str, names: set[str]) -> None:
+    """Best-effort: a write failure (e.g. read-only checkout) is silently
+    skipped, never raised — this cache is an optimization, not a
+    correctness requirement, and the next run simply re-derives it."""
+
+    try:
+        cache_path.parent.mkdir(parents=True, exist_ok=True)
+        cache_path.write_text(
+            json.dumps({"head": head, "names": sorted(names)}), encoding="utf-8"
+        )
+    except OSError:
+        pass
+
+
+def _is_ancestor(repo_root: Path, sha: str) -> bool:
+    """Whether `sha` is reachable from `HEAD` — `False` (not just "no") for
+    a `sha` that no longer resolves at all, e.g. after a history rewrite,
+    so `_declared_ever` falls back to a full walk instead of erroring."""
+
+    done = subprocess.run(
+        ["git", "-C", str(repo_root), "merge-base", "--is-ancestor", sha, "HEAD"],
+        capture_output=True,
+        text=True,
+        errors="replace",
+    )
+    return done.returncode == 0
+
+
+def _declared_in_range(repo_root: Path, rev_range: str) -> set[str]:
+    """Every name tracked `*.swift` declares in `rev_range` (a single rev
+    for "everything reachable from it", or `a..b` for "reachable from b,
+    not from a").
 
     `--diff-merges=first-parent`: `git log -p` shows no diff at all for a
     merge commit, so a declaration first introduced by resolving a conflict
@@ -154,7 +217,14 @@ def _declared_ever(repo_root: Path) -> set[str]:
     """
 
     log = _git(
-        repo_root, "log", "--format=", "-p", "--diff-merges=first-parent", "--", "*.swift"
+        repo_root,
+        "log",
+        "--format=",
+        "-p",
+        "--diff-merges=first-parent",
+        rev_range,
+        "--",
+        "*.swift",
     )
     names: set[str] = set()
     for line in log.splitlines():
@@ -162,6 +232,34 @@ def _declared_ever(repo_root: Path) -> set[str]:
             match = SWIFT_DECL_RE.match(line[1:])
             if match:
                 names.add(match.group(1))
+    return names
+
+
+def _declared_ever(repo_root: Path) -> set[str]:
+    """Every name tracked `*.swift` has ever declared, across full history.
+
+    Cached by `HEAD` sha so a repeated run on an unchanged history costs
+    one `rev-parse` instead of re-walking every commit's diff. A `HEAD`
+    that has moved on from the cached sha walks only the new commits
+    (`cached..HEAD`) and unions them into the cached set, rather than
+    redoing the full walk; a cached sha that `HEAD` can no longer reach
+    (rewritten history) falls back to a full walk, same as a cold cache.
+    """
+
+    head = _git(repo_root, "rev-parse", "HEAD").strip()
+    cache_path = _cache_path(repo_root)
+    cached = _load_cache(cache_path)
+    if cached is not None:
+        cached_head, cached_names = cached
+        if cached_head == head:
+            return cached_names
+        if _is_ancestor(repo_root, cached_head):
+            names = cached_names | _declared_in_range(repo_root, f"{cached_head}..{head}")
+            _save_cache(cache_path, head, names)
+            return names
+
+    names = _declared_in_range(repo_root, head)
+    _save_cache(cache_path, head, names)
     return names
 
 

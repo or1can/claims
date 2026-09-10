@@ -28,6 +28,7 @@ import subprocess
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 from claims.checks.check_citations import NAME, check
 from claims.cli import main
@@ -270,6 +271,79 @@ class CheckCitationsTests(RegistryClearingTestCase):
         self.assertEqual(len(findings), 1)
         self.assertTrue(findings[0].gate)
         self.assertIn("shallow", findings[0].message)
+
+
+class CheckCitationsHistoryCacheTests(RegistryClearingTestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        register_check(NAME, check)
+
+    def _log_call_count(self, repo_root: Path) -> int:
+        with patch(
+            "claims.checks.check_citations.subprocess.run", wraps=subprocess.run
+        ) as spy:
+            run(repo_root, "HEAD", {})
+        return sum(1 for call in spy.call_args_list if "log" in call.args[0])
+
+    def test_a_second_invocation_over_unchanged_history_does_not_walk_the_log(
+        self,
+    ) -> None:
+        with Repo() as repo:
+            repo.write("Sources/Room.swift", "func loadWidget() -> Widget {}\n")
+            repo.commit()
+            repo.write("Sources/Room.swift", "func loadGadget() -> Gadget {}\n")
+            repo.commit()
+
+            first = self._log_call_count(repo.root)
+            second = self._log_call_count(repo.root)
+
+        self.assertEqual(first, 1)
+        self.assertEqual(second, 0)
+
+    def test_a_commit_added_after_caching_is_still_picked_up(self) -> None:
+        with Repo() as repo:
+            repo.write("Sources/Room.swift", "func loadWidget() -> Widget {}\n")
+            repo.commit()
+
+            run(repo.root, "HEAD", {})  # populate the cache at this HEAD
+
+            repo.write("Sources/Room.swift", "func loadGadget() -> Gadget {}\n")
+            repo.commit()
+            repo.write("docs/NOTES.md", "See `loadWidget` for the old approach.\n")
+            repo.commit()
+
+            findings = list(run(repo.root, "HEAD", {}).findings)
+
+        self.assertEqual(len(findings), 1)
+        self.assertEqual(findings[0].citation, "docs/NOTES.md:1")
+
+    def test_history_rewritten_since_the_cached_head_still_finds_dead_citations(
+        self,
+    ) -> None:
+        with Repo() as repo:
+            repo.write("Sources/Room.swift", "func loadWidget() -> Widget {}\n")
+            repo.commit()
+
+            run(repo.root, "HEAD", {})  # populate the cache at this HEAD
+
+            subprocess.run(
+                ["git", "-C", str(repo.root), "commit", "--amend", "-q", "-m", "commit"],
+                check=True,
+                env={
+                    **os.environ,
+                    "GIT_AUTHOR_DATE": "2020-01-01T00:00:00",
+                    "GIT_COMMITTER_DATE": "2020-01-01T00:00:00",
+                },
+            )
+            repo.write("Sources/Room.swift", "func loadGadget() -> Gadget {}\n")
+            repo.commit()
+            repo.write("docs/NOTES.md", "See `loadWidget` for the old approach.\n")
+            repo.commit()
+
+            findings = list(run(repo.root, "HEAD", {}).findings)
+
+        self.assertEqual(len(findings), 1)
+        self.assertEqual(findings[0].citation, "docs/NOTES.md:1")
 
 
 class CheckCitationsCliTests(RegistryClearingTestCase):
