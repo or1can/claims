@@ -89,6 +89,23 @@ class CheckLinksTests(RegistryClearingTestCase):
 
         self.assertEqual(findings, [])
 
+    def test_a_heading_with_an_underscore_anchor_that_resolves_is_not_flagged(
+        self,
+    ) -> None:
+        # Ticket 26: GitHub's real slugger keeps underscores; `SLUG_STRIP_RE`
+        # used to strip them, so a correct link to a heading like `` `RUST_LOG` ``
+        # (real GitHub anchor `#rust_log`) never matched the computed slug.
+        with Repo() as repo:
+            repo.write(
+                "README.md", "See [config](docs/NOTES.md#rust_log) for details.\n"
+            )
+            repo.write("docs/NOTES.md", "# `RUST_LOG`\n\nBody.\n")
+            repo.commit()
+
+            findings = self._findings(repo.root)
+
+        self.assertEqual(findings, [])
+
     def test_a_path_plus_anchor_link_is_checked_not_silently_skipped(self) -> None:
         # Regression case (ticket 13): the source tool's first version only
         # matched a link ending bare `.md)`, so a `...md#anchor)` link was

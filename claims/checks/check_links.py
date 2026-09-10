@@ -36,9 +36,11 @@ link ending `...md#anchor)` — path *plus* anchor — silently never got
 validated at all; this port checks the path-plus-anchor form from the start
 (ticket 13's named regression case).
 
-Heading slugs use the same rule as the source tool's `slugs_of`: lowercase,
-strip anything outside `[a-z0-9 -]`, spaces to hyphens — no de-duplication
-for repeated identical headings, matching upstream's own scope.
+Heading slugs follow GitHub's real anchor algorithm: lowercase, strip
+anything outside `[a-z0-9 _-]`, spaces to hyphens — no de-duplication for
+repeated identical headings, matching upstream's own scope. (Ticket 26: the
+source tool's `slugs_of` stripped underscores too, which GitHub's slugger
+does not; fixed here rather than ported as-is.)
 """
 
 from __future__ import annotations
@@ -65,7 +67,7 @@ LINK_RE = re.compile(r"\]\(([^)]*)\)")
 RELEVANT_RE = re.compile(r"\.md(?:$|#)|^#")
 SCHEME_RE = re.compile(r"^[A-Za-z][A-Za-z0-9+.-]*:")
 HEADING_RE = re.compile(r"^#{1,6} (.*)$")
-SLUG_STRIP_RE = re.compile(r"[^a-z0-9 -]")
+SLUG_STRIP_RE = re.compile(r"[^a-z0-9 _-]")
 
 
 def _read(path: Path) -> str | None:

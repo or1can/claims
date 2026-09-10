@@ -21,12 +21,29 @@ heading containing an underscore whose real GitHub anchor is known.
 
 **Blocked by:** none.
 
-**Status:** ready-for-agent
+**Status:** resolved
 
-- [ ] A heading containing an underscore (e.g. `` `RUST_LOG` `` or
+- [x] A heading containing an underscore (e.g. `` `RUST_LOG` `` or
       `additional_args`) round-trips: a link to its real GitHub anchor is
       not flagged as broken.
-- [ ] Existing `check_links` tests still pass — this must not reintroduce
+- [x] Existing `check_links` tests still pass — this must not reintroduce
       false negatives for headings that never had underscores.
-- [ ] A regression test pins the specific underscore-stripping bug, not
+- [x] A regression test pins the specific underscore-stripping bug, not
       just a general "links resolve" smoke test.
+
+## Answer
+
+Fixed `SLUG_STRIP_RE` in `claims/checks/check_links.py` from
+`[^a-z0-9 -]` to `[^a-z0-9 _-]` — underscore now survives slugging,
+matching GitHub's real anchor algorithm. Updated the module docstring's
+stated slug rule to match, and noted the ticket 26 divergence from the
+source tool's `slugs_of` (which this port no longer matches on purpose).
+
+Added `test_a_heading_with_an_underscore_anchor_that_resolves_is_not_flagged`
+to `tests/test_check_links.py`: a heading `` # `RUST_LOG` `` linked via
+`#rust_log` now resolves with no findings.
+
+Verified: full suite (`python3 -m unittest discover -s tests -p
+'test_*.py'`) — 131 passed. `uv run pyright claims tests` — 0 errors, 0
+warnings, 0 informations. `/code-review` run on the diff; its one finding
+(stale docstring) fixed in the same commit. Committed as `a734e1a`.
