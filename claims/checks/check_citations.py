@@ -226,7 +226,7 @@ def _findings_in(rel: str, lines: list[str], current: set[str], gone: set[str], 
         marked = _exempt_names(text, markdown)
         exempt = carried | marked
         carried = marked
-        for name in CITATION_RE.findall(text):
+        for name in dict.fromkeys(CITATION_RE.findall(text)):
             if name in current or name in exempt or name not in gone:
                 continue
             found.append(

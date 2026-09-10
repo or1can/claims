@@ -28,3 +28,4 @@ Used by `/wayfinder`. The **map** is a file with one **child** file per ticket.
 - **Frontier**: scan `.scratch/<effort>/issues/` for files that are open, unblocked, and unclaimed; first by number wins.
 - **Claim**: set `Status: claimed` and save before any work.
 - **Resolve**: append the answer under an `## Answer` heading, set `Status: resolved`, then append a context pointer (gist + link) to the map's Decisions-so-far in `map.md`.
+- **After `/to-spec` collapses the map**: once an effort's `map.md` has been collapsed into a `spec.md` (via `/to-spec`), `map.md` is no longer live — later implementation tickets resolve by appending their `## Answer` only; they don't touch `map.md`, which `spec.md` has superseded as the effort's authoritative record.

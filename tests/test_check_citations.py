@@ -60,6 +60,23 @@ class CheckCitationsTests(RegistryClearingTestCase):
         self.assertTrue(findings[0].gate)
         self.assertIn("loadWidget", findings[0].message)
 
+    def test_the_same_dead_name_cited_twice_on_one_line_is_flagged_once(self) -> None:
+        with Repo() as repo:
+            repo.write("Sources/Room.swift", "func loadWidget() -> Widget {}\n")
+            repo.commit()
+            repo.write("Sources/Room.swift", "func loadGadget() -> Gadget {}\n")
+            repo.commit()
+            repo.write(
+                "docs/NOTES.md",
+                "`loadWidget` used to call `loadWidget` again on retry.\n",
+            )
+            repo.commit()
+
+            findings = self._findings(repo.root)
+
+        self.assertEqual(len(findings), 1)
+        self.assertEqual(findings[0].citation, "docs/NOTES.md:1")
+
     def test_a_citation_to_a_symbol_that_still_exists_is_not_flagged(self) -> None:
         with Repo() as repo:
             repo.write("Sources/Room.swift", "func loadWidget() -> Widget {}\n")
