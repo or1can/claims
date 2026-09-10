@@ -75,6 +75,19 @@ class AddedLinesByFileTests(unittest.TestCase):
 
         self.assertEqual(added, {"other.md": {2}})
 
+    def test_a_non_default_diff_header_prefix_does_not_lose_added_lines(self) -> None:
+        for config_key in ("diff.mnemonicPrefix", "diff.noprefix"):
+            with self.subTest(config_key=config_key):
+                with Repo() as repo:
+                    repo.config(config_key, "true")
+                    repo.write("doc.md", "one\ntwo\nthree\n")
+                    repo.commit()
+                    repo.write("doc.md", "one\ntwo\nadded\nthree\n")
+
+                    added = added_lines_by_file(repo.root, "HEAD")
+
+                self.assertEqual(added, {"doc.md": {3}})
+
 
 if __name__ == "__main__":
     unittest.main()

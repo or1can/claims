@@ -57,6 +57,9 @@ class Repo:
     def __exit__(self, *_exc: object) -> None:
         self._temp.cleanup()
 
+    def config(self, key: str, value: str) -> None:
+        subprocess.run(["git", "-C", str(self.root), "config", key, value], check=True)
+
     def write(self, name: str, text: str) -> None:
         path = self.root / name
         path.parent.mkdir(parents=True, exist_ok=True)

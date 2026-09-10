@@ -21,14 +21,45 @@ parsing failed) instead of silently returning zero added lines.
 
 **Blocked by:** none.
 
-**Status:** ready-for-agent
+**Status:** resolved
 
-- [ ] `added_lines_by_file` correctly parses added lines from a diff
+- [x] `added_lines_by_file` correctly parses added lines from a diff
       generated with `diff.mnemonicPrefix=true` and one with
       `diff.noprefix=true`, not just the default `a/`/`b/` prefix.
-- [ ] A regression test covers at least one non-default prefix scheme
+- [x] A regression test covers at least one non-default prefix scheme
       against a real `git diff` invocation (not a hand-typed diff string),
       matching this repo's existing `Repo`-fixture test style.
-- [ ] If full parsing isn't practical for some prefix scheme, that scheme
+- [x] If full parsing isn't practical for some prefix scheme, that scheme
       produces a loud failure (raised exception or a Finding), never a
       silent zero.
+
+## Answer
+
+Fixed by pinning the `git diff` invocation's header prefix rather than
+parsing multiple schemes: `added_lines_by_file` in `claims/git.py` now
+passes `--src-prefix=a/ --dst-prefix=b/`, which overrides
+`diff.mnemonicPrefix`/`diff.noprefix` config and makes the `+++ b/<path>`
+header always come out in git's default form, regardless of repo config.
+The parser's hardcoded `"b/"` match is now backed by a `_DST_PREFIX`
+constant shared with the command args, closing the coupling a reviewer
+flagged (edit one, not the other, and the bug silently comes back).
+
+Added `test_a_non_default_diff_header_prefix_does_not_lose_added_lines`
+to `tests/test_git.py`, `subTest`-parametrized over `diff.mnemonicPrefix`
+and `diff.noprefix`, against a real `Repo` fixture. Added a `Repo.config`
+helper to `tests/support.py` so the test doesn't hand-roll the `git
+config` subprocess call.
+
+Two pre-existing, unrelated bugs turned up by review during this fix —
+both out of scope here, filed as their own tickets rather than folded in:
+`core.quotepath`-quoted filenames break header parsing in both this
+function and `restatement.py`'s equivalent (ticket 31); added lines whose
+own content starts with `++` get dropped and desync subsequent line
+numbers (ticket 32).
+
+Verified: full suite (`python3 -m unittest discover -s tests -p
+'test_*.py'`) — 132 passed. `uv run pyright claims tests` — 0 errors, 0
+warnings, 0 informations. `/code-review` run on the diff (5 parallel
+angles); the literal-duplication and test-duplication findings fixed in
+the same commit; two pre-existing out-of-scope bugs filed as tickets 31
+and 32 instead of fixed here.

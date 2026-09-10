@@ -37,17 +37,28 @@ def tracked_files(repo_root: Path, *pathspecs: str) -> list[str]:
     return [rel for rel in result.stdout.splitlines() if rel]
 
 
+_DST_PREFIX = "b/"
+
+
 def added_lines_by_file(repo_root: Path, diff_range: str) -> dict[str, set[int]]:
     """`{path: {added line numbers, in the new file}}` for `diff_range`.
 
-    Only recognizes git's default `+++ b/<path>` header prefix — a repo with
-    `diff.mnemonicPrefix` or `diff.noprefix` set produces a different prefix
-    and is silently seen as having no added lines. Ported as-is from
-    Project B's `tools/claim-words.py`, which has the same limitation.
+    Pins the diff header to git's default `a/`/`b/` prefix via
+    `--src-prefix`/`--dst-prefix`, overriding any repo-level
+    `diff.mnemonicPrefix` or `diff.noprefix` setting that would otherwise
+    change the `+++` line this parses and silently zero out every result.
     """
 
     diff = subprocess.run(
-        ["git", "diff", "--unified=0", "--no-color", diff_range or "HEAD"],
+        [
+            "git",
+            "diff",
+            "--unified=0",
+            "--no-color",
+            "--src-prefix=a/",
+            f"--dst-prefix={_DST_PREFIX}",
+            diff_range or "HEAD",
+        ],
         cwd=repo_root,
         capture_output=True,
         text=True,
@@ -58,8 +69,8 @@ def added_lines_by_file(repo_root: Path, diff_range: str) -> dict[str, set[int]]
     path = None
     line_no = 0
     for line in diff.splitlines():
-        if line.startswith("+++ b/"):
-            path = line[6:]
+        if line.startswith(f"+++ {_DST_PREFIX}"):
+            path = line[len(f"+++ {_DST_PREFIX}") :]
         elif line.startswith("@@"):
             header = re.search(r"\+(\d+)", line)
             line_no = int(header.group(1)) if header else 0
