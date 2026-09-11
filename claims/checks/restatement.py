@@ -60,7 +60,7 @@ import subprocess
 from collections.abc import Mapping, Sequence
 from pathlib import Path
 
-from ..git import tracked_files
+from ..git import QUOTEPATH_OFF, tracked_files
 from ..runner import Finding, register_check
 
 NAME = "restatement"
@@ -116,9 +116,14 @@ def _diff_by_file(
     Each side of a hunk header is still judged separately within a pair, so
     a rename into or out of scope doesn't let one side cancel the other's
     lines either.
+
+    See `claims.git.QUOTEPATH_OFF` for why the command passes it: without
+    it, `_in_scope`'s suffix match never matches a quoted header
+    (`..."b/café.md"` ends in `.md"`, not `.md`), and that file's lines are
+    silently excluded.
     """
 
-    command = ["git", "diff", "--unified=0", diff_range or "HEAD"]
+    command = ["git", *QUOTEPATH_OFF, "diff", "--unified=0", diff_range or "HEAD"]
     diff = subprocess.run(
         command, cwd=repo_root, capture_output=True, text=True, check=True
     ).stdout

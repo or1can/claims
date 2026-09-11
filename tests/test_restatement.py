@@ -128,6 +128,38 @@ class RestatementTests(RegistryClearingTestCase):
             f"c.md's surviving copy must still be flagged: {findings}",
         )
 
+    def test_a_quotable_filenames_retraction_is_still_flagged(self) -> None:
+        sentence = "binding a proxy to zero dot zero dot zero dot zero exposes it to everything\n"
+        with Repo() as repo:
+            repo.write("café.md", sentence)
+            repo.write("b.md", sentence)
+            repo.commit()
+            repo.write("café.md", "an entirely different sentence about something else\n")
+
+            findings = self._findings(repo.root)
+
+        whole_line = [f for f in findings if f.mode == MODE_WHOLE_LINE]
+        self.assertEqual(len(whole_line), 1)
+        self.assertEqual(whole_line[0].citation, "b.md:1")
+
+    def test_a_quotable_filenames_surviving_copy_is_still_flagged(self) -> None:
+        """The other direction from `..._retraction_is_still_flagged`: the
+        non-ASCII name is the file that keeps the sentence, not the one
+        that drops it — `tracked_files` (used to read survivors, not the
+        diff) must also see its real name, not a C-quoted string."""
+        sentence = "binding a proxy to zero dot zero dot zero dot zero exposes it to everything\n"
+        with Repo() as repo:
+            repo.write("a.md", sentence)
+            repo.write("café.md", sentence)
+            repo.commit()
+            repo.write("a.md", "an entirely different sentence about something else\n")
+
+            findings = self._findings(repo.root)
+
+        whole_line = [f for f in findings if f.mode == MODE_WHOLE_LINE]
+        self.assertEqual(len(whole_line), 1)
+        self.assertEqual(whole_line[0].citation, "café.md:1")
+
     def test_findings_are_advisory_not_gating(self) -> None:
         with Repo() as repo:
             repo.write("a.md", "the bridge interface differs for every network it creates\n")

@@ -21,6 +21,19 @@ import subprocess
 from pathlib import Path
 
 
+QUOTEPATH_OFF = ["-c", "core.quotepath=false"]
+"""Disables git's default quoting of a non-ASCII byte in a path (e.g.
+`"b/caf\\303\\251.md"` instead of `b/café.md`) — every git subprocess call
+in this module, and every caller parsing that output by hand, passes this
+so a non-ASCII filename doesn't get silently mis-parsed, misattributed, or
+dropped. Sidesteps writing a C-quote unescaper, at the cost of a narrower
+fix than it looks: a literal double-quote, backslash, or control character
+(tab, newline, ...) in a filename is *always* C-quoted by git regardless
+of this setting, so that case is still unhandled — deliberately accepted
+as out of scope, rarer than a non-ASCII filename and not worth a
+hand-rolled unescaper for."""
+
+
 def tracked_files(repo_root: Path, *pathspecs: str) -> list[str]:
     """Tracked files under `repo_root`, optionally restricted to `pathspecs`.
 
@@ -29,7 +42,7 @@ def tracked_files(repo_root: Path, *pathspecs: str) -> list[str]:
     """
 
     result = subprocess.run(
-        ["git", "-C", str(repo_root), "ls-files", *pathspecs],
+        ["git", *QUOTEPATH_OFF, "-C", str(repo_root), "ls-files", *pathspecs],
         capture_output=True,
         text=True,
         errors="replace",
@@ -47,11 +60,13 @@ def added_lines_by_file(repo_root: Path, diff_range: str) -> dict[str, set[int]]
     `--src-prefix`/`--dst-prefix`, overriding any repo-level
     `diff.mnemonicPrefix` or `diff.noprefix` setting that would otherwise
     change the `+++` line this parses and silently zero out every result.
+    See `QUOTEPATH_OFF` for the other header hazard this pins.
     """
 
     diff = subprocess.run(
         [
             "git",
+            *QUOTEPATH_OFF,
             "diff",
             "--unified=0",
             "--no-color",

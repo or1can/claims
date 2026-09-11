@@ -42,6 +42,12 @@ class TrackedFilesTests(unittest.TestCase):
             files = tracked_files(repo.root)
         self.assertEqual(files, [])
 
+    def test_a_filename_with_a_non_ascii_character_is_not_c_quoted(self) -> None:
+        with Repo() as repo:
+            repo.write("café.md", "text")
+            files = tracked_files(repo.root)
+        self.assertEqual(files, ["café.md"])
+
 
 class AddedLinesByFileTests(unittest.TestCase):
     def test_added_line_numbers_are_in_the_new_file(self) -> None:
@@ -87,6 +93,18 @@ class AddedLinesByFileTests(unittest.TestCase):
                     added = added_lines_by_file(repo.root, "HEAD")
 
                 self.assertEqual(added, {"doc.md": {3}})
+
+    def test_a_quotable_filename_does_not_lose_or_misattribute_added_lines(self) -> None:
+        with Repo() as repo:
+            repo.write("normal.md", "one\ntwo\n")
+            repo.write("café.md", "one\ntwo\n")
+            repo.commit()
+            repo.write("normal.md", "one\ntwo\nthree\n")
+            repo.write("café.md", "one\ntwo\nthree\n")
+
+            added = added_lines_by_file(repo.root, "HEAD")
+
+        self.assertEqual(added, {"normal.md": {3}, "café.md": {3}})
 
 
 if __name__ == "__main__":
