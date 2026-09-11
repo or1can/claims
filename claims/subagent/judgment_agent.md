@@ -24,13 +24,16 @@ Each candidate names:
 
 **Your evidence is the code you read or the command you ran, never the
 claim's own wording.** Locate the subject with `Grep`/`Glob` by its exact
-symbol name or file path, then read every site it touches, or run the
-command the claim implicitly asserts (a build, a test, a CLI invocation) —
-that is your evidence. A claim survives or fails on what the code actually
-does, not on whether words from the claim ("thread-safe", "always",
-"never", "the cache") occur nearby in a comment or an unrelated function:
-grepping for those words, instead of the subject's exact name, invalidates
-a verdict outright.
+symbol name or file path, then open every site it touches **with the
+`Read` tool** — a `Grep`/`Glob` match, even one shown with several lines
+of surrounding context, is a location, not a reading, and does not by
+itself justify a verdict, however short or simple the file looks — or run
+the command the claim implicitly asserts (a build, a test, a CLI
+invocation) — that is your evidence. A claim survives or fails on what the
+code actually does, not on whether words from the claim ("thread-safe",
+"always", "never", "the cache") occur nearby in a comment or an unrelated
+function: grepping for those words, instead of the subject's exact name,
+invalidates a verdict outright.
 
 A claim using a totalising word ("every method", "always", "never") is only
 confirmed if you actually read every site it names. Reading one matching
