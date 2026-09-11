@@ -121,6 +121,15 @@ def _diff_by_file(
     it, `_in_scope`'s suffix match never matches a quoted header
     (`..."b/café.md"` ends in `.md"`, not `.md`), and that file's lines are
     silently excluded.
+
+    A new segment starts on `diff --git `, the one line no hunk content
+    can ever collide with — not on `--- `/`+++ ` themselves, which hunk
+    content can: a removed line starting with `-- ` (a SQL comment, say)
+    becomes `--- ` once the diff's own `-` marker is prepended, and an
+    added line starting with `++` becomes `+++` the same way. Matching
+    those directly would misread such a line as a new file's header,
+    losing it and every line after it in that hunk from the wrong side's
+    scope.
     """
 
     command = ["git", *QUOTEPATH_OFF, "diff", "--unified=0", diff_range or "HEAD"]
@@ -131,12 +140,16 @@ def _diff_by_file(
     segments: list[tuple[list[str], list[str]]] = []
     from_scope = False
     to_scope = False
+    awaiting_header = False
     for line in (diff or "").splitlines():
-        if line.startswith("--- "):
+        if line.startswith("diff --git "):
             segments.append(([], []))
+            awaiting_header = True
+        elif awaiting_header and line.startswith("--- "):
             from_scope = _in_scope(line, extensions)
-        elif line.startswith("+++ "):
+        elif awaiting_header and line.startswith("+++ "):
             to_scope = _in_scope(line, extensions)
+            awaiting_header = False
         elif line.startswith("-") and from_scope and segments:
             segments[-1][0].append(line[1:])
         elif line.startswith("+") and to_scope and segments:

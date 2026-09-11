@@ -160,6 +160,45 @@ class RestatementTests(RegistryClearingTestCase):
         self.assertEqual(len(whole_line), 1)
         self.assertEqual(whole_line[0].citation, "café.md:1")
 
+    def test_a_removed_line_starting_with_dash_dash_does_not_hide_a_later_retraction(
+        self,
+    ) -> None:
+        sentence = "binding a proxy to zero dot zero dot zero dot zero exposes it to everything\n"
+        with Repo() as repo:
+            repo.write("a.md", "-- decorative\n" + sentence)
+            repo.write("b.md", sentence)
+            repo.commit()
+            repo.write("a.md", "an entirely different sentence about something else\n")
+
+            findings = self._findings(repo.root)
+
+        whole_line = [f for f in findings if f.mode == MODE_WHOLE_LINE]
+        self.assertEqual(len(whole_line), 1)
+        self.assertEqual(whole_line[0].citation, "b.md:1")
+
+    def test_an_added_line_starting_with_plus_plus_does_not_break_reflow_detection(
+        self,
+    ) -> None:
+        """Mirrors `..._the_diff_also_re_added_is_not_reported`: the kept
+        sentence is removed as one line and re-added rewrapped across two,
+        in the same diff — a thing still said, not retracted. An unrelated
+        `++ shout` added line sits ahead of the rewrap in the same hunk —
+        `++ ` (with the trailing space), not bare `++`, is what collides
+        with restatement.py's own `"+++ "` match (space and all)."""
+        kept = "binding a proxy to zero dot zero dot zero dot zero exposes it to everything\n"
+        with Repo() as repo:
+            repo.write("a.md", "intro\n" + kept)
+            repo.commit()
+            repo.write(
+                "a.md",
+                "intro\n++ shout\nbinding a proxy to zero dot zero dot zero dot zero\n"
+                "exposes it to everything\n",
+            )
+
+            findings = self._findings(repo.root)
+
+        self.assertEqual(findings, [])
+
     def test_findings_are_advisory_not_gating(self) -> None:
         with Repo() as repo:
             repo.write("a.md", "the bridge interface differs for every network it creates\n")

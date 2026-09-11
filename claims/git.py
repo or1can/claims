@@ -51,6 +51,7 @@ def tracked_files(repo_root: Path, *pathspecs: str) -> list[str]:
 
 
 _DST_PREFIX = "b/"
+_DST_HEADER = f"+++ {_DST_PREFIX}"
 
 
 def added_lines_by_file(repo_root: Path, diff_range: str) -> dict[str, set[int]]:
@@ -61,6 +62,22 @@ def added_lines_by_file(repo_root: Path, diff_range: str) -> dict[str, set[int]]
     `diff.mnemonicPrefix` or `diff.noprefix` setting that would otherwise
     change the `+++` line this parses and silently zero out every result.
     See `QUOTEPATH_OFF` for the other header hazard this pins.
+
+    `path` doubles as "still waiting for this file's `+++ ` header": reset
+    to `None` by `diff --git ` (the one line no hunk content can ever
+    collide with), and checked against `+++ ` only while still `None`. A
+    genuine `+++ ` line always follows shortly after `diff --git `, before
+    any hunk content — including a non-matching one (`+++ /dev/null` for a
+    deleted file), which correctly leaves `path` at `None` rather than
+    matching it against later hunk lines. Matching a bare `+++` prefix
+    wherever it appears, instead of gating on this, is ambiguous: an
+    *added* line whose own content starts with `++` (`++i;`, `++bold++` in
+    markdown) becomes `+++i;` once the diff's own `+` marker is prepended,
+    indistinguishable from the header by that match alone — dropping that
+    line and desyncing every line number after it in the hunk. `diff
+    --git ` sidesteps the same trap a `--- ` trigger would have: hunk
+    content can start with `-- ` too (a SQL comment, say), becoming `--- `
+    the same way.
     """
 
     diff = subprocess.run(
@@ -84,12 +101,15 @@ def added_lines_by_file(repo_root: Path, diff_range: str) -> dict[str, set[int]]
     path = None
     line_no = 0
     for line in diff.splitlines():
-        if line.startswith(f"+++ {_DST_PREFIX}"):
-            path = line[len(f"+++ {_DST_PREFIX}") :]
+        if line.startswith("diff --git "):
+            path = None
+        elif path is None and line.startswith("+++ "):
+            if line.startswith(_DST_HEADER):
+                path = line[len(_DST_HEADER) :]
         elif line.startswith("@@"):
             header = re.search(r"\+(\d+)", line)
             line_no = int(header.group(1)) if header else 0
-        elif line.startswith("+") and not line.startswith("+++"):
+        elif line.startswith("+"):
             if path:
                 added.setdefault(path, set()).add(line_no)
             line_no += 1

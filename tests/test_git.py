@@ -94,6 +94,40 @@ class AddedLinesByFileTests(unittest.TestCase):
 
                 self.assertEqual(added, {"doc.md": {3}})
 
+    def test_an_added_lines_content_starting_with_plus_plus_is_not_dropped(self) -> None:
+        with Repo() as repo:
+            repo.write("f.md", "one\n")
+            repo.commit()
+            repo.write("f.md", "one\n++i;\ntwo\n")
+
+            added = added_lines_by_file(repo.root, "HEAD")
+
+        self.assertEqual(added, {"f.md": {2, 3}})
+
+    def test_an_added_line_after_a_removed_line_starting_with_dash_dash_is_not_dropped(
+        self,
+    ) -> None:
+        with Repo() as repo:
+            repo.write("f.sql", "a\n-- old\nb\n")
+            repo.commit()
+            repo.write("f.sql", "a\nnewline\nb\n")
+
+            added = added_lines_by_file(repo.root, "HEAD")
+
+        self.assertEqual(added, {"f.sql": {2}})
+
+    def test_a_deleted_file_later_in_the_diff_adds_no_phantom_line(self) -> None:
+        with Repo() as repo:
+            repo.write("a.md", "one\ntwo\n")
+            repo.write("z.md", "gone\n")
+            repo.commit()
+            repo.write("a.md", "one\ntwo\nthree\n")
+            (repo.root / "z.md").unlink()
+
+            added = added_lines_by_file(repo.root, "HEAD")
+
+        self.assertEqual(added, {"a.md": {3}})
+
     def test_a_quotable_filename_does_not_lose_or_misattribute_added_lines(self) -> None:
         with Repo() as repo:
             repo.write("normal.md", "one\ntwo\n")
