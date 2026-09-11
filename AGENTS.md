@@ -112,9 +112,14 @@ for — note that in `TODO.md` instead.
 
 ### Typechecking
 
-`pyright claims tests` stays clean:
+`uv run pyright claims tests` stays clean — pinned via `pyproject.toml`'s
+`dev` dependency group and `uv.lock`, not whatever `pyright` happens to be
+on `PATH`. `PYRIGHT_PYTHON_IGNORE_WARNINGS=1` silences the pyright-python
+wrapper's own "a newer pyright exists on PyPI" nag, which would otherwise
+print to stdout and break this exact-match check the moment PyPI ships a
+release past the pin:
 
-<!-- verify: pyright claims tests -->
+<!-- verify: PYRIGHT_PYTHON_IGNORE_WARNINGS=1 uv run pyright claims tests -->
 ```
 0 errors, 0 warnings, 0 informations
 ```
