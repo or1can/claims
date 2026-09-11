@@ -99,7 +99,7 @@ from collections.abc import Mapping
 from pathlib import Path
 from typing import NamedTuple
 
-from ..git import tracked_files
+from ..git import QUOTEPATH_OFF, tracked_files
 from ..runner import Finding, register_check
 from .check_citations import CITATION_RE
 from .spliced_docs import RUST_ITEM_RE, SWIFT_DECL_RE
@@ -125,10 +125,17 @@ class _Endpoints(NamedTuple):
 
 
 def _git(repo_root: Path, *args: str) -> str | None:
-    """`None` on any git failure — this check is advisory: best effort, never a crash."""
+    """`None` on any git failure — this check is advisory: best effort, never a crash.
+
+    `QUOTEPATH_OFF`: without it, `git ls-tree`'s output for a tracked
+    file with a non-ASCII character in its name comes back C-quoted
+    (`"caf\\303\\251.rs"`), which `_files_at_ref`'s `.endswith((".swift",
+    ".rs"))` filter never matches — silently dropping that file, same
+    hazard `claims.git`'s own functions guard against.
+    """
 
     done = subprocess.run(
-        ["git", "-C", str(repo_root), *args],
+        ["git", *QUOTEPATH_OFF, "-C", str(repo_root), *args],
         capture_output=True,
         text=True,
         errors="replace",

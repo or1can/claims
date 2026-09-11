@@ -30,11 +30,30 @@ right).
 
 **Blocked by:** none.
 
-**Status:** ready-for-agent
+**Status:** resolved
 
-- [ ] A tracked `.swift` or `.rs` file with a non-ASCII character in its
+- [x] A tracked `.swift` or `.rs` file with a non-ASCII character in its
       name, present at `ref`, is included in `_files_at_ref`'s result (not
       silently dropped by the `.endswith` filter).
-- [ ] A regression test using a real `git` repo fixture (a `Repo` with a
+- [x] A regression test using a real `git` repo fixture (a `Repo` with a
       quotable filename, committed, read back via `_files_at_ref` or
       through `check()`'s public seam) — not a hand-typed `ls-tree` string.
+
+## Answer
+
+Took the simpler of the ticket's two options: `judgment_agent.py`'s own
+`_git` helper now passes `claims.git.QUOTEPATH_OFF`, same as `git.py` and
+`restatement.py`. Applies uniformly to all three of `_git`'s call sites
+(`ls-tree`, `show`, `log`) since they all share the one helper.
+
+Added `test_a_quotable_filenames_declaration_at_base_is_still_seen` to
+`tests/test_judgment_agent.py` — same shape as the existing rename test
+(`test_a_rename_falsifies_a_citation_in_a_file_the_diff_never_touched`),
+but the declaring file's own name has a non-ASCII character, exercising
+`_files_at_ref`'s `git ls-tree` call through the public `check()` seam.
+Confirmed genuine red against committed code (`0 != 1`) before applying
+the fix.
+
+Verified: full suite (`python3 -m unittest discover -s tests -p
+'test_*.py'`) — 147 passed. `uv run pyright claims tests` — 0 errors, 0
+warnings, 0 informations. `/code-review` run on the diff — no findings.

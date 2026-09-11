@@ -63,6 +63,23 @@ class JudgmentAgentTests(RegistryClearingTestCase):
         self.assertIn("loadWidget", findings[0].message)
         self.assertIn("Sources/Room.swift:1", findings[0].message)
 
+    def test_a_quotable_filenames_declaration_at_base_is_still_seen(self) -> None:
+        # Same shape as the rename test above, but the declaring file's own
+        # name has a non-ASCII character — `_files_at_ref`'s `git ls-tree`
+        # call must not lose it to C-quoting the way `.endswith` would miss
+        # a quoted `..."café.swift"`.
+        with Repo() as repo:
+            repo.write("Sources/café.swift", "func loadWidget() -> Widget {}\n")
+            repo.write("docs/NOTES.md", "See `loadWidget` for the old approach.\n")
+            repo.commit()
+            repo.write("Sources/café.swift", "func loadGadget() -> Gadget {}\n")
+
+            findings = self._findings(repo.root)
+
+        self.assertEqual(len(findings), 1)
+        self.assertEqual(findings[0].citation, "docs/NOTES.md:1")
+        self.assertEqual(findings[0].mode, MODE_REMOVED)
+
     def test_a_same_commit_claim_and_subject_move_is_still_surfaced(self) -> None:
         # Churn-ranking (stale-claims.py) reads zero here by construction —
         # this check's before/after set-diff doesn't, since it's binary, not
