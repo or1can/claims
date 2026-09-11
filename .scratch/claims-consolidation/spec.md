@@ -239,7 +239,7 @@ source tools already do successfully.
 
 ## Further Notes
 
-Four questions remain open from the map, carried forward as implementation-
+Three questions remain open from the map, carried forward as implementation-
 time questions rather than blockers:
 
 - **Orchestrator design/value** — unclear even to the person driving this
@@ -248,9 +248,6 @@ time questions rather than blockers:
   there's something concrete to orchestrate.
 - **Extension-point mechanism's exact shape** — how a project registers a
   bespoke check into the runner is not yet designed.
-- **Judgment-agent subagent's exact prompt/spec** — the candidate-list
-  mechanism is designed (see Implementation Decisions); the subagent's own
-  instructions are not yet written.
 - **Adapter interface design** — the internal interface a check uses to
   invoke a language-specific symbol/AST resolver (needed by `spliced-docs`
   and `check-citations` at minimum) has no concrete case yet to generalise
