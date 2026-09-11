@@ -56,11 +56,10 @@ e.g. `ratect` would add `.rs`, covered by neither source tool.
 from __future__ import annotations
 
 import re
-import subprocess
 from collections.abc import Mapping, Sequence
 from pathlib import Path
 
-from ..git import QUOTEPATH_OFF, tracked_files
+from ..git import DiffLine, iter_diff, tracked_files
 from ..runner import Finding, register_check
 
 NAME = "restatement"
@@ -100,8 +99,8 @@ def _extensions(config: Mapping[str, object]) -> set[str]:
     return set(DEFAULT_EXTENSIONS) | set(extra)  # type: ignore[arg-type]
 
 
-def _in_scope(diff_header_line: str, extensions: set[str]) -> bool:
-    return diff_header_line.endswith(tuple(extensions))
+def _in_scope(path: str | None, extensions: set[str]) -> bool:
+    return path is not None and path.endswith(tuple(extensions))
 
 
 def _diff_by_file(
@@ -117,43 +116,27 @@ def _diff_by_file(
     a rename into or out of scope doesn't let one side cancel the other's
     lines either.
 
-    See `claims.git.QUOTEPATH_OFF` for why the command passes it: without
-    it, `_in_scope`'s suffix match never matches a quoted header
-    (`..."b/café.md"` ends in `.md"`, not `.md`), and that file's lines are
-    silently excluded.
-
-    A new segment starts on `diff --git `, the one line no hunk content
-    can ever collide with — not on `--- `/`+++ ` themselves, which hunk
-    content can: a removed line starting with `-- ` (a SQL comment, say)
-    becomes `--- ` once the diff's own `-` marker is prepended, and an
-    added line starting with `++` becomes `+++` the same way. Matching
-    those directly would misread such a line as a new file's header,
-    losing it and every line after it in that hunk from the wrong side's
-    scope.
+    Built on `claims.git.iter_diff`, which already resolves each side's
+    path (or `None` for that side's `/dev/null`) unambiguously — see its
+    own docstring for why that's not as simple as matching `+++`/`--- `
+    line prefixes directly. Scope is computed fresh per `FileDiff`, never
+    carried over — a file with no header at all (a pure rename, a binary
+    file) is just a `FileDiff` with both paths `None` and an empty body.
     """
 
-    command = ["git", *QUOTEPATH_OFF, "diff", "--unified=0", diff_range or "HEAD"]
-    diff = subprocess.run(
-        command, cwd=repo_root, capture_output=True, text=True, check=True
-    ).stdout
-
     segments: list[tuple[list[str], list[str]]] = []
-    from_scope = False
-    to_scope = False
-    awaiting_header = False
-    for line in (diff or "").splitlines():
-        if line.startswith("diff --git "):
-            segments.append(([], []))
-            awaiting_header = True
-        elif awaiting_header and line.startswith("--- "):
-            from_scope = _in_scope(line, extensions)
-        elif awaiting_header and line.startswith("+++ "):
-            to_scope = _in_scope(line, extensions)
-            awaiting_header = False
-        elif line.startswith("-") and from_scope and segments:
-            segments[-1][0].append(line[1:])
-        elif line.startswith("+") and to_scope and segments:
-            segments[-1][1].append(line[1:])
+    for file_diff in iter_diff(repo_root, diff_range):
+        from_scope = _in_scope(file_diff.src, extensions)
+        to_scope = _in_scope(file_diff.dst, extensions)
+        removed: list[str] = []
+        added: list[str] = []
+        for item in file_diff.body:
+            if isinstance(item, DiffLine):
+                if item.sign == "-" and from_scope:
+                    removed.append(item.text)
+                elif item.sign == "+" and to_scope:
+                    added.append(item.text)
+        segments.append((removed, added))
     return segments
 
 

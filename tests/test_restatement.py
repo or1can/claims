@@ -68,6 +68,26 @@ class RestatementTests(RegistryClearingTestCase):
         self.assertEqual(len(whole_line), 1)
         self.assertEqual(whole_line[0].citation, "b.md:1")
 
+    def test_a_non_default_diff_header_prefix_still_flags_a_retraction(self) -> None:
+        # _diff_by_file goes through iter_diff, which pins --src-prefix/
+        # --dst-prefix — this check's own coverage of that immunity, not
+        # just relying on iter_diff's.
+        sentence = "binding a proxy to zero dot zero dot zero dot zero exposes it to everything\n"
+        for config_key in ("diff.mnemonicPrefix", "diff.noprefix"):
+            with self.subTest(config_key=config_key):
+                with Repo() as repo:
+                    repo.config(config_key, "true")
+                    repo.write("a.md", sentence)
+                    repo.write("b.md", sentence)
+                    repo.commit()
+                    repo.write("a.md", "an entirely different sentence about something else\n")
+
+                    findings = self._findings(repo.root)
+
+                whole_line = [f for f in findings if f.mode == MODE_WHOLE_LINE]
+                self.assertEqual(len(whole_line), 1)
+                self.assertEqual(whole_line[0].citation, "b.md:1")
+
     def test_a_paraphrase_is_not_flagged(self) -> None:
         """The documented boundary: same fact, different wording, no
         verbatim overlap long enough for either mode to match."""
@@ -184,7 +204,7 @@ class RestatementTests(RegistryClearingTestCase):
         in the same diff — a thing still said, not retracted. An unrelated
         `++ shout` added line sits ahead of the rewrap in the same hunk —
         `++ ` (with the trailing space), not bare `++`, is what collides
-        with restatement.py's own `"+++ "` match (space and all)."""
+        with `iter_diff`'s own `"+++ "` match (space and all)."""
         kept = "binding a proxy to zero dot zero dot zero dot zero exposes it to everything\n"
         with Repo() as repo:
             repo.write("a.md", "intro\n" + kept)

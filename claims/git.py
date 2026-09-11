@@ -18,7 +18,9 @@ from __future__ import annotations
 
 import re
 import subprocess
+from collections.abc import Iterator
 from pathlib import Path
+from typing import NamedTuple
 
 
 QUOTEPATH_OFF = ["-c", "core.quotepath=false"]
@@ -50,34 +52,68 @@ def tracked_files(repo_root: Path, *pathspecs: str) -> list[str]:
     return [rel for rel in result.stdout.splitlines() if rel]
 
 
+_SRC_PREFIX = "a/"
 _DST_PREFIX = "b/"
+_SRC_HEADER = f"--- {_SRC_PREFIX}"
 _DST_HEADER = f"+++ {_DST_PREFIX}"
 
 
-def added_lines_by_file(repo_root: Path, diff_range: str) -> dict[str, set[int]]:
-    """`{path: {added line numbers, in the new file}}` for `diff_range`.
+class DiffHunkStart(NamedTuple):
+    """An `@@` hunk header's first line number on the new side."""
+
+    new_start: int
+
+
+class DiffLine(NamedTuple):
+    """One hunk content line. `sign` is `"+"` or `"-"`; `text` excludes it."""
+
+    sign: str
+    text: str
+
+
+class FileDiff(NamedTuple):
+    """One file's diff: its header paths, plus its hunk/line body in order.
+
+    `src`/`dst` are `None` for that side's `/dev/null` — a new file has no
+    `src`, a deleted file has no `dst`. `body` is empty (and both paths
+    `None`) for a file with no `--- `/`+++ ` pair at all — a pure rename,
+    a binary file, or a mode-only change.
+
+    Grouped per file rather than as one flat event stream, so there is no
+    cross-file state a caller could forget to reset: reading `src`/`dst`
+    or walking `body` for one `FileDiff` can never see a stale value left
+    over from the previous one, because there's nothing to carry — each
+    `FileDiff` is a fresh, self-contained tuple.
+    """
+
+    src: str | None
+    dst: str | None
+    body: list[DiffHunkStart | DiffLine]
+
+
+def _header_path(line: str, header: str) -> str | None:
+    return line[len(header) :] if line.startswith(header) else None
+
+
+def iter_diff(repo_root: Path, diff_range: str) -> Iterator[FileDiff]:
+    """Walk `git diff --unified=0` for `diff_range`, one `FileDiff` per file.
 
     Pins the diff header to git's default `a/`/`b/` prefix via
     `--src-prefix`/`--dst-prefix`, overriding any repo-level
     `diff.mnemonicPrefix` or `diff.noprefix` setting that would otherwise
-    change the `+++` line this parses and silently zero out every result.
-    See `QUOTEPATH_OFF` for the other header hazard this pins.
+    change the header lines this parses and silently lose every path. See
+    `QUOTEPATH_OFF` for the other header hazard this pins.
 
-    `path` doubles as "still waiting for this file's `+++ ` header": reset
-    to `None` by `diff --git ` (the one line no hunk content can ever
-    collide with), and checked against `+++ ` only while still `None`. A
-    genuine `+++ ` line always follows shortly after `diff --git `, before
-    any hunk content — including a non-matching one (`+++ /dev/null` for a
-    deleted file), which correctly leaves `path` at `None` rather than
-    matching it against later hunk lines. Matching a bare `+++` prefix
-    wherever it appears, instead of gating on this, is ambiguous: an
-    *added* line whose own content starts with `++` (`++i;`, `++bold++` in
-    markdown) becomes `+++i;` once the diff's own `+` marker is prepended,
-    indistinguishable from the header by that match alone — dropping that
-    line and desyncing every line number after it in the hunk. `diff
-    --git ` sidesteps the same trap a `--- ` trigger would have: hunk
-    content can start with `-- ` too (a SQL comment, say), becoming `--- `
-    the same way.
+    A file's `--- `/`+++ ` header is only read while still waiting for it
+    — a state cleared by `diff --git ` (the one line no hunk content can
+    ever collide with) and closed the moment a `+++ ` line is seen.
+    Matching a bare `+++`/`--- ` prefix wherever it appears, instead of
+    gating on this, is ambiguous: an *added* line whose own content
+    starts with `++` (`++i;`) becomes `+++i;` once the diff's own `+`
+    marker is prepended, and a *removed* line starting with `-- ` (a SQL
+    comment, say) becomes `--- ` the same way — either indistinguishable
+    from a real header by a bare prefix match alone, dropping that line
+    entirely.
     """
 
     diff = subprocess.run(
@@ -87,7 +123,7 @@ def added_lines_by_file(repo_root: Path, diff_range: str) -> dict[str, set[int]]
             "diff",
             "--unified=0",
             "--no-color",
-            "--src-prefix=a/",
+            f"--src-prefix={_SRC_PREFIX}",
             f"--dst-prefix={_DST_PREFIX}",
             diff_range or "HEAD",
         ],
@@ -97,20 +133,43 @@ def added_lines_by_file(repo_root: Path, diff_range: str) -> dict[str, set[int]]
         check=True,
     ).stdout
 
-    added: dict[str, set[int]] = {}
-    path = None
-    line_no = 0
+    in_file = False
+    awaiting_header = False
+    src: str | None = None
+    dst: str | None = None
+    body: list[DiffHunkStart | DiffLine] = []
     for line in diff.splitlines():
         if line.startswith("diff --git "):
-            path = None
-        elif path is None and line.startswith("+++ "):
-            if line.startswith(_DST_HEADER):
-                path = line[len(_DST_HEADER) :]
+            if in_file:
+                yield FileDiff(src, dst, body)
+            in_file = True
+            awaiting_header = True
+            src, dst, body = None, None, []
+        elif awaiting_header and line.startswith("--- "):
+            src = _header_path(line, _SRC_HEADER)
+        elif awaiting_header and line.startswith("+++ "):
+            dst = _header_path(line, _DST_HEADER)
+            awaiting_header = False
         elif line.startswith("@@"):
-            header = re.search(r"\+(\d+)", line)
-            line_no = int(header.group(1)) if header else 0
-        elif line.startswith("+"):
-            if path:
-                added.setdefault(path, set()).add(line_no)
-            line_no += 1
+            match = re.search(r"\+(\d+)", line)
+            body.append(DiffHunkStart(int(match.group(1)) if match else 0))
+        elif line.startswith("+") or line.startswith("-"):
+            body.append(DiffLine(line[0], line[1:]))
+    if in_file:
+        yield FileDiff(src, dst, body)
+
+
+def added_lines_by_file(repo_root: Path, diff_range: str) -> dict[str, set[int]]:
+    """`{path: {added line numbers, in the new file}}` for `diff_range`."""
+
+    added: dict[str, set[int]] = {}
+    for file_diff in iter_diff(repo_root, diff_range):
+        line_no = 0
+        for item in file_diff.body:
+            if isinstance(item, DiffHunkStart):
+                line_no = item.new_start
+            elif item.sign == "+":
+                if file_diff.dst:
+                    added.setdefault(file_diff.dst, set()).add(line_no)
+                line_no += 1
     return added
