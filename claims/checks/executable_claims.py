@@ -42,18 +42,78 @@ NAME = "executable-claims"
 TIMEOUT_SECONDS = 30
 
 MARKER_RE = re.compile(r"^\s*<!--\s*verify:\s*(.+?)\s*-->\s*$")
-FENCE_RE = re.compile(r"^\s*```")
+FENCE_RE = re.compile(r"^\s*(`{3,})")
 PROMPT_RE = re.compile(r"^\s*\$ ")
 
 
-def _blocks(lines: Sequence[str]):
-    """Yields `(line_no, command, expected_lines)` for every marker in `lines`.
+def _fence_state(lines: Sequence[str]) -> tuple[list[bool], int | None]:
+    """`(in_fence, dangling_open_line)` for `lines`.
 
-    `expected_lines` is `None` when the marker isn't followed (allowing
+    `in_fence[i]` is `True` when line `i` sits inside a still-open fence —
+    including a fence-looking line whose backtick run is *shorter* than
+    the one it's nested inside, which CommonMark treats as literal content
+    rather than a real delimiter. That's the documented way to show a
+    fenced-code example inside a fence, using a longer outer delimiter —
+    exactly this check's own "marker syntax" documentation case, so a
+    plain "any 3+ backticks toggles it" parity count would misread the
+    inner example's own closing fence as closing the outer one instead,
+    one nesting level deeper than `_blocks()` alone accounts for.
+
+    `dangling_open_line` is the 1-based line of a fence still open at EOF
+    (also detected this way — nothing before EOF closed it with a
+    long-enough run), or `None`.
+
+    Deliberately accepted narrowing: a stray, self-closed fence pair with
+    nothing but a real marker inside it looks structurally identical to a
+    genuine nested documentation example — both are "a fence opened, then
+    closed, around some lines" — so a marker caught in one is silently
+    treated as not-live, the same as this function's own intended case,
+    with no way to tell accidental pairing from deliberate nesting short
+    of guessing at the author's intent. Not treated as a dangling fence
+    either, since nothing about it is left open. Rare enough (an isolated,
+    self-contained stray pair immediately around an otherwise-unrelated
+    marker) not to be worth a heuristic that would only be guessing.
+    """
+
+    in_fence: list[bool] = []
+    open_fence: tuple[int, int] | None = None  # (backtick count, 1-based line)
+    for i, line in enumerate(lines):
+        match = FENCE_RE.match(line)
+        if match and (open_fence is None or len(match.group(1)) >= open_fence[0]):
+            open_fence = None if open_fence is not None else (len(match.group(1)), i + 1)
+            in_fence.append(False)
+            continue
+        in_fence.append(open_fence is not None)
+    return in_fence, open_fence[1] if open_fence is not None else None
+
+
+def _blocks(lines: Sequence[str], in_fence: Sequence[bool]):
+    """Yields `(line_no, command, expected_lines)` for every live marker in `lines`.
+
+    `in_fence` is `_fence_state(lines)`'s own array — computed once by
+    `check()` and shared with its dangling-fence check, rather than each
+    re-deriving it from `lines`.
+
+    A marker matched while already inside an open fence isn't live — shown
+    as literal text in a documentation example of the marker syntax
+    itself, not a real one — since a marker's contract is "directly above
+    a fence," which a line already inside one can never satisfy. See
+    `_fence_state()` for how "inside a fence" is decided.
+
+    The same `in_fence` array also bounds a live marker's *own* expected
+    block: reusing it (rather than stopping at the first `FENCE_RE` match
+    after the opening fence) means a block legitimately containing a
+    nested fenced example — showing this very marker syntax, say — is
+    captured whole instead of truncated at that nested example's own
+    first line.
+
+    `expected_lines` is `None` when a live marker isn't followed (allowing
     blank lines) by a fenced block — a malformed marker.
     """
 
     for i, line in enumerate(lines):
+        if in_fence[i]:
+            continue
         marker = MARKER_RE.match(line)
         if not marker:
             continue
@@ -64,7 +124,7 @@ def _blocks(lines: Sequence[str]):
             yield i + 1, marker.group(1), None
             continue
         end = j + 1
-        while end < len(lines) and not FENCE_RE.match(lines[end]):
+        while end < len(lines) and in_fence[end]:
             end += 1
         yield i + 1, marker.group(1), lines[j + 1 : end]
 
@@ -101,7 +161,10 @@ def check(
             continue
         seen.add(real)
         lines = (repo_root / rel).read_text(encoding="utf-8").splitlines()
-        for line_no, command, expected in _blocks(lines):
+        in_fence, opened_at = _fence_state(lines)
+        if opened_at is not None:
+            findings.append(_finding(rel, opened_at, "fenced code block is never closed"))
+        for line_no, command, expected in _blocks(lines, in_fence):
             if expected is None:
                 findings.append(
                     _finding(rel, line_no, "verify marker is not above a fenced block")

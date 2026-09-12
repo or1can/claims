@@ -41,6 +41,23 @@ def marked(command: str, body: str) -> str:
     return f"<!-- verify: {command} -->\n```\n{body}\n```\n"
 
 
+def nested_marker_example() -> str:
+    """Documentation illustrating the marker syntax itself — the marker
+    line is inside an already-open fence, not directly above one."""
+
+    return (
+        "Example of the marker syntax:\n"
+        "\n"
+        "```\n"
+        "<!-- verify: some-command -->\n"
+        "```\n"
+        "\n"
+        "```\n"
+        "expected output shown here\n"
+        "```\n"
+    )
+
+
 def python(source: str) -> str:
     return f"{shlex.quote(sys.executable)} -c {shlex.quote(source)}"
 
@@ -85,6 +102,71 @@ class ExecutableClaimsTests(RegistryClearingTestCase):
             findings = self._findings(repo.root)
         self.assertEqual(len(findings), 1)
         self.assertIn("not above a fenced block", findings[0].message)
+
+    def test_a_marker_shown_as_literal_text_inside_a_fence_is_not_live(self) -> None:
+        with Repo() as repo:
+            repo.write("doc.md", nested_marker_example())
+            findings = self._findings(repo.root)
+        self.assertEqual(len(findings), 1)
+        self.assertIn("no verify markers found", findings[0].message)
+
+    def test_a_nested_marker_example_does_not_interfere_with_a_real_marker(self) -> None:
+        doc = nested_marker_example() + "\n" + marked(echo("hello\n"), "hello")
+        with Repo() as repo:
+            repo.write("doc.md", doc)
+            findings = self._findings(repo.root)
+        self.assertEqual(findings, [])
+
+    def test_a_marker_example_nested_in_a_longer_outer_fence_is_not_live(self) -> None:
+        # CommonMark's real nesting rule: a fence only closes on a
+        # same-or-longer run of backticks. A 3-backtick example nested
+        # inside a 4-backtick outer fence is the documented way to show
+        # fence syntax itself — the inner ``` lines are literal content,
+        # not real delimiters, so the marker between them must stay dead.
+        doc = (
+            "Example of the marker syntax, inside a longer outer fence so\n"
+            "its own ``` lines aren't mistaken for real ones:\n"
+            "\n"
+            "````\n"
+            "```\n"
+            "<!-- verify: echo nested-should-not-run -->\n"
+            "```\n"
+            "\n"
+            "```\n"
+            "expected output shown here\n"
+            "```\n"
+            "````\n"
+        )
+        with Repo() as repo:
+            repo.write("doc.md", doc)
+            findings = self._findings(repo.root)
+        self.assertEqual(len(findings), 1)
+        self.assertIn("no verify markers found", findings[0].message)
+
+    def test_a_live_markers_own_block_may_nest_a_fenced_example(self) -> None:
+        # The documented output legitimately contains a fenced block of
+        # its own (e.g. output that is itself markdown) — wrapped in a
+        # longer outer fence, per CommonMark's own nesting convention.
+        # The nested lines must not truncate the captured expected block.
+        command = echo("```\ninner\n```\n")
+        doc = f"<!-- verify: {command} -->\n" "````\n" "```\n" "inner\n" "```\n" "````\n"
+        with Repo() as repo:
+            repo.write("doc.md", doc)
+            findings = self._findings(repo.root)
+        self.assertEqual(findings, [])
+
+    def test_an_unclosed_fenced_block_is_reported_not_silently_mishandled(self) -> None:
+        # A genuinely live marker (its own fence pair closes cleanly)
+        # still runs and passes on its own merits; a separate, later,
+        # never-closed fence elsewhere in the file must still be a loud
+        # finding of its own, not silently swallow anything before it.
+        doc = marked(echo("hello\n"), "hello") + "```\n"
+        with Repo() as repo:
+            repo.write("doc.md", doc)
+            findings = self._findings(repo.root)
+        self.assertEqual(len(findings), 1)
+        self.assertIn("never closed", findings[0].message)
+        self.assertTrue(findings[0].gate)
 
     def test_a_sweep_finding_zero_markers_is_a_failure(self) -> None:
         with Repo() as repo:
