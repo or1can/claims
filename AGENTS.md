@@ -124,6 +124,18 @@ release past the pin:
 0 errors, 0 warnings, 0 informations
 ```
 
+### Versioning
+
+Bump `.claude-plugin/plugin.json`'s `version` in any ticket-resolution
+commit that changes `claims/` — `claude plugin update` in a consuming
+project gates its cache refresh on that string, not the git SHA, so an
+unbumped version means the fix never reaches an installed copy no matter
+how many commits land upstream. Discovered stuck at `0.1.0` through
+tickets 19–36 before this was written; `epr-wrench`'s own install was
+still running pre-ticket-27 code as a result. A patch-level bump
+(`0.1.0` → `0.1.1`) is enough for an ordinary fix; use judgement for
+anything that changes a consuming project's own required setup.
+
 ## Agent skills
 
 ### Issue tracker
