@@ -66,13 +66,26 @@ class PluginManifestTests(unittest.TestCase):
             self.assertIn("name:", text)
             self.assertIn("description:", text)
 
-    def test_hooks_file_gates_pretooluse_on_git_commit_only(self) -> None:
+    def test_hooks_file_registers_a_bash_matched_pretooluse_hook(self) -> None:
+        # Narrowing to a git commit specifically is split across two
+        # layers (ticket 37): `if` here does the coarse "some git command
+        # at all" filter using Claude Code's own Bash-command matching —
+        # deliberately the bare command name (`git *`), not `git commit
+        # *`, since Claude Code's own documented matching runs the hook
+        # anyway on any command containing a `$()`/backtick/`$var` once
+        # the pattern names more than the bare command name (see
+        # code.claude.com/docs/en/hooks, "Bash if matching"), which
+        # defeats a commit-specific pattern for exactly the agent-
+        # authored commands (heredocs, command substitutions) this hook
+        # most needs to filter correctly. `claims.hook`'s own
+        # `_is_git_commit` (see tests/test_hook.py) does the fine-grained
+        # "is it specifically a commit" narrowing in Python instead.
         manifest = _load(".claude-plugin/plugin.json")
         hooks_file = _load(manifest["hooks"])
         pre_tool_use = hooks_file["hooks"]["PreToolUse"][0]
         self.assertEqual(pre_tool_use["matcher"], "Bash")
         handler = pre_tool_use["hooks"][0]
-        self.assertEqual(handler["if"], "Bash(git commit *)")
+        self.assertEqual(handler["if"], "Bash(git *)")
         self.assertIn("claims.hook", handler["command"])
         self.assertIn("CLAUDE_PLUGIN_ROOT", handler["command"])
 

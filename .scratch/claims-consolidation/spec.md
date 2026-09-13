@@ -34,10 +34,13 @@ identically by any consuming project, consisting of:
 - A **subagent** for the judgment-requiring residue — claims no command can
   settle — that reads code rather than grepping prose and cites a `file:line`
   or command for every verdict.
-- A **`PreToolUse` hook** matched on `Bash(git commit *)` that runs the
-  applicable checks automatically before a commit completes, blocking on
-  deterministic-gate findings and surfacing candidate-list findings as
-  context without blocking.
+- A **`PreToolUse` hook**, gating specifically on a `git commit` (a
+  manifest-level `if: Bash(git *)` filter plus a Python-side check
+  narrowing "some git command" to "specifically a commit" — see ticket
+  37 for why a single `Bash(git commit *)` manifest pattern alone isn't
+  enough), that runs the applicable checks automatically before a commit
+  completes, blocking on deterministic-gate findings and surfacing
+  candidate-list findings as context without blocking.
 
 Distributed as a direct git-URL plugin (no marketplace), pinned at install
 with an explicit update step, bundling every language adapter in the one
@@ -166,7 +169,8 @@ keyword search. Each candidate carries both the citing `file:line` and the
 diff evidence (which commit(s) touched the subject).
 
 **Invocation**: on-demand skill/subagent call, plus a `PreToolUse` hook
-matched on `Bash(git commit *)`. Commit-time only for launch — no `git push`
+gating specifically on a `git commit` (see ticket 37). Commit-time only
+for launch — no `git push`
 checkpoint. Hook opt-out is a config toggle the hook script checks before
 running, independent of whether the plugin itself is installed.
 

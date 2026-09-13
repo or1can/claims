@@ -28,7 +28,7 @@ import unittest
 from pathlib import Path
 
 from claims.hook import main
-from claims.runner import Finding, register_check
+from claims.runner import Finding, clear_registry, register_check
 
 from support import RegistryClearingTestCase
 
@@ -42,12 +42,87 @@ PRE_TOOL_USE_PAYLOAD = {
 
 
 class HookTests(RegistryClearingTestCase):
-    def _run_main(self, repo_root: str) -> dict:
-        stdin = io.StringIO(json.dumps({**PRE_TOOL_USE_PAYLOAD, "cwd": repo_root}))
+    def _run_main(self, repo_root: str, command: str | None = None) -> dict:
+        payload = {**PRE_TOOL_USE_PAYLOAD, "cwd": repo_root}
+        if command is not None:
+            payload["tool_input"] = {"command": command}
+        stdin = io.StringIO(json.dumps(payload))
         stdout = io.StringIO()
         code = main(stdin, stdout)
         self.assertEqual(code, 0)
         return json.loads(stdout.getvalue())
+
+    def _ran_checks(self, repo_root: str, command: str) -> bool:
+        clear_registry()
+        ran: list[bool] = []
+        register_check(
+            "spy-check",
+            lambda repo_root, diff_range, config: (ran.append(True), [])[1],
+        )
+        self._run_main(repo_root, command=command)
+        return bool(ran)
+
+    def test_a_non_git_commit_bash_command_never_runs_the_checks(self) -> None:
+        with tempfile.TemporaryDirectory() as repo_root:
+            self.assertFalse(self._ran_checks(repo_root, "echo hello"))
+
+    def test_commands_that_are_not_a_git_commit_despite_looking_close(self) -> None:
+        # Tokenized, not a bare substring match: a git plumbing subcommand
+        # whose name starts with "commit", and prose that merely mentions
+        # "git commit" inside a quoted string, must not false-trigger.
+        # (An *unquoted* "git"/"commit" belonging to some other command —
+        # `grep git commit file.txt` — is a deliberately accepted false
+        # positive; see test_a_false_positive_this_deliberately_accepts.)
+        not_commits = [
+            "git commit-graph verify",
+            'echo "remember to git commit later"',
+            'git tag -a v1.0 -m "commit"',
+            "git branch commit",
+            'git log --grep "commit"',
+        ]
+        for command in not_commits:
+            with self.subTest(command=command):
+                with tempfile.TemporaryDirectory() as repo_root:
+                    self.assertFalse(self._ran_checks(repo_root, command))
+
+    def test_a_false_positive_this_deliberately_accepts(self) -> None:
+        # "git"/"commit" as some *other* command's own unquoted arguments
+        # false-trigger — accepted, since the alternative (bounding the
+        # search to a shell-operator segment) misses a real commit after
+        # an un-spaced operator, a later line of a multi-line command, or
+        # a backgrounding `&`, none of which `shlex` reliably marks as a
+        # boundary — see test_git_commit_variants_all_run_the_checks.
+        # Firing here costs one harmless extra check run; missing there
+        # lets a commit land completely unchecked.
+        false_positives = ["grep git commit test.txt", "history | grep git commit"]
+        for command in false_positives:
+            with self.subTest(command=command):
+                with tempfile.TemporaryDirectory() as repo_root:
+                    self.assertTrue(self._ran_checks(repo_root, command))
+
+    def test_a_non_string_command_is_treated_as_not_a_commit(self) -> None:
+        with tempfile.TemporaryDirectory() as repo_root:
+            self.assertFalse(self._ran_checks(repo_root, 123))  # type: ignore[arg-type]
+
+    def test_git_commit_variants_all_run_the_checks(self) -> None:
+        commits = [
+            # A global option between `git` and `commit` (taking its own
+            # value or not) must not be missed.
+            'git add -A && git commit -m "message"',
+            'git -C /tmp commit -m "message"',
+            'git -c user.name=x commit -m "message"',
+            "git --no-pager commit --amend",
+            "git --config-env foo.bar=SOME_VAR commit -m x",
+            'GIT_AUTHOR_DATE="2026-01-01" git commit -m "message"',
+            # Real commits with no reliable shell-operator boundary for
+            # `shlex` to mark — must still be found, not missed by luck.
+            "echo hi\ngit commit -m test",
+            "long_task & git commit -m wip",
+        ]
+        for command in commits:
+            with self.subTest(command=command):
+                with tempfile.TemporaryDirectory() as repo_root:
+                    self.assertTrue(self._ran_checks(repo_root, command))
 
     def test_gate_finding_denies_with_a_human_readable_reason(self) -> None:
         register_check(
@@ -145,6 +220,30 @@ class HookTests(RegistryClearingTestCase):
 
         output = json.loads(stdout.getvalue())
         self.assertEqual(output["hookSpecificOutput"]["permissionDecision"], "deny")
+
+    def test_a_null_tool_input_denies_rather_than_crashing(self) -> None:
+        with tempfile.TemporaryDirectory() as repo_root:
+            payload = {**PRE_TOOL_USE_PAYLOAD, "cwd": repo_root, "tool_input": None}
+            stdin = io.StringIO(json.dumps(payload))
+            stdout = io.StringIO()
+            code = main(stdin, stdout)
+
+        self.assertEqual(code, 0)
+        output = json.loads(stdout.getvalue())
+        self.assertEqual(output["hookSpecificOutput"]["permissionDecision"], "deny")
+
+    def test_a_non_object_top_level_payload_denies_rather_than_crashing(self) -> None:
+        for raw in ("null", "[]", "42"):
+            with self.subTest(raw=raw):
+                stdin = io.StringIO(raw)
+                stdout = io.StringIO()
+                code = main(stdin, stdout)
+
+                self.assertEqual(code, 0)
+                output = json.loads(stdout.getvalue())
+                self.assertEqual(
+                    output["hookSpecificOutput"]["permissionDecision"], "deny"
+                )
 
 
 if __name__ == "__main__":
