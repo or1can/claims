@@ -15,7 +15,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
-      - uses: astral-sh/setup-uv@v3
+      - uses: astral-sh/setup-uv@v7
       - run: uv sync
       # Exact-match check: AGENTS.md's Typechecking section pins this
       # output, and PYRIGHT_PYTHON_IGNORE_WARNINGS=1 stops pyright-python's
