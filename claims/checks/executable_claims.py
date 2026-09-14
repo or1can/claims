@@ -38,7 +38,7 @@ import subprocess
 from collections.abc import Mapping, Sequence
 from pathlib import Path
 
-from ..config import ConfigError, exclude_patterns, path_excluded
+from ..config import exclude_patterns, numeric_config, path_excluded
 from ..git import tracked_files
 from ..runner import Finding, register_check
 
@@ -156,10 +156,7 @@ def _timeout(config: Mapping[str, object]) -> float:
     (a slow integration or cold-build command) without that.
     """
 
-    value = config.get("timeout", TIMEOUT_SECONDS)
-    if isinstance(value, bool) or not isinstance(value, (int, float)):
-        raise ConfigError(f"[{NAME}] timeout must be a number, got {value!r}")
-    return value
+    return numeric_config(config, NAME, "timeout", TIMEOUT_SECONDS, allow_float=True)
 
 
 def check(
