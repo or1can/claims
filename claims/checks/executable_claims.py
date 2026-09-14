@@ -157,7 +157,7 @@ def _timeout(config: Mapping[str, object]) -> float:
     """
 
     value = config.get("timeout", TIMEOUT_SECONDS)
-    if not isinstance(value, (int, float)):
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
         raise ConfigError(f"[{NAME}] timeout must be a number, got {value!r}")
     return value
 

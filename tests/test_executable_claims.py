@@ -158,6 +158,22 @@ class ExecutableClaimsTests(RegistryClearingTestCase):
         self.assertIn("timeout must be a number", findings[0].message)
         self.assertTrue(findings[0].gate)
 
+    def test_a_boolean_timeout_config_is_a_clear_crash_finding(self) -> None:
+        # `bool` is an `int` subclass in Python, so a plain
+        # `isinstance(value, (int, float))` check would silently accept
+        # `timeout = true` and pass it straight to `subprocess.run` as a
+        # 1-second timeout — misreporting any slower command as an
+        # advisory timeout instead of rejecting the config outright.
+        with Repo() as repo:
+            repo.write("doc.md", marked(echo("hello\n"), "hello"))
+            findings = self._findings_with_config(
+                repo.root, "[executable-claims]\ntimeout = true\n"
+            )
+        self.assertEqual(len(findings), 1)
+        self.assertIn("ConfigError", findings[0].message)
+        self.assertIn("timeout must be a number", findings[0].message)
+        self.assertTrue(findings[0].gate)
+
     def test_a_true_claim_passes(self) -> None:
         with Repo() as repo:
             repo.write("doc.md", marked(echo("hello\n"), "hello"))
