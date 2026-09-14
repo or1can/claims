@@ -1,0 +1,39 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  typecheck:
+    name: Typecheck
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - uses: astral-sh/setup-uv@v3
+      - run: uv sync
+      # Exact-match check: AGENTS.md's Typechecking section pins this
+      # output, and PYRIGHT_PYTHON_IGNORE_WARNINGS=1 stops pyright-python's
+      # own "newer pyright on PyPI" nag from breaking that match the moment
+      # PyPI ships a release past claims.toml's pin.
+      - name: pyright reports 0 errors, 0 warnings, 0 informations
+        env:
+          PYRIGHT_PYTHON_IGNORE_WARNINGS: "1"
+        run: uv run pyright claims tests
+
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      # No pytest binary in this repo's own dev environment — same runner
+      # every ticket's Answer uses, see .claude/CLAUDE.md memory.
+      - run: python3 -m unittest discover -s tests -p 'test_*.py'
