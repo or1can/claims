@@ -1,5 +1,8 @@
 # claims
 
+[![CI](https://github.com/or1can/claims/actions/workflows/ci.yml/badge.svg)](https://github.com/or1can/claims/actions/workflows/ci.yml)
+[![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
+
 A Claude Code plugin that checks documentation and agent-instruction claims
 against the code they actually describe. Most doc-integrity tools watch for
 *drift* — a doc and code that agreed once, then diverged. This one is built
