@@ -50,7 +50,7 @@ from collections.abc import Mapping
 from pathlib import Path
 from posixpath import dirname, join, normpath
 
-from ..config import exclude_patterns, path_excluded
+from ..config import exclude_patterns, path_matches
 from ..git import tracked_files
 from ..runner import Finding, register_check
 
@@ -147,7 +147,7 @@ def check(repo_root: Path, diff_range: str, config: Mapping[str, object]) -> lis
     findings: list[Finding] = []
     exclude = exclude_patterns(config)
     for rel in sorted(tracked_files(repo_root, "*.md")):
-        if path_excluded(rel, exclude):
+        if path_matches(rel, exclude):
             continue
         text = _read(repo_root / rel)
         if text is None:

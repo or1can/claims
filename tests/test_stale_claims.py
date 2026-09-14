@@ -30,6 +30,7 @@ from pathlib import Path
 
 from claims.checks.stale_claims import NAME, check
 from claims.cli import main
+from claims.config import load_config
 from claims.runner import Finding, register_check, run
 
 from support import RegistryClearingTestCase, Repo
@@ -93,6 +94,11 @@ class StaleClaimsTests(RegistryClearingTestCase):
     def _findings(self, repo_root: Path) -> list[Finding]:
         return list(run(repo_root, "HEAD", {}).findings)
 
+    def _findings_with_toml(self, repo_root: Path, claims_toml: str) -> list[Finding]:
+        (repo_root / "claims.toml").write_text(claims_toml)
+        config = load_config(repo_root)
+        return list(run(repo_root, "HEAD", config).findings)
+
     def test_the_most_churned_subject_ranks_first(self) -> None:
         with Repo() as repo:
             _build_fixture(repo)
@@ -146,6 +152,44 @@ class StaleClaimsTests(RegistryClearingTestCase):
         self.assertEqual(len(findings), 1)
         self.assertEqual(findings[0].citation, "doc.md:1")
         self.assertIn("subject.py", findings[0].message)
+
+    def test_a_bare_backtick_name_names_its_subject_anywhere_by_default(self) -> None:
+        with Repo() as repo:
+            repo.write("doc.md", "## stale\nSee `subject` for details.\n")
+            repo.write("src/subject.py", "v0")
+            repo.commit(BASE)
+            repo.write("src/subject.py", "v1")
+            repo.commit(BASE + 100)
+            findings = self._findings(repo.root)
+
+        self.assertEqual(len(findings), 1)
+        self.assertEqual(findings[0].citation, "doc.md:1")
+        self.assertIn("subject.py", findings[0].message)
+
+    def test_module_reference_scope_bounds_bare_citations_but_not_qualified_ones(
+        self,
+    ) -> None:
+        with Repo() as repo:
+            repo.write("src/subject.py", "v0")
+            repo.write("decisions/0001-choice.md", "## in-scope\nSee `subject` for details.\n")
+            repo.write("docs/other.md", "## out-of-scope\nSee `subject` for details.\n")
+            repo.write(
+                "docs/qualified.md",
+                "## qualified-from-out-of-scope\nSee `subject.py` for details.\n",
+            )
+            repo.commit(BASE)
+            repo.write("src/subject.py", "v1")
+            repo.commit(BASE + 100)
+
+            findings = self._findings_with_toml(
+                repo.root,
+                '[stale-claims]\nmodule_reference_scope = ["decisions/*.md"]\n',
+            )
+
+        self.assertEqual(
+            {f.file for f in findings},
+            {"decisions/0001-choice.md", "docs/qualified.md"},
+        )
 
     def test_a_tracked_filename_containing_a_space_does_not_crash_the_check(self) -> None:
         # A naive `ls-files` output split on whitespace would shred this

@@ -80,7 +80,7 @@ import re
 from collections.abc import Mapping, Sequence
 from pathlib import Path
 
-from ..config import exclude_patterns, numeric_config, path_excluded
+from ..config import exclude_patterns, numeric_config, path_matches
 from ..git import DiffLine, iter_diff, tracked_files
 from ..runner import Finding, register_check
 
@@ -133,7 +133,7 @@ def _in_scope(path: str | None, extensions: set[str], exclude: Sequence[str]) ->
     return (
         path is not None
         and path.endswith(tuple(extensions))
-        and not path_excluded(path, exclude)
+        and not path_matches(path, exclude)
     )
 
 
@@ -181,7 +181,7 @@ def _tracked_scoped(
     return [
         rel
         for rel in tracked_files(repo_root, *pathspecs)
-        if not path_excluded(rel, exclude)
+        if not path_matches(rel, exclude)
     ]
 
 

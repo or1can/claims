@@ -45,13 +45,22 @@ here claims to.
 
 Ported from `ratect`'s `stale-claims.py` (Apache-2.0 prior art, same author),
 generalised: `PATH_RE` (explicit relative paths) has no per-language
-extension pattern, and no per-project directory allowlist gates a bare-name
-match — a bare-name match applies uniformly here, at the cost of the noise a
-project-specific allowlist would otherwise have filtered. `MODULE_RE` (bare
-backtick names) keeps the original's one behaviour worth keeping exactly —
-an optional trailing extension is stripped before the stem lookup, so
-`` `docker.rs` `` and `` `docker` `` name the same subject — generalised past
-`.rs` to any extension, so this stays useful outside a Rust-only repo.
+extension pattern, and no hardcoded per-project directory allowlist gates a
+bare-name match. `MODULE_RE` (bare backtick names) keeps the original's one
+behaviour worth keeping exactly — an optional trailing extension is stripped
+before the stem lookup, so `` `docker.rs` `` and `` `docker` `` name the same
+subject — generalised past `.rs` to any extension, so this stays useful
+outside a Rust-only repo.
+
+A backtick citation with an extension (`` `cache.rs` ``) or an explicit
+relative path is unambiguous and always counts as a subject, anywhere. A
+*bare* citation (`` `cache` ``, no extension) is ambiguous — it's also
+ordinary English or a config-field name as often as it's a module — so it
+only counts where a project says module names are actually discussed: this
+check's own `module_reference_scope` key in `claims.toml`, a list of
+repo-relative globs (a bare string is treated as a one-element list, same
+coercion `exclude` uses). Key absent means today's default: a bare citation
+counts everywhere, same as the qualified and path forms.
 
 Not diff-scoped, matching the check inventory: every tracked `*.md` file is
 swept, not just one a diff touched.
@@ -66,6 +75,7 @@ from collections.abc import Mapping
 from pathlib import Path
 from typing import NamedTuple
 
+from ..config import glob_list_config, path_matches
 from ..git import tracked_files
 from ..runner import Finding, register_check
 
@@ -79,8 +89,19 @@ class _Candidate(NamedTuple):
     message: str
 
 PATH_RE = re.compile(r"\b(?:[\w.-]+/)+[\w.-]+\.[A-Za-z0-9]+\b")
-MODULE_RE = re.compile(r"`([A-Za-z_][A-Za-z0-9_-]*)(?:\.[A-Za-z0-9]+)?`")
+MODULE_RE = re.compile(r"`([A-Za-z_][A-Za-z0-9_-]*)(\.[A-Za-z0-9]+)?`")
 HEADING_RE = re.compile(r"^(#{1,6})\s+(.*)")
+
+
+def _in_module_scope(rel: str, config: Mapping[str, object]) -> bool:
+    """Whether a *bare* backtick citation in `rel` counts as a module
+    reference — always true when `module_reference_scope` is unset (this
+    check's default), else true only when `rel` matches one of its globs.
+    """
+
+    return "module_reference_scope" not in config or path_matches(
+        rel, glob_list_config(config, "module_reference_scope")
+    )
 
 
 def _git(repo_root: Path, *args: str) -> str:
@@ -127,12 +148,17 @@ def check(
         lines = (repo_root / rel).read_text(encoding="utf-8", errors="replace").splitlines()
         if not lines:
             continue
+        bare_in_scope = _in_module_scope(rel, config)
         starts = [i for i, l in enumerate(lines) if HEADING_RE.match(l)] or [0]
         for start, end in zip(starts, starts[1:] + [len(lines)]):
             matched = HEADING_RE.match(lines[start])
             body = "\n".join(lines[start:end])
             subjects = {m for m in PATH_RE.findall(body) if m in tracked_set}
-            subjects |= {modules[m] for m in MODULE_RE.findall(body) if m in modules}
+            subjects |= {
+                modules[name]
+                for name, ext in MODULE_RE.findall(body)
+                if name in modules and (ext or bare_in_scope)
+            }
             if not subjects:
                 continue
 

@@ -38,7 +38,7 @@ import subprocess
 from collections.abc import Mapping, Sequence
 from pathlib import Path
 
-from ..config import exclude_patterns, numeric_config, path_excluded
+from ..config import exclude_patterns, numeric_config, path_matches
 from ..git import tracked_files
 from ..runner import Finding, register_check
 
@@ -177,7 +177,7 @@ def check(
     # exclude the content under both, not leave it checked again — and
     # reported — under whichever alias wasn't named.
     excluded_reals = {
-        (repo_root / rel).resolve() for rel in tracked if path_excluded(rel, exclude)
+        (repo_root / rel).resolve() for rel in tracked if path_matches(rel, exclude)
     }
 
     swept_any = False

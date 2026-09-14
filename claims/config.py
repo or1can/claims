@@ -44,27 +44,38 @@ def load_config(repo_root: Path) -> dict[str, dict[str, object]]:
             raise ConfigError(f"{config_path}: {e}") from e
 
 
-def exclude_patterns(config: Mapping[str, object]) -> Sequence[str]:
-    """A check's own `exclude` glob list, from its `config` section.
-
-    Shared by every check offering the `exclude = ["path/glob", ...]`
-    option (spec.md's path-exclusion mechanism), so each doesn't carry its
-    own copy of the same coercion.
+def glob_list_config(config: Mapping[str, object], key: str) -> Sequence[str]:
+    """A check's own glob-list `key`, from its `config` section — shared by
+    every check offering a `key = ["path/glob", ...]` option (e.g.
+    `exclude`, `stale-claims`'s `module_reference_scope`), so each doesn't
+    carry its own copy of the same coercion.
     """
 
-    patterns = config.get("exclude", [])
-    # A project meaning to exclude one path (`exclude = "docs/HISTORY.md"`)
-    # is a one-character typo away from `["docs/HISTORY.md"]`; treated as a
-    # bare list of characters instead, matching against single-char
-    # patterns would silently exclude nothing (or everything) rather than
-    # the intended path.
+    patterns = config.get(key, [])
+    # A project meaning to name one path (`key = "docs/HISTORY.md"`) is a
+    # one-character typo away from `["docs/HISTORY.md"]`; treated as a bare
+    # list of characters instead, matching against single-char patterns
+    # would silently match nothing (or everything) rather than the
+    # intended path.
     if isinstance(patterns, str):
         return [patterns]
     return list(patterns)  # type: ignore[arg-type]
 
 
-def path_excluded(path: str, patterns: Sequence[str]) -> bool:
+def exclude_patterns(config: Mapping[str, object]) -> Sequence[str]:
+    """A check's own `exclude` glob list, from its `config` section
+    (spec.md's path-exclusion mechanism)."""
+
+    return glob_list_config(config, "exclude")
+
+
+def path_matches(path: str, patterns: Sequence[str]) -> bool:
     """Whether `path` (a repo-relative POSIX path) matches any of `patterns`.
+
+    Named for the match itself, not `exclude`/`scope` — a project's own
+    glob list can be either (an `exclude` blocklist, `stale-claims`'s
+    `module_reference_scope` allowlist); the caller decides which a match
+    means, this only answers "does it match".
 
     `fnmatchcase`, not `fnmatch` — a git-tracked path is canonically
     case-sensitive, and `fnmatch`'s own case-folding is platform-dependent
