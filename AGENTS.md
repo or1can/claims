@@ -140,7 +140,7 @@ anything that changes a consuming project's own required setup.
 
 ### Issue tracker
 
-Issues tracked as local markdown files under `.scratch/`. See `docs/agents/issue-tracker.md`.
+Issues tracked as GitHub issues. See `docs/agents/issue-tracker.md`.
 
 ### Triage labels
 

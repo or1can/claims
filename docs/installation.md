@@ -13,7 +13,7 @@ From inside the consuming project (or with `--scope user` to make it
 available everywhere):
 
 ```sh
-claude plugin marketplace add <git-url-of-this-repo>
+claude plugin marketplace add https://github.com/or1can/claims.git
 claude plugin install claims@claims
 ```
 

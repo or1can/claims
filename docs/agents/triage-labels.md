@@ -12,4 +12,4 @@ The skills speak in terms of five canonical triage roles. This file maps those r
 
 When a skill mentions a role (e.g. "apply the AFK-ready triage label"), use the corresponding label string from this table.
 
-On this repo's local-markdown tracker, a label is recorded the same way as wayfinder ticket status — a `Status:` line near the top of the issue file — using the label string from the right-hand column above.
+On this repo's GitHub tracker, a label is recorded as an actual GitHub label on the issue — `gh issue edit <number> --add-label "<label>"` — using the label string from the right-hand column above.
