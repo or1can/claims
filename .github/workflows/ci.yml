@@ -11,11 +11,11 @@ jobs:
     name: Typecheck
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.11"
-      - uses: astral-sh/setup-uv@v3
+      - uses: astral-sh/setup-uv@v10
       - run: uv sync
       # Exact-match check: AGENTS.md's Typechecking section pins this
       # output, and PYRIGHT_PYTHON_IGNORE_WARNINGS=1 stops pyright-python's
@@ -30,8 +30,8 @@ jobs:
     name: Test
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.11"
       # No pytest binary in this repo's own dev environment — same runner
