@@ -31,7 +31,10 @@ agent rather than deciding by itself:
   they name has changed since the section was last touched; a churn-ranked
   candidate list, not a verdict.
 - **restatement** (advisory) — flags prose a diff retracted that's still
-  asserted, verbatim, somewhere else in the tree.
+  asserted, verbatim, somewhere else in the tree. Text duplicated on
+  purpose across more than `duplication_threshold` other files (1 by
+  default, `claims.toml`) — a shared license header, a generated banner —
+  is suppressed rather than flagged every time one copy changes.
 - **spliced-docs** (advisory) — flags a doc comment that's been pushed onto
   the wrong declaration by an insertion above it (Swift and Rust).
 - **claim-words** (advisory) — sweeps added lines in files a project opts
