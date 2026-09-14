@@ -304,6 +304,44 @@ class ExecutableClaimsTests(RegistryClearingTestCase):
         self.assertEqual(len(findings), 1)
         self.assertIn("chains commands via `&`", findings[0].message)
 
+    def test_an_output_redirect_marker_is_rejected(self) -> None:
+        # Redirecting output writes to an arbitrary file — exactly the
+        # "more than the one thing pinned" this blocklist exists to stop,
+        # not merely a chained command.
+        with Repo() as repo:
+            repo.write("doc.md", marked("echo hi > /tmp/claims-test-marker-out", "hi"))
+            findings = self._findings(repo.root)
+        self.assertEqual(len(findings), 1)
+        self.assertIn("redirects file I/O via `>`", findings[0].message)
+        self.assertTrue(findings[0].gate)
+
+    def test_an_input_redirect_marker_is_rejected(self) -> None:
+        with Repo() as repo:
+            repo.write("doc.md", marked("cat < /dev/null", ""))
+            findings = self._findings(repo.root)
+        self.assertEqual(len(findings), 1)
+        self.assertIn("redirects file I/O via `<`", findings[0].message)
+
+    def test_a_leading_redirect_before_the_command_is_still_rejected(self) -> None:
+        # `> file cmd` is valid shell syntax — the redirect can precede the
+        # command name it applies to, not just follow it.
+        with Repo() as repo:
+            repo.write("doc.md", marked("> /tmp/claims-test-marker-out echo hi", "hi"))
+            findings = self._findings(repo.root)
+        self.assertEqual(len(findings), 1)
+        self.assertIn("redirects file I/O via `>`", findings[0].message)
+
+    def test_a_combined_stdout_stderr_pipe_still_trips_the_pipe_blocklist(self) -> None:
+        write_three_lines = python(
+            'import sys; sys.stdout.write(chr(10).join(["a", "b", "c"]) + chr(10))'
+        )
+        command = f"{write_three_lines} |& grep -c b"
+        with Repo() as repo:
+            repo.write("doc.md", marked(command, "1"))
+            findings = self._findings(repo.root)
+        self.assertEqual(len(findings), 1)
+        self.assertIn("pipes through `grep`", findings[0].message)
+
     def test_a_command_substitution_marker_is_rejected(self) -> None:
         with Repo() as repo:
             repo.write("doc.md", marked("echo $(true)", "true"))

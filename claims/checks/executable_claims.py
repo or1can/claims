@@ -33,13 +33,16 @@ introduced.
 Before a live marker's command ever runs, it's checked against a fixed
 blocklist — no `claims.toml` entry required, since this is true of *any*
 project using the marker mechanism, not just one project's own naming
-(ticket #11): a chaining/backgrounding operator (`;`, `&&`, `||`, `&`) or a
-command substitution (`` ` ``, `$(`) lets a marker do more than the one
-thing being pinned, and `sed`/`awk`/`grep` turn a marker into inline text
-logic that only ever exists as a string in an HTML comment, with nothing
-able to unit-test it. `tail`/`head` are deliberately not in this blocklist:
-trimming a suite's last line or two is still the one thing being pinned,
-not extra untested logic.
+(ticket #11): a chaining/backgrounding operator (`;`, `&&`, `||`, `&`), a
+redirect (`>`, `>>`, `<`, `<<`, `>&`, `<&` — a marker reading or writing an
+arbitrary file is exactly the "more than the one thing pinned" this exists
+to stop, not merely a chained command), or a command substitution
+(`` ` ``, `$(`) lets a marker do more than the one thing being pinned, and
+`sed`/`awk`/`grep` turn a marker into inline text logic that only ever
+exists as a string in an HTML comment, with nothing able to unit-test it.
+`tail`/`head` are deliberately not in this blocklist: trimming a suite's
+last line or two is still the one thing being pinned, not extra untested
+logic.
 
 Quoting is respected two different ways, matching what the shell itself
 does with each construct, not one blanket "ignore anything quoted" rule:
@@ -55,7 +58,8 @@ does with each construct, not one blanket "ignore anything quoted" rule:
   dodge naive splitting wouldn't: `` 'grep' ``/`` g'r'ep `` both still
   tokenize down to the bare word `grep`. A pipe segment's head is checked
   past a `(`/`)` subshell wrapper too, so `| (grep pattern)` doesn't dodge
-  it either. A backslash-escaped operator (`find ... -exec ... \\;`) is
+  it either — and `|&` (bash's combined stdout+stderr pipe) is treated as
+  the same kind of boundary as `|`, not missed as an unrecognized word. A backslash-escaped operator (`find ... -exec ... \\;`) is
   neutralized before tokenizing — replaced with a placeholder, not its own
   bare character, so it can't still tokenize as a real operator — but an
   escaped ordinary character (`` \\grep ``, a common way to bypass a shell
@@ -124,6 +128,7 @@ PROMPT_RE = re.compile(r"^\s*\$ ")
 # No config surface: true of any project using the marker mechanism, not
 # just one project's own naming — see the module docstring.
 CHAIN_OPERATOR_TOKENS = frozenset({";", "&&", "||", "&"})
+REDIRECTION_TOKENS = frozenset({">", ">>", "<", "<<", ">&", "<&"})
 TEXT_PROCESSING_TOOLS = frozenset({"sed", "awk", "grep"})
 
 ESCAPED_CHAR_RE = re.compile(r"\\(.)")
@@ -217,10 +222,15 @@ def _forbidden_construct(command: str) -> str | None:
     for token in tokens:
         if token in CHAIN_OPERATOR_TOKENS:
             return f"chains commands via `{token}` — a marker may only pin one command"
+        if token in REDIRECTION_TOKENS:
+            return (
+                f"redirects file I/O via `{token}` — a marker may only pin one "
+                "command's own output, not read or write an arbitrary file"
+            )
 
     segment: list[str] = []
     for token in [*tokens, "|"]:
-        if token != "|":
+        if token not in ("|", "|&"):
             segment.append(token)
             continue
         # A leading `(`/`)` subshell wrapper (`(grep pattern)`) still runs
