@@ -9,18 +9,33 @@ URL rather than a central listing.
 
 ## Install
 
-From inside the consuming project (or with `--scope user` to make it
-available everywhere):
+From inside the consuming project:
 
 ```sh
-claude plugin marketplace add https://github.com/or1can/claims.git
-claude plugin install claims@claims
+claude plugin marketplace add https://github.com/or1can/claims.git --scope project
+claude plugin install claims@claims --scope project
 ```
 
 The first command registers this repo as a marketplace named `claims`
 (`marketplace.json`'s own `name`); the second installs the one plugin it
 lists, also named `claims`, hence `claims@claims`. Both the skill and the
-`PreToolUse` hook come live from this one install — nothing else to wire up:
+`PreToolUse` hook come live from this one install — nothing else to wire up.
+
+`--scope project` writes both declarations into that project's own
+`.claude/settings.json`, so the dependency is explicit and travels with the
+repo rather than living only in your machine's global config — the same
+thing a second developer cloning the project would need. Both flags default
+to `user` (global, this machine only) if omitted; that's a reasonable choice
+for a quick personal try, but avoid it if this repo (or any other project on
+the same machine) ever registers its own marketplace also named `claims` —
+the CLI has no way to alias a marketplace to a different local name than the
+one its own `marketplace.json` declares, so a second `claims` source at the
+same scope silently replaces the first rather than coexisting. This repo's
+own dogfooding setup (a project-scoped `claims` marketplace pointing at
+`directory: "."`, not this git URL) hit exactly that collision when a
+global-scope entry was added alongside it.
+
+Verify:
 
 ```sh
 claude plugin details claims@claims
