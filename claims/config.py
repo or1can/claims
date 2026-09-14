@@ -21,7 +21,9 @@ is one check's own section, read by name at `run()` time — see
 
 from __future__ import annotations
 
+import fnmatch
 import tomllib
+from collections.abc import Mapping, Sequence
 from pathlib import Path
 
 CONFIG_FILENAME = "claims.toml"
@@ -40,3 +42,34 @@ def load_config(repo_root: Path) -> dict[str, dict[str, object]]:
             return tomllib.load(f)
         except tomllib.TOMLDecodeError as e:
             raise ConfigError(f"{config_path}: {e}") from e
+
+
+def exclude_patterns(config: Mapping[str, object]) -> Sequence[str]:
+    """A check's own `exclude` glob list, from its `config` section.
+
+    Shared by every check offering the `exclude = ["path/glob", ...]`
+    option (spec.md's path-exclusion mechanism), so each doesn't carry its
+    own copy of the same coercion.
+    """
+
+    patterns = config.get("exclude", [])
+    # A project meaning to exclude one path (`exclude = "docs/HISTORY.md"`)
+    # is a one-character typo away from `["docs/HISTORY.md"]`; treated as a
+    # bare list of characters instead, matching against single-char
+    # patterns would silently exclude nothing (or everything) rather than
+    # the intended path.
+    if isinstance(patterns, str):
+        return [patterns]
+    return list(patterns)  # type: ignore[arg-type]
+
+
+def path_excluded(path: str, patterns: Sequence[str]) -> bool:
+    """Whether `path` (a repo-relative POSIX path) matches any of `patterns`.
+
+    `fnmatchcase`, not `fnmatch` — a git-tracked path is canonically
+    case-sensitive, and `fnmatch`'s own case-folding is platform-dependent
+    (`os.path.normcase`), which would otherwise make the same `claims.toml`
+    match on macOS/Windows and not on Linux.
+    """
+
+    return any(fnmatch.fnmatchcase(path, pattern) for pattern in patterns)

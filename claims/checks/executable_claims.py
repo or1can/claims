@@ -35,6 +35,7 @@ import subprocess
 from collections.abc import Mapping, Sequence
 from pathlib import Path
 
+from ..config import exclude_patterns, path_excluded
 from ..git import tracked_files
 from ..runner import Finding, register_check
 
@@ -153,13 +154,25 @@ def check(
     # failure reported, twice.
     seen: set[Path] = set()
 
+    exclude = exclude_patterns(config)
     tracked = tracked_files(repo_root, "*.md")
+    # Keyed by real path, not name: naming just one alias of a symlinked
+    # pair (this file's own CLAUDE.md/AGENTS.md convention, above) must
+    # exclude the content under both, not leave it checked again — and
+    # reported — under whichever alias wasn't named.
+    excluded_reals = {
+        (repo_root / rel).resolve() for rel in tracked if path_excluded(rel, exclude)
+    }
 
+    swept_any = False
     for rel in tracked:
         real = (repo_root / rel).resolve()
+        if real in excluded_reals:
+            continue
         if real in seen:
             continue
         seen.add(real)
+        swept_any = True
         lines = (repo_root / rel).read_text(encoding="utf-8").splitlines()
         in_fence, opened_at = _fence_state(lines)
         if opened_at is not None:
@@ -206,7 +219,16 @@ def check(
                     )
                 )
 
-    if checked == 0 and not findings:
+    # Suppressed only when exclusion is *why* nothing was swept at all:
+    # something was swept, or nothing was excluded to begin with. A
+    # project's `exclude` config choosing to skip the only file that would
+    # otherwise have carried a marker is a deliberate opt-out, not the
+    # "markers silently vanished" case this gate exists to catch. An
+    # unrelated exclusion alongside a real, swept file that itself carries
+    # no marker must still fire this gate as before — exclusion existing
+    # at all can't be the guard, or a config excluding some unrelated path
+    # would silently mask a marker that genuinely vanished elsewhere.
+    if checked == 0 and not findings and (swept_any or not excluded_reals):
         findings.append(_finding(".", 0, "no verify markers found in repo"))
 
     return findings

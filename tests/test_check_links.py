@@ -32,6 +32,7 @@ from pathlib import Path
 
 from claims.checks.check_links import NAME, check
 from claims.cli import main
+from claims.config import load_config
 from claims.runner import Finding, register_check, run
 
 from support import RegistryClearingTestCase, Repo
@@ -44,6 +45,30 @@ class CheckLinksTests(RegistryClearingTestCase):
 
     def _findings(self, repo_root: Path) -> list[Finding]:
         return list(run(repo_root, "HEAD", {}).findings)
+
+    def _findings_with_config(self, repo_root: Path, claims_toml: str) -> list[Finding]:
+        (repo_root / "claims.toml").write_text(claims_toml)
+        config = load_config(repo_root)
+        return list(run(repo_root, "HEAD", config).findings)
+
+    def test_an_excluded_paths_broken_link_is_skipped_entirely(self) -> None:
+        with Repo() as repo:
+            repo.write("README.md", "See [notes](docs/NOTES.md) for details.\n")
+            repo.commit()
+            findings = self._findings_with_config(
+                repo.root, '[check-links]\nexclude = ["README.md"]\n'
+            )
+        self.assertEqual(findings, [])
+
+    def test_exclude_does_not_affect_a_non_matching_path(self) -> None:
+        with Repo() as repo:
+            repo.write("README.md", "See [notes](docs/NOTES.md) for details.\n")
+            repo.commit()
+            findings = self._findings_with_config(
+                repo.root, '[check-links]\nexclude = ["other.md"]\n'
+            )
+        self.assertEqual(len(findings), 1)
+        self.assertEqual(findings[0].citation, "README.md:1")
 
     def test_a_link_to_a_nonexistent_path_is_flagged(self) -> None:
         with Repo() as repo:

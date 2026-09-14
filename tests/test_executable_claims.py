@@ -25,13 +25,16 @@ from __future__ import annotations
 
 import contextlib
 import io
+import os
 import shlex
+import subprocess
 import sys
 import unittest
 from pathlib import Path
 
 from claims.checks.executable_claims import NAME, check
 from claims.cli import main
+from claims.config import load_config
 from claims.runner import Finding, register_check, run
 
 from support import RegistryClearingTestCase, Repo
@@ -73,6 +76,61 @@ class ExecutableClaimsTests(RegistryClearingTestCase):
 
     def _findings(self, repo_root: Path) -> list[Finding]:
         return list(run(repo_root, "HEAD", {}).findings)
+
+    def _findings_with_config(self, repo_root: Path, claims_toml: str) -> list[Finding]:
+        (repo_root / "claims.toml").write_text(claims_toml)
+        config = load_config(repo_root)
+        return list(run(repo_root, "HEAD", config).findings)
+
+    def test_an_excluded_path_is_skipped_entirely(self) -> None:
+        with Repo() as repo:
+            repo.write("skip.md", "just prose, no markers here\n")
+            findings = self._findings_with_config(
+                repo.root, '[executable-claims]\nexclude = ["skip.md"]\n'
+            )
+        self.assertEqual(findings, [])
+
+    def test_exclude_does_not_affect_a_non_matching_path(self) -> None:
+        with Repo() as repo:
+            repo.write("keep.md", marked(echo("hello\n"), "hello"))
+            repo.write("skip.md", "just prose, no markers here\n")
+            findings = self._findings_with_config(
+                repo.root, '[executable-claims]\nexclude = ["skip.md"]\n'
+            )
+        self.assertEqual(findings, [])
+
+    def test_excluding_one_alias_of_a_symlinked_pair_excludes_both(self) -> None:
+        # AGENTS.md/CLAUDE.md is this file's own documented symlink
+        # convention (the `seen`-by-real-path dedup exists because of it).
+        # Naming only one alias in `exclude` must not leave its content
+        # checked, and reported, under the other alias instead.
+        with Repo() as repo:
+            repo.write(
+                "AGENTS.md", "<!-- verify: false -->\n```\nnever matches\n```\n"
+            )
+            os.symlink("AGENTS.md", repo.root / "CLAUDE.md")
+            subprocess.run(
+                ["git", "-C", str(repo.root), "add", "CLAUDE.md"], check=True
+            )
+            findings = self._findings_with_config(
+                repo.root, '[executable-claims]\nexclude = ["AGENTS.md"]\n'
+            )
+        self.assertEqual(findings, [])
+
+    def test_an_unrelated_exclusion_does_not_mask_a_real_zero_marker_failure(
+        self,
+    ) -> None:
+        # `docs/history.md` opting out of the sweep must not be why the
+        # gate goes quiet about `real.md` genuinely carrying no marker —
+        # only excluding *everything* earns the exception.
+        with Repo() as repo:
+            repo.write("docs/history.md", "historical notes, no markers\n")
+            repo.write("real.md", "no marker in this file either\n")
+            findings = self._findings_with_config(
+                repo.root, '[executable-claims]\nexclude = ["docs/history.md"]\n'
+            )
+        self.assertEqual(len(findings), 1)
+        self.assertIn("no verify markers found", findings[0].message)
 
     def test_a_true_claim_passes(self) -> None:
         with Repo() as repo:

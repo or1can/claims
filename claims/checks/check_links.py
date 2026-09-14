@@ -50,6 +50,7 @@ from collections.abc import Mapping
 from pathlib import Path
 from posixpath import dirname, join, normpath
 
+from ..config import exclude_patterns, path_excluded
 from ..git import tracked_files
 from ..runner import Finding, register_check
 
@@ -144,7 +145,10 @@ def check(repo_root: Path, diff_range: str, config: Mapping[str, object]) -> lis
     # referencing link rather than once per target file.
     slug_cache: dict[str, set[str] | None] = {}
     findings: list[Finding] = []
+    exclude = exclude_patterns(config)
     for rel in sorted(tracked_files(repo_root, "*.md")):
+        if path_excluded(rel, exclude):
+            continue
         text = _read(repo_root / rel)
         if text is None:
             continue
