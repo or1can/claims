@@ -73,3 +73,29 @@ def path_excluded(path: str, patterns: Sequence[str]) -> bool:
     """
 
     return any(fnmatch.fnmatchcase(path, pattern) for pattern in patterns)
+
+
+def numeric_config(
+    config: Mapping[str, object],
+    name: str,
+    key: str,
+    default: int | float,
+    *,
+    allow_float: bool,
+) -> int | float:
+    """A check's own numeric `key` from its `claims.toml` section —
+    `default` when unset. Shared by every check offering a typed numeric
+    option (a timeout, a threshold), so each doesn't carry its own copy of
+    the same `bool`-excluding validation.
+
+    `bool` is rejected explicitly even though it's an `int` subclass in
+    Python — `timeout = true` silently passing as `1` would be a confusing
+    way to hit a 1-second timeout, not a deliberate choice.
+    """
+
+    value = config.get(key, default)
+    allowed: tuple[type, ...] = (int, float) if allow_float else (int,)
+    if isinstance(value, bool) or not isinstance(value, allowed):
+        kind = "a number" if allow_float else "an integer"
+        raise ConfigError(f"[{name}] {key} must be {kind}, got {value!r}")
+    return value

@@ -51,6 +51,27 @@ File-type scope is a config surface (`extensions`, a list of dotted
 suffixes), *added* to the default union of both source tools' original
 coverage (Markdown, Swift, Python, Shell, YAML) rather than replacing it —
 e.g. `ratect` would add `.rs`, covered by neither source tool.
+
+**Duplication threshold.** A survivor hit is only reported while the
+retracted text existed, pre-diff, in at most `duplication_threshold`
+*other* tracked files (a `claims.toml` config surface, default **1**) —
+chosen to land exactly on this check's own documented tolerance above:
+"twice on purpose" is 2 total copies (the edited file plus one survivor),
+so threshold 1 keeps that case reported and only suppresses once a third
+copy existed. Text duplicated across many files by design (a shared
+license header, a generated-file banner) is the common case this exists
+to filter: removing one copy of many is not evidence a fact drifted, the
+other copies were never at risk because this one existed and aren't now
+because it's gone. The count comes for free from the existing
+survivor-sweep (how many distinct files, besides the one the diff
+touched, still hold the exact matched text) — no extra git-history walk.
+
+**Exclude.** `exclude` (a `claims.toml` list of path globs, or a bare
+string for one) — same shape and matching as the `exclude` config
+`executable-claims` and `check-links` already support. An excluded file
+contributes no removed-text candidates from its own diff, and is dropped
+from the survivor sweep entirely — it neither counts toward nor is
+reported as another file's duplication.
 """
 
 from __future__ import annotations
@@ -59,6 +80,7 @@ import re
 from collections.abc import Mapping, Sequence
 from pathlib import Path
 
+from ..config import exclude_patterns, numeric_config, path_excluded
 from ..git import DiffLine, iter_diff, tracked_files
 from ..runner import Finding, register_check
 
@@ -99,12 +121,24 @@ def _extensions(config: Mapping[str, object]) -> set[str]:
     return set(DEFAULT_EXTENSIONS) | set(extra)  # type: ignore[arg-type]
 
 
-def _in_scope(path: str | None, extensions: set[str]) -> bool:
-    return path is not None and path.endswith(tuple(extensions))
+def _duplication_threshold(config: Mapping[str, object]) -> int:
+    """This check's own `duplication_threshold`, from its `claims.toml`
+    section — default 1. See the module docstring's "Duplication
+    threshold" section for why 1."""
+
+    return int(numeric_config(config, NAME, "duplication_threshold", 1, allow_float=False))
+
+
+def _in_scope(path: str | None, extensions: set[str], exclude: Sequence[str]) -> bool:
+    return (
+        path is not None
+        and path.endswith(tuple(extensions))
+        and not path_excluded(path, exclude)
+    )
 
 
 def _diff_by_file(
-    repo_root: Path, diff_range: str, extensions: set[str]
+    repo_root: Path, diff_range: str, extensions: set[str], exclude: Sequence[str]
 ) -> list[tuple[list[str], list[str]]]:
     """`[(removed, added), ...]` raw line text, one pair per file the diff
     touches, each restricted to in-scope lines from that file's own side(s).
@@ -126,8 +160,8 @@ def _diff_by_file(
 
     segments: list[tuple[list[str], list[str]]] = []
     for file_diff in iter_diff(repo_root, diff_range):
-        from_scope = _in_scope(file_diff.src, extensions)
-        to_scope = _in_scope(file_diff.dst, extensions)
+        from_scope = _in_scope(file_diff.src, extensions, exclude)
+        to_scope = _in_scope(file_diff.dst, extensions, exclude)
         removed: list[str] = []
         added: list[str] = []
         for item in file_diff.body:
@@ -140,9 +174,27 @@ def _diff_by_file(
     return segments
 
 
-def _tracked_scoped(repo_root: Path, extensions: set[str]) -> list[str]:
+def _tracked_scoped(
+    repo_root: Path, extensions: set[str], exclude: Sequence[str]
+) -> list[str]:
     pathspecs = tuple(f"*{ext}" for ext in sorted(extensions))
-    return tracked_files(repo_root, *pathspecs)
+    return [
+        rel
+        for rel in tracked_files(repo_root, *pathspecs)
+        if not path_excluded(rel, exclude)
+    ]
+
+
+def _below_duplication_threshold(
+    hits: list[tuple[str, int, str]], threshold: int
+) -> list[tuple[str, int, str]]:
+    """`hits`, dropping every candidate (grouped by its matched text)
+    whose distinct survivor-file count exceeds `threshold`."""
+
+    files_by_text: dict[str, set[str]] = {}
+    for file, _, text in hits:
+        files_by_text.setdefault(text, set()).add(file)
+    return [hit for hit in hits if len(files_by_text[hit[2]]) <= threshold]
 
 
 def _survivors(
@@ -223,7 +275,9 @@ def check(
     repo_root: Path, diff_range: str, config: Mapping[str, object]
 ) -> list[Finding]:
     extensions = _extensions(config)
-    segments = _diff_by_file(repo_root, diff_range, extensions)
+    exclude = exclude_patterns(config)
+    threshold = _duplication_threshold(config)
+    segments = _diff_by_file(repo_root, diff_range, extensions, exclude)
 
     wanted_ngrams: set[str] = set()
     wanted_lines: set[str] = set()
@@ -236,8 +290,10 @@ def check(
     if not wanted_ngrams and not wanted_lines:
         return []
 
-    tracked = _tracked_scoped(repo_root, extensions)
+    tracked = _tracked_scoped(repo_root, extensions, exclude)
     ngram_hits, whole_line_hits = _survivors(repo_root, tracked, wanted_ngrams, wanted_lines)
+    ngram_hits = _below_duplication_threshold(ngram_hits, threshold)
+    whole_line_hits = _below_duplication_threshold(whole_line_hits, threshold)
 
     findings: list[Finding] = [
         Finding(
