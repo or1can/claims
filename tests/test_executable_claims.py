@@ -275,6 +275,218 @@ class ExecutableClaimsTests(RegistryClearingTestCase):
         self.assertEqual(len(findings), 1)
         self.assertTrue(findings[0].gate)
 
+    def test_a_semicolon_chained_marker_is_rejected_without_running(self) -> None:
+        with Repo() as repo:
+            repo.write("doc.md", marked("exit 1; " + echo("hello\n"), "hello"))
+            findings = self._findings(repo.root)
+        self.assertEqual(len(findings), 1)
+        self.assertIn("chains commands via `;`", findings[0].message)
+        self.assertTrue(findings[0].gate)
+
+    def test_a_double_ampersand_chained_marker_is_rejected(self) -> None:
+        with Repo() as repo:
+            repo.write("doc.md", marked("true && " + echo("hello\n"), "hello"))
+            findings = self._findings(repo.root)
+        self.assertEqual(len(findings), 1)
+        self.assertIn("chains commands via `&&`", findings[0].message)
+
+    def test_a_double_pipe_chained_marker_is_rejected(self) -> None:
+        with Repo() as repo:
+            repo.write("doc.md", marked("false || " + echo("hello\n"), "hello"))
+            findings = self._findings(repo.root)
+        self.assertEqual(len(findings), 1)
+        self.assertIn("chains commands via `||`", findings[0].message)
+
+    def test_a_bare_ampersand_backgrounded_marker_is_rejected(self) -> None:
+        with Repo() as repo:
+            repo.write("doc.md", marked("true & " + echo("hello\n"), "hello"))
+            findings = self._findings(repo.root)
+        self.assertEqual(len(findings), 1)
+        self.assertIn("chains commands via `&`", findings[0].message)
+
+    def test_a_command_substitution_marker_is_rejected(self) -> None:
+        with Repo() as repo:
+            repo.write("doc.md", marked("echo $(true)", "true"))
+            findings = self._findings(repo.root)
+        self.assertEqual(len(findings), 1)
+        self.assertIn("substitutes a command", findings[0].message)
+
+    def test_a_backtick_substitution_marker_is_rejected(self) -> None:
+        with Repo() as repo:
+            repo.write("doc.md", marked("echo `true`", "true"))
+            findings = self._findings(repo.root)
+        self.assertEqual(len(findings), 1)
+        self.assertIn("substitutes a command", findings[0].message)
+
+    def test_a_double_quoted_substitution_is_still_rejected(self) -> None:
+        # Unlike single quotes, double quotes don't suppress `$(...)` —
+        # `echo "$(cat secrets)"` genuinely expands. A masking approach
+        # that treats every quoted span as inert would miss exactly this.
+        with Repo() as repo:
+            repo.write("doc.md", marked('echo "$(true)"', "true"))
+            findings = self._findings(repo.root)
+        self.assertEqual(len(findings), 1)
+        self.assertIn("substitutes a command", findings[0].message)
+
+    def test_a_single_quoted_dollar_paren_is_not_a_real_substitution(self) -> None:
+        # Single quotes fully suppress `$(...)` — the literal text
+        # '$(not a substitution)' is inert prose, not a real one.
+        with Repo() as repo:
+            repo.write(
+                "doc.md", marked(echo("$(not a substitution)"), "$(not a substitution)")
+            )
+            findings = self._findings(repo.root)
+        self.assertEqual(findings, [])
+
+    def test_a_semicolon_inside_a_python_one_liner_is_not_chaining(self) -> None:
+        # The exact false positive naive substring matching hits: the `;`
+        # is part of the quoted Python source, not a real shell separator.
+        with Repo() as repo:
+            repo.write("doc.md", marked(echo("hello\n"), "hello"))
+            findings = self._findings(repo.root)
+        self.assertEqual(findings, [])
+
+    def test_a_find_exec_escaped_semicolon_is_not_chaining(self) -> None:
+        # `find ... -exec ... \;` is find's own single-command terminator
+        # syntax, not a shell-level chain — a common, legitimate idiom.
+        with Repo() as repo:
+            repo.write("f.txt", "hello\n")
+            repo.write("doc.md", marked(r"find . -name f.txt -exec cat {} \;", "hello"))
+            findings = self._findings(repo.root)
+        self.assertEqual(findings, [])
+
+    def test_a_quoted_tool_name_still_trips_the_pipe_blocklist(self) -> None:
+        # Quoting only removes the quote characters at the shell level —
+        # `'grep'` still runs grep. A check that just strips quoted spans
+        # to a placeholder before checking the pipe segment's head word
+        # would miss this; tokenizing (which reduces `'grep'` to the word
+        # `grep`, same as the shell does) must not.
+        write_three_lines = python(
+            'import sys; sys.stdout.write(chr(10).join(["a", "b", "c"]) + chr(10))'
+        )
+        command = f"{write_three_lines} | 'grep' -c b"
+        with Repo() as repo:
+            repo.write("doc.md", marked(command, "1"))
+            findings = self._findings(repo.root)
+        self.assertEqual(len(findings), 1)
+        self.assertIn("pipes through `grep`", findings[0].message)
+
+    def test_a_backslash_escaped_tool_name_still_trips_the_pipe_blocklist(self) -> None:
+        # `\grep` is a common way to bypass a shell alias/function named
+        # `grep` — the shell still runs the real `grep` binary. Replacing
+        # the whole escape with a placeholder (rather than keeping the
+        # escaped character's own identity) would corrupt this into
+        # something that no longer matches the tool blocklist at all.
+        write_three_lines = python(
+            'import sys; sys.stdout.write(chr(10).join(["a", "b", "c"]) + chr(10))'
+        )
+        command = f"{write_three_lines} | \\grep -c b"
+        with Repo() as repo:
+            repo.write("doc.md", marked(command, "1"))
+            findings = self._findings(repo.root)
+        self.assertEqual(len(findings), 1)
+        self.assertIn("pipes through `grep`", findings[0].message)
+
+    def test_a_subshell_wrapped_tool_still_trips_the_pipe_blocklist(self) -> None:
+        write_three_lines = python(
+            'import sys; sys.stdout.write(chr(10).join(["a", "b", "c"]) + chr(10))'
+        )
+        command = f"{write_three_lines} | (grep -c b)"
+        with Repo() as repo:
+            repo.write("doc.md", marked(command, "1"))
+            findings = self._findings(repo.root)
+        self.assertEqual(len(findings), 1)
+        self.assertIn("pipes through `grep`", findings[0].message)
+
+    def test_an_unparseable_command_is_rejected_rather_than_run_unchecked(self) -> None:
+        # An unbalanced quote means the blocklist can't be checked at all
+        # — this check's whole job is deciding whether a command is safe
+        # to run, so "couldn't tell" must reject, not wave it through.
+        with Repo() as repo:
+            repo.write("doc.md", marked("echo 'unbalanced", "irrelevant"))
+            findings = self._findings(repo.root)
+        self.assertEqual(len(findings), 1)
+        self.assertIn("could not be parsed as a shell command", findings[0].message)
+        self.assertTrue(findings[0].gate)
+
+    def test_a_marker_piping_through_grep_past_the_first_segment_is_rejected(
+        self,
+    ) -> None:
+        # The exact shape that defeated a prefix-only check upstream: the
+        # command as a whole doesn't start with `grep`, so a
+        # `command.startswith(...)` test alone would miss it.
+        write_three_lines = python(
+            'import sys; sys.stdout.write(chr(10).join(["a", "b", "c"]) + chr(10))'
+        )
+        command = f"{write_three_lines} | grep -c b"
+        with Repo() as repo:
+            repo.write("doc.md", marked(command, "1"))
+            findings = self._findings(repo.root)
+        self.assertEqual(len(findings), 1)
+        self.assertIn("pipes through `grep`", findings[0].message)
+        self.assertTrue(findings[0].gate)
+
+    def test_a_marker_piping_through_sed_is_rejected(self) -> None:
+        with Repo() as repo:
+            repo.write("doc.md", marked(f"{echo('a')} | sed 's/a/b/'", "b"))
+            findings = self._findings(repo.root)
+        self.assertEqual(len(findings), 1)
+        self.assertIn("pipes through `sed`", findings[0].message)
+
+    def test_a_marker_piping_through_awk_is_rejected(self) -> None:
+        with Repo() as repo:
+            repo.write("doc.md", marked(f"{echo('a b')} | awk '{{print $1}}'", "a"))
+            findings = self._findings(repo.root)
+        self.assertEqual(len(findings), 1)
+        self.assertIn("pipes through `awk`", findings[0].message)
+
+    def test_head_is_not_in_the_blocklist(self) -> None:
+        write_three_lines = python(
+            'import sys; sys.stdout.write(chr(10).join(["a", "b", "c"]) + chr(10))'
+        )
+        command = f"{write_three_lines} | head -1"
+        with Repo() as repo:
+            repo.write("doc.md", marked(command, "a"))
+            findings = self._findings(repo.root)
+        self.assertEqual(findings, [])
+
+    def test_permitted_prefixes_rejects_a_non_matching_command(self) -> None:
+        with Repo() as repo:
+            repo.write("doc.md", marked(echo("hello\n"), "hello"))
+            findings = self._findings_with_config(
+                repo.root, '[executable-claims]\npermitted_prefixes = ["npm test"]\n'
+            )
+        self.assertEqual(len(findings), 1)
+        self.assertIn("does not match a configured permitted_prefixes entry", findings[0].message)
+        self.assertTrue(findings[0].gate)
+
+    def test_permitted_prefixes_allows_a_matching_command(self) -> None:
+        with Repo() as repo:
+            repo.write("doc.md", marked("true", ""))
+            findings = self._findings_with_config(
+                repo.root, '[executable-claims]\npermitted_prefixes = ["true"]\n'
+            )
+        self.assertEqual(findings, [])
+
+    def test_permitted_prefixes_does_not_override_the_blocklist(self) -> None:
+        # A command matching a configured prefix is still checked against
+        # the fixed blocklist first — `permitted_prefixes` narrows which
+        # commands may run, it doesn't re-permit an otherwise-forbidden
+        # construct.
+        with Repo() as repo:
+            repo.write("doc.md", marked("true; " + echo("hello\n"), "hello"))
+            findings = self._findings_with_config(
+                repo.root, '[executable-claims]\npermitted_prefixes = ["true"]\n'
+            )
+        self.assertEqual(len(findings), 1)
+        self.assertIn("chains commands via `;`", findings[0].message)
+
+    def test_no_permitted_prefixes_config_means_blocklist_only(self) -> None:
+        with Repo() as repo:
+            repo.write("doc.md", marked(echo("hello\n"), "hello"))
+            findings = self._findings(repo.root)
+        self.assertEqual(findings, [])
+
     def test_the_command_runs_through_a_shell_so_a_pipe_works(self) -> None:
         write_three_lines = python(
             'import sys; sys.stdout.write(chr(10).join(["a", "b", "c"]) + chr(10))'

@@ -21,7 +21,11 @@ agent rather than deciding by itself:
   marker and diffs its real output against the fenced block underneath. A
   command that times out (30s default, `timeout` in `claims.toml`) reports
   advisory instead — a timeout means the check never got an answer, not
-  that the claim is false.
+  that the claim is false. A marker chaining or backgrounding commands
+  (`;`, `&&`, `||`, `&`), substituting one (`` ` ``, `$(`), or piping
+  through `sed`/`awk`/`grep` is rejected outright, never run; a project can
+  further restrict markers to its own commands via a literal-prefix
+  `permitted_prefixes` list in `claims.toml`.
 - **check-citations** (gate) — flags a backticked name, in Markdown or
   Swift comments, that cites a symbol this repo once declared but no longer
   has.

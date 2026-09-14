@@ -128,7 +128,11 @@ map.md standing decision):
 - `executable-claims` — **gate**. Marker-based; runs a named command through
   a shell, diffs output, also fails on non-zero exit code; a sweep finding
   zero markers or a malformed marker is itself a failure, never a silent
-  pass.
+  pass. A command chaining/backgrounding (`;`, `&&`, `||`, `&`),
+  substituting (`` ` ``, `$(`), or piping through `sed`/`awk`/`grep` is
+  rejected before it ever runs — a fixed blocklist, no config needed; a
+  project may additionally restrict markers to a literal-prefix allowlist
+  of its own commands via `permitted_prefixes` (ticket #11).
 - `stale-claims` — **advisory**. Churn-ranked candidate list; explicitly
   documented as blind to same-commit claim-and-code moves.
 - `restatement` — **advisory**. Merged from the two source tools into one
