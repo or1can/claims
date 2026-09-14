@@ -142,9 +142,11 @@ map.md standing decision):
   to whole sentences within designated record-like files to avoid firing on
   a document's own quoted, retired false claims.
 - `spliced-docs` — **advisory**. Structural pattern match for a doc comment
-  landing on the wrong declaration, reported only when the stranded prose
-  names an undocumented item in the same file (or, per the stronger variant,
-  a name resolving to nothing anywhere in the repo).
+  landing on the wrong declaration, reported by default only when the
+  stranded prose names an undocumented item in the same file; the stronger
+  variant (a name resolving to nothing anywhere in the repo) is opt-in via
+  `modes` in `claims.toml` — too noisy to run by default on dense,
+  cross-referencing doc comments (ticket #9).
 - `check-citations` — **gate**. Backticked names citing a symbol the project
   once declared (via full history) but no longer does; exits distinctly when
   it can't see enough history to answer honestly, rather than reporting a

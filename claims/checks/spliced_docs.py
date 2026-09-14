@@ -27,10 +27,20 @@ Ported from `ratect`'s `tools/spliced-docs.py` (Rust) and Project B's
 prior art for this consolidation — onto the *union* of their evidence
 rules (spec.md's "stronger variant" applied to both languages, not just
 Swift's): a break is reported when the stranded prose names, in backticks,
-either an undocumented declaration in the same file or a name that resolves
-to nothing anywhere in the repo (in that language). No adapter interface is
-introduced for this — spec.md defers that design; the two languages are
-handled by two concrete, independent functions.
+either an undocumented declaration in the same file (`undocumented` mode)
+or a name that resolves to nothing anywhere in the repo (`unknown` mode).
+No adapter interface is introduced for this — spec.md defers that design;
+the two languages are handled by two concrete, independent functions.
+
+Only `undocumented` mode runs by default. `unknown`'s weaker rule ("names a
+backtick term that resolves to nothing") fires on ordinary technical prose
+almost as often as it fires on a real splice, on a codebase with dense,
+cross-referencing doc comments (confirmed against a real Rust project: 15
+`unknown` findings to 1 `undocumented` finding, all 15 false positives) —
+opt in via `modes = ["undocumented", "unknown"]` (or `["unknown"]` alone)
+in this check's `claims.toml` section once that noise level is checked to
+be acceptable for a given project. Naming anything other than
+`undocumented`/`unknown` in `modes` raises `ConfigError`.
 
 How it works, per language:
 
@@ -56,6 +66,7 @@ import re
 from collections.abc import Mapping
 from pathlib import Path
 
+from ..config import ConfigError
 from ..git import tracked_files
 from ..runner import Finding, register_check
 
@@ -64,7 +75,44 @@ NAME = "spliced-docs"
 MODE_UNDOCUMENTED = "spliced-docs-undocumented"
 MODE_UNKNOWN = "spliced-docs-unknown"
 
+# Config-facing mode names (`claims.toml`'s `modes = [...]`), distinct from
+# the `MODE_*` finding-mode strings above.
+UNDOCUMENTED = "undocumented"
+UNKNOWN = "unknown"
+KNOWN_MODES = frozenset({UNDOCUMENTED, UNKNOWN})
+DEFAULT_MODES = frozenset({UNDOCUMENTED})
+
 DOC_RE = re.compile(r"^\s*///")
+
+
+def _enabled_modes(config: Mapping[str, object]) -> frozenset[str]:
+    """This check's own `modes` list, from its `claims.toml` section —
+    default `{"undocumented"}` (see the module docstring's opt-in note).
+
+    Raises `ConfigError` naming any mode that isn't `undocumented` or
+    `unknown`, rather than silently ignoring it or letting it pass through
+    to fail confusingly later.
+    """
+
+    configured = config.get("modes")
+    if configured is None:
+        return DEFAULT_MODES
+    # A one-character typo away from a list (`modes = "unknown"` instead of
+    # `modes = ["unknown"]`) — treated as a bare iterable of characters
+    # instead, per-character `ConfigError`s would mask the actual mistake.
+    # Mirrors `exclude_patterns`'s own guard against the same typo shape.
+    if isinstance(configured, str):
+        configured = [configured]
+    if not isinstance(configured, (list, tuple, set, frozenset)):
+        raise ConfigError(f"[{NAME}] modes must be a list of strings, got {configured!r}")
+    modes = frozenset(configured)  # type: ignore[arg-type]
+    bad = modes - KNOWN_MODES
+    if bad:
+        raise ConfigError(
+            f"[{NAME}] modes: {sorted(bad, key=str)[0]!r} is not a known mode "
+            f'(expected "undocumented" or "unknown")'
+        )
+    return modes
 
 
 def _finding(file: str, line: int, mode: str, names: list[str], where: str) -> Finding:
@@ -84,18 +132,21 @@ def _emit(
     named: frozenset[str],
     bare: dict[str, set[str]],
     all_names: set[str],
+    enabled_modes: frozenset[str],
 ) -> list[Finding]:
-    owners = sorted(name for name, idents in bare.items() if named & idents)
-    unknown = sorted(name for name in named if name not in all_names)
     findings: list[Finding] = []
-    if owners:
-        findings.append(
-            _finding(rel, line_no, MODE_UNDOCUMENTED, owners, "undocumented in this file")
-        )
-    if unknown:
-        findings.append(
-            _finding(rel, line_no, MODE_UNKNOWN, unknown, "resolves to nothing in the repo")
-        )
+    if UNDOCUMENTED in enabled_modes:
+        owners = sorted(name for name, idents in bare.items() if named & idents)
+        if owners:
+            findings.append(
+                _finding(rel, line_no, MODE_UNDOCUMENTED, owners, "undocumented in this file")
+            )
+    if UNKNOWN in enabled_modes:
+        unknown = sorted(name for name in named if name not in all_names)
+        if unknown:
+            findings.append(
+                _finding(rel, line_no, MODE_UNKNOWN, unknown, "resolves to nothing in the repo")
+            )
     return findings
 
 
@@ -194,20 +245,20 @@ def _rust_breaks(lines: list[str]):
                 yield i + 1, named
 
 
-def _check_rust(repo_root: Path) -> list[Finding]:
+def _check_rust(repo_root: Path, enabled_modes: frozenset[str]) -> list[Finding]:
     files = {
         rel: (repo_root / rel).read_text(encoding="utf-8", errors="replace").splitlines()
         for rel in tracked_files(repo_root, "*.rs")
     }
-    all_names = _rust_all_names(list(files.values()))
+    all_names = _rust_all_names(list(files.values())) if UNKNOWN in enabled_modes else set()
 
     findings: list[Finding] = []
     for rel, lines in sorted(files.items()):
         if not lines:
             continue
-        bare = _rust_bare_items(lines)
+        bare = _rust_bare_items(lines) if UNDOCUMENTED in enabled_modes else {}
         for line_no, named in _rust_breaks(lines):
-            findings.extend(_emit(rel, line_no, named, bare, all_names))
+            findings.extend(_emit(rel, line_no, named, bare, all_names, enabled_modes))
     return findings
 
 
@@ -284,35 +335,39 @@ def _swift_breaks(lines: list[str]):
                 yield i + 1, named
 
 
-def _check_swift(repo_root: Path) -> list[Finding]:
+def _check_swift(repo_root: Path, enabled_modes: frozenset[str]) -> list[Finding]:
     files = {
         rel: (repo_root / rel).read_text(encoding="utf-8", errors="replace").splitlines()
         for rel in tracked_files(repo_root, "*.swift")
     }
 
+    declarations = {rel: _swift_declarations(lines) for rel, lines in files.items()}
+
     all_names: set[str] = set()
-    for lines in files.values():
-        for _, name, _ in _swift_declarations(lines):
-            all_names.add(name)
+    if UNKNOWN in enabled_modes:
+        for found in declarations.values():
+            for _, name, _ in found:
+                all_names.add(name)
 
     findings: list[Finding] = []
     for rel, lines in sorted(files.items()):
         if not lines:
             continue
-        bare = {
-            name: {name}
-            for _, name, documented in _swift_declarations(lines)
-            if not documented
-        }
+        bare = (
+            {name: {name} for _, name, documented in declarations[rel] if not documented}
+            if UNDOCUMENTED in enabled_modes
+            else {}
+        )
         for line_no, named in _swift_breaks(lines):
-            findings.extend(_emit(rel, line_no, named, bare, all_names))
+            findings.extend(_emit(rel, line_no, named, bare, all_names, enabled_modes))
     return findings
 
 
 def check(
     repo_root: Path, diff_range: str, config: Mapping[str, object]
 ) -> list[Finding]:
-    return _check_rust(repo_root) + _check_swift(repo_root)
+    enabled_modes = _enabled_modes(config)
+    return _check_rust(repo_root, enabled_modes) + _check_swift(repo_root, enabled_modes)
 
 
 register_check(NAME, check)

@@ -36,7 +36,10 @@ agent rather than deciding by itself:
   default, `claims.toml`) — a shared license header, a generated banner —
   is suppressed rather than flagged every time one copy changes.
 - **spliced-docs** (advisory) — flags a doc comment that's been pushed onto
-  the wrong declaration by an insertion above it (Swift and Rust).
+  the wrong declaration by an insertion above it (Swift and Rust). Only
+  flags a break naming an undocumented declaration in the same file by
+  default; naming a term absent from the whole repo (noisier on
+  cross-referencing doc comments) is opt-in via `modes` in `claims.toml`.
 - **claim-words** (advisory) — sweeps added lines in files a project opts
   in as record-like for totalising words ("every", "never") and counts,
   which are claims a check can't itself verify.
