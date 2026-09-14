@@ -132,6 +132,32 @@ class ExecutableClaimsTests(RegistryClearingTestCase):
         self.assertEqual(len(findings), 1)
         self.assertIn("no verify markers found", findings[0].message)
 
+    def test_a_command_exceeding_the_configured_timeout_is_advisory(self) -> None:
+        command = python("import time; time.sleep(1)")
+        with Repo() as repo:
+            repo.write("doc.md", marked(command, "irrelevant"))
+            findings = self._findings_with_config(
+                repo.root, "[executable-claims]\ntimeout = 0.05\n"
+            )
+        self.assertEqual(len(findings), 1)
+        self.assertIn("timed out after 0.05s", findings[0].message)
+        self.assertFalse(findings[0].gate)
+
+    def test_a_non_numeric_timeout_config_is_a_clear_crash_finding(self) -> None:
+        # `runner.run()` catches any exception a check raises and turns it
+        # into one gate finding (see its own docstring) — asserting the
+        # message names `ConfigError` and the bad value pins this as that
+        # documented path, not an opaque `TypeError` from `subprocess.run`.
+        with Repo() as repo:
+            repo.write("doc.md", marked(echo("hello\n"), "hello"))
+            findings = self._findings_with_config(
+                repo.root, '[executable-claims]\ntimeout = "30"\n'
+            )
+        self.assertEqual(len(findings), 1)
+        self.assertIn("ConfigError", findings[0].message)
+        self.assertIn("timeout must be a number", findings[0].message)
+        self.assertTrue(findings[0].gate)
+
     def test_a_true_claim_passes(self) -> None:
         with Repo() as repo:
             repo.write("doc.md", marked(echo("hello\n"), "hello"))

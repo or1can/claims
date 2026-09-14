@@ -18,7 +18,10 @@ Seven mechanical checks, plus a judgment-shaped eighth that hands off to an
 agent rather than deciding by itself:
 
 - **executable-claims** (gate) — runs the command in a `<!-- verify: -->`
-  marker and diffs its real output against the fenced block underneath.
+  marker and diffs its real output against the fenced block underneath. A
+  command that times out (30s default, `timeout` in `claims.toml`) reports
+  advisory instead — a timeout means the check never got an answer, not
+  that the claim is false.
 - **check-citations** (gate) — flags a backticked name, in Markdown or
   Swift comments, that cites a symbol this repo once declared but no longer
   has.

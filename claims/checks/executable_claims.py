@@ -17,7 +17,10 @@
 A `<!-- verify: cmd -->` marker directly above a fenced block runs `cmd`
 through the shell and diffs its combined stdout+stderr, and its exit code,
 against the block. Registered as a **gate** check — see spec.md's check
-inventory.
+inventory — except a `cmd` that exceeds its timeout (`TIMEOUT_SECONDS`,
+overridable via this check's `claims.toml` `timeout` key): that's reported
+advisory, not gate, since a timeout means the check never got an answer,
+not that the claim was proven false.
 
 The command runs through a shell rather than `shlex.split`, so a marker
 needing a pipe works; that also means it runs exactly what it says, with the
@@ -35,7 +38,7 @@ import subprocess
 from collections.abc import Mapping, Sequence
 from pathlib import Path
 
-from ..config import exclude_patterns, path_excluded
+from ..config import ConfigError, exclude_patterns, path_excluded
 from ..git import tracked_files
 from ..runner import Finding, register_check
 
@@ -140,8 +143,23 @@ def _trim(lines: Sequence[str]) -> str:
     return "\n".join(line.rstrip() for line in lines).strip("\n")
 
 
-def _finding(file: str, line: int, message: str) -> Finding:
-    return Finding(file=file, line=line, message=message, mode=NAME, gate=True)
+def _finding(file: str, line: int, message: str, *, gate: bool = True) -> Finding:
+    return Finding(file=file, line=line, message=message, mode=NAME, gate=gate)
+
+
+def _timeout(config: Mapping[str, object]) -> float:
+    """This check's own `timeout` (seconds), from its `claims.toml` section —
+    `TIMEOUT_SECONDS` when unset. No per-marker override: a marker line is
+    already a verbatim shell command, and a second argument on it would need
+    its own syntax and clash with a command that legitimately takes `--`
+    itself; project-wide, alongside `exclude`, covers the motivating case
+    (a slow integration or cold-build command) without that.
+    """
+
+    value = config.get("timeout", TIMEOUT_SECONDS)
+    if not isinstance(value, (int, float)):
+        raise ConfigError(f"[{NAME}] timeout must be a number, got {value!r}")
+    return value
 
 
 def check(
@@ -155,6 +173,7 @@ def check(
     seen: set[Path] = set()
 
     exclude = exclude_patterns(config)
+    timeout = _timeout(config)
     tracked = tracked_files(repo_root, "*.md")
     # Keyed by real path, not name: naming just one alias of a symlinked
     # pair (this file's own CLAUDE.md/AGENTS.md convention, above) must
@@ -191,12 +210,20 @@ def check(
                     cwd=repo_root,
                     capture_output=True,
                     text=True,
-                    timeout=TIMEOUT_SECONDS,
+                    timeout=timeout,
                 )
             except subprocess.TimeoutExpired:
+                # Advisory, not gate: a timeout means the check never got an
+                # answer, not that the claim is proven false — a loaded
+                # machine or a genuinely slow (cold-build, real-subprocess)
+                # command shouldn't block a commit the same way a real
+                # mismatch does.
                 findings.append(
                     _finding(
-                        rel, line_no, f"`{command}` timed out after {TIMEOUT_SECONDS}s"
+                        rel,
+                        line_no,
+                        f"`{command}` timed out after {timeout}s",
+                        gate=False,
                     )
                 )
                 continue
