@@ -110,7 +110,7 @@ import subprocess
 from collections.abc import Mapping, Sequence
 from pathlib import Path
 
-from ..config import exclude_patterns, glob_list_config, numeric_config, path_matches
+from ..config import exclude_patterns, numeric_config, path_matches, string_list_config
 from ..git import tracked_files
 from ..runner import Finding, register_check
 
@@ -352,7 +352,7 @@ def _permitted_prefixes(config: Mapping[str, object]) -> Sequence[str]:
     layered on top of the fixed blocklist, not a replacement for it.
     """
 
-    return glob_list_config(config, "permitted_prefixes")
+    return string_list_config(config, "permitted_prefixes")
 
 
 def check(

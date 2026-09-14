@@ -44,11 +44,14 @@ def load_config(repo_root: Path) -> dict[str, dict[str, object]]:
             raise ConfigError(f"{config_path}: {e}") from e
 
 
-def glob_list_config(config: Mapping[str, object], key: str) -> Sequence[str]:
-    """A check's own glob-list `key`, from its `config` section — shared by
-    every check offering a `key = ["path/glob", ...]` option (e.g.
-    `exclude`, `stale-claims`'s `module_reference_scope`), so each doesn't
-    carry its own copy of the same coercion.
+def string_list_config(config: Mapping[str, object], key: str) -> Sequence[str]:
+    """A check's own list-of-strings `key`, from its `config` section —
+    shared by every check offering a `key = ["...", ...]` option, so each
+    doesn't carry its own copy of the same coercion. Glob-neutral: some
+    callers match each entry as an `fnmatch` pattern (`exclude`,
+    `stale-claims`'s `module_reference_scope`), others as a literal prefix
+    (`executable-claims`'s `permitted_prefixes`) — this only produces the
+    list, never assumes how a caller matches against it.
     """
 
     patterns = config.get(key, [])
@@ -66,7 +69,7 @@ def exclude_patterns(config: Mapping[str, object]) -> Sequence[str]:
     """A check's own `exclude` glob list, from its `config` section
     (spec.md's path-exclusion mechanism)."""
 
-    return glob_list_config(config, "exclude")
+    return string_list_config(config, "exclude")
 
 
 def path_matches(path: str, patterns: Sequence[str]) -> bool:

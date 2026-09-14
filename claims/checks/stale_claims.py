@@ -75,7 +75,7 @@ from collections.abc import Mapping
 from pathlib import Path
 from typing import NamedTuple
 
-from ..config import glob_list_config, path_matches
+from ..config import path_matches, string_list_config
 from ..git import tracked_files
 from ..runner import Finding, register_check
 
@@ -100,7 +100,7 @@ def _in_module_scope(rel: str, config: Mapping[str, object]) -> bool:
     """
 
     return "module_reference_scope" not in config or path_matches(
-        rel, glob_list_config(config, "module_reference_scope")
+        rel, string_list_config(config, "module_reference_scope")
     )
 
 
