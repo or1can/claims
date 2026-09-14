@@ -234,7 +234,10 @@ class ExecutableClaimsTests(RegistryClearingTestCase):
         self.assertTrue(findings[0].gate)
 
     def test_the_command_runs_through_a_shell_so_a_pipe_works(self) -> None:
-        command = f"{python('import sys; sys.stdout.write(chr(10).join([\"a\", \"b\", \"c\"]) + chr(10))')} | tail -1"
+        write_three_lines = python(
+            'import sys; sys.stdout.write(chr(10).join(["a", "b", "c"]) + chr(10))'
+        )
+        command = f"{write_three_lines} | tail -1"
         with Repo() as repo:
             repo.write("doc.md", marked(command, "c"))
             findings = self._findings(repo.root)
