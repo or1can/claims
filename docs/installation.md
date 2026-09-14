@@ -91,14 +91,6 @@ its own defaults, defined in its own module under `claims/checks/` —
 nothing to configure to get started. Where present, each top-level table is
 one check's own config section, read by that check's name.
 
-For example, `restatement` scans a default set of file extensions
-(Markdown, Swift, Python, Shell, YAML); a Rust project adding `.rs` to that
-set, rather than replacing it, would write:
-
-```toml
-[restatement]
-extensions = [".rs"]
-```
-
-See each check's module docstring under `claims/checks/` for what config
-keys, if any, it reads.
+See `docs/configuration.md` for every check's config keys, their defaults,
+and when to reach for each one — or that check's own module docstring
+under `claims/checks/` directly, if this page and the code ever disagree.
