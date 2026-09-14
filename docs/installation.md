@@ -54,11 +54,19 @@ read off the manifest.
 **Pinned at install, explicit update.** `claude plugin marketplace add`
 resolves and pins the source at add time — an unreviewed upstream change to
 this repo doesn't silently start gating a commit differently mid-project.
-Pull in a newer version explicitly, when you choose to:
+Pull in a newer version explicitly, when you choose to — same name and
+scope as the install commands above, both required:
 
 ```sh
-claude plugin update claims
+claude plugin update claims@claims --scope project
 ```
+
+`claude plugin update claims` alone fails (`Plugin "claims" not found` —
+it defaults to `user` scope, and the plugin above was installed at
+`project`); `claude plugin update claims@claims` without `--scope project`
+fails the same way (`... is not installed at scope user`). Confirmed by
+running all three against a real `--scope project` install — only the
+full form above succeeds.
 
 ## Disabling the automatic hook
 
