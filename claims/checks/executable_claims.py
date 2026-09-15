@@ -444,6 +444,19 @@ def _ungranted_message(command: str) -> str:
     )
 
 
+# `icase` so a same-named file tracked under a case-variant spelling
+# (`Claims.Local.toml`) is still caught on a case-insensitive filesystem
+# (macOS, Windows) — `git ls-files` itself matches a bare pathspec
+# case-sensitively regardless of the filesystem, so without this an
+# attacker's PR committing that variant would be invisible to
+# `tracked_files` while `Path.open` below (which *does* follow the
+# filesystem's own case-folding) still reads and honors it. `top` anchors
+# to the repo root the same way the bare filename already implicitly did,
+# kept explicit alongside `icase` rather than relying on that implicit
+# behavior to still hold once a pathspec magic prefix is added.
+_LOCAL_CONFIG_PATHSPEC = f":(icase,top){LOCAL_CONFIG_FILENAME}"
+
+
 def _local_grants(repo_root: Path) -> tuple[frozenset[str], frozenset[str], Finding | None]:
     """`(allowed, denied, warning)` for this repo's own `claims.local.toml`.
 
@@ -461,17 +474,21 @@ def _local_grants(repo_root: Path) -> tuple[frozenset[str], frozenset[str], Find
     findings.
     """
 
-    if tracked_files(repo_root, LOCAL_CONFIG_FILENAME):
+    if tracked_files(repo_root, _LOCAL_CONFIG_PATHSPEC):
         return (
             frozenset(),
             frozenset(),
             _finding(
                 LOCAL_CONFIG_FILENAME,
                 0,
-                f"{LOCAL_CONFIG_FILENAME} is tracked by git — a committed "
-                "grant file cannot authorize execution, so its grants are "
-                "ignored; untrack it (`git rm --cached "
-                f"{LOCAL_CONFIG_FILENAME}`) for them to take effect",
+                f"{LOCAL_CONFIG_FILENAME} is tracked by git, so its "
+                "content is attacker-controllable via any PR — its grants "
+                "are ignored. If you didn't add this file yourself, delete "
+                "it; do not just untrack it, since `git rm --cached` alone "
+                "leaves its content on disk and any later change could "
+                "still make it tracked again. If it is yours, review its "
+                "content first, then `git rm --cached "
+                f"{LOCAL_CONFIG_FILENAME}` to keep it local-only.",
             ),
         )
     allowed, denied = _grants(load_local_config(repo_root))

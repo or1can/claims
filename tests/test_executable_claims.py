@@ -661,6 +661,34 @@ class ExecutableClaimsTests(RegistryClearingTestCase):
         self.assertTrue(any("has no local grant" in m for m in messages))
         self.assertTrue(all(f.gate for f in findings))
 
+    def test_a_case_variant_tracked_local_grant_file_is_also_ignored(self) -> None:
+        # `git ls-files claims.local.toml` matches a tracked path
+        # case-sensitively regardless of `core.ignorecase` — confirmed:
+        # tracking `Claims.Local.toml` makes it invisible to that exact
+        # lookup even on this machine's case-insensitive filesystem, where
+        # `Path.open` (used to actually read grants) would still resolve
+        # and honor it. An attacker's PR could commit that case variant
+        # from a case-sensitive checkout; `git add -f` here simulates the
+        # tracked state however it arose (e.g. merged in), not a local
+        # `git add`, which `.gitignore` blocks for this exact variant too
+        # on a case-insensitive filesystem — there's no benign path to a
+        # tracked case-variant, only this attack path.
+        command = echo("hello\n")
+        with Repo() as repo:
+            repo.write("doc.md", marked(command, "hello"))
+            (repo.root / "Claims.Local.toml").write_text(
+                f'[executable-claims]\nallowed = ["{command}"]\n'
+            )
+            subprocess.run(
+                ["git", "-C", str(repo.root), "add", "-f", "Claims.Local.toml"],
+                check=True,
+            )
+            findings = self._findings(repo.root)
+        messages = [f.message for f in findings]
+        self.assertTrue(any("is tracked by git" in m for m in messages))
+        self.assertTrue(any("has no local grant" in m for m in messages))
+        self.assertTrue(all(f.gate for f in findings))
+
     def test_an_ungranted_command_containing_a_double_quote_escapes_cleanly(self) -> None:
         # A `shlex.quote`-produced command embedding a single quote inserts
         # literal double quotes via `'"'"'` — the remediation TOML snippet
