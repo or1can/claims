@@ -10,11 +10,9 @@
   wrapped that way is never seen as its own `git` token — the docstring's
   "residual accepted gap" list doesn't mention this one. Also surfaced
   during ticket 36's review, also out of scope there.
-- `claims/runner.py`'s `run()` looks up a check's `claims.toml` section by
-  `config.get(name, {})` — a mistyped or wrong-case table name (e.g.
-  `[executable_claims]` for the real `[executable-claims]`) silently
-  resolves to `{}`, no error. Pre-existing, but ticket 36's `exclude`
-  option is the first place this makes a typo look like a working
-  opt-out instead of just an ignored, inert section. Surfaced by
-  `/code-review` during ticket 36; fixing it means validating config
-  table names against the registry, out of scope for that ticket.
+- Ticket #21's unrecognized-top-level-table gate only validates
+  `claims.toml`, not `claims.local.toml` (ticket #15) — a mistyped
+  `[executable_claims]` under the local grant file still silently grants
+  nothing today, the same failure mode #21 closed for `claims.toml`.
+  Surfaced by `/code-review` during #21; out of scope there since #21 was
+  scoped to the mechanical, `claims.toml`-only half of #13's split.

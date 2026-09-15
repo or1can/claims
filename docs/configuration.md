@@ -14,6 +14,14 @@ The plugin-wide `[hook] enabled = false` toggle (disable the automatic
 commit gate without uninstalling) isn't a check's own config — see
 `docs/installation.md`'s "Disabling the automatic hook" section instead.
 
+In `claims.toml` specifically, a top-level table naming neither a
+registered check nor `[hook]` — a typo like `[executable_claims]`
+(underscore) for the real `[executable-claims]` — is itself a gate
+finding (ticket #21), not silently ignored: previously it just meant that
+section's own keys quietly configured nothing. This validation doesn't
+extend to `claims.local.toml` (below) — a mistyped table there still
+silently grants nothing today, a known, not yet closed, gap.
+
 ## `executable-claims`
 
 ```toml

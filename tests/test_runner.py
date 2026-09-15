@@ -131,6 +131,73 @@ class RunnerTests(RegistryClearingTestCase):
         self.assertEqual(len(crash_findings), 1)
         self.assertIn("kaboom", crash_findings[0].message)
 
+    def test_an_unrecognized_table_name_is_a_gate_finding(self) -> None:
+        register_check("check-a", lambda repo_root, diff_range, config: [])
+
+        result = run(Path("/repo"), "HEAD", {"check-a": {}, "typo-check": {}})
+
+        unrecognized = [f for f in result.findings if "typo-check" in f.message]
+        self.assertEqual(len(unrecognized), 1)
+        finding = unrecognized[0]
+        self.assertTrue(finding.gate)
+        self.assertEqual(finding.file, "claims.toml")
+        self.assertEqual(finding.line, 0)
+        self.assertEqual(finding.mode, "config")
+
+    def test_a_hook_table_typo_is_told_it_is_not_a_check_name_or_hook(self) -> None:
+        result = run(Path("/repo"), "HEAD", {"hooks": {"enabled": False}})
+
+        self.assertEqual(len(result.findings), 1)
+        self.assertIn("not a registered check name or [hook]", result.findings[0].message)
+
+    def test_every_table_matching_a_registered_check_produces_no_finding(self) -> None:
+        register_check("check-a", lambda repo_root, diff_range, config: [])
+        register_check("check-b", lambda repo_root, diff_range, config: [])
+
+        result = run(
+            Path("/repo"), "HEAD", {"check-a": {"x": 1}, "check-b": {"y": 2}}
+        )
+
+        self.assertEqual(result.findings, ())
+
+    def test_the_hook_table_is_not_flagged_as_unrecognized(self) -> None:
+        result = run(Path("/repo"), "HEAD", {"hook": {"enabled": False}})
+
+        self.assertEqual(result.findings, ())
+
+    def test_an_empty_config_produces_no_unrecognized_table_finding(self) -> None:
+        register_check("check-a", lambda repo_root, diff_range, config: [])
+
+        result = run(Path("/repo"), "HEAD", {})
+
+        self.assertEqual(result.findings, ())
+
+    def test_an_unrecognized_table_suggests_the_hyphen_normalized_match(self) -> None:
+        register_check("executable-claims", lambda repo_root, diff_range, config: [])
+
+        result = run(Path("/repo"), "HEAD", {"executable_claims": {}})
+
+        self.assertEqual(len(result.findings), 1)
+        self.assertIn("executable_claims", result.findings[0].message)
+        self.assertIn("executable-claims", result.findings[0].message)
+
+    def test_an_unrecognized_table_with_no_close_match_has_no_suggestion(self) -> None:
+        register_check("check-a", lambda repo_root, diff_range, config: [])
+
+        result = run(Path("/repo"), "HEAD", {"nonsense": {}})
+
+        self.assertEqual(len(result.findings), 1)
+        self.assertIn("nonsense", result.findings[0].message)
+        self.assertNotIn("did you mean", result.findings[0].message)
+
+    def test_multiple_unrecognized_tables_each_get_their_own_finding(self) -> None:
+        result = run(Path("/repo"), "HEAD", {"typo-one": {}, "typo-two": {}})
+
+        messages = [f.message for f in result.findings]
+        self.assertTrue(any("typo-one" in m for m in messages))
+        self.assertTrue(any("typo-two" in m for m in messages))
+        self.assertEqual(len(result.findings), 2)
+
 
 if __name__ == "__main__":
     unittest.main()
