@@ -81,7 +81,7 @@ duplication_threshold = 3
 | Key | Shape | Default | Reach for this when |
 | --- | --- | --- | --- |
 | `exclude` | list of glob strings (bare string → one-element list) | `[]` — nothing excluded | A file is expected to retain retracted prose on purpose — e.g. a release history that intentionally keeps describing a shipped release as it shipped. |
-| `extensions` | list of extra file extensions, **added** to the built-in set (`.md`, `.swift`, `.py`, `.sh`, `.yml`) | the built-in set alone | This project has source in a language the default set doesn't cover (e.g. `.rs` for a Rust project) and wants restatement to scan it too. |
+| `extensions` | list of extra file extensions (bare string → one-element list), **added** to the built-in set (`.md`, `.swift`, `.py`, `.sh`, `.yml`) | the built-in set alone | This project has source in a language the default set doesn't cover (e.g. `.rs` for a Rust project) and wants restatement to scan it too. |
 | `duplication_threshold` | integer (`bool` rejected) | `1` | Text is duplicated **on purpose** across more files than the default tolerates (a shared license header, a generated banner) and every copy but one shouldn't be flagged every time the other changes. Lower to `0` to flag every duplicate immediately instead. |
 
 ## `check-links`

@@ -80,7 +80,7 @@ import re
 from collections.abc import Mapping, Sequence
 from pathlib import Path
 
-from ..config import exclude_patterns, numeric_config, path_matches
+from ..config import exclude_patterns, numeric_config, path_matches, string_list_config
 from ..git import DiffLine, iter_diff, tracked_files
 from ..runner import Finding, register_check
 
@@ -117,8 +117,12 @@ def _runs(words: Sequence[str], length: int) -> set[str]:
 
 
 def _extensions(config: Mapping[str, object]) -> set[str]:
-    extra = config.get("extensions", [])
-    return set(DEFAULT_EXTENSIONS) | set(extra)  # type: ignore[arg-type]
+    # `string_list_config`, not a raw `set(extra)`: the latter iterates a
+    # bare string's own *characters* (`extensions = ".rs"` silently became
+    # `{'.', 'r', 's'}`, matching nearly every path in the tree) instead of
+    # treating it as the one-element list every other check's own list
+    # config already coerces a bare string into.
+    return set(DEFAULT_EXTENSIONS) | set(string_list_config(config, "extensions"))
 
 
 def _duplication_threshold(config: Mapping[str, object]) -> int:

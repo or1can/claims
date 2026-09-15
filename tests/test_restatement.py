@@ -288,6 +288,27 @@ class RestatementTests(RegistryClearingTestCase):
         self.assertTrue(findings)
         self.assertEqual({f.file for f in findings}, {"b.rs"})
 
+    def test_a_bare_string_extensions_value_is_one_extension_not_its_characters(
+        self,
+    ) -> None:
+        # `set(".rs")` (no coercion) silently becomes `{'.', 'r', 's'}`,
+        # which would match nearly every file in the tree by a single
+        # trailing character — asserting only `.py`/`.rs` files are swept
+        # (not, say, a `.md` file merely ending in a character `.rs`
+        # contains) pins the one-element-list coercion every other list
+        # config already gets.
+        phrase = "the bridge interface differs for every network it creates today\n"
+        with Repo() as repo:
+            repo.write("a.md", phrase)
+            repo.write("b.rs", phrase)
+            repo.commit()
+            repo.write("a.md", "unrelated wording entirely\n")
+
+            findings = self._findings(repo.root, config={"extensions": ".rs"})
+
+        self.assertTrue(findings)
+        self.assertEqual({f.file for f in findings}, {"b.rs"})
+
     def test_text_surviving_in_exactly_one_other_file_is_flagged_by_default(self) -> None:
         """The check's own documented tolerance: "the same fact can
         legitimately appear twice on purpose" — 2 total copies pre-diff
