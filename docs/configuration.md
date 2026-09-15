@@ -95,6 +95,19 @@ exclude = ["docs/legacy/*.md"]
 | --- | --- | --- | --- |
 | `exclude` | list of glob strings (bare string → one-element list) | `[]` — nothing excluded | A file's internal links/anchors shouldn't be validated — e.g. a tutorial whose example deliberately links to a heading that doesn't exist yet. |
 
+## `check-file-refs`
+
+```toml
+[check-file-refs]
+exclude = ["docs/legacy/*.md"]
+extensions = [".proto"]
+```
+
+| Key | Shape | Default | Reach for this when |
+| --- | --- | --- | --- |
+| `exclude` | list of glob strings (bare string → one-element list) | `[]` — nothing excluded | A file's bare prose file-references shouldn't be validated — same shape as `check-links`' own `exclude`. |
+| `extensions` | list of extra file extensions (bare string → one-element list), **added** to the built-in set (`.py`, `.rs`, `.go`, `.js`, `.ts`, `.rb`, `.java`, `.c`, `.h`, `.cpp`, `.swift`, `.sh`, `.md`, `.txt`, `.yml`, `.yaml`, `.json`, `.toml`) | the built-in set alone | This project's docs reference a file type the default set doesn't cover (e.g. `.proto`) and a bare mention of one should be checked too. |
+
 ## `claim-words`
 
 ```toml

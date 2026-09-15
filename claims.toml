@@ -1,4 +1,12 @@
 # This repo's own config for the `claims` plugin it installs on itself
-# (ticket 25). Empty: every check runs with its defaults — see
-# `claims/config.py` and each check's own module docstring for what those
-# defaults are.
+# (ticket 25). See `claims/config.py` and each check's own module
+# docstring for what a check's defaults are, otherwise.
+
+# `.scratch/claims-consolidation/` is historical design-notes prior art —
+# it discusses other real projects (`ratect`) and hypothetical example
+# paths by design, not this repo's own current tree, so a bare path
+# mention there intentionally won't resolve (ticket #16). `docs/adr/`
+# similarly narrates hypothetical/illustrative scenarios (an ADR's own
+# named attack example) that were never meant to be real tracked files.
+[check-file-refs]
+exclude = [".scratch/*", "docs/adr/*.md"]

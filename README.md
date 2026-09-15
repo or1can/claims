@@ -14,7 +14,7 @@ never by grepping for words that happen to appear near a claim.
 
 ## What it checks
 
-Seven mechanical checks, plus a judgment-shaped eighth that hands off to an
+Eight mechanical checks, plus a judgment-shaped ninth that hands off to an
 agent rather than deciding by itself:
 
 - **executable-claims** (gate) — runs the command in a `<!-- verify: -->`
@@ -35,6 +35,10 @@ agent rather than deciding by itself:
   has.
 - **check-links** (gate) — flags an internal Markdown link (to another
   tracked file, or a `#anchor`) whose target or heading doesn't exist.
+- **check-file-refs** (gate) — flags a bare, unmarked prose mention of a
+  path (not real `[text](path)` link syntax — that's `check-links`' job)
+  whose extension is in a recognized set and that doesn't resolve to a
+  tracked file.
 - **stale-claims** (advisory) — ranks prose sections by how much the code
   they name has changed since the section was last touched; a churn-ranked
   candidate list, not a verdict.

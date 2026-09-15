@@ -161,6 +161,12 @@ map.md standing decision):
   false clean pass.
 - `check-links` — **gate**. Every internal Markdown link and heading anchor
   resolves.
+- `check-file-refs` — **gate** (ticket #16). A bare, unmarked prose mention
+  of a path (not real `[text](path)` link syntax, `check-links`' own job)
+  whose trailing extension is in a recognized set resolves to a tracked
+  file; the recognized-extension gate is what makes gate severity safe
+  here, closing the `api/v2.0`-shaped false positive `stale-claims`' own
+  untightened `PATH_RE` would otherwise produce.
 - `judgment-agent` — **advisory candidate list feeding a subagent verdict**.
   Deterministic half (subject-index build → diff-scoped touched-subject
   delta → citation-shaped token match against that closed set) is itself a

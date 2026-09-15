@@ -25,3 +25,28 @@
   since that real name isn't among the fakes actually registered in that
   test's registry state. Worth a one-line comment in those fixtures'
   registry setup when next touched, not a standalone fix.
+- Ticket #16's `check-file-refs` excludes any path already inside real
+  Markdown link syntax (`[text](path)`) from its own detection, per that
+  ticket's own acceptance criteria — but `check-links` itself only
+  validates a link destination naming another `.md` file (with or without
+  `#anchor`) or a bare `#anchor`, not any other extension. So a broken
+  link destination naming some other recognized extension (e.g.
+  `[the script](scripts/foo.py)` where `foo.py` doesn't exist) is
+  currently unflagged by either check. Named in `check_file_refs.py`'s own
+  module docstring as a known, deliberate gap; narrowing it means either
+  broadening `check-links`' own scope past `.md`/anchors, or excluding
+  only the subset of link destinations `check-links` actually validates —
+  either is bigger than #16's own scope.
+- Discovered while building #16, not fixed there since it's a different
+  file: `stale_claims.PATH_RE`'s leading `\b` word-boundary anchor doesn't
+  match between two non-word characters, so it silently drops the leading
+  dot off a real hidden-directory path in prose — `.github/workflows/ci.yml`
+  matches with its own leading dot dropped, which then never resolves to
+  the tracked file it should. Harmless for `stale-claims` today — a wrong
+  match just fails to resolve and drops out of its own ranking, the same tolerance
+  that let this go unnoticed — but it does mean `stale-claims` can never
+  correctly rank a citation of a dotfile/dotdir path as a subject.
+  `check_file_refs.PATH_RE` (ticket #16) fixes the same defect in its own
+  copy via a negative lookbehind instead of `\b`; porting that fix here
+  needs its own verification pass against `stale-claims`' existing ranking
+  output and tests, out of scope for #16.

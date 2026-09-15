@@ -48,17 +48,20 @@ GLOB_CONFIG_KEYS: Mapping[str, Sequence[str]] = {
     "executable-claims": ("exclude",),
     "restatement": ("exclude",),
     "check-links": ("exclude",),
+    "check-file-refs": ("exclude",),
     "claim-words": ("files",),
     "stale-claims": ("module_reference_scope",),
 }
 
-# `restatement`'s own `extensions`: a dotted suffix compared via
-# `str.endswith`, mirroring `restatement._in_scope`'s own matching — not a
+# `restatement`'s own `extensions`, and `check-file-refs`' own `extensions`
+# (ticket #16, same additive-to-a-built-in-set shape): a dotted suffix
+# compared via `str.endswith`, mirroring each check's own matching — not a
 # glob pattern, so kept out of `GLOB_CONFIG_KEYS` rather than fed through
 # `path_matches`, which would treat `.rs` as a literal path to equal, not
 # a suffix to match against.
 EXTENSION_CONFIG_KEYS: Mapping[str, Sequence[str]] = {
     "restatement": ("extensions",),
+    "check-file-refs": ("extensions",),
 }
 
 # Every other registered check's own config section carries nothing
