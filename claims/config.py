@@ -17,6 +17,11 @@
 A project's config lives at `<repo_root>/claims.toml`. Each top-level table
 is one check's own section, read by name at `run()` time — see
 `runner.run`.
+
+A second, git-ignored file, `claims.local.toml` (`LOCAL_CONFIG_FILENAME`),
+holds per-machine settings that must never travel with a committed PR — see
+`executable-claims`' own local execution grants (ticket #15) for why
+committed config isn't a sufficient trust boundary for that check.
 """
 
 from __future__ import annotations
@@ -27,21 +32,36 @@ from collections.abc import Mapping, Sequence
 from pathlib import Path
 
 CONFIG_FILENAME = "claims.toml"
+LOCAL_CONFIG_FILENAME = "claims.local.toml"
 
 
 class ConfigError(Exception):
-    """Raised when `claims.toml` exists but can't be parsed."""
+    """Raised when a config file exists but can't be parsed."""
 
 
-def load_config(repo_root: Path) -> dict[str, dict[str, object]]:
-    config_path = repo_root / CONFIG_FILENAME
-    if not config_path.is_file():
+def _load_toml(path: Path) -> dict[str, dict[str, object]]:
+    if not path.is_file():
         return {}
-    with config_path.open("rb") as f:
+    with path.open("rb") as f:
         try:
             return tomllib.load(f)
         except tomllib.TOMLDecodeError as e:
-            raise ConfigError(f"{config_path}: {e}") from e
+            raise ConfigError(f"{path}: {e}") from e
+
+
+def load_config(repo_root: Path) -> dict[str, dict[str, object]]:
+    return _load_toml(repo_root / CONFIG_FILENAME)
+
+
+def load_local_config(repo_root: Path) -> dict[str, dict[str, object]]:
+    """`claims.local.toml`'s own tables — same shape and error handling as
+    `load_config`, just a different, git-ignored file. `{}` when the file
+    doesn't exist, the same as a missing `claims.toml`: a project (or a
+    fresh machine/checkout) with no local file at all has made no local
+    decisions, not implicitly permissive ones.
+    """
+
+    return _load_toml(repo_root / LOCAL_CONFIG_FILENAME)
 
 
 def string_list_config(config: Mapping[str, object], key: str) -> Sequence[str]:

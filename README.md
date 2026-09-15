@@ -26,6 +26,10 @@ agent rather than deciding by itself:
   one (`` ` ``, `$(`), or piping through `sed`/`awk`/`grep` is rejected
   outright, never run; a project can further restrict markers to its own
   commands via a literal-prefix `permitted_prefixes` list in `claims.toml`.
+  Beyond that, a command only runs once it's been explicitly, locally
+  granted by exact string in `claims.local.toml` (git-ignored, per-machine
+  — not committed config) — see
+  [`docs/adr/0001-executable-claims-deny-by-default.md`](docs/adr/0001-executable-claims-deny-by-default.md).
 - **check-citations** (gate) — flags a backticked name, in Markdown or
   Swift comments, that cites a symbol this repo once declared but no longer
   has.

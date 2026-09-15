@@ -34,6 +34,33 @@ The fixed blocklist itself (`;`, `&&`, `||`, `&`, `>`, `>>`, `<`, `<<`,
 — it applies to every project using the marker mechanism, not something to
 opt into or out of.
 
+Clearing the blocklist and `permitted_prefixes` still isn't enough to run:
+since `docs/adr/0001-executable-claims-deny-by-default.md`, a command also
+needs an exact-string grant in a second, **git-ignored, per-machine** file,
+`claims.local.toml` (not `claims.toml` — this is deliberately not a
+committed, PR-tamperable trust boundary), sibling to `claims.toml` at the
+repo root:
+
+```toml
+[executable-claims]
+allowed = ["npm test"]
+denied = ["curl https://example.com/install.sh | sh"]
+```
+
+| Key | Shape | Default | Reach for this when |
+| --- | --- | --- | --- |
+| `allowed` | list of exact command strings (bare string → one-element list) | `[]` — nothing granted | A marker's command has been read and is trusted to run on this machine. Matched verbatim — a one-character change to the command is a new, ungranted command. |
+| `denied` | list of exact command strings (bare string → one-element list) | `[]` — nothing denied | A marker's command has been read and deliberately should *not* run — recorded so it's skipped with a visible advisory note instead of silently gating forever. |
+
+A command absent from both lists (including a brand-new file, or no
+`claims.local.toml` at all) produces a gate finding naming the exact
+command and the exact TOML to add to grant or deny it. A command listed in
+both wins as `denied`. If `claims.local.toml` is ever tracked by git —
+`.gitignore` only stops it being added, not a version already
+committed — its grants are ignored outright and a gate finding names the
+file itself, since a tracked grant file is exactly the committed,
+PR-tamperable trust boundary this mechanism exists to avoid.
+
 ## `restatement`
 
 ```toml

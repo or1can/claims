@@ -94,6 +94,42 @@ runs — the same failure class as a marker that isn't above a fenced block,
 not a new one; content unfit to run isn't a different kind of malformed
 from a marker that isn't there at all.
 
+**Deny by default, gated on a local grant (ticket #15).** Passing the
+blocklist and `permitted_prefixes` only means a command isn't *obviously*
+dangerous — it doesn't mean anyone chose to run it. `claims.toml` itself
+can't be the trust boundary here: it's committed, so a branch a maintainer
+merely checks out (to review it, fix something unrelated, rebase) can carry
+both a planted `<!-- verify: -->` marker and the `permitted_prefixes` entry
+that would let it through, and the automatic `PreToolUse` hook would run it
+on the maintainer's very next unrelated `git commit`. So before a command
+that clears both checks above ever runs, it's looked up by **exact,
+verbatim string** in `claims.local.toml`'s own `[executable-claims]`
+section — a second, git-ignored file, never a PR's to change. `.gitignore`
+only stops git from ever adding a matching path, though — it does nothing
+once one is already tracked, so a `claims.local.toml` that's tracked at
+all (an attacker's PR could commit one) has its grants ignored outright,
+with a gate finding naming the problem, rather than trusted just because
+its filename matches the git-ignored one:
+
+- In `denied` → skipped, reported as an advisory finding (not a gate) so a
+  deliberately-declined marker doesn't just silently vanish from view.
+- In `allowed` → runs and is verified exactly as before this ticket.
+- In neither (the default for any command never explicitly decided,
+  including one that's new or has changed even slightly since it was last
+  granted) → gate finding, naming the exact command and the exact TOML to
+  add under `[executable-claims]` in `claims.local.toml` to resolve it.
+
+This lives in `check()` itself, not the `PreToolUse` hook — the on-demand
+skill and any CI invocation go through the same `check()`, so nothing can
+run a marker's command just by calling this check a different way. Grants
+are per-machine and match on the command's exact string, not a hash of the
+script it might invoke by path or a pattern over it: a one-character change
+to a previously-granted command is a new, ungranted command, not a variant
+of a trusted one — see `docs/adr/0001-executable-claims-deny-by-default.md`
+for the residual gap this leaves (a granted command string can stay
+trusted while a script it invokes by path changes independently) and the
+directions deliberately deferred past this round.
+
 **Known, deliberate gaps, not silently accepted ones:** a tool named via a
 wrapper or full path (`env grep`, `/usr/bin/sed`) evades the text-processing
 blocklist, matching only the bare names `sed`/`awk`/`grep` — chasing every
@@ -114,7 +150,14 @@ import subprocess
 from collections.abc import Mapping, Sequence
 from pathlib import Path
 
-from ..config import exclude_patterns, numeric_config, path_matches, string_list_config
+from ..config import (
+    LOCAL_CONFIG_FILENAME,
+    exclude_patterns,
+    load_local_config,
+    numeric_config,
+    path_matches,
+    string_list_config,
+)
 from ..git import tracked_files
 from ..runner import Finding, register_check
 
@@ -365,6 +408,76 @@ def _permitted_prefixes(config: Mapping[str, object]) -> Sequence[str]:
     return string_list_config(config, "permitted_prefixes")
 
 
+def _grants(local_config: Mapping[str, object]) -> tuple[frozenset[str], frozenset[str]]:
+    """`(allowed, denied)` exact-command-string sets from `claims.local.toml`'s
+    own `[executable-claims]` section. Both empty when the section, or the
+    file itself, is absent — see `check()`: absent means every command
+    gates, not that every command is implicitly allowed.
+    """
+
+    section = local_config.get(NAME, {})
+    if not isinstance(section, Mapping):
+        return frozenset(), frozenset()
+    return (
+        frozenset(string_list_config(section, "allowed")),
+        frozenset(string_list_config(section, "denied")),
+    )
+
+
+def _toml_string(value: str) -> str:
+    """`value` as a TOML basic (double-quoted) string literal — escaping
+    only what a basic string requires for this purpose, backslash and the
+    double quote itself, since a shell command routinely contains a
+    single quote (`shlex.quote`'s own escaping) that a TOML literal
+    (single-quoted) string can't represent at all.
+    """
+
+    return '"' + value.replace("\\", "\\\\").replace('"', '\\"') + '"'
+
+
+def _ungranted_message(command: str) -> str:
+    literal = _toml_string(command)
+    return (
+        f"`{command}` has no local grant in claims.local.toml — add "
+        f"`allowed = [{literal}]` under `[{NAME}]` to run it, or "
+        f"`denied = [{literal}]` to skip it and record that choice"
+    )
+
+
+def _local_grants(repo_root: Path) -> tuple[frozenset[str], frozenset[str], Finding | None]:
+    """`(allowed, denied, warning)` for this repo's own `claims.local.toml`.
+
+    `.gitignore` only stops git from ever *adding* a matching path — it
+    does nothing once that path is already tracked, e.g. committed by an
+    attacker's own PR, alongside a planted marker, specifically to defeat
+    this gate. So a `claims.local.toml` that's tracked at all is exactly
+    the committed, PR-tamperable trust boundary this ticket exists to stop
+    relying on, and its grants must not be honored: checked directly
+    against git's own index (`tracked_files`), not inferred from
+    `.gitignore` alone. Failing closed here means both sets come back
+    empty (every command then gates, same as no file existing at all) —
+    not that a tracked file's `denied` entries stay honored while only
+    `allowed` is dropped, which would still let a tracked file suppress
+    findings.
+    """
+
+    if tracked_files(repo_root, LOCAL_CONFIG_FILENAME):
+        return (
+            frozenset(),
+            frozenset(),
+            _finding(
+                LOCAL_CONFIG_FILENAME,
+                0,
+                f"{LOCAL_CONFIG_FILENAME} is tracked by git — a committed "
+                "grant file cannot authorize execution, so its grants are "
+                "ignored; untrack it (`git rm --cached "
+                f"{LOCAL_CONFIG_FILENAME}`) for them to take effect",
+            ),
+        )
+    allowed, denied = _grants(load_local_config(repo_root))
+    return allowed, denied, None
+
+
 def check(
     repo_root: Path, diff_range: str, config: Mapping[str, object]
 ) -> list[Finding]:
@@ -378,6 +491,9 @@ def check(
     exclude = exclude_patterns(config)
     timeout = _timeout(config)
     permitted_prefixes = _permitted_prefixes(config)
+    allowed, denied, grant_warning = _local_grants(repo_root)
+    if grant_warning is not None:
+        findings.append(grant_warning)
     tracked = tracked_files(repo_root, "*.md")
     # Keyed by real path, not name: naming just one alias of a symlinked
     # pair (this file's own CLAUDE.md/AGENTS.md convention, above) must
@@ -413,6 +529,19 @@ def check(
                 reason = "does not match a configured permitted_prefixes entry"
             if reason is not None:
                 findings.append(_finding(rel, line_no, f"`{command}` {reason}"))
+                continue
+            if command in denied:
+                findings.append(
+                    _finding(
+                        rel,
+                        line_no,
+                        f"`{command}` is denied in claims.local.toml — skipped",
+                        gate=False,
+                    )
+                )
+                continue
+            if command not in allowed:
+                findings.append(_finding(rel, line_no, _ungranted_message(command)))
                 continue
             checked += 1
             try:

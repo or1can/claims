@@ -20,7 +20,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from claims.config import ConfigError, load_config
+from claims.config import ConfigError, load_config, load_local_config
 
 
 class ConfigTests(unittest.TestCase):
@@ -44,6 +44,28 @@ class ConfigTests(unittest.TestCase):
 
         self.assertEqual(config["executable-claims"], {"timeout": 30})
         self.assertEqual(config["restatement"], {"file_types": ["*.md"]})
+
+    def test_missing_local_config_file_yields_empty_config(self) -> None:
+        with tempfile.TemporaryDirectory() as repo_root:
+            self.assertEqual(load_local_config(Path(repo_root)), {})
+
+    def test_malformed_local_config_file_raises_configerror(self) -> None:
+        with tempfile.TemporaryDirectory() as repo_root:
+            (Path(repo_root) / "claims.local.toml").write_text("not valid toml [[[")
+            with self.assertRaises(ConfigError):
+                load_local_config(Path(repo_root))
+
+    def test_local_config_is_read_from_its_own_file_not_claims_toml(self) -> None:
+        with tempfile.TemporaryDirectory() as repo_root:
+            (Path(repo_root) / "claims.toml").write_text(
+                '[executable-claims]\ntimeout = 30\n'
+            )
+            (Path(repo_root) / "claims.local.toml").write_text(
+                '[executable-claims]\nallowed = ["true"]\n'
+            )
+            local_config = load_local_config(Path(repo_root))
+
+        self.assertEqual(local_config, {"executable-claims": {"allowed": ["true"]}})
 
 
 if __name__ == "__main__":

@@ -133,7 +133,10 @@ map.md standing decision):
   piping through `sed`/`awk`/`grep` is rejected before it ever runs — a
   fixed blocklist, no config needed; a project may additionally restrict
   markers to a literal-prefix allowlist of its own commands via
-  `permitted_prefixes` (ticket #11).
+  `permitted_prefixes` (ticket #11). Beyond the blocklist, a command only
+  runs once explicitly granted by exact string in a second, git-ignored,
+  per-machine file, `claims.local.toml` — deny by default otherwise
+  (ticket #15, `docs/adr/0001-executable-claims-deny-by-default.md`).
 - `stale-claims` — **advisory**. Churn-ranked candidate list; explicitly
   documented as blind to same-commit claim-and-code moves.
 - `restatement` — **advisory**. Merged from the two source tools into one

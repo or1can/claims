@@ -30,6 +30,7 @@ import shlex
 import subprocess
 import sys
 import unittest
+from collections.abc import Sequence
 from pathlib import Path
 
 from claims.checks.executable_claims import NAME, check
@@ -42,6 +43,29 @@ from support import RegistryClearingTestCase, Repo
 
 def marked(command: str, body: str) -> str:
     return f"<!-- verify: {command} -->\n```\n{body}\n```\n"
+
+
+def _toml_string(value: str) -> str:
+    # Mirrors executable_claims._toml_string: TOML basic-string escaping,
+    # since a `shlex.quote`-produced command routinely contains a single
+    # quote (which a TOML literal string can't represent) and sometimes a
+    # double quote (`shlex.quote`'s own `'"'"'` escaping for an embedded
+    # single quote).
+    return '"' + value.replace("\\", "\\\\").replace('"', '\\"') + '"'
+
+
+def grant(repo_root: Path, *, allow: Sequence[str] = (), deny: Sequence[str] = ()) -> None:
+    """Writes `claims.local.toml` granting/denying exact commands — the
+    fixture every test exercising real execution needs since ticket #15's
+    deny-by-default local grant.
+    """
+
+    lines = ["[executable-claims]"]
+    if allow:
+        lines.append("allowed = [" + ", ".join(_toml_string(c) for c in allow) + "]")
+    if deny:
+        lines.append("denied = [" + ", ".join(_toml_string(c) for c in deny) + "]")
+    (repo_root / "claims.local.toml").write_text("\n".join(lines) + "\n")
 
 
 def nested_marker_example() -> str:
@@ -74,11 +98,17 @@ class ExecutableClaimsTests(RegistryClearingTestCase):
         super().setUp()
         register_check(NAME, check)
 
-    def _findings(self, repo_root: Path) -> list[Finding]:
+    def _findings(self, repo_root: Path, *, allow: Sequence[str] = ()) -> list[Finding]:
+        if allow:
+            grant(repo_root, allow=allow)
         return list(run(repo_root, "HEAD", {}).findings)
 
-    def _findings_with_config(self, repo_root: Path, claims_toml: str) -> list[Finding]:
+    def _findings_with_config(
+        self, repo_root: Path, claims_toml: str, *, allow: Sequence[str] = ()
+    ) -> list[Finding]:
         (repo_root / "claims.toml").write_text(claims_toml)
+        if allow:
+            grant(repo_root, allow=allow)
         config = load_config(repo_root)
         return list(run(repo_root, "HEAD", config).findings)
 
@@ -91,11 +121,14 @@ class ExecutableClaimsTests(RegistryClearingTestCase):
         self.assertEqual(findings, [])
 
     def test_exclude_does_not_affect_a_non_matching_path(self) -> None:
+        command = echo("hello\n")
         with Repo() as repo:
-            repo.write("keep.md", marked(echo("hello\n"), "hello"))
+            repo.write("keep.md", marked(command, "hello"))
             repo.write("skip.md", "just prose, no markers here\n")
             findings = self._findings_with_config(
-                repo.root, '[executable-claims]\nexclude = ["skip.md"]\n'
+                repo.root,
+                '[executable-claims]\nexclude = ["skip.md"]\n',
+                allow=[command],
             )
         self.assertEqual(findings, [])
 
@@ -137,7 +170,7 @@ class ExecutableClaimsTests(RegistryClearingTestCase):
         with Repo() as repo:
             repo.write("doc.md", marked(command, "irrelevant"))
             findings = self._findings_with_config(
-                repo.root, "[executable-claims]\ntimeout = 0.05\n"
+                repo.root, "[executable-claims]\ntimeout = 0.05\n", allow=[command]
             )
         self.assertEqual(len(findings), 1)
         self.assertIn("timed out after 0.05s", findings[0].message)
@@ -175,15 +208,17 @@ class ExecutableClaimsTests(RegistryClearingTestCase):
         self.assertTrue(findings[0].gate)
 
     def test_a_true_claim_passes(self) -> None:
+        command = echo("hello\n")
         with Repo() as repo:
-            repo.write("doc.md", marked(echo("hello\n"), "hello"))
-            findings = self._findings(repo.root)
+            repo.write("doc.md", marked(command, "hello"))
+            findings = self._findings(repo.root, allow=[command])
         self.assertEqual(findings, [])
 
     def test_a_false_claim_with_mismatched_output_fails(self) -> None:
+        command = echo("actual\n")
         with Repo() as repo:
-            repo.write("doc.md", marked(echo("actual\n"), "documented"))
-            findings = self._findings(repo.root)
+            repo.write("doc.md", marked(command, "documented"))
+            findings = self._findings(repo.root, allow=[command])
         self.assertEqual(len(findings), 1)
         self.assertEqual(findings[0].citation, "doc.md:1")
         self.assertTrue(findings[0].gate)
@@ -192,7 +227,7 @@ class ExecutableClaimsTests(RegistryClearingTestCase):
         command = python("import sys; sys.stdout.write('hello'); sys.exit(1)")
         with Repo() as repo:
             repo.write("doc.md", marked(command, "hello"))
-            findings = self._findings(repo.root)
+            findings = self._findings(repo.root, allow=[command])
         self.assertEqual(len(findings), 1)
         self.assertIn("exited 1", findings[0].message)
 
@@ -211,10 +246,11 @@ class ExecutableClaimsTests(RegistryClearingTestCase):
         self.assertIn("no verify markers found", findings[0].message)
 
     def test_a_nested_marker_example_does_not_interfere_with_a_real_marker(self) -> None:
-        doc = nested_marker_example() + "\n" + marked(echo("hello\n"), "hello")
+        command = echo("hello\n")
+        doc = nested_marker_example() + "\n" + marked(command, "hello")
         with Repo() as repo:
             repo.write("doc.md", doc)
-            findings = self._findings(repo.root)
+            findings = self._findings(repo.root, allow=[command])
         self.assertEqual(findings, [])
 
     def test_a_marker_example_nested_in_a_longer_outer_fence_is_not_live(self) -> None:
@@ -252,7 +288,7 @@ class ExecutableClaimsTests(RegistryClearingTestCase):
         doc = f"<!-- verify: {command} -->\n" "````\n" "```\n" "inner\n" "```\n" "````\n"
         with Repo() as repo:
             repo.write("doc.md", doc)
-            findings = self._findings(repo.root)
+            findings = self._findings(repo.root, allow=[command])
         self.assertEqual(findings, [])
 
     def test_an_unclosed_fenced_block_is_reported_not_silently_mishandled(self) -> None:
@@ -260,10 +296,11 @@ class ExecutableClaimsTests(RegistryClearingTestCase):
         # still runs and passes on its own merits; a separate, later,
         # never-closed fence elsewhere in the file must still be a loud
         # finding of its own, not silently swallow anything before it.
-        doc = marked(echo("hello\n"), "hello") + "```\n"
+        command = echo("hello\n")
+        doc = marked(command, "hello") + "```\n"
         with Repo() as repo:
             repo.write("doc.md", doc)
-            findings = self._findings(repo.root)
+            findings = self._findings(repo.root, allow=[command])
         self.assertEqual(len(findings), 1)
         self.assertIn("never closed", findings[0].message)
         self.assertTrue(findings[0].gate)
@@ -369,28 +406,29 @@ class ExecutableClaimsTests(RegistryClearingTestCase):
     def test_a_single_quoted_dollar_paren_is_not_a_real_substitution(self) -> None:
         # Single quotes fully suppress `$(...)` — the literal text
         # '$(not a substitution)' is inert prose, not a real one.
+        command = echo("$(not a substitution)")
         with Repo() as repo:
-            repo.write(
-                "doc.md", marked(echo("$(not a substitution)"), "$(not a substitution)")
-            )
-            findings = self._findings(repo.root)
+            repo.write("doc.md", marked(command, "$(not a substitution)"))
+            findings = self._findings(repo.root, allow=[command])
         self.assertEqual(findings, [])
 
     def test_a_semicolon_inside_a_python_one_liner_is_not_chaining(self) -> None:
         # The exact false positive naive substring matching hits: the `;`
         # is part of the quoted Python source, not a real shell separator.
+        command = echo("hello\n")
         with Repo() as repo:
-            repo.write("doc.md", marked(echo("hello\n"), "hello"))
-            findings = self._findings(repo.root)
+            repo.write("doc.md", marked(command, "hello"))
+            findings = self._findings(repo.root, allow=[command])
         self.assertEqual(findings, [])
 
     def test_a_find_exec_escaped_semicolon_is_not_chaining(self) -> None:
         # `find ... -exec ... \;` is find's own single-command terminator
         # syntax, not a shell-level chain — a common, legitimate idiom.
+        command = r"find . -name f.txt -exec cat {} \;"
         with Repo() as repo:
             repo.write("f.txt", "hello\n")
-            repo.write("doc.md", marked(r"find . -name f.txt -exec cat {} \;", "hello"))
-            findings = self._findings(repo.root)
+            repo.write("doc.md", marked(command, "hello"))
+            findings = self._findings(repo.root, allow=[command])
         self.assertEqual(findings, [])
 
     def test_a_quoted_tool_name_still_trips_the_pipe_blocklist(self) -> None:
@@ -485,7 +523,7 @@ class ExecutableClaimsTests(RegistryClearingTestCase):
         command = f"{write_three_lines} | head -1"
         with Repo() as repo:
             repo.write("doc.md", marked(command, "a"))
-            findings = self._findings(repo.root)
+            findings = self._findings(repo.root, allow=[command])
         self.assertEqual(findings, [])
 
     def test_permitted_prefixes_rejects_a_non_matching_command(self) -> None:
@@ -502,9 +540,26 @@ class ExecutableClaimsTests(RegistryClearingTestCase):
         with Repo() as repo:
             repo.write("doc.md", marked("true", ""))
             findings = self._findings_with_config(
-                repo.root, '[executable-claims]\npermitted_prefixes = ["true"]\n'
+                repo.root,
+                '[executable-claims]\npermitted_prefixes = ["true"]\n',
+                allow=["true"],
             )
         self.assertEqual(findings, [])
+
+    def test_matching_permitted_prefixes_alone_does_not_satisfy_the_local_grant(
+        self,
+    ) -> None:
+        # `permitted_prefixes` narrows which commands may run; it isn't
+        # itself the trust boundary ticket #15 introduced — a committed
+        # `claims.toml` entry must not be sufficient to run anything.
+        with Repo() as repo:
+            repo.write("doc.md", marked("true", ""))
+            findings = self._findings_with_config(
+                repo.root, '[executable-claims]\npermitted_prefixes = ["true"]\n'
+            )
+        self.assertEqual(len(findings), 1)
+        self.assertIn("has no local grant", findings[0].message)
+        self.assertTrue(findings[0].gate)
 
     def test_permitted_prefixes_does_not_override_the_blocklist(self) -> None:
         # A command matching a configured prefix is still checked against
@@ -520,9 +575,10 @@ class ExecutableClaimsTests(RegistryClearingTestCase):
         self.assertIn("chains commands via `;`", findings[0].message)
 
     def test_no_permitted_prefixes_config_means_blocklist_only(self) -> None:
+        command = echo("hello\n")
         with Repo() as repo:
-            repo.write("doc.md", marked(echo("hello\n"), "hello"))
-            findings = self._findings(repo.root)
+            repo.write("doc.md", marked(command, "hello"))
+            findings = self._findings(repo.root, allow=[command])
         self.assertEqual(findings, [])
 
     def test_the_command_runs_through_a_shell_so_a_pipe_works(self) -> None:
@@ -532,20 +588,93 @@ class ExecutableClaimsTests(RegistryClearingTestCase):
         command = f"{write_three_lines} | tail -1"
         with Repo() as repo:
             repo.write("doc.md", marked(command, "c"))
-            findings = self._findings(repo.root)
+            findings = self._findings(repo.root, allow=[command])
         self.assertEqual(findings, [])
 
     def test_the_prompt_line_of_a_transcript_is_not_compared(self) -> None:
+        command = echo("hello\n")
         with Repo() as repo:
-            repo.write("doc.md", marked(echo("hello\n"), "$ some-command\nhello"))
-            findings = self._findings(repo.root)
+            repo.write("doc.md", marked(command, "$ some-command\nhello"))
+            findings = self._findings(repo.root, allow=[command])
         self.assertEqual(findings, [])
 
     def test_a_tracked_filename_containing_a_space_is_still_swept(self) -> None:
+        command = echo("hello\n")
         with Repo() as repo:
-            repo.write("release notes.md", marked(echo("hello\n"), "hello"))
-            findings = self._findings(repo.root)
+            repo.write("release notes.md", marked(command, "hello"))
+            findings = self._findings(repo.root, allow=[command])
         self.assertEqual(findings, [])
+
+    def test_a_command_with_no_local_grant_is_a_gate_finding_and_never_runs(self) -> None:
+        # Deny by default (ticket #15): a command clearing the blocklist
+        # still may not run without an exact-string grant in
+        # claims.local.toml. No claims.local.toml exists in this fixture
+        # at all — the same as a fresh checkout — not merely an empty one.
+        command = echo("hello\n")
+        with Repo() as repo:
+            repo.write("doc.md", marked(command, "hello"))
+            findings = self._findings(repo.root)
+        self.assertEqual(len(findings), 1)
+        self.assertTrue(findings[0].gate)
+        self.assertIn(f"`{command}` has no local grant", findings[0].message)
+        self.assertIn("claims.local.toml", findings[0].message)
+        self.assertIn(f"allowed = [{_toml_string(command)}]", findings[0].message)
+
+    def test_a_denied_command_is_skipped_as_an_advisory_not_silence(self) -> None:
+        command = echo("hello\n")
+        with Repo() as repo:
+            repo.write("doc.md", marked(command, "hello"))
+            grant(repo.root, deny=[command])
+            findings = self._findings(repo.root)
+        self.assertEqual(len(findings), 1)
+        self.assertFalse(findings[0].gate)
+        self.assertIn("is denied in claims.local.toml", findings[0].message)
+
+    def test_a_one_character_different_command_is_not_matched_by_a_prior_grant(
+        self,
+    ) -> None:
+        granted = echo("hello\n")
+        different = echo("hellox\n")
+        with Repo() as repo:
+            repo.write("doc.md", marked(different, "hellox"))
+            grant(repo.root, allow=[granted])
+            findings = self._findings(repo.root)
+        self.assertEqual(len(findings), 1)
+        self.assertTrue(findings[0].gate)
+        self.assertIn("has no local grant", findings[0].message)
+
+    def test_a_tracked_local_grant_file_is_ignored_not_honored(self) -> None:
+        # `.gitignore` only stops git from ever *adding* claims.local.toml
+        # — it does nothing once one is already tracked, e.g. committed by
+        # an attacker's own PR alongside a planted marker specifically to
+        # defeat this gate. A tracked grant file must not authorize
+        # anything: its own presence is the finding, not a free pass.
+        command = echo("hello\n")
+        with Repo() as repo:
+            repo.write("doc.md", marked(command, "hello"))
+            repo.write(
+                "claims.local.toml", f'[executable-claims]\nallowed = ["{command}"]\n'
+            )
+            findings = self._findings(repo.root)
+        messages = [f.message for f in findings]
+        self.assertTrue(any("is tracked by git" in m for m in messages))
+        self.assertTrue(any("has no local grant" in m for m in messages))
+        self.assertTrue(all(f.gate for f in findings))
+
+    def test_an_ungranted_command_containing_a_double_quote_escapes_cleanly(self) -> None:
+        # A `shlex.quote`-produced command embedding a single quote inserts
+        # literal double quotes via `'"'"'` — the remediation TOML snippet
+        # must escape those, not emit invalid TOML.
+        command = python("it's a test")
+        self.assertIn('"', command)
+        with Repo() as repo:
+            repo.write("doc.md", marked(command, "irrelevant"))
+            findings = self._findings(repo.root)
+        self.assertEqual(len(findings), 1)
+        message = findings[0].message
+        self.assertIn(f"`{command}`", message)
+        expected_literal = '"' + command.replace("\\", "\\\\").replace('"', '\\"') + '"'
+        self.assertIn(f"allowed = [{expected_literal}]", message)
 
 
 class ExecutableClaimsCliTests(RegistryClearingTestCase):
@@ -554,10 +683,13 @@ class ExecutableClaimsCliTests(RegistryClearingTestCase):
         register_check(NAME, check)
 
     def test_end_to_end_via_the_cli(self) -> None:
+        true_command = echo("hello\n")
+        false_command = echo("actual\n")
         with Repo() as repo:
-            repo.write("true.md", marked(echo("hello\n"), "hello"))
-            repo.write("false.md", marked(echo("actual\n"), "documented"))
+            repo.write("true.md", marked(true_command, "hello"))
+            repo.write("false.md", marked(false_command, "documented"))
             repo.write("malformed.md", "<!-- verify: some-command -->\n\nprose\n")
+            grant(repo.root, allow=[true_command, false_command])
 
             out = io.StringIO()
             with contextlib.redirect_stdout(out):
