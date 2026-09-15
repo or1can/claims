@@ -41,6 +41,44 @@ project should not be committed as-is; surface it as a blocking problem for
 the user to fix, not merely advisory. An `[advisory]` finding is worth the
 user's attention but isn't asserting the project is broken.
 
+## A `judgment-agent` finding gets a subagent verdict, not a verbatim line
+
+One exception to "show the CLI's output verbatim": a finding whose `mode`
+is `judgment-agent-added` or `judgment-agent-removed` (`(judgment-agent-added)`
+or `(judgment-agent-removed)` in the printed line) is a *candidate* for
+judgment, not a verdict on its own — `claims/checks/judgment_agent.py` only
+computes which claims cite a subject this diff touched; it never itself
+decides whether the claim is still true. Printing its line and moving on,
+the way every other check's finding is handled, would show the user a
+data point, not an answer.
+
+For each such finding:
+
+1. Invoke the `claims:judgment-agent` subagent (its plugin-namespaced
+   name — e.g. via the Task tool's `subagent_type: "claims:judgment-agent"`)
+   once per candidate — never batched, never skipped even when several
+   candidates cite the same subject, since each claim earns its own
+   reading — passing it the finding's own citation (`file:line`) and
+   message verbatim. The message already carries everything the
+   subagent's own input contract (`claims/subagent/judgment_agent.md`)
+   asks for: the cited subject's name, whether it was added or removed by
+   this diff, and the diff evidence for why it counts as touched.
+2. The subagent returns exactly one JSON verdict — `confirmed`, `refuted`,
+   or `inconclusive`, each with `evidence` (the code actually read, or the
+   command actually run) and `reasoning`. Report the verdict back to the
+   user alongside the original finding: the citation, what the claim says,
+   the verdict, its evidence, and its reasoning — not just the finding's
+   own one-line message.
+3. This never blocks a commit or the run: like the check that produces
+   it, `judgment-agent`'s verdict is advisory only, whatever it says.
+
+This is a skill-level instruction only — no change to the check, the hook,
+or the subagent's own file. A later step appending to this same procedure
+(deriving a shape from a refuted verdict and sweeping the whole tracked
+tree for other claims sharing that shape, not just the ones this diff
+touched) is tracked separately (ticket #7), which depends on this
+procedure existing first.
+
 ## Coverage
 
 `claims.cli` imports `claims.checks`, which registers every built-in check

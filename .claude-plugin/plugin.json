@@ -1,6 +1,6 @@
 {
   "name": "claims",
-  "version": "0.5.2",
+  "version": "0.5.3",
   "description": "Checks documentation and agent-instruction claims against the code they describe: executable-claims markers, staleness ranking, restatement drift, totalising-language sweeps, doc-comment splices, dead citations, broken links, and an architecture-claim judgment subagent.",
   "license": "Apache-2.0",
   "author": {
