@@ -71,7 +71,11 @@ Three invocation surfaces, same underlying checks:
   finding is reported alongside it.
 - **On demand, mid-task.** The `check-claims` skill runs the same checks
   outside of commit time — ask an agent to check claims, or invoke it
-  directly, and it reports every finding the same way the hook would.
+  directly, and it reports every finding the same way the hook would. The
+  same skill also has a separate, explicit-ask-only capability: reviewing
+  whether a project's own `claims.toml` values are actually doing
+  anything (a stale `exclude` glob matching nothing, say) — reasoned
+  prose with cited evidence, not a `Finding`, and never run automatically.
 - **The `judgment-agent` subagent.** Fed one candidate at a time from the
   `judgment-agent` check above, it reads the cited code (or runs the
   command a claim implies) and returns a verdict with cited evidence —
