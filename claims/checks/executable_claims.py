@@ -436,11 +436,17 @@ def _toml_string(value: str) -> str:
 
 
 def _ungranted_message(command: str) -> str:
+    # "add `allowed = [...]`" rather than showing a bare command to insert
+    # into an existing list: under `[executable-claims]`, a project may
+    # already have its own `allowed`/`denied` key, and a second one of the
+    # same name is a TOML duplicate-key error, not an appended entry — the
+    # wording below says so explicitly rather than implying a fresh line.
     literal = _toml_string(command)
     return (
-        f"`{command}` has no local grant in claims.local.toml — add "
-        f"`allowed = [{literal}]` under `[{NAME}]` to run it, or "
-        f"`denied = [{literal}]` to skip it and record that choice"
+        f"`{command}` has no local grant in claims.local.toml — under "
+        f"`[{NAME}]`, add {literal} to an existing `allowed` list or start "
+        f"one with `allowed = [{literal}]`, or the same into `denied` to "
+        "skip it and record that choice"
     )
 
 
