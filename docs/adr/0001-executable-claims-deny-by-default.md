@@ -87,6 +87,14 @@ checks today.
   to keep its commits passing.
 - `SECURITY.md`'s "Scope worth knowing about" points here rather than
   re-explaining the reasoning inline.
+- **Update (ticket #19):** the mechanism (grant lookup, the tracked-grant-file
+  guard) moved from `executable_claims.py` into `claims/execution_grants.py`
+  once `check-cli-flags` became `claims`' second execution-capable check —
+  the trigger ticket #15's own original agent brief named for generalizing
+  ("extract a shared pattern only when a second one exists," a decision
+  deliberately deferred at the time this ADR was written). Behavior is
+  unchanged; each check still keys its own grants under its own section
+  name in `claims.local.toml`.
 
 ## Residual gap (accepted, not solved here)
 

@@ -22,6 +22,7 @@ skill) must import this package before calling `run()`.
 from __future__ import annotations
 
 from . import check_citations  # noqa: F401
+from . import check_cli_flags  # noqa: F401
 from . import check_config_defaults  # noqa: F401
 from . import check_env_vars  # noqa: F401
 from . import check_file_refs  # noqa: F401

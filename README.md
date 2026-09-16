@@ -14,7 +14,7 @@ never by grepping for words that happen to appear near a claim.
 
 ## What it checks
 
-Ten mechanical checks, plus a judgment-shaped eleventh that hands off to
+Eleven mechanical checks, plus a judgment-shaped twelfth that hands off to
 an agent rather than deciding by itself:
 
 - **executable-claims** (gate) — runs the command in a `<!-- verify: -->`
@@ -49,6 +49,12 @@ an agent rather than deciding by itself:
   project-configured scope of files (`.env.example` by default, if
   tracked). No scope configured and no `.env.example` present means the
   check is genuinely inert, not a sweep of everything.
+- **check-cli-flags** (advisory) — flags a claim naming both a script and
+  a CLI flag together where running `<script> --help` doesn't actually
+  list the flag. `claims`' second execution-capable check alongside
+  `executable-claims`, sharing its deny-by-default local-grant mechanism
+  (`claims.local.toml`) — see
+  [`docs/adr/0001-executable-claims-deny-by-default.md`](docs/adr/0001-executable-claims-deny-by-default.md).
 - **stale-claims** (advisory) — ranks prose sections by how much the code
   they name has changed since the section was last touched; a churn-ranked
   candidate list, not a verdict.

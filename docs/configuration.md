@@ -137,6 +137,27 @@ exclude = [".scratch/*"]
 | `definition_files` | list of glob strings (bare string → one-element list), **added** to the built-in default (`.env.example`, if tracked) | the built-in default alone | A project's docs mention an env var by name and the project wants that checked against more than just `.env.example` — its own source, a Terraform var file, anything a backtick-quoted `ALL_CAPS_WITH_UNDERSCORES` name should be found in. With neither this configured nor a tracked `.env.example`, the check is genuinely inert (`claim-words`'s own opt-in-by-omission precedent), not a sweep of everything. **Not** named `files` like `claim-words`'s own scope key — that name would mean the opposite thing here (which prose is *scanned*, not what counts as a *definition*); pointing this at the same docs being swept for candidates makes every mention there self-satisfying. |
 | `exclude` | list of glob strings (bare string → one-element list) | `[]` — nothing excluded | A tracked Markdown file's env-var mentions shouldn't be checked at all — e.g. a historical or illustrative-prose directory whose mentions were never meant to resolve against the project's current `.env.example`/source. |
 
+## `check-cli-flags`
+
+```toml
+[check-cli-flags]
+exclude = ["docs/legacy/*.md"]
+timeout = 15
+```
+
+| Key | Shape | Default | Reach for this when |
+| --- | --- | --- | --- |
+| `exclude` | list of glob strings (bare string → one-element list) | `[]` — nothing excluded | A tracked Markdown file's script/flag mentions shouldn't be checked at all — same shape as every sibling check's own `exclude`. |
+| `timeout` | number (int or float; `true`/`false` rejected) | `10` (seconds) | A script's own `--help` is unusually slow to start (a cold-build or heavyweight interpreter) and keeps reporting an (advisory) "could not be verified" at the default. |
+
+This is `claims`' second execution-capable check, alongside
+`executable-claims` — it also needs an exact-string grant in
+`claims.local.toml`'s own `[check-cli-flags]` section (`allowed`/`denied`,
+same shape as `executable-claims`' own section above) before it will run
+`<script> --help` for any claim. See `executable-claims`'s own section
+above for the full grant-file mechanics; they're identical here, just
+keyed under a different table name.
+
 ## `claim-words`
 
 ```toml
