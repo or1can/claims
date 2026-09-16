@@ -60,6 +60,73 @@ class CheckFileRefsTests(RegistryClearingTestCase):
             findings = self._findings(repo.root)
         self.assertEqual(findings, [])
 
+    def test_a_bare_prose_reference_resolving_only_relative_to_the_citing_file_is_not_flagged(
+        self,
+    ) -> None:
+        # A per-skill `references/*.md` layout (ticket #32's own reported
+        # shape): `references/creating-tickets.md`, written inside
+        # `.claude/skills/jira-incidents/SKILL.md`, means the file
+        # alongside it — not a repo-root-relative path of the same name,
+        # which doesn't exist here at all.
+        with Repo() as repo:
+            repo.write(
+                ".claude/skills/jira-incidents/references/creating-tickets.md", "prose\n"
+            )
+            repo.write(
+                ".claude/skills/jira-incidents/SKILL.md",
+                "See references/creating-tickets.md for the full steps.\n",
+            )
+            repo.commit()
+            findings = self._findings(repo.root)
+        self.assertEqual(findings, [])
+
+    def test_a_bare_prose_reference_resolving_at_neither_location_is_still_flagged(
+        self,
+    ) -> None:
+        with Repo() as repo:
+            repo.write(
+                ".claude/skills/jira-incidents/SKILL.md",
+                "See references/creating-tickets.md for the full steps.\n",
+            )
+            repo.commit()
+            findings = self._findings(repo.root)
+        self.assertEqual(len(findings), 1)
+        self.assertIn("references/creating-tickets.md", findings[0].message)
+
+    def test_a_root_level_citing_file_still_resolves_and_still_flags(self) -> None:
+        # `dirname` of a root-level citing file is `""` — the
+        # citing-relative fallback (`_citing_relative`) must be a clean
+        # no-op there, not change either verdict from the plain
+        # repo-root-relative check that already covers this file.
+        with Repo() as repo:
+            repo.write("scripts/build.py", "print('hi')\n")
+            repo.write(
+                "README.md",
+                "See scripts/build.py for the build steps, and scripts/nope.py for nothing.\n",
+            )
+            repo.commit()
+            findings = self._findings(repo.root)
+        self.assertEqual(len(findings), 1)
+        self.assertIn("scripts/nope.py", findings[0].message)
+
+    def test_a_candidate_that_normalizes_outside_the_repo_is_still_flagged(self) -> None:
+        # Not `../`-prefixed itself (so it isn't skipped by
+        # `_repo_relative` the way a leading `../` mention is) — its own
+        # embedded `..` segments walk past the repo root once joined
+        # against the citing file's directory. `_citing_relative` is
+        # purely lexical and never opens the result, so this landing
+        # outside the repo just means it isn't in `tracked_set` either,
+        # same as any other broken reference.
+        with Repo() as repo:
+            repo.write(
+                "a/b/c.md",
+                "See sub/../../../../../etc/hosts.txt for nothing real.\n",
+            )
+            repo.commit()
+            findings = self._findings(repo.root)
+        self.assertEqual(len(findings), 1)
+        self.assertIn("sub/../../../../../etc/hosts.txt", findings[0].message)
+
     def test_a_version_number_lookalike_is_not_a_candidate(self) -> None:
         # `api/v2.0` matches stale-claims' own untightened PATH_RE (any
         # alphanumeric run counts as an "extension" there) — the whole
@@ -206,14 +273,16 @@ class CheckFileRefsTests(RegistryClearingTestCase):
         self,
     ) -> None:
         # `../CLAUDE.md` can never itself be a repo-root-relative tracked
-        # path — resolving it correctly needs the citing file's own
-        # directory (`check_links._resolve`'s job), which this check's
-        # flat, repo-root-relative candidates don't track. Skipped as not
-        # a candidate at all, rather than guessed at or falsely flagged.
-        # The stripped form (`CLAUDE.md`) is deliberately real and tracked
-        # here — a naive "just strip ../ like ./" implementation would
-        # also pass this fixture, so it alone can't tell "skipped" from
-        # "resolved"; the next test pins that distinction.
+        # path, and `_repo_relative` skips it as not a candidate at all
+        # before it can ever reach `check()`'s own citing-relative
+        # fallback (`_citing_relative`, ticket #32) — deliberately out of
+        # that ticket's scope, not because the fallback couldn't resolve
+        # it (`normpath(join("docs", "../CLAUDE.md"))` is just
+        # `"CLAUDE.md"`). The stripped form (`CLAUDE.md`) is deliberately
+        # real and tracked here — a naive "just strip ../ like ./"
+        # implementation would also pass this fixture, so it alone can't
+        # tell "skipped" from "resolved"; the next test pins that
+        # distinction.
         with Repo() as repo:
             repo.write("CLAUDE.md", "prose\n")
             repo.write("docs/README.md", "See ../CLAUDE.md for the root doc.\n")
