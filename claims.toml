@@ -10,3 +10,9 @@
 # named attack example) that were never meant to be real tracked files.
 [check-file-refs]
 exclude = [".scratch/*", "docs/adr/*.md"]
+
+# Same reasoning as check-file-refs above: .scratch/'s own prior-art notes
+# name scripts (`claims/cli.py`, `restatement.py`, ...) from before this
+# project's own current layout, not real, currently-runnable commands.
+[check-cli-flags]
+exclude = [".scratch/*"]

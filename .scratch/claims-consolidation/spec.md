@@ -180,6 +180,16 @@ map.md standing decision):
   language-aware usage parsing. An empty scope (no `.env.example`, nothing
   configured) is genuinely inert, matching `claim-words`' own
   opt-in-by-omission precedent.
+- `check-cli-flags` — **advisory** (ticket #19). A claim backticking both a
+  script and a CLI flag checked by running `<script> --help` and text-
+  searching its combined stdout+stderr for the flag; a failed/timed-out
+  run is inconclusive, not confirmed-false. `claims`' second execution-
+  capable check — shares `executable-claims`' (#15) deny-by-default local
+  grant mechanism (`claims/execution_grants.py`, generalized from #15's
+  own bespoke original once this second occurrence existed), keyed by its
+  own `[check-cli-flags]` section of `claims.local.toml`. A tracked
+  `claims.local.toml` is still a gate finding, the one exception to this
+  check's otherwise-advisory severity.
 - `judgment-agent` — **advisory candidate list feeding a subagent verdict**.
   Deterministic half (subject-index build → diff-scoped touched-subject
   delta → citation-shaped token match against that closed set) is itself a

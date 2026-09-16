@@ -130,6 +130,12 @@ for the residual gap this leaves (a granted command string can stay
 trusted while a script it invokes by path changes independently) and the
 directions deliberately deferred past this round.
 
+The mechanism itself (`local_grants`, keyed by this check's own `NAME`) now
+lives in `claims/execution_grants.py`, shared with `check-cli-flags` (#19)
+— generalized once that second execution-capable check existed, per this
+ticket's own original brief ("extract a shared pattern only when a second
+one exists"). Behavior here is unchanged by that move.
+
 **Known, deliberate gaps, not silently accepted ones:** a tool named via a
 wrapper or full path (`env grep`, `/usr/bin/sed`) evades the text-processing
 blocklist, matching only the bare names `sed`/`awk`/`grep` — chasing every
@@ -150,14 +156,8 @@ import subprocess
 from collections.abc import Mapping, Sequence
 from pathlib import Path
 
-from ..config import (
-    LOCAL_CONFIG_FILENAME,
-    exclude_patterns,
-    load_local_config,
-    numeric_config,
-    path_matches,
-    string_list_config,
-)
+from ..config import exclude_patterns, numeric_config, path_matches, string_list_config
+from ..execution_grants import local_grants, toml_string
 from ..git import tracked_files
 from ..runner import Finding, register_check
 
@@ -408,97 +408,19 @@ def _permitted_prefixes(config: Mapping[str, object]) -> Sequence[str]:
     return string_list_config(config, "permitted_prefixes")
 
 
-def _grants(local_config: Mapping[str, object]) -> tuple[frozenset[str], frozenset[str]]:
-    """`(allowed, denied)` exact-command-string sets from `claims.local.toml`'s
-    own `[executable-claims]` section. Both empty when the section, or the
-    file itself, is absent — see `check()`: absent means every command
-    gates, not that every command is implicitly allowed.
-    """
-
-    section = local_config.get(NAME, {})
-    if not isinstance(section, Mapping):
-        return frozenset(), frozenset()
-    return (
-        frozenset(string_list_config(section, "allowed")),
-        frozenset(string_list_config(section, "denied")),
-    )
-
-
-def _toml_string(value: str) -> str:
-    """`value` as a TOML basic (double-quoted) string literal — escaping
-    only what a basic string requires for this purpose, backslash and the
-    double quote itself, since a shell command routinely contains a
-    single quote (`shlex.quote`'s own escaping) that a TOML literal
-    (single-quoted) string can't represent at all.
-    """
-
-    return '"' + value.replace("\\", "\\\\").replace('"', '\\"') + '"'
-
-
 def _ungranted_message(command: str) -> str:
     # "add `allowed = [...]`" rather than showing a bare command to insert
     # into an existing list: under `[executable-claims]`, a project may
     # already have its own `allowed`/`denied` key, and a second one of the
     # same name is a TOML duplicate-key error, not an appended entry — the
     # wording below says so explicitly rather than implying a fresh line.
-    literal = _toml_string(command)
+    literal = toml_string(command)
     return (
         f"`{command}` has no local grant in claims.local.toml — under "
         f"`[{NAME}]`, add {literal} to an existing `allowed` list or start "
         f"one with `allowed = [{literal}]`, or the same into `denied` to "
         "skip it and record that choice"
     )
-
-
-# `icase` so a same-named file tracked under a case-variant spelling
-# (`Claims.Local.toml`) is still caught on a case-insensitive filesystem
-# (macOS, Windows) — `git ls-files` itself matches a bare pathspec
-# case-sensitively regardless of the filesystem, so without this an
-# attacker's PR committing that variant would be invisible to
-# `tracked_files` while `Path.open` below (which *does* follow the
-# filesystem's own case-folding) still reads and honors it. `top` anchors
-# to the repo root the same way the bare filename already implicitly did,
-# kept explicit alongside `icase` rather than relying on that implicit
-# behavior to still hold once a pathspec magic prefix is added.
-_LOCAL_CONFIG_PATHSPEC = f":(icase,top){LOCAL_CONFIG_FILENAME}"
-
-
-def _local_grants(repo_root: Path) -> tuple[frozenset[str], frozenset[str], Finding | None]:
-    """`(allowed, denied, warning)` for this repo's own `claims.local.toml`.
-
-    `.gitignore` only stops git from ever *adding* a matching path — it
-    does nothing once that path is already tracked, e.g. committed by an
-    attacker's own PR, alongside a planted marker, specifically to defeat
-    this gate. So a `claims.local.toml` that's tracked at all is exactly
-    the committed, PR-tamperable trust boundary this ticket exists to stop
-    relying on, and its grants must not be honored: checked directly
-    against git's own index (`tracked_files`), not inferred from
-    `.gitignore` alone. Failing closed here means both sets come back
-    empty (every command then gates, same as no file existing at all) —
-    not that a tracked file's `denied` entries stay honored while only
-    `allowed` is dropped, which would still let a tracked file suppress
-    findings.
-    """
-
-    if tracked_files(repo_root, _LOCAL_CONFIG_PATHSPEC):
-        return (
-            frozenset(),
-            frozenset(),
-            _finding(
-                LOCAL_CONFIG_FILENAME,
-                0,
-                f"{LOCAL_CONFIG_FILENAME} is tracked by git, so its "
-                "content is attacker-controllable via any PR — its grants "
-                "are ignored. If you didn't add this file yourself, delete "
-                "it; do not just untrack it, since `git rm --cached` alone "
-                "leaves its content on disk and any later change could "
-                "still make it tracked again. If it is yours, review its "
-                "content first, then `git rm --cached "
-                f"{LOCAL_CONFIG_FILENAME}` to keep it local-only.",
-            ),
-        )
-    allowed, denied = _grants(load_local_config(repo_root))
-    return allowed, denied, None
 
 
 def check(
@@ -514,7 +436,7 @@ def check(
     exclude = exclude_patterns(config)
     timeout = _timeout(config)
     permitted_prefixes = _permitted_prefixes(config)
-    allowed, denied, grant_warning = _local_grants(repo_root)
+    allowed, denied, grant_warning = local_grants(repo_root, NAME)
     if grant_warning is not None:
         findings.append(grant_warning)
     tracked = tracked_files(repo_root, "*.md")
