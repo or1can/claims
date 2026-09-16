@@ -58,3 +58,11 @@
   (ticket #16) both fixed this via `_fence_state`; #17 shipped before the
   gap was noticed and hasn't been revisited. Cheap to port (three lines,
   the pattern already exists twice), just not done yet.
+- Ticket #33's `known_untracked` (`check_file_refs.py`) only ever matches
+  and verifies a candidate's repo-root-relative form — a gitignored file
+  cited via a path relative to the citing file's own directory (`#32`'s
+  own `_citing_relative` fallback) never gets a `known_untracked` try at
+  all, so it still gates. Named as a deliberate, independently-shippable
+  gap in both tickets' own module docstrings; #32 and #33 shipped in
+  either order without blocking on this, and closing it is a small,
+  natural follow-up once both are in.
