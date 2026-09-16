@@ -136,6 +136,30 @@ still running pre-ticket-27 code as a result. A patch-level bump
 (`0.1.0` → `0.1.1`) is enough for an ordinary fix; use judgement for
 anything that changes a consuming project's own required setup.
 
+### Shipping a change
+
+`main` is protected by a repository ruleset — no direct push lands there,
+not even from a repo admin (`current_user_can_bypass: never`); this is
+deliberate, not a gap to work around. Land a change by pushing a branch
+and opening a pull request:
+
+```sh
+git checkout -b <branch>
+# commit(s), each git commit -s'd — see CONTRIBUTING.md's DCO section
+git push -u origin <branch>
+gh pr create --title "..." --body "..."
+```
+
+The PR can't merge until its own commit — not a stale earlier one, the
+branch must be up to date with `main` — has three required status checks
+green: `Typecheck`, `Test` (both from `.github/workflows/ci.yml`), and
+`Signed-off-by` (`.github/workflows/dco.yml`, the DCO check — fires on
+`pull_request` only, never on a plain push, so it never shows up outside
+a PR). No required-reviewer count is set (this project's sole maintainer
+would otherwise be blocked from merging their own work), so a green PR is
+sufficient — merge it yourself once CI passes, the same way any other
+merge lands.
+
 ## Agent skills
 
 ### Issue tracker
