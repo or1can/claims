@@ -11,6 +11,15 @@
 [check-file-refs]
 exclude = [".scratch/*", "docs/adr/*.md"]
 
+# `.claude/settings.local.json` is a real, deliberately gitignored,
+# per-machine file (ticket #33) — its own mention in
+# `docs/configuration.md`'s `known_untracked` key-table row shouldn't gate
+# identically to a typo. (`claims.local.toml`'s own many mentions across
+# this repo never need an entry here at all: every one is a bare name
+# with no directory separator, which `PATH_RE` never treats as a
+# candidate in the first place — see this check's own module docstring.)
+known_untracked = [".claude/settings.local.json"]
+
 # Same reasoning as check-file-refs above: .scratch/'s own prior-art notes
 # name scripts (`claims/cli.py`, `restatement.py`, ...) from before this
 # project's own current layout, not real, currently-runnable commands.

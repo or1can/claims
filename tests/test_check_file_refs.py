@@ -209,6 +209,158 @@ class CheckFileRefsTests(RegistryClearingTestCase):
             )
         self.assertEqual(len(findings), 1)
 
+    def test_a_known_untracked_path_that_exists_is_not_flagged(self) -> None:
+        # `.claude/settings.local.json` (ticket #33's own reported shape):
+        # real on disk, deliberately never git-added, but a correct
+        # mention of it shouldn't gate identically to a typo.
+        with Repo() as repo:
+            (repo.root / ".claude").mkdir()
+            (repo.root / ".claude" / "settings.local.json").write_text("{}\n")
+            repo.write("AGENTS.md", "See .claude/settings.local.json for local overrides.\n")
+            repo.commit()
+            findings = self._findings_with_config(
+                repo.root,
+                '[check-file-refs]\nknown_untracked = [".claude/settings.local.json"]\n',
+            )
+        self.assertEqual(findings, [])
+
+    def test_a_known_untracked_pattern_still_requires_real_disk_existence(self) -> None:
+        # A typo under an exempted pattern is still a typo — `known_untracked`
+        # lifts the git-tracked requirement, not the "is this real" one.
+        with Repo() as repo:
+            repo.write("AGENTS.md", "See .claude/settings.local.json for local overrides.\n")
+            repo.commit()
+            findings = self._findings_with_config(
+                repo.root,
+                '[check-file-refs]\nknown_untracked = [".claude/settings.local.json"]\n',
+            )
+        self.assertEqual(len(findings), 1)
+        self.assertIn(".claude/settings.local.json", findings[0].message)
+
+    def test_known_untracked_does_not_affect_a_non_matching_candidate(self) -> None:
+        with Repo() as repo:
+            repo.write("README.md", "See scripts/build.py for the build steps.\n")
+            repo.commit()
+            findings = self._findings_with_config(
+                repo.root,
+                '[check-file-refs]\nknown_untracked = [".claude/settings.local.json"]\n',
+            )
+        self.assertEqual(len(findings), 1)
+        self.assertIn("scripts/build.py", findings[0].message)
+
+    def test_a_bare_string_known_untracked_value_is_coerced_to_one_element(self) -> None:
+        with Repo() as repo:
+            (repo.root / ".claude").mkdir()
+            (repo.root / ".claude" / "settings.local.json").write_text("{}\n")
+            repo.write("AGENTS.md", "See .claude/settings.local.json for local overrides.\n")
+            repo.commit()
+            findings = self._findings_with_config(
+                repo.root,
+                '[check-file-refs]\nknown_untracked = ".claude/settings.local.json"\n',
+            )
+        self.assertEqual(findings, [])
+
+    def test_a_known_untracked_glob_pattern_matches_a_real_file(self) -> None:
+        # `docs/configuration.md`'s own worked example (`*.local.toml`) is
+        # a real glob, not a literal path — pin that `path_matches`' own
+        # `fnmatch` semantics, not just literal-string equality, is what's
+        # actually wired up.
+        with Repo() as repo:
+            (repo.root / ".claude").mkdir()
+            (repo.root / ".claude" / "settings.local.json").write_text("{}\n")
+            repo.write("AGENTS.md", "See .claude/settings.local.json for local overrides.\n")
+            repo.commit()
+            findings = self._findings_with_config(
+                repo.root, '[check-file-refs]\nknown_untracked = [".claude/*.json"]\n'
+            )
+        self.assertEqual(findings, [])
+
+    def test_a_known_untracked_match_that_is_a_directory_is_still_flagged(self) -> None:
+        # `known_untracked` lifts the tracked-set requirement, not the
+        # "must be an ordinary file" one — `.is_file()`, not `.exists()`.
+        with Repo() as repo:
+            (repo.root / ".claude" / "settings.local.json").mkdir(parents=True)
+            repo.write("AGENTS.md", "See .claude/settings.local.json for local overrides.\n")
+            repo.commit()
+            findings = self._findings_with_config(
+                repo.root,
+                '[check-file-refs]\nknown_untracked = [".claude/settings.local.json"]\n',
+            )
+        self.assertEqual(len(findings), 1)
+        self.assertIn(".claude/settings.local.json", findings[0].message)
+
+    def test_a_tracked_path_matching_known_untracked_still_resolves_via_tracked_set(
+        self,
+    ) -> None:
+        # A path that happens to be both tracked and glob-matched must
+        # resolve via the ordinary `tracked_set` check, never even reach
+        # the `known_untracked` branch — same verdict either way, but this
+        # pins that the two checks don't conflict or double-count.
+        with Repo() as repo:
+            repo.write("local/settings.local.json", "{}\n")
+            repo.write("AGENTS.md", "See local/settings.local.json for local overrides.\n")
+            repo.commit()
+            findings = self._findings_with_config(
+                repo.root, '[check-file-refs]\nknown_untracked = ["local/*"]\n'
+            )
+        self.assertEqual(findings, [])
+
+    def test_a_known_untracked_match_escaping_the_repo_via_traversal_is_still_flagged(
+        self,
+    ) -> None:
+        # Not `../`-prefixed itself (`_repo_relative` already filters
+        # that), but its own embedded `..` walks the resolved path outside
+        # the repo once joined against `repo_root` directly — confined via
+        # `is_relative_to`, the same guard `check_links._target_slugs`
+        # uses, not just a lexical `..` check.
+        with Repo() as repo:
+            outside = repo.root.parent / "claims-test-outside-secret.json"
+            outside.write_text("secret\n")
+            try:
+                repo.write(
+                    "AGENTS.md",
+                    "See docs/../../claims-test-outside-secret.json for nothing real.\n",
+                )
+                repo.commit()
+                findings = self._findings_with_config(
+                    repo.root, '[check-file-refs]\nknown_untracked = ["*.json"]\n'
+                )
+            finally:
+                outside.unlink()
+        self.assertEqual(len(findings), 1)
+        self.assertIn("claims-test-outside-secret.json", findings[0].message)
+
+    def test_a_known_untracked_match_that_is_a_symlink_outside_the_repo_is_still_flagged(
+        self,
+    ) -> None:
+        # A candidate resolving (lexically, with no `..` at all) to a
+        # symlink that leads outside the repo must not be treated as
+        # resolved just because the *link itself* sits at a matched,
+        # in-repo path — `is_relative_to` is checked against the
+        # link's own real target, not its lexical location.
+        with Repo() as repo:
+            outside = repo.root.parent / "claims-test-outside-target.json"
+            outside.write_text("secret\n")
+            try:
+                repo.write(
+                    "AGENTS.md", "See .claude/settings.local.json for local overrides.\n"
+                )
+                repo.commit()
+                # Created *after* the commit, so it's genuinely untracked
+                # (real repos don't commit their own per-machine symlinks
+                # either) rather than relying on `commit`'s `git add -A`
+                # somehow missing it.
+                (repo.root / ".claude").mkdir()
+                (repo.root / ".claude" / "settings.local.json").symlink_to(outside)
+                findings = self._findings_with_config(
+                    repo.root,
+                    '[check-file-refs]\nknown_untracked = [".claude/settings.local.json"]\n',
+                )
+            finally:
+                outside.unlink()
+        self.assertEqual(len(findings), 1)
+        self.assertIn(".claude/settings.local.json", findings[0].message)
+
     def test_no_findings_on_a_repo_with_no_markdown(self) -> None:
         with Repo() as repo:
             repo.write("main.py", "print('hi')\n")

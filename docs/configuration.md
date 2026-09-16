@@ -113,12 +113,14 @@ exclude = ["docs/legacy/*.md"]
 [check-file-refs]
 exclude = ["docs/legacy/*.md"]
 extensions = [".proto"]
+known_untracked = [".claude/settings.local.json", "*.local.toml"]
 ```
 
 | Key | Shape | Default | Reach for this when |
 | --- | --- | --- | --- |
 | `exclude` | list of glob strings (bare string → one-element list) | `[]` — nothing excluded | A file's bare prose file-references shouldn't be validated — same shape as `check-links`' own `exclude`. |
 | `extensions` | list of extra file extensions (bare string → one-element list), **added** to the built-in set (`.py`, `.rs`, `.go`, `.js`, `.ts`, `.rb`, `.java`, `.c`, `.h`, `.cpp`, `.swift`, `.sh`, `.md`, `.txt`, `.yml`, `.yaml`, `.json`, `.toml`) | the built-in set alone | This project's docs reference a file type the default set doesn't cover (e.g. `.proto`) and a bare mention of one should be checked too. |
+| `known_untracked` | list of glob strings (bare string → one-element list) | `[]` — nothing exempted | A correctly-cited file is real but deliberately never `git add`ed (a gitignored, per-machine file like `.claude/settings.local.json` or `claims.local.toml` itself) and shouldn't gate identically to a typo. A matching candidate still has to exist on the real filesystem — this lifts the git-tracked requirement, not the "is this real" one, so a typo under an exempted pattern is still caught. Only checked against the repo-root-relative candidate, not a citing-relative one (`#32`'s own resolution) — a gitignored file cited relative to its citing file's directory is a named, independently shippable gap, not yet closed. |
 
 A candidate that doesn't resolve against the repo root is tried again
 against the *citing file's own directory* before being reported (ticket

@@ -49,6 +49,36 @@ being flagged, if a same-named file happens to also sit somewhere under
 the citing file's own directory — accepted as the same "a missed claim
 stays invisible forever" tradeoff, not an oversight.
 
+Neither of those two resolution attempts helps a candidate that's real on
+disk but deliberately never `git add`ed — a project's own gitignored,
+per-machine file (`.claude/settings.local.json`, the same shape
+`claims.local.toml` itself is) is indistinguishable from an outright typo
+to `tracked_set` membership alone. A candidate matching this check's own
+`known_untracked` glob list (`claims.toml`, same shape as `exclude`) is
+exempted from that requirement — but still has to resolve to a real file
+*inside the repo* (`Path.resolve()` confined via `is_relative_to`, the
+same guard `check_links._target_slugs` already uses for the identical
+reason: a lexical check alone would miss a symlink, and a candidate's own
+embedded `..` isn't rejected the way a *leading* `../` is by
+`_repo_relative`), so a genuine typo under an exempted pattern is still
+caught, and a `known_untracked` pattern can't be walked outside the repo
+via `../` or followed outside it via a symlink (ticket #33). A real
+symlink pointing outside the repo (a `.claude/settings.local.json`
+symlinked into a separate dotfiles checkout, say) is refused by this same
+guard, not silently followed — stricter than this file's own `_read`
+(which refuses *any* symlink outright), but consistent with
+`check_links`' own choice to follow a symlink as long as where it leads
+is still confined. Deliberately not real
+`.gitignore`-status detection (`git check-ignore` or equivalent) — that
+would conflate "gitignored" with "deliberately documented as untracked"
+(a project can gitignore something for an unrelated reason, or leave
+something untracked without gitignoring it at all) and adds a git
+dependency this config-only approach doesn't need. Only ever checked
+against the repo-root-relative candidate, not the citing-relative one
+above — a gitignored file cited relative to the citing file's own
+directory is `#32`'s and this ticket's shared, named, independently
+shippable gap, not silently accepted as solved.
+
 **The extension-tightening fix.** `stale-claims`' `PATH_RE` accepts any
 alphanumeric run as a "extension" (`\\.[A-Za-z0-9]+`), which is harmless
 for `stale-claims` (a false match just fails to resolve and silently drops
@@ -149,6 +179,19 @@ DEFAULT_EXTENSIONS = (
     ".py", ".rs", ".go", ".js", ".ts", ".rb", ".java", ".c", ".h", ".cpp",
     ".swift", ".sh", ".md", ".txt", ".yml", ".yaml", ".json", ".toml",
 )
+
+
+def _known_untracked(config: Mapping[str, object]) -> Sequence[str]:
+    """This check's own `known_untracked` glob list (ticket #33) — same
+    shape/coercion as `exclude` (`string_list_config`), but matched the
+    opposite way: a candidate matching one of these patterns is exempted
+    from the git-tracked-set requirement, not skipped outright like
+    `exclude`. It still has to resolve to a real file confined to the repo
+    (see `check()`'s own use of this list) — this names "deliberately
+    untracked", not "never verify at all".
+    """
+
+    return string_list_config(config, "known_untracked")
 
 
 def _extensions(config: Mapping[str, object]) -> tuple[str, ...]:
@@ -288,7 +331,9 @@ def _finding(rel: str, line_no: int, candidate: str) -> Finding:
 def check(repo_root: Path, diff_range: str, config: Mapping[str, object]) -> list[Finding]:
     exclude = exclude_patterns(config)
     extensions = _extensions(config)
+    known_untracked = _known_untracked(config)
     tracked_set = set(tracked_files(repo_root))
+    repo_real = repo_root.resolve()
     findings: list[Finding] = []
 
     for rel in sorted(tracked_files(repo_root, "*.md")):
@@ -314,6 +359,10 @@ def check(repo_root: Path, diff_range: str, config: Mapping[str, object]) -> lis
                     continue
                 if candidate in tracked_set or _citing_relative(rel, candidate) in tracked_set:
                     continue
+                if path_matches(candidate, known_untracked):
+                    real = (repo_root / candidate).resolve()
+                    if real.is_relative_to(repo_real) and real.is_file():
+                        continue
                 findings.append(_finding(rel, line_no, raw))
 
     return findings

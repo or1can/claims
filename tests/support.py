@@ -52,6 +52,16 @@ class Repo:
         subprocess.run(
             ["git", "-C", str(self.root), "config", "user.name", "Test"], check=True
         )
+        # A contributor's own machine-wide `core.excludesFile` (a personal
+        # global gitignore) would otherwise silently shadow this throwaway
+        # repo too — `git add -A` staging a different set of files here
+        # than on a machine with no such global config, or than CI, purely
+        # by coincidence of filename (discovered via ticket #33's own
+        # `.claude/settings.local.json` fixture, which one contributor's
+        # own global gitignore happens to also name).
+        subprocess.run(
+            ["git", "-C", str(self.root), "config", "core.excludesFile", ""], check=True
+        )
         return self
 
     def __exit__(self, *_exc: object) -> None:
