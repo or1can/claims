@@ -34,15 +34,55 @@ Before a live marker's command ever runs, it's checked against a fixed
 blocklist — no `claims.toml` entry required, since this is true of *any*
 project using the marker mechanism, not just one project's own naming
 (ticket #11): a chaining/backgrounding operator (`;`, `&&`, `||`, `&`), a
-redirect (`>`, `>>`, `<`, `<<`, `>&`, `<&` — a marker reading or writing an
-arbitrary file is exactly the "more than the one thing pinned" this exists
-to stop, not merely a chained command), or a command substitution
-(`` ` ``, `$(`) lets a marker do more than the one thing being pinned, and
-`sed`/`awk`/`grep` turn a marker into inline text logic that only ever
-exists as a string in an HTML comment, with nothing able to unit-test it.
-`tail`/`head` are deliberately not in this blocklist: trimming a suite's
-last line or two is still the one thing being pinned, not extra untested
-logic.
+redirect (`>`, `>>`, `<`, `<<` — a marker reading or writing an arbitrary
+file is exactly the "more than the one thing pinned" this exists to stop,
+not merely a chained command), or a command substitution (`` ` ``, `$(`)
+lets a marker do more than the one thing being pinned, and `sed`/`awk`/`grep`
+turn a marker into inline text logic that only ever exists as a string in
+an HTML comment, with nothing able to unit-test it. `tail`/`head` are
+deliberately not in this blocklist: trimming a suite's last line or two is
+still the one thing being pinned, not extra untested logic.
+
+`>&`/`<&` are checked differently from the rest of the redirection set
+(ticket #30): the bare operator token doesn't say whether it's `N>&M`
+file-descriptor duplication (`2>&1`, the standard "capture stderr too"
+idiom this whole marker mechanism is built around pinning — most test
+runners, including Python's own `unittest`, write their real summary to
+stderr, not stdout) or `>&file`, bash's own deprecated-but-real synonym
+for `&>file` — a genuine arbitrary-file write, exactly the risk the rest
+of this blocklist exists to stop. Only the token immediately following
+`>&`/`<&` decides it: a bare digit run (`1`, `2`, ...) is safe
+duplication and permitted; anything else — a filename, nothing at all —
+rejects exactly like every other redirect. This applies to both
+directions (`2>&1` and `1>&2` alike, no reason to special-case one over
+the other) and both operators (`>&` and `<&` symmetrically), and doesn't
+excuse a *separate* real redirect elsewhere in the same command — `echo
+hi 2>&1 > /tmp/out` still rejects on the unrelated `>`. A leading, already
+verified-safe `N>&M` in a pipe segment (`2>&1 grep a`, POSIX allows a
+redirection before the command name too) doesn't hide that segment's real
+command word from the `sed`/`awk`/`grep` check either — `_strip_fd_duplication`
+removes it before the segment's own head is read, the same way a `(`/`)`
+subshell wrapper already gets stripped.
+
+The digit-only lookahead itself is only trusted when the command contains
+no backslash outside single quotes (`_has_backslash_outside_single_quotes`
+— single quotes suppress all escaping in a real shell, so a backslash
+inside one, e.g. a Python one-liner's own `'...\n...'` string literal,
+can't affect how the fd-duplication operator or its target tokenize):
+`_shell_tokens`'s own escape-neutralization strips the backslash from an
+escaped character before tokenizing (backslash isn't one of the operator
+characters that gets a placeholder instead), so `>&1\\ file` tokenizes as
+`>&`, `1`, `file` — looking like safe `>&1` duplication to the lookahead,
+while a real shell parses the whole `1 file` as one word and falls back to
+a genuine file write. A backslash right next to the target has the same
+effect a different way, with no whitespace involved at all: `>&\\1`
+tokenizes identically to `>&1`, but a real shell treats the escaped digit
+as a quoted-string filename rather than an unquoted fd number and again
+falls back to a genuine file write. Rather than prove a *particular*
+backslash didn't affect *this particular* target token, any backslash
+outside single quotes anywhere in the command makes the fd-duplication
+exception fail closed instead — the same "couldn't tell, so reject" stance
+this check already takes for unparseable input.
 
 Quoting is respected two different ways, matching what the shell itself
 does with each construct, not one blanket "ignore anything quoted" rule:
@@ -171,7 +211,13 @@ PROMPT_RE = re.compile(r"^\s*\$ ")
 # No config surface: true of any project using the marker mechanism, not
 # just one project's own naming — see the module docstring.
 CHAIN_OPERATOR_TOKENS = frozenset({";", "&&", "||", "&"})
-REDIRECTION_TOKENS = frozenset({">", ">>", "<", "<<", ">&", "<&"})
+# `>`/`>>`/`<`/`<<` have no fd-duplication meaning at all — always a real
+# file redirect, unconditionally forbidden. `>&`/`<&` are handled
+# separately (see `_forbidden_construct`): the token alone doesn't say
+# whether it's `N>&M` (safe fd duplication) or `>&file` (a real write).
+REDIRECTION_TOKENS = frozenset({">", ">>", "<", "<<"})
+FD_DUPLICATION_TOKENS = frozenset({">&", "<&"})
+FD_NUMBER_RE = re.compile(r"^[0-9]+\Z")
 TEXT_PROCESSING_TOOLS = frozenset({"sed", "awk", "grep"})
 
 ESCAPED_CHAR_RE = re.compile(r"\\(.)")
@@ -253,6 +299,75 @@ def _substitutes_a_command(command: str) -> bool:
     return False
 
 
+def _has_backslash_outside_single_quotes(command: str) -> bool:
+    """Whether `command` contains a backslash anywhere outside single
+    quotes — see `_forbidden_construct`'s own fd-duplication branch for why
+    this decides whether its digit-only lookahead can be trusted. Single
+    quotes suppress all escaping in a real shell (not even `\\'` is
+    special inside them), so a backslash there — e.g. inside a Python
+    one-liner's own `'...\\n...'` string literal — can't affect how the
+    fd-duplication operator or its target tokenize; unquoted or
+    double-quoted, it can (`>&\\1` next to the operator; an escaped space
+    splitting a target into two words), so this doesn't try to pin down
+    exactly which backslash matters and fails closed on any of them.
+    Tracks double-quote state too (mirroring `_substitutes_a_command`'s own
+    walker), or `shlex.quote`'s own `'"'"'` idiom for embedding a literal
+    single quote inside a single-quoted string — a double-quoted lone `'`
+    — would flip `in_single` on a quote character that isn't really
+    opening or closing anything.
+    """
+
+    in_single = False
+    in_double = False
+    for c in command:
+        if in_single:
+            if c == "'":
+                in_single = False
+            continue
+        if in_double:
+            if c == "\\":
+                return True
+            if c == '"':
+                in_double = False
+            continue
+        if c == "'":
+            in_single = True
+            continue
+        if c == '"':
+            in_double = True
+            continue
+        if c == "\\":
+            return True
+    return False
+
+
+def _strip_fd_duplication(segment: Sequence[str]) -> list[str]:
+    """`segment`'s own tokens with every `N>&M`/`N<&M` fd-duplication
+    sequence removed — its own optional leading fd-number token, the
+    operator, and its own already-verified digit target — so the pipe
+    segment's own head-word check doesn't mistake a leading `2>&1` for
+    the segment's real command word. A real forbidden redirect can never
+    reach this function: `_forbidden_construct`'s own token scan already
+    rejects the whole command for any `REDIRECTION_TOKENS` match before
+    the pipe-segment loop that calls this ever runs.
+    """
+
+    result: list[str] = []
+    i = 0
+    n = len(segment)
+    while i < n:
+        token = segment[i]
+        if token in FD_DUPLICATION_TOKENS:
+            i += 2 if i + 1 < n else 1  # the operator, then its own target
+            continue
+        if FD_NUMBER_RE.match(token) and i + 1 < n and segment[i + 1] in FD_DUPLICATION_TOKENS:
+            i += 1  # the redirect's own optional leading fd number
+            continue
+        result.append(token)
+        i += 1
+    return result
+
+
 def _forbidden_construct(command: str) -> str | None:
     """Why `command` may not run as a marker, or `None` if it's fine."""
 
@@ -262,10 +377,50 @@ def _forbidden_construct(command: str) -> str | None:
     tokens = _shell_tokens(command)
     if tokens is None:
         return "could not be parsed as a shell command"
-    for token in tokens:
+    for i, token in enumerate(tokens):
         if token in CHAIN_OPERATOR_TOKENS:
             return f"chains commands via `{token}` — a marker may only pin one command"
         if token in REDIRECTION_TOKENS:
+            return (
+                f"redirects file I/O via `{token}` — a marker may only pin one "
+                "command's own output, not read or write an arbitrary file"
+            )
+        if token in FD_DUPLICATION_TOKENS:
+            # Only the token *after* `>&`/`<&` says whether this is safe
+            # fd duplication (`N>&M`) or a real file write (`>&file`, a
+            # deprecated-but-real bash synonym for `&>file`) — the
+            # left-hand fd number, if any, is a separate token already
+            # handled by this same loop and doesn't affect that reading
+            # (`>&2` with no left-hand digit is exactly as safe as
+            # `1>&2`; the left side just defaults to stdout when bare).
+            #
+            # `_shell_tokens`'s own escape-neutralization strips the
+            # backslash from an escaped character before tokenizing
+            # (backslash isn't one of the operator characters that gets a
+            # placeholder instead), so `>&1\ file` tokenizes as `>&`,
+            # `1`, `file` — looking like safe `>&1` duplication to a
+            # naive lookahead, while a real shell parses the whole `1
+            # file` as one word and falls back to a genuine file write.
+            # An escaped digit or escaped backslash right next to the
+            # target has the same effect a different way: it makes the
+            # real shell treat the target as a quoted-string filename
+            # rather than an unquoted fd number, exactly the distinction
+            # this check's own quoting handling elsewhere already treats
+            # as a real redirect. Trusting the digit-only lookahead at
+            # all once any backslash is anywhere in the command (outside
+            # single quotes, which suppress escaping entirely — a
+            # Python one-liner's own `'...\n...'` isn't this) would be
+            # trusting a tokenization that's already known to disagree
+            # with the real shell's own word-splitting — fail closed
+            # instead, rather than try to prove this *particular*
+            # backslash didn't affect *this particular* target token.
+            target = tokens[i + 1] if i + 1 < len(tokens) else None
+            if (
+                target is not None
+                and FD_NUMBER_RE.match(target)
+                and not _has_backslash_outside_single_quotes(command)
+            ):
+                continue
             return (
                 f"redirects file I/O via `{token}` — a marker may only pin one "
                 "command's own output, not read or write an arbitrary file"
@@ -278,8 +433,15 @@ def _forbidden_construct(command: str) -> str | None:
             continue
         # A leading `(`/`)` subshell wrapper (`(grep pattern)`) still runs
         # the wrapped command; stripped so the segment's real head is what
-        # gets checked, not the parenthesis around it.
-        head = next((t for t in segment if t not in ("(", ")")), None)
+        # gets checked, not the parenthesis around it. A leading, already
+        # verified-safe `N>&M` fd-duplication is stripped the same way —
+        # POSIX allows a redirection before the command name too
+        # (`2>&1 grep a`), and by this point a real forbidden redirect can
+        # never still be present (the token scan above already rejected
+        # the whole command for any `REDIRECTION_TOKENS` match anywhere in
+        # it), so the only redirection-shaped tokens left to skip over are
+        # fd-duplication ones.
+        head = next((t for t in _strip_fd_duplication(segment) if t not in ("(", ")")), None)
         if head in TEXT_PROCESSING_TOOLS:
             return (
                 f"pipes through `{head}` — text-processing logic must live in a "

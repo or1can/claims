@@ -24,8 +24,11 @@ an agent rather than deciding by itself:
   that the claim is false. A marker chaining or backgrounding commands
   (`;`, `&&`, `||`, `&`), redirecting file I/O (`>`, `>>`, `<`), substituting
   one (`` ` ``, `$(`), or piping through `sed`/`awk`/`grep` is rejected
-  outright, never run; a project can further restrict markers to its own
-  commands via a literal-prefix `permitted_prefixes` list in `claims.toml`.
+  outright, never run — except safe `N>&M` file-descriptor duplication
+  (`2>&1`, `1>&2`), permitted since a real file write via `>&file` is the
+  actual risk being pinned, not fd-duplication; a project can further
+  restrict markers to its own commands via a literal-prefix
+  `permitted_prefixes` list in `claims.toml`.
   Beyond that, a command only runs once it's been explicitly, locally
   granted by exact string in `claims.local.toml` (git-ignored, per-machine
   — not committed config) — see

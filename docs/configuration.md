@@ -40,7 +40,19 @@ permitted_prefixes = ["npm test", "./scripts/"]
 The fixed blocklist itself (`;`, `&&`, `||`, `&`, `>`, `>>`, `<`, `<<`,
 `` ` ``, `$(`, and piping through `sed`/`awk`/`grep`) has no config surface
 — it applies to every project using the marker mechanism, not something to
-opt into or out of.
+opt into or out of. `N>&M` file-descriptor duplication (`2>&1`, `1>&2` —
+the standard "capture stderr too" idiom most test runners, including
+Python's own `unittest`, need for their real summary line) is permitted,
+including a leading one before the command name (`2>&1 grep a` still
+rejects on `grep`, it just isn't fooled into treating `2>&1` as the
+command itself); `>&file`/`<&file` (a real file write, bash's
+deprecated-but-real synonym for `&>file`) still rejects like every other
+redirect, and so does `N>&M` if the command contains any backslash
+outside single quotes (a Python one-liner's own quoted `\n` doesn't count
+— single quotes suppress escaping entirely in a real shell) — that
+combination can't be trusted to tokenize the way the real shell would
+parse it, so it fails closed rather than risk a disguised file write
+(ticket #30).
 
 Clearing the blocklist and `permitted_prefixes` still isn't enough to run:
 since `docs/adr/0001-executable-claims-deny-by-default.md`, a command also
