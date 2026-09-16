@@ -14,7 +14,7 @@ never by grepping for words that happen to appear near a claim.
 
 ## What it checks
 
-Eight mechanical checks, plus a judgment-shaped ninth that hands off to an
+Nine mechanical checks, plus a judgment-shaped tenth that hands off to an
 agent rather than deciding by itself:
 
 - **executable-claims** (gate) — runs the command in a `<!-- verify: -->`
@@ -39,6 +39,11 @@ agent rather than deciding by itself:
   path (not real `[text](path)` link syntax — that's `check-links`' job)
   whose extension is in a recognized set and that doesn't resolve to a
   tracked file.
+- **check-config-defaults** (advisory) — flags a claim shaped `` `NAME`
+  defaults to `value` `` (both backticked) whose stated value doesn't
+  appear at the project-mapped `file:line` holding that setting's real
+  default. A setting name with no mapping entry in `claims.toml` is
+  entirely out of scope, not flagged.
 - **stale-claims** (advisory) — ranks prose sections by how much the code
   they name has changed since the section was last touched; a churn-ranked
   candidate list, not a verdict.

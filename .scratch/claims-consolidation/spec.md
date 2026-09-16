@@ -167,6 +167,12 @@ map.md standing decision):
   file; the recognized-extension gate is what makes gate severity safe
   here, closing the `api/v2.0`-shaped false positive `stale-claims`' own
   untightened `PATH_RE` would otherwise produce.
+- `check-config-defaults` — **advisory** (ticket #17). A claim shaped
+  `` `NAME` defaults to `value` `` (both backticked) checked against the
+  project-mapped `file:line` holding that setting's real default —
+  near-exact substring comparison, no execution, no fuzzy matching. A
+  setting with no mapping entry in `claims.toml` is out of scope, not
+  flagged.
 - `judgment-agent` — **advisory candidate list feeding a subagent verdict**.
   Deterministic half (subject-index build → diff-scoped touched-subject
   delta → citation-shaped token match against that closed set) is itself a

@@ -66,13 +66,16 @@ EXTENSION_CONFIG_KEYS: Mapping[str, Sequence[str]] = {
 
 # Every other registered check's own config section carries nothing
 # glob/extension-shaped at all (`check-citations`/`judgment-agent` read no
-# config; `spliced-docs`'s `modes` names a fixed enum). Listed explicitly,
-# not left as "everything else" — `test_config_review.py`'s own
-# completeness test checks every registered check name appears in exactly
-# one of the three sets, so a future check adding a path-shaped key without
-# updating this module fails loud (a red test) instead of the check simply
-# never being reviewed by this helper.
-NO_PATH_SHAPED_CONFIG = frozenset({"check-citations", "spliced-docs", "judgment-agent"})
+# config; `spliced-docs`'s `modes` names a fixed enum; `check-config-defaults`'
+# own section is itself a setting-name -> file:line mapping, not a glob or
+# extension list). Listed explicitly, not left as "everything else" —
+# `test_config_review.py`'s own completeness test checks every registered
+# check name appears in exactly one of the three sets, so a future check
+# adding a path-shaped key without updating this module fails loud (a red
+# test) instead of the check simply never being reviewed by this helper.
+NO_PATH_SHAPED_CONFIG = frozenset(
+    {"check-citations", "spliced-docs", "judgment-agent", "check-config-defaults"}
+)
 
 
 @dataclass(frozen=True)

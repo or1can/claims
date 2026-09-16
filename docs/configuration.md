@@ -108,6 +108,22 @@ extensions = [".proto"]
 | `exclude` | list of glob strings (bare string → one-element list) | `[]` — nothing excluded | A file's bare prose file-references shouldn't be validated — same shape as `check-links`' own `exclude`. |
 | `extensions` | list of extra file extensions (bare string → one-element list), **added** to the built-in set (`.py`, `.rs`, `.go`, `.js`, `.ts`, `.rb`, `.java`, `.c`, `.h`, `.cpp`, `.swift`, `.sh`, `.md`, `.txt`, `.yml`, `.yaml`, `.json`, `.toml`) | the built-in set alone | This project's docs reference a file type the default set doesn't cover (e.g. `.proto`) and a bare mention of one should be checked too. |
 
+## `check-config-defaults`
+
+Shaped differently from every check above: there's no fixed key list —
+this check's own `claims.toml` section **is** the mapping, one entry per
+setting name it should verify.
+
+```toml
+[check-config-defaults]
+STATION_NAME = "src/config.py:42"
+TIMEOUT = "src/settings.py:40-45"
+```
+
+| Key | Shape | Default | Reach for this when |
+| --- | --- | --- | --- |
+| any setting name | `"path:line"` or `"path:start-end"` (1-based, inclusive; anything else raises a config error) | key absent — that setting name is never checked | A project wants a stated default like `` `STATION_NAME` defaults to `ai_radio` `` verified against the real code that defines it. Only a claim backticking **both** the setting name and its exact value, next to one of the fixed phrases (`defaults to`, `default is`, `defaulting to`, `default:`), is ever a candidate — a claim naming a setting with no entry here is silently out of scope, not flagged. |
+
 ## `claim-words`
 
 ```toml
