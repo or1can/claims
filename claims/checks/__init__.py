@@ -23,6 +23,7 @@ from __future__ import annotations
 
 from . import check_citations  # noqa: F401
 from . import check_config_defaults  # noqa: F401
+from . import check_env_vars  # noqa: F401
 from . import check_file_refs  # noqa: F401
 from . import check_links  # noqa: F401
 from . import claim_words  # noqa: F401

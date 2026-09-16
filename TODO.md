@@ -50,3 +50,11 @@
   copy via a negative lookbehind instead of `\b`; porting that fix here
   needs its own verification pass against `stale-claims`' existing ranking
   output and tests, out of scope for #16.
+- `check_config_defaults.py` (ticket #17) has no fenced-code-block
+  awareness — a claim shaped `` `NAME` defaults to `value` `` inside a
+  ` ``` ` fence (e.g. a docs page's own illustrative example of this
+  check's syntax) is scanned as a real claim, not skipped as example
+  content. `check_env_vars.py` (ticket #18) and `check_file_refs.py`
+  (ticket #16) both fixed this via `_fence_state`; #17 shipped before the
+  gap was noticed and hasn't been revisited. Cheap to port (three lines,
+  the pattern already exists twice), just not done yet.

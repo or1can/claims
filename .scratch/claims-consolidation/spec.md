@@ -173,6 +173,13 @@ map.md standing decision):
   near-exact substring comparison, no execution, no fuzzy matching. A
   setting with no mapping entry in `claims.toml` is out of scope, not
   flagged.
+- `check-env-vars` — **advisory** (ticket #18). A backtick-quoted
+  `ALL_CAPS_WITH_UNDERSCORES` name checked for existence (not value) in a
+  project-configured scope of files, additive to a built-in `.env.example`
+  default — plain word-boundary-safe text search, no execution, no
+  language-aware usage parsing. An empty scope (no `.env.example`, nothing
+  configured) is genuinely inert, matching `claim-words`' own
+  opt-in-by-omission precedent.
 - `judgment-agent` — **advisory candidate list feeding a subagent verdict**.
   Deterministic half (subject-index build → diff-scoped touched-subject
   delta → citation-shaped token match against that closed set) is itself a

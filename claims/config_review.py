@@ -50,6 +50,7 @@ GLOB_CONFIG_KEYS: Mapping[str, Sequence[str]] = {
     "check-links": ("exclude",),
     "check-file-refs": ("exclude",),
     "claim-words": ("files",),
+    "check-env-vars": ("definition_files", "exclude"),
     "stale-claims": ("module_reference_scope",),
 }
 

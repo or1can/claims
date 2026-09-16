@@ -14,8 +14,8 @@ never by grepping for words that happen to appear near a claim.
 
 ## What it checks
 
-Nine mechanical checks, plus a judgment-shaped tenth that hands off to an
-agent rather than deciding by itself:
+Ten mechanical checks, plus a judgment-shaped eleventh that hands off to
+an agent rather than deciding by itself:
 
 - **executable-claims** (gate) — runs the command in a `<!-- verify: -->`
   marker and diffs its real output against the fenced block underneath. A
@@ -44,6 +44,11 @@ agent rather than deciding by itself:
   appear at the project-mapped `file:line` holding that setting's real
   default. A setting name with no mapping entry in `claims.toml` is
   entirely out of scope, not flagged.
+- **check-env-vars** (advisory) — flags a backtick-quoted
+  `ALL_CAPS_WITH_UNDERSCORES` name that doesn't appear anywhere in a
+  project-configured scope of files (`.env.example` by default, if
+  tracked). No scope configured and no `.env.example` present means the
+  check is genuinely inert, not a sweep of everything.
 - **stale-claims** (advisory) — ranks prose sections by how much the code
   they name has changed since the section was last touched; a churn-ranked
   candidate list, not a verdict.
