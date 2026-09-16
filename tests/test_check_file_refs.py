@@ -342,12 +342,16 @@ class CheckFileRefsTests(RegistryClearingTestCase):
             outside = repo.root.parent / "claims-test-outside-target.json"
             outside.write_text("secret\n")
             try:
-                (repo.root / ".claude").mkdir()
-                (repo.root / ".claude" / "settings.local.json").symlink_to(outside)
                 repo.write(
                     "AGENTS.md", "See .claude/settings.local.json for local overrides.\n"
                 )
                 repo.commit()
+                # Created *after* the commit, so it's genuinely untracked
+                # (real repos don't commit their own per-machine symlinks
+                # either) rather than relying on `commit`'s `git add -A`
+                # somehow missing it.
+                (repo.root / ".claude").mkdir()
+                (repo.root / ".claude" / "settings.local.json").symlink_to(outside)
                 findings = self._findings_with_config(
                     repo.root,
                     '[check-file-refs]\nknown_untracked = [".claude/settings.local.json"]\n',
