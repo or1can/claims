@@ -124,6 +124,19 @@ TIMEOUT = "src/settings.py:40-45"
 | --- | --- | --- | --- |
 | any setting name | `"path:line"` or `"path:start-end"` (1-based, inclusive; anything else raises a config error) | key absent — that setting name is never checked | A project wants a stated default like `` `STATION_NAME` defaults to `ai_radio` `` verified against the real code that defines it. Only a claim backticking **both** the setting name and its exact value, next to one of the fixed phrases (`defaults to`, `default is`, `defaulting to`, `default:`), is ever a candidate — a claim naming a setting with no entry here is silently out of scope, not flagged. |
 
+## `check-env-vars`
+
+```toml
+[check-env-vars]
+definition_files = ["src/**/*.py"]
+exclude = [".scratch/*"]
+```
+
+| Key | Shape | Default | Reach for this when |
+| --- | --- | --- | --- |
+| `definition_files` | list of glob strings (bare string → one-element list), **added** to the built-in default (`.env.example`, if tracked) | the built-in default alone | A project's docs mention an env var by name and the project wants that checked against more than just `.env.example` — its own source, a Terraform var file, anything a backtick-quoted `ALL_CAPS_WITH_UNDERSCORES` name should be found in. With neither this configured nor a tracked `.env.example`, the check is genuinely inert (`claim-words`'s own opt-in-by-omission precedent), not a sweep of everything. **Not** named `files` like `claim-words`'s own scope key — that name would mean the opposite thing here (which prose is *scanned*, not what counts as a *definition*); pointing this at the same docs being swept for candidates makes every mention there self-satisfying. |
+| `exclude` | list of glob strings (bare string → one-element list) | `[]` — nothing excluded | A tracked Markdown file's env-var mentions shouldn't be checked at all — e.g. a historical or illustrative-prose directory whose mentions were never meant to resolve against the project's current `.env.example`/source. |
+
 ## `claim-words`
 
 ```toml
