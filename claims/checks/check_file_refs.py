@@ -32,6 +32,23 @@ matching `check-links`/`stale-claims`/`executable-claims`'s "catches a
 claim that's false right now" precedent, not `claim-words`/`restatement`'s
 diff-scoped one.
 
+A candidate is checked two ways before being reported: first as
+repo-root-relative (`tracked_set` membership directly), then, only if that
+fails to resolve, against the *citing file's own directory*
+(`_citing_relative`, the same `dirname`/`join`/`normpath` approach
+`check_links._resolve` already uses for a real Markdown link's own
+destination) — ticket #32. A per-module or per-skill `references/*.md`
+layout, cited from its own sibling doc as a bare `references/foo.md`,
+resolves this way even though it was never a real path from the repo
+root. A candidate with a leading `../` never reaches this fallback at
+all — `_repo_relative` already ruled it out as not a candidate, unchanged
+by this ticket (see its own docstring below). This does trade away some
+precision for recall (CLAUDE.md's own stated preference): a genuinely
+broken repo-root-relative reference now resolves silently instead of
+being flagged, if a same-named file happens to also sit somewhere under
+the citing file's own directory — accepted as the same "a missed claim
+stays invisible forever" tradeoff, not an oversight.
+
 **The extension-tightening fix.** `stale-claims`' `PATH_RE` accepts any
 alphanumeric run as a "extension" (`\\.[A-Za-z0-9]+`), which is harmless
 for `stale-claims` (a false match just fails to resolve and silently drops
@@ -88,6 +105,7 @@ from __future__ import annotations
 import re
 from collections.abc import Mapping, Sequence
 from pathlib import Path
+from posixpath import dirname, join, normpath
 
 from ..config import exclude_patterns, path_matches, string_list_config
 from ..git import tracked_files
@@ -181,14 +199,14 @@ def _repo_relative(candidate: str) -> str | None:
 
     A leading `./` unambiguously means "from here" the same way it does
     in a shell command; stripped, since `tracked_set` never contains an
-    entry with a `./` prefix of its own. A leading `../` doesn't have an
-    unambiguous meaning here — resolving it correctly needs the citing
-    file's own directory (`check_links._resolve`'s job), which this
-    check's candidates, compared directly against the tracked set rather
-    than resolved relative to anything, don't track — so it's treated as
-    not a candidate at all rather than resolved against the wrong base
-    (repo root) and falsely flagged. A `../`-prefixed mention can genuinely
-    never itself be a repo-root-relative tracked path.
+    entry with a `./` prefix of its own. A leading `../` is left alone —
+    treated as not a candidate at all, never even reaching `check()`'s own
+    citing-relative fallback below (`_citing_relative`, ticket #32) —
+    deliberately, not because that fallback couldn't resolve it: extending
+    `../` handling into that fallback was explicitly out of #32's own
+    scope (a `../`-prefixed mention is common enough, and its correct
+    resolution unambiguous enough, that it deserves its own dedicated
+    pass rather than folding in here as a side effect).
     """
 
     if candidate.startswith("../"):
@@ -196,6 +214,25 @@ def _repo_relative(candidate: str) -> str | None:
     if candidate.startswith("./"):
         return candidate[2:]
     return candidate
+
+
+def _citing_relative(citing: str, candidate: str) -> str:
+    """`candidate` resolved against `citing`'s own directory, as a
+    repo-relative POSIX path — the same lexical join/normalize
+    `check_links._resolve` already does for a real Markdown link's
+    destination, applied here as a second try once `candidate` has
+    already failed to resolve as repo-root-relative (ticket #32).
+
+    Purely lexical, same as its model — may land outside the repo (e.g. a
+    non-`../`-prefixed candidate whose own embedded `..` segments walk
+    past the root once joined). Unlike `check_links._resolve`, whose
+    result is opened and so needs `_target_slugs`' own real-path
+    confinement, this result is only ever tested against `tracked_set`
+    membership — nothing ever reads it, so an out-of-repo result is just
+    another string that isn't in the set, not a path traversal risk.
+    """
+
+    return normpath(join(dirname(citing), candidate))
 
 
 FENCE_RE = re.compile(r"^\s*(`{3,})")
@@ -273,7 +310,9 @@ def check(repo_root: Path, diff_range: str, config: Mapping[str, object]) -> lis
                 if _excluded(match.start(), excluded):
                     continue
                 candidate = _repo_relative(raw)
-                if candidate is None or candidate in tracked_set:
+                if candidate is None:
+                    continue
+                if candidate in tracked_set or _citing_relative(rel, candidate) in tracked_set:
                     continue
                 findings.append(_finding(rel, line_no, raw))
 

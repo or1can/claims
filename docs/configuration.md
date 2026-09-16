@@ -120,6 +120,15 @@ extensions = [".proto"]
 | `exclude` | list of glob strings (bare string → one-element list) | `[]` — nothing excluded | A file's bare prose file-references shouldn't be validated — same shape as `check-links`' own `exclude`. |
 | `extensions` | list of extra file extensions (bare string → one-element list), **added** to the built-in set (`.py`, `.rs`, `.go`, `.js`, `.ts`, `.rb`, `.java`, `.c`, `.h`, `.cpp`, `.swift`, `.sh`, `.md`, `.txt`, `.yml`, `.yaml`, `.json`, `.toml`) | the built-in set alone | This project's docs reference a file type the default set doesn't cover (e.g. `.proto`) and a bare mention of one should be checked too. |
 
+A candidate that doesn't resolve against the repo root is tried again
+against the *citing file's own directory* before being reported (ticket
+#32) — a per-skill `references/` layout, where a doc cites a file
+alongside it by a path relative to itself, resolves this way even though
+it isn't a real path from the repo root. A mention written with a leading
+`../` is still skipped entirely rather than resolved either way — unlike
+the repo-root/citing-directory pair above, that's deliberately left out
+of this fallback for now.
+
 ## `check-config-defaults`
 
 Shaped differently from every check above: there's no fixed key list —
