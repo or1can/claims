@@ -52,6 +52,19 @@ Used by `/wayfinder`. The **map** is a single issue with **child** issues as tic
 - **Claim**: `gh issue edit <n> --add-assignee @me` — the session's first write.
 - **Resolve**: `gh issue comment <n> --body "<answer>"`, then `gh issue close <n>`, then append a context pointer (gist + link) to the map's Decisions-so-far.
 
+## Landing a ticket's resolution
+
+`main` is protected (a repository ruleset, not just convention) — a
+ticket's fix can't be pushed to `main` directly, including by an admin.
+Push a branch and open a PR instead; see `AGENTS.md`'s "Shipping a
+change" section for the exact commands and the required status checks
+that gate the merge.
+
+A commit's `Resolves #N.` trailer still auto-closes the ticket the same
+way it always did — GitHub's auto-close keywords fire on any commit that
+lands on the default branch, whether by a direct push or a PR merge, so
+nothing about the trailer convention itself changes.
+
 ## Pre-publish history
 
 Tickets 01–37 (the tool's original build-out) live as closed Markdown files under `.scratch/claims-consolidation/issues/` — a frozen historical record from before this repo moved to GitHub, not a tracker to keep writing to. New work uses GitHub issues per the conventions above.
