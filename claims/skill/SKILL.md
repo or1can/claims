@@ -73,11 +73,48 @@ For each such finding:
    it, `judgment-agent`'s verdict is advisory only, whatever it says.
 
 This is a skill-level instruction only — no change to the check, the hook,
-or the subagent's own file. A later step appending to this same procedure
-(deriving a shape from a refuted verdict and sweeping the whole tracked
-tree for other claims sharing that shape, not just the ones this diff
-touched) is tracked separately (ticket #7), which depends on this
-procedure existing first.
+or the subagent's own file. See "Broadening the search after a refuted
+verdict" below for an additional, on-demand step appended to this same
+procedure.
+
+## Broadening the search after a refuted verdict (on demand)
+
+`judgment-agent` is diff-scoped by design: its candidate list only ever
+contains a citation of a subject *this diff* added, removed, or renamed.
+Once a candidate's verdict comes back **refuted** (the claim is confirmed
+false, per the subagent's own three-way vocabulary above), the subject it
+cited may not be a one-off — other prose elsewhere in the tree might cite
+that same subject and be equally wrong, without this diff having touched
+any of those other citations at all. Nothing in the base procedure above
+surfaces them: a citation the current diff never touched never becomes a
+candidate, no matter how long it stays wrong.
+
+This step is **on demand only** — invoked when a human or agent chooses to
+broaden the search after a refuted verdict, never automatically, and never
+for a `confirmed` or `inconclusive` one:
+
+1. Take the refuted candidate's own cited subject name — the same
+   backtick token `check_citations.CITATION_RE` already matches (reused
+   directly by `judgment_agent.py`, not a second copy of the pattern).
+2. Search every tracked Markdown file for every other backtick citation of
+   that exact subject name — not just the files or lines this diff
+   touched, the whole tree, using the same citation-matching shape
+   `check-citations`/`judgment-agent` already use.
+3. Feed each newly-found citation through `claims:judgment-agent` for its
+   own full verdict, exactly like steps 1–3 of the base procedure above.
+   A citation of a subject that's already been refuted once elsewhere is
+   **not** itself assumed false by association — that's exactly the
+   judgment the subagent exists to make, not something to shortcut.
+
+No new code, no new `Finding` mode, no persisted state (no cache, no
+history file, no cross-run memory of verdicts), and no automatic trigger
+— this is a documented workflow built entirely from tools an agent
+already has (search, then the same subagent invocation from above), not a
+new mechanism. Deriving a general shape or pattern from the false claim's
+own wording, beyond matching its exact cited subject name, is out of
+scope — same-subject citation matching is the concretely implementable
+slice of the idea; a fuzzier "same shape" match is a future direction if
+this narrower version proves useful in practice.
 
 ## Coverage
 
