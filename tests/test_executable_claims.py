@@ -368,6 +368,178 @@ class ExecutableClaimsTests(RegistryClearingTestCase):
         self.assertEqual(len(findings), 1)
         self.assertIn("redirects file I/O via `>`", findings[0].message)
 
+    def test_2_and_1_fd_duplication_is_permitted_not_a_real_redirect(self) -> None:
+        # `2>&1` is the standard "capture stderr too" idiom this whole
+        # marker mechanism is built around pinning (ticket #30) — writing
+        # only to stderr, with nothing on stdout, keeps the expected
+        # ordering deterministic regardless of stream buffering.
+        write_three_lines_to_stderr = python(
+            "import sys; sys.stderr.write("
+            'chr(10).join(["a", "b", "c"]) + chr(10))'
+        )
+        command = f"{write_three_lines_to_stderr} 2>&1 | tail -1"
+        with Repo() as repo:
+            repo.write("doc.md", marked(command, "c"))
+            findings = self._findings(repo.root, allow=[command])
+        self.assertEqual(findings, [])
+
+    def test_1_and_2_fd_duplication_is_permitted_the_other_direction_too(self) -> None:
+        # The reverse direction (`1>&2`) is the same safe fd-duplication
+        # shape, just rarer in practice — permitted the same way, not
+        # special-cased to only `2>&1`.
+        say_hello = echo("hello\n")
+        command = f"{say_hello} 1>&2"
+        with Repo() as repo:
+            repo.write("doc.md", marked(command, "hello"))
+            findings = self._findings(repo.root, allow=[command])
+        self.assertEqual(findings, [])
+
+    def test_stdin_fd_duplication_via_ampersand_lt_is_permitted(self) -> None:
+        # `<&` gets the same digit-only exception, symmetrically — `0<&0`
+        # (or the bare `<&0` shorthand here) is a harmless no-op
+        # duplicating stdin onto itself; `true` never reads it anyway, so
+        # this can't hang the test waiting on real input.
+        command = "true <&0"
+        with Repo() as repo:
+            repo.write("doc.md", marked(command, ""))
+            findings = self._findings(repo.root, allow=[command])
+        self.assertEqual(findings, [])
+
+    def test_a_file_target_via_ampersand_redirect_is_still_rejected(self) -> None:
+        # `>&file` (no digits) is bash's own deprecated-but-real synonym
+        # for `&>file` — a genuine arbitrary-file write, not a duplication
+        # — and must still reject exactly like a bare `>`.
+        with Repo() as repo:
+            repo.write(
+                "doc.md",
+                marked("echo hi >&/tmp/claims-test-ampersand-out", "hi"),
+            )
+            findings = self._findings(repo.root)
+        self.assertEqual(len(findings), 1)
+        self.assertIn("redirects file I/O via `>&`", findings[0].message)
+        self.assertTrue(findings[0].gate)
+
+    def test_a_non_digit_ampersand_lt_target_is_still_rejected(self) -> None:
+        with Repo() as repo:
+            repo.write("doc.md", marked("cat <&nonword", ""))
+            findings = self._findings(repo.root)
+        self.assertEqual(len(findings), 1)
+        self.assertIn("redirects file I/O via `<&`", findings[0].message)
+
+    def test_an_ampersand_redirect_with_nothing_after_it_is_rejected(self) -> None:
+        # The digit-only exception's own lookahead must fail closed when
+        # there's no target token at all, not treat "nothing" as somehow
+        # equivalent to "a digit."
+        with Repo() as repo:
+            repo.write("doc.md", marked("echo hi >&", "hi"))
+            findings = self._findings(repo.root)
+        self.assertEqual(len(findings), 1)
+        self.assertIn("redirects file I/O via `>&`", findings[0].message)
+
+    def test_a_lt_ampersand_with_nothing_after_it_is_rejected(self) -> None:
+        with Repo() as repo:
+            repo.write("doc.md", marked("cat <&", ""))
+            findings = self._findings(repo.root)
+        self.assertEqual(len(findings), 1)
+        self.assertIn("redirects file I/O via `<&`", findings[0].message)
+
+    def test_an_escaped_space_splitting_the_fd_target_is_still_rejected(self) -> None:
+        # `_shell_tokens`'s own escape-neutralization strips the backslash
+        # from `\ ` before tokenizing (it isn't one of the operator
+        # characters that gets a placeholder instead) — so `>&1\ file`
+        # would otherwise tokenize as `>&`, `1`, `file` and look like safe
+        # `>&1` duplication to the digit-only lookahead, while the real
+        # shell parses the whole `1 file` as one word and falls back to a
+        # genuine `&>1\ file`-shaped file write. Confirmed by execution: a
+        # real shell given `echo hi >&1\ file` creates a file named `1
+        # file`, not fd-duplication at all.
+        with Repo() as repo:
+            repo.write("doc.md", marked(r"echo hi >&1\ file", "hi"))
+            findings = self._findings(repo.root)
+        self.assertEqual(len(findings), 1)
+        self.assertIn("redirects file I/O via `>&`", findings[0].message)
+        self.assertTrue(findings[0].gate)
+
+    def test_an_escaped_backslash_before_the_fd_target_is_still_rejected(self) -> None:
+        # A backslash right next to the target has the same effect as an
+        # escaped space, with no whitespace involved: `>&\1` tokenizes
+        # identically to safe `>&1`, but a real shell treats the escaped
+        # digit as a quoted-string filename rather than an unquoted fd
+        # number and falls back to a genuine file write. Confirmed by
+        # execution: a real shell given `echo hi >&\1` creates a file
+        # named `1`, not fd-duplication at all.
+        with Repo() as repo:
+            repo.write("doc.md", marked(r"echo hi >&\1", "hi"))
+            findings = self._findings(repo.root)
+        self.assertEqual(len(findings), 1)
+        self.assertIn("redirects file I/O via `>&`", findings[0].message)
+        self.assertTrue(findings[0].gate)
+
+    def test_an_escaped_space_elsewhere_in_the_command_still_rejects_fd_duplication(
+        self,
+    ) -> None:
+        # The fail-closed check is whole-command, not targeted at the
+        # fd-duplication site itself — an escaped space nowhere near the
+        # `2>&1` still refuses the exception, since the tokenization is
+        # already known to disagree with the real shell somewhere in this
+        # command and that isn't provably unrelated to the target token.
+        command = r"find\ me --help 2>&1 | tail -1"
+        with Repo() as repo:
+            repo.write("doc.md", marked(command, ""))
+            findings = self._findings(repo.root)
+        self.assertEqual(len(findings), 1)
+        self.assertIn("redirects file I/O via `>&`", findings[0].message)
+        self.assertTrue(findings[0].gate)
+
+    def test_a_leading_fd_duplication_does_not_hide_grep_from_the_pipe_blocklist(
+        self,
+    ) -> None:
+        # POSIX allows a redirection before the command name too, not just
+        # after it (`test_a_leading_redirect_before_the_command_is_still_rejected`
+        # already covers this for a real `>`) — a safe `2>&1` sitting in
+        # that same leading position must not become the pipe segment's
+        # own "head" in place of the real command word, or `grep` (and
+        # `sed`/`awk`) could smuggle through unblocked.
+        write_three_lines = python(
+            'import sys; sys.stdout.write(chr(10).join(["a", "b", "c"]) + chr(10))'
+        )
+        command = f"{write_three_lines} | 2>&1 grep -c b"
+        with Repo() as repo:
+            repo.write("doc.md", marked(command, "1"))
+            findings = self._findings(repo.root)
+        self.assertEqual(len(findings), 1)
+        self.assertIn("pipes through `grep`", findings[0].message)
+
+    def test_a_leading_fd_duplication_inside_a_subshell_does_not_hide_grep_either(
+        self,
+    ) -> None:
+        write_three_lines = python(
+            'import sys; sys.stdout.write(chr(10).join(["a", "b", "c"]) + chr(10))'
+        )
+        command = f"{write_three_lines} | (2>&1 grep -c b)"
+        with Repo() as repo:
+            repo.write("doc.md", marked(command, "1"))
+            findings = self._findings(repo.root)
+        self.assertEqual(len(findings), 1)
+        self.assertIn("pipes through `grep`", findings[0].message)
+
+    def test_fd_duplication_does_not_excuse_a_real_redirect_elsewhere(self) -> None:
+        # Safe fd-duplication and a genuine file write are two different
+        # tokens — permitting one must not accidentally permit both just
+        # because they appear in the same command.
+        say_hello = echo("hello\n")
+        with Repo() as repo:
+            repo.write(
+                "doc.md",
+                marked(
+                    f"{say_hello} 2>&1 > /tmp/claims-test-combo-out",
+                    "hello",
+                ),
+            )
+            findings = self._findings(repo.root)
+        self.assertEqual(len(findings), 1)
+        self.assertIn("redirects file I/O via `>`", findings[0].message)
+
     def test_a_combined_stdout_stderr_pipe_still_trips_the_pipe_blocklist(self) -> None:
         write_three_lines = python(
             'import sys; sys.stdout.write(chr(10).join(["a", "b", "c"]) + chr(10))'
