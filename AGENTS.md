@@ -160,6 +160,23 @@ would otherwise be blocked from merging their own work), so a green PR is
 sufficient — merge it yourself once CI passes, the same way any other
 merge lands.
 
+### Check severity: recall over precision
+
+When a check is genuinely torn between two thresholds — a duplication
+count, a churn cutoff, how loosely a match pattern should be drawn — the
+one that misses less should generally win, even at the cost of more
+noise: a missed claim stays invisible forever, where a false positive is
+at least visible and can be dismissed. `check-config-defaults`,
+`check-env-vars`, and `check-cli-flags` each shipped with severity
+explicitly marked provisional rather than a threshold reasoned to a
+guessed-perfect balance — advisory until real usage gives an actual
+false-positive rate to argue from beats tuning tight upfront and never
+seeing the claims a stricter pattern would have silently dropped.
+
+Not a blanket license to skip judgment: cite this principle for a real,
+already-reasoned-through precision/recall tradeoff, not instead of
+reasoning about one.
+
 ## Agent skills
 
 ### Issue tracker
