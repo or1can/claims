@@ -3,13 +3,23 @@
 All notable changes to this plugin are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versions match
 `.claude-plugin/plugin.json` and [Semantic Versioning](https://semver.org/)
-(a fix is a patch bump, a new check or `claims.toml` key is a minor bump).
-`claude plugin update` in a consuming project gates its cache refresh on
-this version string, not the git SHA — so this is also the place to check
-whether an update actually reached you, not just that one was pushed
-upstream.
+(a fix is a patch bump; a new check, `claims.toml` key, or doc-author-
+facing marker syntax is a minor bump). `claude plugin update` in a
+consuming project gates its cache refresh on this version string, not the
+git SHA — so this is also the place to check whether an update actually
+reached you, not just that one was pushed upstream.
 
 ## [Unreleased]
+
+## [0.7.0] - 2026-09-17
+
+- Added: `check-file-refs` now accepts an explicit inline annotation
+  immediately after a bare path mention — a template placeholder like
+  `decisions/NNNN-slug.md`<!-- example --> or a fully hypothetical
+  example — to declare it's not a real path, so it stops gating
+  identically to a broken reference. See `docs/configuration.md` for the
+  exact syntax. An annotation with nothing valid immediately before it is
+  itself an advisory finding.
 
 ## [0.6.9] - 2026-09-17
 

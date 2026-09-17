@@ -131,6 +131,23 @@ it isn't a real path from the repo root. A mention written with a leading
 the repo-root/citing-directory pair above, that's deliberately left out
 of this fallback for now.
 
+A mention prefixed with `~/` or a bare `/` (a home-directory or
+host-absolute path — `~/.docker/config.json`, `/etc/docker/daemon.json`)
+is never treated as a repo-relative candidate at all, resolved or not
+(ticket #38) — a genuinely broken *repo-root-anchored* mention written
+the same way `check-links` interprets a leading `/` in real link syntax
+is a named, deliberate side effect of this, not narrowed further.
+
+A doc author can mark a single mention as deliberately not a real path —
+a template placeholder like `decisions/NNNN-slug.md`<!-- example --> or a
+fully hypothetical example like `containers/extra.yml`<!-- example -->,
+the trailing HTML comment immediately after each one — with only a
+closing backtick and/or plain whitespace allowed in between (case- and
+spacing-insensitive otherwise); anything else and the marker doesn't
+bind (ticket #39). A marker that isn't immediately after a live
+candidate this way is itself an advisory finding, naming it as having no
+effect.
+
 ## `check-config-defaults`
 
 Shaped differently from every check above: there's no fixed key list —

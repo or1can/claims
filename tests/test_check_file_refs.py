@@ -580,6 +580,182 @@ class CheckFileRefsTests(RegistryClearingTestCase):
         self.assertEqual(len(findings), 1)
         self.assertIn("scripts/other_missing.py", findings[0].message)
 
+    def test_an_example_marker_immediately_after_a_mention_exempts_it(self) -> None:
+        with Repo() as repo:
+            repo.write(
+                "README.md",
+                "ADR files follow the pattern "
+                "`decisions/NNNN-slug.md`<!-- example -->, minted per decision.\n",
+            )
+            repo.commit()
+            findings = self._findings(repo.root)
+        self.assertEqual(findings, [])
+
+    def test_an_example_marker_with_a_space_before_it_also_exempts(self) -> None:
+        with Repo() as repo:
+            repo.write(
+                "README.md",
+                "ADR files follow the pattern "
+                "`decisions/NNNN-slug.md` <!-- example -->, minted per decision.\n",
+            )
+            repo.commit()
+            findings = self._findings(repo.root)
+        self.assertEqual(findings, [])
+
+    def test_an_example_marker_exempts_a_fully_hypothetical_example_too(self) -> None:
+        # Same mechanism, no shape-specific logic: unlike a placeholder
+        # like `NNNN`, `containers/extra.yml` has no internal signal
+        # distinguishing it from a real broken path at all — the marker
+        # doesn't need one, since it doesn't infer anything from the text.
+        with Repo() as repo:
+            repo.write(
+                "README.md",
+                "For example, given `containers/extra.yml`<!-- example --> "
+                "as an override file, the merge produces...\n",
+            )
+            repo.commit()
+            findings = self._findings(repo.root)
+        self.assertEqual(findings, [])
+
+    def test_an_example_marker_separated_by_other_text_does_not_exempt(self) -> None:
+        # Only whitespace may sit between the mention and its marker — a
+        # comma or another word in between means the marker doesn't bind,
+        # so the mention still gates *and* the marker itself is dangling.
+        with Repo() as repo:
+            repo.write(
+                "README.md",
+                "See `decisions/NNNN-slug.md`, for instance <!-- example -->.\n",
+            )
+            repo.commit()
+            findings = self._findings(repo.root)
+        self.assertEqual(len(findings), 2)
+        messages = [f.message for f in findings]
+        self.assertTrue(any("decisions/NNNN-slug.md" in m for m in messages))
+        self.assertTrue(any("<!-- example -->" in m for m in messages))
+        gate_by_message = {f.message: f.gate for f in findings}
+        self.assertTrue(any(g for m, g in gate_by_message.items() if "NNNN" in m))
+        self.assertFalse(any(g for m, g in gate_by_message.items() if "example" in m))
+
+    def test_a_dangling_example_marker_with_nothing_before_it_is_advisory(self) -> None:
+        with Repo() as repo:
+            repo.write("README.md", "This paragraph just has <!-- example --> in it.\n")
+            repo.commit()
+            findings = self._findings(repo.root)
+        self.assertEqual(len(findings), 1)
+        self.assertIn("<!-- example -->", findings[0].message)
+        self.assertFalse(findings[0].gate)
+
+    def test_two_marked_mentions_on_one_line_are_both_exempted_independently(
+        self,
+    ) -> None:
+        with Repo() as repo:
+            repo.write(
+                "README.md",
+                "See `decisions/NNNN-slug.md`<!-- example --> and "
+                "`decisions/INDEX.md`<!-- example --> for the pattern.\n",
+            )
+            repo.commit()
+            findings = self._findings(repo.root)
+        self.assertEqual(findings, [])
+
+    def test_a_marked_mention_does_not_affect_a_separate_broken_reference(self) -> None:
+        with Repo() as repo:
+            repo.write(
+                "README.md",
+                "See `decisions/NNNN-slug.md`<!-- example --> and "
+                "scripts/actually_missing.py for real.\n",
+            )
+            repo.commit()
+            findings = self._findings(repo.root)
+        self.assertEqual(len(findings), 1)
+        self.assertIn("scripts/actually_missing.py", findings[0].message)
+
+    def test_an_example_marker_exempts_a_mention_that_would_have_resolved_too(
+        self,
+    ) -> None:
+        # The marker exempts unconditionally, "resolving or not" — a real,
+        # tracked file still shouldn't be treated any differently once
+        # marked, since the marker's own job is "don't check this at all",
+        # not "and also verify my claim about whether it resolves".
+        with Repo() as repo:
+            repo.write("scripts/build.py", "print('hi')\n")
+            repo.write(
+                "README.md", "See `scripts/build.py`<!-- example --> for the shape.\n"
+            )
+            repo.commit()
+            findings = self._findings(repo.root)
+        self.assertEqual(findings, [])
+
+    def test_an_example_marker_on_a_fenced_line_produces_no_finding_at_all(self) -> None:
+        # Not dangling either — the whole line is skipped before either
+        # candidate- or marker-detection ever runs on it, same as
+        # everything else inside a fence.
+        with Repo() as repo:
+            repo.write(
+                "README.md",
+                "```\n`decisions/NNNN-slug.md`<!-- example -->\n```\n",
+            )
+            repo.commit()
+            findings = self._findings(repo.root)
+        self.assertEqual(findings, [])
+
+    def test_an_example_marker_after_a_real_link_destination_is_dangling(self) -> None:
+        # A mention already inside real Markdown link syntax was never a
+        # live check-file-refs candidate to begin with (that's
+        # check-links' job) — a marker attached to one is dangling by the
+        # same rule, not silently consumed.
+        with Repo() as repo:
+            repo.write("docs/guide.md", "prose\n")
+            repo.write(
+                "README.md",
+                "See [the guide](docs/guide.md)<!-- example --> for details.\n",
+            )
+            repo.commit()
+            findings = self._findings(repo.root)
+        self.assertEqual(len(findings), 1)
+        self.assertIn("<!-- example -->", findings[0].message)
+        self.assertFalse(findings[0].gate)
+
+    def test_an_example_marker_binds_through_a_double_backtick_span(self) -> None:
+        # `` `` `x` `` `` is the standard way to show a literal
+        # backtick-quoted mention in Markdown — its own closing quote is
+        # two backticks, not one, and the marker still has to bind through
+        # both.
+        with Repo() as repo:
+            repo.write(
+                "README.md",
+                "The pattern `` `decisions/NNNN-slug.md` ``<!-- example --> "
+                "is used throughout.\n",
+            )
+            repo.commit()
+            findings = self._findings(repo.root)
+        self.assertEqual(findings, [])
+
+    def test_an_example_marker_is_case_and_spacing_insensitive(self) -> None:
+        with Repo() as repo:
+            repo.write(
+                "README.md",
+                "See `decisions/NNNN-slug.md`<!--EXAMPLE--> for the pattern.\n",
+            )
+            repo.commit()
+            findings = self._findings(repo.root)
+        self.assertEqual(findings, [])
+
+    def test_two_example_markers_in_a_row_after_one_mention_flags_the_second(
+        self,
+    ) -> None:
+        with Repo() as repo:
+            repo.write(
+                "README.md",
+                "See `decisions/NNNN-slug.md`<!-- example --><!-- example --> "
+                "for the pattern.\n",
+            )
+            repo.commit()
+            findings = self._findings(repo.root)
+        self.assertEqual(len(findings), 1)
+        self.assertIn("<!-- example -->", findings[0].message)
+        self.assertFalse(findings[0].gate)
+
 
 if __name__ == "__main__":
     import unittest
