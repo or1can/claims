@@ -64,6 +64,12 @@ counts everywhere, same as the qualified and path forms.
 
 Not diff-scoped, matching the check inventory: every tracked `*.md` file is
 swept, not just one a diff touched.
+
+A file can also be excluded from that sweep entirely via this check's own
+`exclude` glob list (`claims.toml`), same shape/coercion as every sibling
+check's own `exclude` (ticket #43) — `CHANGELOG.md` above is a fixed,
+built-in instance of the same idea, not a substitute for a project naming
+its own.
 """
 
 from __future__ import annotations
@@ -75,7 +81,7 @@ from collections.abc import Mapping
 from pathlib import Path
 from typing import NamedTuple
 
-from ..config import path_matches, string_list_config
+from ..config import exclude_patterns, path_matches, string_list_config
 from ..git import tracked_files
 from ..runner import Finding, register_check
 
@@ -128,10 +134,13 @@ def check(
     tracked = tracked_files(repo_root)
     tracked_set = set(tracked)
     modules = _module_index(tracked)
+    exclude = exclude_patterns(config)
     docs = sorted(
         rel
         for rel in tracked
-        if rel.endswith(".md") and Path(rel).name.lower() != "changelog.md"
+        if rel.endswith(".md")
+        and Path(rel).name.lower() != "changelog.md"
+        and not path_matches(rel, exclude)
     )
 
     history: dict[str, list[int]] = {}

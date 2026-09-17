@@ -134,6 +134,67 @@ class StaleClaimsTests(RegistryClearingTestCase):
 
         self.assertFalse(any(f.file == "CHANGELOG.md" for f in findings))
 
+    def test_an_excluded_file_is_skipped_entirely(self) -> None:
+        with Repo() as repo:
+            _build_fixture(repo)
+            findings = self._findings_with_toml(
+                repo.root, '[stale-claims]\nexclude = ["doc.md"]\n'
+            )
+        self.assertEqual(findings, [])
+
+    def test_an_excluded_glob_is_skipped_entirely(self) -> None:
+        with Repo() as repo:
+            _build_fixture(repo)
+            repo.write("docs/other.md", DOC)
+            repo.commit(BASE + 600)
+            # Without this further churn, `other.md`'s own claim would be
+            # trivially non-stale (nothing postdates its own commit) and
+            # the test wouldn't distinguish "excluded" from "just quiet".
+            repo.write("src/subject.py", "v4")
+            repo.commit(BASE + 700)
+            findings = self._findings_with_toml(
+                repo.root, '[stale-claims]\nexclude = ["docs/*.md"]\n'
+            )
+        self.assertFalse(any(f.file == "docs/other.md" for f in findings))
+        self.assertTrue(any(f.file == "doc.md" for f in findings))
+
+    def test_an_excluded_file_still_resolves_as_a_subject_named_elsewhere(
+        self,
+    ) -> None:
+        # `exclude` only skips ranking *that file's own* sections — it
+        # must not also remove the file from the tracked/module index
+        # every other file's own claims still resolve subjects against.
+        with Repo() as repo:
+            repo.write("docs/legacy.md", "prose\n")
+            repo.write(
+                "guide.md", "## by path\nSee docs/legacy.md for the old behavior.\n"
+            )
+            repo.commit(BASE)
+            repo.write("docs/legacy.md", "prose v1\n")
+            repo.commit(BASE + 100)
+            findings = self._findings_with_toml(
+                repo.root, '[stale-claims]\nexclude = ["docs/legacy.md"]\n'
+            )
+        self.assertEqual(len(findings), 1)
+        self.assertEqual(findings[0].citation, "guide.md:1")
+        self.assertIn("legacy.md", findings[0].message)
+
+    def test_exclude_does_not_affect_a_non_matching_file(self) -> None:
+        with Repo() as repo:
+            _build_fixture(repo)
+            findings = self._findings_with_toml(
+                repo.root, '[stale-claims]\nexclude = ["other.md"]\n'
+            )
+        self.assertEqual(len(findings), 2)
+
+    def test_a_bare_string_exclude_value_is_coerced_to_one_element(self) -> None:
+        with Repo() as repo:
+            _build_fixture(repo)
+            findings = self._findings_with_toml(
+                repo.root, '[stale-claims]\nexclude = "doc.md"\n'
+            )
+        self.assertEqual(findings, [])
+
     def test_a_backtick_bare_name_with_an_extension_still_names_its_subject(self) -> None:
         # `` `subject.py` `` (extension included), not a full path — the
         # original's `MODULE_RE` strips a trailing `.rs` before the stem

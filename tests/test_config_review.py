@@ -109,6 +109,22 @@ class ConfigValueMatchesTests(unittest.TestCase):
         self.assertEqual(len(matches), 1)
         self.assertEqual(matches[0].matched_files, ())
 
+    def test_stale_claims_own_exclude_key_is_reviewed_too(self) -> None:
+        # `stale-claims` was the one check missing `exclude` from
+        # `GLOB_CONFIG_KEYS` alongside its own `module_reference_scope`
+        # (ticket #43) — pinned separately so a future key added to an
+        # already-listed check can't silently go unreviewed the way this
+        # one briefly did.
+        with Repo() as repo:
+            repo.write("real.md", "prose\n")
+            matches = config_value_matches(
+                repo.root, {"stale-claims": {"exclude": ["nonexistent.md"]}}
+            )
+        self.assertEqual(len(matches), 1)
+        self.assertEqual(matches[0].check, "stale-claims")
+        self.assertEqual(matches[0].key, "exclude")
+        self.assertEqual(matches[0].matched_files, ())
+
     def test_a_non_glob_key_in_a_known_check_is_ignored(self) -> None:
         # `executable-claims`' own `permitted_prefixes` is a literal
         # command-string prefix, not a file glob — it has no "matches

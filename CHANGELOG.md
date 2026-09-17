@@ -11,6 +11,13 @@ reached you, not just that one was pushed upstream.
 
 ## [Unreleased]
 
+## [0.8.0] - 2026-09-17
+
+- Added: `stale-claims` now accepts its own `exclude` glob-list key
+  (`claims.toml`), same shape as every sibling check's `exclude` — it was
+  the one check missing this, with only the built-in `CHANGELOG.md`
+  exclusion and no way for a project to name its own.
+
 ## [0.7.0] - 2026-09-17
 
 - Added: `check-file-refs` now accepts an explicit inline annotation

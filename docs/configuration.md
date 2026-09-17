@@ -225,8 +225,10 @@ modes = ["undocumented", "unknown"]
 ```toml
 [stale-claims]
 module_reference_scope = ["decisions/*.md", "AGENTS.md"]
+exclude = ["docs/legacy/*.md"]
 ```
 
 | Key | Shape | Default | Reach for this when |
 | --- | --- | --- | --- |
 | `module_reference_scope` | list of glob strings (bare string → one-element list) | key absent — a bare citation counts as a module reference **anywhere** | Common module stems double as ordinary English or config-field names elsewhere in the tree (`` `cache` ``, `` `config` ``), producing false subject matches outside the files that actually discuss modules by name. An extension-qualified citation (`` `cache.rs` ``) or an explicit relative path always counts as a subject regardless of this setting. |
+| `exclude` | list of glob strings (bare string → one-element list) | `[]` — nothing excluded beyond the built-in `CHANGELOG.md` | A file's sections shouldn't be ranked for staleness at all — same shape as every sibling check's own `exclude` (ticket #43). |
