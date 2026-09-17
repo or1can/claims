@@ -158,6 +158,41 @@ host-absolute shape, so that's the interpretation this check makes;
 syntax, unaffected by this. `stale_claims.PATH_RE` and `check_links.py`'s
 own destination resolution both share the same underlying blind spot in
 their own copies — named in `TODO.md`, not fixed here.
+
+A doc author can also declare a mention non-real explicitly: `<!--
+example -->` (case-insensitive, tolerant of `<!--example-->`'s own
+tighter spacing) immediately after a mention — a run of closing backticks
+(covers a double-backtick span quoting a literal single backtick, `` ``
+`x` `` ``, not just a bare single-backtick mention) and/or plain
+spaces/tabs may sit in between, nothing else — exempts that one mention
+from ever being checked, resolving or not (ticket #39). Both the
+case-insensitivity and the backtick-run handling favor recall over
+precision on purpose: a marker written slightly differently than expected
+should still bind rather than silently fail, the same principle behind
+this feature's own dangling-marker advisory below. Mirrors
+`executable_claims.MARKER_RE`'s own `<!-- verify: ... -->` inline
+directive, but unanchored — this one sits next to the one mention it
+exempts, not alone on its own line. Deliberately not inferred from the
+mention's own text (an all-caps segment, a reserved placeholder word):
+that could only ever catch a template shape like `decisions/NNNN-slug.md`,
+never a fully hypothetical example like `containers/extra.yml` (no
+internal signal distinguishes it from a real broken path at all), and
+risks its own false-positive/negative class besides — the explicit
+marker doesn't infer anything, so it covers both shapes identically.
+Also deliberately not a `claims.toml` allow-list: a config entry has no
+structural link to the prose it exempts and can silently go stale if that
+prose changes, which would be an odd kind of drift for this exact project
+to introduce. A marker that isn't immediately after a live candidate —
+one that already failed the extension/link-syntax/URL/`~`-or-`/` checks
+above was never live to begin with, so a marker there is dangling by the
+same rule, not a separate case — is itself an advisory finding naming it
+as having no effect, the same "don't let a mechanism go silently
+ineffective" concern ticket #21's own unrecognized-`claims.toml`-table
+gate exists for. A marker on a *fenced* line is the one exception to that
+same rule rather than an instance of it: the whole line is skipped before
+either candidate- or marker-detection ever runs on it (matching
+`_fence_state`'s own treatment of everything else on that line), so it
+produces no finding of either kind — not dangling, just never looked at.
 """
 
 from __future__ import annotations
@@ -204,6 +239,17 @@ LINK_RE = re.compile(r"\]\(([^)]*)\)")
 # to `PATH_RE`, the same false-positive class `check_links.py`'s own
 # `SCHEME_RE` exists to exclude from link-target checking.
 URL_RE = re.compile(r"[A-Za-z][A-Za-z0-9+.-]*://\S+")
+
+# A doc author's own explicit "this isn't a real path" annotation (ticket
+# #39) — mirrors `executable_claims.MARKER_RE`'s own `<!-- verify: ... -->`
+# inline-directive shape, but unanchored (this one sits inline, mid-line,
+# next to the one mention it exempts, not alone on its own line before a
+# fenced block). Case-insensitive, unlike that marker — there's no parsed
+# content riding on the exact case of a fixed keyword here, so relaxing it
+# costs nothing and avoids a marker silently failing to bind over a casing
+# difference alone (the same "don't fail silently" reasoning behind the
+# dangling-marker advisory below, applied one step earlier).
+EXAMPLE_MARKER_RE = re.compile(r"<!--\s*example\s*-->", re.IGNORECASE)
 
 DEFAULT_EXTENSIONS = (
     ".py", ".rs", ".go", ".js", ".ts", ".rb", ".java", ".c", ".h", ".cpp",
@@ -384,6 +430,38 @@ def _finding(rel: str, line_no: int, candidate: str) -> Finding:
     )
 
 
+def _dangling_marker_finding(rel: str, line_no: int) -> Finding:
+    return Finding(
+        file=rel,
+        line=line_no,
+        message="`<!-- example -->` doesn't immediately follow a path-shaped "
+        "mention — has no effect",
+        mode=NAME,
+        gate=False,
+    )
+
+
+def _marker_after(line: str, end: int) -> re.Match[str] | None:
+    """The `EXAMPLE_MARKER_RE` match immediately after `end` (a live
+    candidate's own `match.end()`), or `None` if there isn't one there —
+    only a closing backtick and/or plain spaces/tabs, in any mixture or
+    order, may sit between the candidate and the marker — nothing else
+    (ticket #39). `PATH_RE` itself never matches a backtick, so a
+    mention's own closing quote is still sitting right at `end`; a
+    doubled span quoting a literal single backtick, `` `` `x` `` ``,
+    closes with backtick-**space**-backtick-backtick (Markdown's own
+    delimiter-run spacing rule), which is why this can't just skip
+    backticks and then whitespace as two separate fixed-order passes.
+    Anchored via `pattern.match(string, pos)`, not a plain search, so a
+    marker anywhere *later* on the line doesn't count as "immediately
+    after" just because nothing else happened to match first.
+    """
+
+    while end < len(line) and line[end] in "` \t":
+        end += 1
+    return EXAMPLE_MARKER_RE.match(line, end)
+
+
 def check(repo_root: Path, diff_range: str, config: Mapping[str, object]) -> list[Finding]:
     exclude = exclude_patterns(config)
     extensions = _extensions(config)
@@ -404,6 +482,7 @@ def check(repo_root: Path, diff_range: str, config: Mapping[str, object]) -> lis
             if in_fence[line_no - 1]:
                 continue
             excluded = _excluded_spans(line)
+            consumed_marker_starts: set[int] = set()
             for match in PATH_RE.finditer(line):
                 raw = match.group(0)
                 if not raw.endswith(extensions):
@@ -415,6 +494,10 @@ def check(repo_root: Path, diff_range: str, config: Mapping[str, object]) -> lis
                 candidate = _repo_relative(raw)
                 if candidate is None:
                     continue
+                marker = _marker_after(line, match.end())
+                if marker is not None:
+                    consumed_marker_starts.add(marker.start())
+                    continue
                 if candidate in tracked_set or _citing_relative(rel, candidate) in tracked_set:
                     continue
                 if path_matches(candidate, known_untracked):
@@ -422,6 +505,9 @@ def check(repo_root: Path, diff_range: str, config: Mapping[str, object]) -> lis
                     if real.is_relative_to(repo_real) and real.is_file():
                         continue
                 findings.append(_finding(rel, line_no, raw))
+            for marker in EXAMPLE_MARKER_RE.finditer(line):
+                if marker.start() not in consumed_marker_starts:
+                    findings.append(_dangling_marker_finding(rel, line_no))
 
     return findings
 
