@@ -52,7 +52,7 @@ GLOB_CONFIG_KEYS: Mapping[str, Sequence[str]] = {
     "claim-words": ("files",),
     "check-env-vars": ("definition_files", "exclude"),
     "check-cli-flags": ("exclude",),
-    "stale-claims": ("module_reference_scope",),
+    "stale-claims": ("module_reference_scope", "exclude"),
 }
 
 # `restatement`'s own `extensions`, and `check-file-refs`' own `extensions`
