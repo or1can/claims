@@ -11,6 +11,13 @@ upstream.
 
 ## [Unreleased]
 
+## [0.6.9] - 2026-09-17
+
+- Fixed: `check-file-refs` false-positived on a home-directory reference
+  (`~/.docker/config.json`) or a host-absolute path
+  (`/etc/docker/daemon.json`) — neither is a repo-relative claim, but the
+  leading `~`/`/` was silently dropped before resolution, so both were
+  checked against the repo root and reported as broken.
 - Added this changelog, so a version bump carries an explanation
   consumers can read without cloning the repo and reading the diff.
 

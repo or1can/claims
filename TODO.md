@@ -66,3 +66,33 @@
   gap in both tickets' own module docstrings; #32 and #33 shipped in
   either order without blocking on this, and closing it is a small,
   natural follow-up once both are in.
+- Discovered while building #38, not fixed there since it's the same
+  different-file situation as the leading-dot defect above:
+  `stale_claims.PATH_RE`'s `\b` word-boundary anchor doesn't block a match
+  starting right after `~` or `/` either (neither is a word character), so
+  a home-directory or host-absolute path in prose (`check_file_refs.py`'s
+  own module docstring has the worked examples #38 was filed against) has
+  that leading character dropped the same lossy way there too, with the
+  remainder extracted as an ordinary bare candidate. Harmless in practice
+  for the same reason the leading-dot defect is — a wrong match just fails
+  to resolve and drops out of `stale-claims`' own ranking rather than
+  becoming a gate finding — but it does mean a citation of that shape can
+  never correctly rank as a subject. `check_file_refs.PATH_RE`/
+  `_host_relative` (ticket #38) fix the equivalent case in this check's
+  own copy; porting to `stale-claims` needs the same
+  verification-against-existing-ranking-output care the leading-dot port
+  above already calls for.
+- Same #38 discovery, a different check again: `check_links._resolve`
+  has no `_repo_relative`-shaped guard at all — a real Markdown link
+  destination that's `~`-prefixed or host-absolute (deliberately not
+  spelled out as real link syntax right here, or this bullet would
+  itself trip the very finding it describes) is joined against the
+  citing file's own directory exactly like any other relative
+  destination, then reported broken once it fails to resolve on disk.
+  Currently a gate finding for
+  the wrong reason (looks like an ordinary broken link, not "this was
+  never a repo-relative destination at all"), narrower in practice than
+  the `check_file_refs`/`stale-claims` instances above since it only
+  affects a destination `check-links` already validates (another `.md`
+  file or a bare `#anchor`), not `check_file_refs`' wider extension set.
+  Not fixed here — #38 was scoped to `check_file_refs.py`'s own copy.
