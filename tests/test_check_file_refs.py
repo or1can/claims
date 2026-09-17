@@ -459,6 +459,73 @@ class CheckFileRefsTests(RegistryClearingTestCase):
             findings = self._findings(repo.root)
         self.assertEqual(findings, [])
 
+    def test_a_home_directory_reference_is_not_a_candidate(self) -> None:
+        # Neither `~` nor `/` is in `PATH_RE`'s own character class, so a
+        # match on `~/.docker/config.json` starts right after the `/`
+        # (the `~` itself never survives into any match either way) —
+        # `.docker/config.json` looks like an ordinary repo-relative
+        # candidate to `_repo_relative` unless the preceding character is
+        # checked before it ever gets there. Not flagged even though
+        # `.docker/config.json` doesn't exist anywhere in this repo either
+        # — a `~`-prefixed mention was never claiming that path does.
+        with Repo() as repo:
+            repo.write(
+                "README.md",
+                "See ~/.docker/config.json for your own Docker config.\n",
+            )
+            repo.commit()
+            findings = self._findings(repo.root)
+        self.assertEqual(findings, [])
+
+    def test_a_host_absolute_reference_is_not_a_candidate(self) -> None:
+        # Same defect, the other prefix: a bare leading `/` isn't in the
+        # character class either, so `/etc/docker/daemon.json` is
+        # extracted as `etc/docker/daemon.json` with no trace of the
+        # leading `/` — an absolute path on a host that may not even be
+        # the machine running this check, never a repo-relative claim.
+        with Repo() as repo:
+            repo.write(
+                "README.md",
+                "Edit /etc/docker/daemon.json to change the runtime config.\n",
+            )
+            repo.commit()
+            findings = self._findings(repo.root)
+        self.assertEqual(findings, [])
+
+    def test_markdown_strikethrough_around_a_broken_reference_is_still_flagged(
+        self,
+    ) -> None:
+        # A bare `~` immediately before a match isn't treated as a
+        # host-relative signal (unlike an unconsumed `/`) specifically
+        # because Markdown strikethrough's own second `~~` would otherwise
+        # look identical and wrongly swallow a real broken reference.
+        with Repo() as repo:
+            repo.write("README.md", "The ~~docs/removed.md~~ file was deleted.\n")
+            repo.commit()
+            findings = self._findings(repo.root)
+        self.assertEqual(len(findings), 1)
+        self.assertIn("docs/removed.md", findings[0].message)
+
+    def test_a_home_directory_reference_to_a_real_repo_relative_path_is_still_skipped(
+        self,
+    ) -> None:
+        # Companion to the missing-file version above, same shape as the
+        # `../`-to-a-real-file pairing: this one doesn't by itself
+        # distinguish "skipped" from "stripped and resolved" (the stripped
+        # form happens to be real and tracked here, so both
+        # interpretations agree on "no finding") — the missing-file test
+        # above is what actually pins the `~` prefix as the reason, not a
+        # coincidental resolve.
+        with Repo() as repo:
+            repo.write(".docker/config.json", "{}\n")
+            repo.write(
+                "README.md",
+                "See ~/.docker/config.json for your own Docker config.\n",
+            )
+            repo.commit()
+            findings = self._findings(repo.root)
+        self.assertEqual(findings, [])
+
     def test_a_bare_mention_inside_a_fenced_code_block_is_not_a_candidate(self) -> None:
         # Example code inside a fenced block is illustrative, not a claim
         # that the named path is a real tracked file — the same

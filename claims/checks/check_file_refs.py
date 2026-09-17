@@ -120,14 +120,44 @@ this false-positive-collision-with-ordinary-English-words risk; deserves
 its own dedicated pass rather than folding in here.
 
 **Known, deliberate gap:** `URL_RE` (below) only recognizes a URL with an
-explicit `scheme://` — a scheme-less mention (`www.example.com/x.sh`, a
-protocol-relative `//cdn.example.com/x.js`) isn't excluded, and unlike
-`check_links.py`'s own identical `SCHEME_RE` blind spot (where a
-scheme-less host just falls outside that check's own relevance filter),
-here it becomes a gate finding rather than merely being skipped. Not
-solved here: recognizing a bare domain reliably without a real URL
-grammar risks its own false-positive/negative tradeoffs of a different
-kind, disproportionate for a shape rare enough in practice.
+explicit `scheme://` — a scheme-less mention (`www.example.com/x.sh`)
+isn't excluded, and unlike `check_links.py`'s own identical `SCHEME_RE`
+blind spot (where a scheme-less host just falls outside that check's own
+relevance filter), here it becomes a gate finding rather than merely
+being skipped. Not solved here: recognizing a bare domain reliably
+without a real URL grammar risks its own false-positive/negative
+tradeoffs of a different kind, disproportionate for a shape rare enough
+in practice. (A *protocol-relative* URL, `//cdn.example.com/x.js`, isn't
+part of this gap — `_host_relative` below treats its leading `//` the
+same as any other unconsumed `/`, so it's skipped as not a candidate
+rather than becoming a false gate finding.)
+
+An unconsumed leading `/` immediately before a match — `/` isn't in
+`PATH_RE`'s own character class, so a match starts right after it with no
+trace of it left in the captured text, and by the time `_repo_relative`
+would see the plain candidate string the leading `/` is already gone —
+is never treated as a repo-relative candidate (`_host_relative`, ticket
+#38). This is what makes a host-absolute path (`/etc/docker/
+daemon.json`) and a home-directory shorthand (`~/.docker/config.json` —
+the `~` itself never survives into any match either way; it's the `/`
+right after it doing the work here) both resolve correctly as "not a
+repo-relative claim at all," the same "recognized as clearly-not-a-
+candidate, skipped rather than resolved against the wrong base"
+treatment `_repo_relative`'s own leading `../` handling already gets,
+just checked at the call site instead of inside that function, since
+`_repo_relative` only ever sees the stripped candidate string, not the
+source line or the match's own position. **Known, deliberate gap this
+also creates:** a genuinely broken *repo-root-anchored* mention written
+Markdown-link-style (`/docs/agents/nonexistent.md`, the same leading-`/`
+convention `check-links` uses for its own destinations) is now silently
+skipped here too, rather than flagged — bare prose gives no reliable way
+to tell "this leading `/` means host-absolute" from "this leading `/`
+means repo-root," and #38's own motivating reports were all the
+host-absolute shape, so that's the interpretation this check makes;
+`check-links` keeps its own, different interpretation for real link
+syntax, unaffected by this. `stale_claims.PATH_RE` and `check_links.py`'s
+own destination resolution both share the same underlying blind spot in
+their own copies — named in `TODO.md`, not fixed here.
 """
 
 from __future__ import annotations
@@ -233,6 +263,32 @@ def _excluded_spans(line: str) -> list[tuple[int, int]]:
 
 def _excluded(start: int, spans: Sequence[tuple[int, int]]) -> bool:
     return any(span_start <= start < span_end for span_start, span_end in spans)
+
+
+def _host_relative(line: str, start: int) -> bool:
+    """Whether `line[start:]`'s own match was immediately preceded by an
+    unconsumed `/` — `/` isn't in `PATH_RE`'s own character class, so a
+    match starts right after it with no trace of it left in the captured
+    text. Catches a host-absolute path (`/etc/docker/daemon.json`) and,
+    since `~` itself never survives into a match either way, a bare
+    `~/`-prefixed home-directory shorthand too (`~/.docker/config.json` —
+    the character actually inspected here is the `/` right after the
+    `~`, not the `~` itself; deliberately not extended to also check for a
+    bare `~` immediately before the match, which would additionally catch
+    the rarer `~username/` shell convention at the cost of also matching
+    the second `~` of Markdown strikethrough, `~~docs/removed.md~~`, and
+    wrongly skipping it).
+
+    Neither shape is ever a repo-relative candidate, exactly like a
+    leading `../` (ticket #38): unlike `../`, which `_repo_relative`
+    already rejects because those two characters survive as part of the
+    match itself, an unconsumed `/` is invisible to it by the time it
+    receives the plain candidate string — so this has to be checked here,
+    against the source line, at the one point that still has both `line`
+    and the match's own start position in scope.
+    """
+
+    return start > 0 and line[start - 1] == "/"
 
 
 def _repo_relative(candidate: str) -> str | None:
@@ -353,6 +409,8 @@ def check(repo_root: Path, diff_range: str, config: Mapping[str, object]) -> lis
                 if not raw.endswith(extensions):
                     continue
                 if _excluded(match.start(), excluded):
+                    continue
+                if _host_relative(line, match.start()):
                     continue
                 candidate = _repo_relative(raw)
                 if candidate is None:
