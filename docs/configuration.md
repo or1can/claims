@@ -131,6 +131,13 @@ it isn't a real path from the repo root. A mention written with a leading
 the repo-root/citing-directory pair above, that's deliberately left out
 of this fallback for now.
 
+A mention prefixed with `~/` or a bare `/` (a home-directory or
+host-absolute path — `~/.docker/config.json`, `/etc/docker/daemon.json`)
+is never treated as a repo-relative candidate at all, resolved or not
+(ticket #38) — a genuinely broken *repo-root-anchored* mention written
+the same way `check-links` interprets a leading `/` in real link syntax
+is a named, deliberate side effect of this, not narrowed further.
+
 ## `check-config-defaults`
 
 Shaped differently from every check above: there's no fixed key list —
