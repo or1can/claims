@@ -136,6 +136,14 @@ still running pre-ticket-27 code as a result. A patch-level bump
 (`0.1.0` → `0.1.1`) is enough for an ordinary fix; use judgement for
 anything that changes a consuming project's own required setup.
 
+Add a matching entry to `CHANGELOG.md` in the same commit — a version
+bump with no changelog entry gives a consumer reading it after `claude
+plugin update` nothing to go on beyond a bare number, which is exactly
+the "reading the source to understand what changed" cost this file
+exists to remove. One or two bullet points, from a consuming project's
+own point of view (what they'd notice), not an implementation narrative
+— the commit message and PR already carry that.
+
 ### Shipping a change
 
 `main` is protected by a repository ruleset — no direct push lands there,

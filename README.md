@@ -119,6 +119,8 @@ change can't silently start gating a commit differently mid-project. The
 automatic hook can be disabled per project without uninstalling, via
 `[hook]\nenabled = false` in that project's `claims.toml`. See
 [`docs/installation.md`](docs/installation.md) for the actual commands.
+See [`CHANGELOG.md`](CHANGELOG.md) for what changed in a given version,
+after a `claude plugin update`.
 
 ## License
 
