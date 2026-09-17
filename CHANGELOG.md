@@ -11,6 +11,15 @@ reached you, not just that one was pushed upstream.
 
 ## [Unreleased]
 
+## [0.9.0] - 2026-09-17
+
+- Added: any check can now be silenced from the automatic commit-time
+  gate on its own, via `enabled = false` in that check's own
+  `claims.toml` section — alongside the existing plugin-wide `[hook]
+  enabled = false`, not instead of it. `python3 -m claims.cli` and the
+  `check-claims` skill are unaffected either way; both keep showing that
+  check's findings on demand.
+
 ## [0.8.0] - 2026-09-17
 
 - Added: `stale-claims` now accepts its own `exclude` glob-list key

@@ -83,6 +83,18 @@ enabled = false
 True)`) before running anything — with it `false`, `git commit` is never
 gated by this plugin, though the skill still works on demand.
 
+To silence just *one* check at commit time instead of every check, add
+`enabled = false` to that check's own section instead:
+
+```toml
+[stale-claims]
+enabled = false
+```
+
+Only this commit-time decision is affected, same as the plugin-wide flag
+above — `python3 -m claims.cli` and the skill still run and report that
+check's own findings on demand.
+
 ## `claims.toml`
 
 Optional, at the consuming project's repo root. No file at all means

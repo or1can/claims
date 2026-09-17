@@ -13,6 +13,10 @@ from it; there's nothing to configure for either.
 The plugin-wide `[hook] enabled = false` toggle (disable the automatic
 commit gate without uninstalling) isn't a check's own config — see
 `docs/installation.md`'s "Disabling the automatic hook" section instead.
+The same section also covers `enabled = false` inside any *one* check's
+own table (e.g. `[stale-claims]\nenabled = false`, ticket #44) — read
+only by the hook, not by that check itself, so it isn't listed again in
+that check's own key table below.
 
 In `claims.toml` specifically, a top-level table naming neither a
 registered check nor `[hook]` — a typo like `[executable_claims]`

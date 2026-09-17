@@ -68,6 +68,28 @@ class CliTests(RegistryClearingTestCase):
         self.assertEqual(code, 0)
         self.assertIn("a.md:1", output)
 
+    def test_a_per_check_enabled_false_has_no_effect_on_the_cli(self) -> None:
+        # `[somecheck]\nenabled = false` (ticket #44) is hook-scoped by
+        # design — read only by `claims/hook.py`'s own commit-time
+        # decision, never by `run()` itself, so the CLI (and the
+        # `check-claims` skill, which invokes this same entry point) must
+        # keep showing a "disabled" check's findings exactly as if the key
+        # weren't there at all.
+        register_check(
+            "failing-gate",
+            lambda repo_root, diff_range, config: [
+                Finding(file="a.md", line=1, message="bad", mode="failing-gate", gate=True)
+            ],
+        )
+        with tempfile.TemporaryDirectory() as repo_root:
+            (Path(repo_root) / "claims.toml").write_text(
+                "[failing-gate]\nenabled = false\n"
+            )
+            code, output = self._run_main(["--repo-root", repo_root])
+
+        self.assertEqual(code, 1)
+        self.assertIn("a.md:1", output)
+
     def test_repo_root_and_diff_range_reach_the_check_unchanged(self) -> None:
         seen = {}
 
