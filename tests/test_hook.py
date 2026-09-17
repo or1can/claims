@@ -167,6 +167,132 @@ class HookTests(RegistryClearingTestCase):
 
         self.assertEqual(output, {})
 
+    def test_a_per_check_enabled_false_silences_that_checks_gate_finding(self) -> None:
+        register_check(
+            "failing-gate",
+            lambda repo_root, diff_range, config: [
+                Finding(file="a.md", line=1, message="bad", mode="failing-gate", gate=True)
+            ],
+        )
+        with tempfile.TemporaryDirectory() as repo_root:
+            (Path(repo_root) / "claims.toml").write_text("[failing-gate]\nenabled = false\n")
+            output = self._run_main(repo_root)
+
+        self.assertEqual(output, {})
+
+    def test_a_per_check_enabled_false_silences_that_checks_advisory_finding(
+        self,
+    ) -> None:
+        register_check(
+            "advisory-check",
+            lambda repo_root, diff_range, config: [
+                Finding(file="a.md", line=1, message="fyi", mode="advisory-check", gate=False)
+            ],
+        )
+        with tempfile.TemporaryDirectory() as repo_root:
+            (Path(repo_root) / "claims.toml").write_text(
+                "[advisory-check]\nenabled = false\n"
+            )
+            output = self._run_main(repo_root)
+
+        self.assertEqual(output, {})
+
+    def test_a_per_check_enabled_false_does_not_affect_other_checks(self) -> None:
+        register_check(
+            "failing-gate",
+            lambda repo_root, diff_range, config: [
+                Finding(file="a.md", line=1, message="bad", mode="failing-gate", gate=True)
+            ],
+        )
+        register_check("clean-check", lambda repo_root, diff_range, config: [])
+        with tempfile.TemporaryDirectory() as repo_root:
+            (Path(repo_root) / "claims.toml").write_text("[clean-check]\nenabled = false\n")
+            output = self._run_main(repo_root)
+
+        self.assertEqual(output["hookSpecificOutput"]["permissionDecision"], "deny")
+
+    def test_a_per_check_enabled_false_silences_a_multi_mode_findings_own_suffix(
+        self,
+    ) -> None:
+        # Some checks report findings under a `{name}-suffix` mode rather
+        # than the bare registered name (`restatement`'s own `-ngram`/
+        # `-whole-line` split, `claim-words`'/`spliced-docs`'/
+        # `judgment-agent`'s own multi-mode splits) — a per-check
+        # `enabled` has to still catch these, not just an exact `mode ==
+        # name` match, or it would silently no-op for every check that
+        # happens to report more than one mode.
+        register_check(
+            "multi-mode-check",
+            lambda repo_root, diff_range, config: [
+                Finding(
+                    file="a.md",
+                    line=1,
+                    message="fyi",
+                    mode="multi-mode-check-some-suffix",
+                    gate=True,
+                )
+            ],
+        )
+        with tempfile.TemporaryDirectory() as repo_root:
+            (Path(repo_root) / "claims.toml").write_text(
+                "[multi-mode-check]\nenabled = false\n"
+            )
+            output = self._run_main(repo_root)
+
+        self.assertEqual(output, {})
+
+    def test_a_top_level_non_table_value_does_not_crash_the_hook(self) -> None:
+        # `claims.toml`'s own top level isn't guaranteed to be all tables —
+        # a bare `enabled = false` with no `[section]` around it at all is
+        # a real, valid TOML document whose value for that key is a plain
+        # bool, not a table. Crashing here would deny the hook *process*
+        # itself (no JSON at all on stdout, a non-blocking hook error),
+        # letting the commit land completely unchecked — worse than the
+        # correct outcome, a loud gate finding via the ticket-#21 gate on
+        # a top-level name naming no registered check.
+        register_check("any-check", lambda repo_root, diff_range, config: [])
+        with tempfile.TemporaryDirectory() as repo_root:
+            (Path(repo_root) / "claims.toml").write_text("enabled = false\n")
+            output = self._run_main(repo_root)
+
+        self.assertEqual(output["hookSpecificOutput"]["permissionDecision"], "deny")
+
+    def test_disabling_the_fixed_config_mode_name_does_not_silence_it(self) -> None:
+        # `"config"` is `_unrecognized_table_findings`'s own fixed `mode`
+        # (ticket #21) for a claims.toml table naming no registered check
+        # — `[config]\nenabled = false` must not silence that exact
+        # warning, including a warning about `[config]` itself being
+        # unrecognized, or this becomes a self-silencing escape hatch from
+        # the one whole-config safety net this plugin has.
+        register_check("any-check", lambda repo_root, diff_range, config: [])
+        with tempfile.TemporaryDirectory() as repo_root:
+            (Path(repo_root) / "claims.toml").write_text(
+                "[config]\nenabled = false\n[not-a-real-check]\nx = 1\n"
+            )
+            output = self._run_main(repo_root)
+
+        self.assertEqual(output["hookSpecificOutput"]["permissionDecision"], "deny")
+        reason = output["hookSpecificOutput"]["permissionDecisionReason"]
+        self.assertIn("not-a-real-check", reason)
+
+    def test_an_unregistered_name_does_not_wildcard_match_real_checks(self) -> None:
+        # `[check]\nenabled = false` must not silence `check-links`,
+        # `check-file-refs`, and every other real `check-*` check at once
+        # just because their own modes happen to start with `check-` too
+        # — only a name that's actually in the live registry may disable
+        # anything.
+        register_check(
+            "check-something",
+            lambda repo_root, diff_range, config: [
+                Finding(file="a.md", line=1, message="bad", mode="check-something", gate=True)
+            ],
+        )
+        with tempfile.TemporaryDirectory() as repo_root:
+            (Path(repo_root) / "claims.toml").write_text("[check]\nenabled = false\n")
+            output = self._run_main(repo_root)
+
+        self.assertEqual(output["hookSpecificOutput"]["permissionDecision"], "deny")
+
     def test_zero_checks_registered_denies_never_a_silent_clean_pass(self) -> None:
         with tempfile.TemporaryDirectory() as repo_root:
             output = self._run_main(repo_root)

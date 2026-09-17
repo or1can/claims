@@ -29,6 +29,18 @@ JSON to stdout: `permissionDecision: deny` with a human-readable reason on a
 gate finding, `additionalContext` for advisory-only findings, or `{}` when
 the command isn't a `git commit`, the hook is disabled, or there is nothing
 to report. See code.claude.com/docs/en/hooks for the contract this speaks.
+
+Besides the plugin-wide `[hook] enabled = false`, a single check can be
+silenced from this decision alone via its own `enabled = false`
+(`_disabled_checks`, ticket #44) — e.g. `[stale-claims]\nenabled = false`.
+Both flags only ever affect *this* commit-time decision: `python3 -m
+claims.cli` and the `check-claims` skill both call `run()` directly and
+never read `[hook]` or a check's own `enabled` key at all, so a check
+silenced here is still fully visible on demand through either of those.
+A check's own `enabled` key sitting alongside its other config (`exclude`,
+`module_reference_scope`, ...) isn't itself an unrecognized table (ticket
+#21's own gate) — it's a key inside an already-recognized table, a
+different, unrelated check.
 """
 
 from __future__ import annotations
@@ -36,6 +48,7 @@ from __future__ import annotations
 import json
 import shlex
 import sys
+from collections.abc import Mapping, Sequence
 from pathlib import Path
 from typing import TextIO
 
@@ -145,6 +158,59 @@ def _summarize(findings: tuple[Finding, ...]) -> str:
     return "\n".join(str(f) for f in findings)
 
 
+def _disabled_checks(
+    config: Mapping[str, object], registered: Sequence[str]
+) -> frozenset[str]:
+    """Every name in `registered` whose own `claims.toml` section reads
+    `enabled = false` (ticket #44) — hook-scoped, alongside the existing
+    plugin-wide `[hook] enabled`: this only silences that one check's own
+    findings from *this* commit-time decision, never from `python3 -m
+    claims.cli`/the `check-claims` skill, both of which call `run()`
+    directly and never consult either flag.
+
+    Restricted to `registered` (`RunResult.checks_run`, not `config`'s own
+    keys) for two reasons at once: a top-level `claims.toml` value isn't
+    guaranteed to even be a table (`config.py`'s own `_load_toml` return
+    type is a lie past the top level — a bare `enabled = false` with no
+    `[section]` at all is a real, unvalidated `bool`, not a `Mapping`,
+    and would otherwise crash this function, denying the hook process
+    itself and letting the commit land completely unchecked); and an
+    unrecognized name here — `"config"`, the fixed `mode`
+    `_unrecognized_table_findings` reports its own findings under, or any
+    other typo — must never silence anything, since `[config] enabled =
+    false` would otherwise silence the exact gate finding meant to warn
+    about a `claims.toml` mistake, including that very one (ticket #21).
+    """
+
+    return frozenset(
+        name
+        for name, section in config.items()
+        if name != "hook"
+        and name in registered
+        and isinstance(section, Mapping)
+        and not section.get("enabled", True)
+    )
+
+
+def _finding_check(finding: Finding, names: frozenset[str]) -> str | None:
+    """Which of `names` produced `finding`, or `None` if it isn't any of
+    them — `Finding.mode` is usually a check's own registered name, but a
+    check reporting more than one matching strategy (`restatement`'s own
+    `-ngram`/`-whole-line` split, and similarly for `claim-words`,
+    `spliced-docs`, `judgment-agent`) instead uses `{name}-suffix`, a
+    convention every current multi-mode check follows but nothing in
+    `Finding`'s own contract guarantees. Checked here, not by adding a
+    `check` field to `Finding` itself: that would need updating every
+    existing test asserting a hand-built `Finding(...)` against a real
+    check's own output, for one hook-local filter.
+    """
+
+    for name in names:
+        if finding.mode == name or finding.mode.startswith(f"{name}-"):
+            return name
+    return None
+
+
 def _deny(reason: str) -> dict[str, object]:
     return {
         "hookSpecificOutput": {
@@ -179,16 +245,21 @@ def decide(repo_root: Path, command: str) -> dict[str, object]:
     if not result.checks_run:
         return _deny("0 checked — no checks registered (failure, not a clean pass)")
 
-    gate_findings = tuple(f for f in result.findings if f.gate)
-    if gate_findings:
-        return _deny(_summarize(result.findings))
+    disabled = _disabled_checks(config, result.checks_run)
+    findings = tuple(
+        f for f in result.findings if _finding_check(f, disabled) is None
+    )
 
-    if result.findings:
+    gate_findings = tuple(f for f in findings if f.gate)
+    if gate_findings:
+        return _deny(_summarize(findings))
+
+    if findings:
         return {
             "hookSpecificOutput": {
                 "hookEventName": HOOK_EVENT_NAME,
                 "permissionDecision": "allow",
-                "additionalContext": _summarize(result.findings),
+                "additionalContext": _summarize(findings),
             }
         }
 
