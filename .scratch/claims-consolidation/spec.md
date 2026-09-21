@@ -160,7 +160,8 @@ map.md standing decision):
   it can't see enough history to answer honestly, rather than reporting a
   false clean pass.
 - `check-links` — **gate**. Every internal Markdown link and heading anchor
-  resolves.
+  resolves — against the working tree, or for a file the project lists as
+  `historical` (ticket #50), against the commit that wrote the line.
 - `check-file-refs` — **gate** (ticket #16). A bare, unmarked prose mention
   of a path (not real `[text](path)` link syntax, `check-links`' own job)
   whose trailing extension is in a recognized set resolves to a tracked

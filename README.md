@@ -40,7 +40,11 @@ an agent rather than deciding by itself:
   Swift comments, that cites a symbol this repo once declared but no longer
   has.
 - **check-links** (gate) — flags an internal Markdown link (to another
-  tracked file, or a `#anchor`) whose target or heading doesn't exist.
+  tracked file, or a `#anchor`) whose target or heading doesn't exist. A
+  project can name its append-only records (`historical` in `claims.toml`)
+  so a link there is instead held to the tree as of the commit that wrote
+  its line — see
+  [`docs/adr/0002-historical-links-resolve-at-their-own-commit.md`](docs/adr/0002-historical-links-resolve-at-their-own-commit.md).
 - **check-file-refs** (gate) — flags a bare, unmarked prose mention of a
   path (not real `[text](path)` link syntax — that's `check-links`' job)
   whose extension is in a recognized set and that doesn't resolve to a
