@@ -108,8 +108,10 @@ Three invocation surfaces, same underlying checks:
 ## What it isn't
 
 Not a paraphrase detector (`restatement` is verbatim-only by design), not a
-general prose linter, and not a push-time or CI check — it currently only
-gates `git commit`.
+general prose linter, and not automatically a push-time or CI check — the
+automatic gate only fires through Claude Code's own hook. See
+`docs/installation.md`'s "Using it outside Claude Code" section to wire the
+same checks into a plain git pre-commit hook or a CI job instead.
 
 ## Installing
 
