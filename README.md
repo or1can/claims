@@ -3,8 +3,10 @@
 [![CI](https://github.com/or1can/claims/actions/workflows/ci.yml/badge.svg)](https://github.com/or1can/claims/actions/workflows/ci.yml)
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
 
-A Claude Code plugin that checks documentation and agent-instruction claims
-against the code they actually describe. Most doc-integrity tools watch for
+A Claude Code plugin — the checks themselves also run standalone as a CLI,
+outside Claude Code entirely — that checks documentation and
+agent-instruction claims against the code they actually describe. Most
+doc-integrity tools watch for
 *drift* — a doc and code that agreed once, then diverged. This one is built
 for a different, more common failure: prose that was **wrong on arrival**,
 never true, no drift required (see `.scratch/claims-consolidation/doc-integrity-tooling.md`
@@ -87,7 +89,7 @@ a couple not), its default, and when to reach for it.
 
 ## Using it
 
-Three invocation surfaces, same underlying checks:
+Four invocation surfaces, same underlying checks:
 
 - **Automatically, on commit.** A `PreToolUse` hook fires on `git commit`
   and runs every check above; a gate finding blocks the commit, an advisory
@@ -104,14 +106,23 @@ Three invocation surfaces, same underlying checks:
   command a claim implies) and returns a verdict with cited evidence —
   never by pattern-matching the claim's own wording. Advisory only: like
   every check it feeds, it never blocks a commit.
+- **Outside Claude Code entirely, as a plain git pre-commit hook or a CI
+  step.** `claims.cli` is the same `run()` seam the automatic hook itself
+  calls, with the same exit code a shell script or CI job already expects
+  — see [`docs/installation.md`](docs/installation.md)'s "Using it outside
+  Claude Code" section for the setup (it needs a checkout of this repo,
+  not a pip install) and what's different without an LLM present:
+  `judgment-agent`'s own candidates are still computed and reported, but
+  never resolved into a verdict, and the skill's on-demand config review
+  doesn't run at all.
 
 ## What it isn't
 
 Not a paraphrase detector (`restatement` is verbatim-only by design), not a
 general prose linter, and not automatically a push-time or CI check — the
-automatic gate only fires through Claude Code's own hook. See
-`docs/installation.md`'s "Using it outside Claude Code" section to wire the
-same checks into a plain git pre-commit hook or a CI job instead.
+automatic gate only fires through Claude Code's own hook. See "Using it"
+above to wire the same checks into a plain git pre-commit hook or a CI job
+instead.
 
 ## Installing
 
@@ -120,7 +131,10 @@ Distributed as a direct git-URL Claude Code plugin — no marketplace listing
 change can't silently start gating a commit differently mid-project. The
 automatic hook can be disabled per project without uninstalling, via
 `[hook]\nenabled = false` in that project's `claims.toml`. See
-[`docs/installation.md`](docs/installation.md) for the actual commands.
+[`docs/installation.md`](docs/installation.md) for the actual commands —
+including "Using it outside Claude Code", the setup for running the same
+checks as a plain pre-commit hook or CI step (a repo checkout, not a plugin
+install or a pip install).
 See [`CHANGELOG.md`](CHANGELOG.md) for what changed in a given version,
 after a `claude plugin update`.
 
