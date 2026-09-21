@@ -3,16 +3,17 @@
 [![CI](https://github.com/or1can/claims/actions/workflows/ci.yml/badge.svg)](https://github.com/or1can/claims/actions/workflows/ci.yml)
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
 
-A Claude Code plugin — the checks themselves also run standalone as a CLI,
-outside Claude Code entirely — that checks documentation and
-agent-instruction claims against the code they actually describe. Most
-doc-integrity tools watch for
-*drift* — a doc and code that agreed once, then diverged. This one is built
+Most doc-integrity tools watch for
+*drift* — a doc and code that agreed once, then diverged. `claims` is built
 for a different, more common failure: prose that was **wrong on arrival**,
 never true, no drift required (see `.scratch/claims-consolidation/doc-integrity-tooling.md`
 §3 for the full argument). It verifies claims by executing against the
 artifact — running a command, resolving a symbol, walking git history —
 never by grepping for words that happen to appear near a claim.
+
+A Claude Code plugin — the checks themselves also run standalone as a CLI,
+outside Claude Code entirely — that checks documentation and
+agent-instruction claims against the code they actually describe.
 
 ## What it checks
 
