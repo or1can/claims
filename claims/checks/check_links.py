@@ -41,6 +41,28 @@ anything outside `[a-z0-9 _-]`, spaces to hyphens — no de-duplication for
 repeated identical headings, matching upstream's own scope. (Ticket 26: the
 source tool's `slugs_of` stripped underscores too, which GitHub's slugger
 does not; fixed here rather than ported as-is.)
+
+A file matched by the check's own `historical` glob list (ticket #50 —
+an append-only record like a changelog, whose shipped entries a project's
+rules forbid editing) gets one extra chance: a link that fails against the
+working tree is re-resolved against the tree at the commit `git blame`
+attributes its line to, and passes if it held there. The link was a true
+claim when written, and the record's job is to stay what it was — so a
+page rename elsewhere in the tree doesn't turn every old entry naming it
+into a gate finding nothing is allowed to fix. See ADR 0002 for the
+reasoning. Three consequences worth knowing:
+
+- An uncommitted line (blame's all-zero SHA, or a file not yet in `HEAD`
+  at all) is being written *now*, and resolves against the working tree
+  exactly like any other file — a changelog's Unreleased section stays
+  fully gated.
+- A line a later commit touched is re-attributed to that commit and must
+  hold as of it, so deliberately retargeting a historical link (if a
+  project ever chooses to) is self-consistent with the gate.
+- A line older than the commit that first added `claims.toml` — written
+  before this plugin gated anything — is skipped when it fails: it may have
+  been broken when written, and can't be fixed under the same rule now. No
+  tracked `claims.toml` means no cutoff, and every line is checked.
 """
 
 from __future__ import annotations
@@ -50,8 +72,20 @@ from collections.abc import Mapping
 from pathlib import Path
 from posixpath import dirname, join, normpath
 
-from ..config import exclude_patterns, path_matches
-from ..git import tracked_files
+from ..config import (
+    CONFIG_FILENAME,
+    exclude_patterns,
+    path_matches,
+    string_list_config,
+)
+from ..git import (
+    UNCOMMITTED,
+    blame_commits,
+    blob_text,
+    first_commit_adding,
+    is_ancestor,
+    tracked_files,
+)
 from ..runner import Finding, register_check
 
 NAME = "check-links"
@@ -146,12 +180,15 @@ def check(repo_root: Path, diff_range: str, config: Mapping[str, object]) -> lis
     slug_cache: dict[str, set[str] | None] = {}
     findings: list[Finding] = []
     exclude = exclude_patterns(config)
+    historical = string_list_config(config, "historical")
+    resolver = _HistoricalResolver(repo_root) if historical else None
     for rel in sorted(tracked_files(repo_root, "*.md")):
         if path_matches(rel, exclude):
             continue
         text = _read(repo_root / rel)
         if text is None:
             continue
+        file_resolver = resolver if path_matches(rel, historical) else None
         for line_no, line in enumerate(text.splitlines(), 1):
             for match in LINK_RE.finditer(line):
                 target = match.group(1).strip()
@@ -162,18 +199,83 @@ def check(repo_root: Path, diff_range: str, config: Mapping[str, object]) -> lis
                 if resolved not in slug_cache:
                     slug_cache[resolved] = _target_slugs(repo_root, repo_real, resolved)
                 slugs = slug_cache[resolved]
+                if slugs is not None and (not anchor or anchor in slugs):
+                    continue
+                where = ""
+                if file_resolver is not None:
+                    verdict = file_resolver.held_when_written(rel, line_no, resolved, anchor)
+                    if verdict is True:
+                        continue
+                    if isinstance(verdict, str):
+                        where = f", nor at {verdict[:7]} where this line was written"
                 if slugs is None:
-                    findings.append(_finding(rel, line_no, f"broken link: {target}"))
-                elif anchor and anchor not in slugs:
+                    message = f"broken link: {target}"
+                    if where:
+                        message += f" (not in the working tree{where})"
+                    findings.append(_finding(rel, line_no, message))
+                else:
                     findings.append(
                         _finding(
                             rel,
                             line_no,
                             f"broken anchor: {target} "
-                            f"({resolved} has no heading with that slug)",
+                            f"({resolved} has no heading with that slug{where})",
                         )
                     )
     return findings
+
+
+class _HistoricalResolver:
+    """Re-resolves a failed link against the commit that wrote its line.
+
+    Only consulted for a link that already failed against the working tree
+    — a link that resolves today is fine by any reading, and blaming a file
+    is the expensive part, so it's done lazily, once per file, and only for
+    a file that actually needs it.
+    """
+
+    def __init__(self, repo_root: Path) -> None:
+        self._repo_root = repo_root
+        self._adoption = first_commit_adding(repo_root, CONFIG_FILENAME)
+        self._blame: dict[str, list[str] | None] = {}
+        self._predates: dict[str, bool] = {}
+        self._slugs: dict[tuple[str, str], set[str] | None] = {}
+
+    def held_when_written(
+        self, rel: str, line_no: int, resolved: str, anchor: str
+    ) -> bool | str | None:
+        """`True` if the link held at the line's own commit, or that line
+        predates the plugin and is skipped; the commit's SHA if it didn't
+        hold there either; `None` for an uncommitted line, which has no
+        history to consult."""
+
+        if rel not in self._blame:
+            self._blame[rel] = blame_commits(self._repo_root, rel)
+        blame = self._blame[rel]
+        if blame is None or line_no > len(blame):
+            return None
+        commit = blame[line_no - 1]
+        if commit == UNCOMMITTED:
+            return None
+        if self._predates_adoption(commit):
+            return True
+        key = (commit, resolved)
+        if key not in self._slugs:
+            text = blob_text(self._repo_root, commit, resolved)
+            self._slugs[key] = None if text is None else _slugs_of(text)
+        slugs = self._slugs[key]
+        if slugs is not None and (not anchor or anchor in slugs):
+            return True
+        return commit
+
+    def _predates_adoption(self, commit: str) -> bool:
+        if self._adoption is None:
+            return False
+        if commit not in self._predates:
+            self._predates[commit] = commit != self._adoption and is_ancestor(
+                self._repo_root, commit, self._adoption
+            )
+        return self._predates[commit]
 
 
 register_check(NAME, check)

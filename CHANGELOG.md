@@ -11,6 +11,17 @@ reached you, not just that one was pushed upstream.
 
 ## [Unreleased]
 
+## [0.10.0] - 2026-09-21
+
+- Added: `check-links` accepts a `historical` glob list in `claims.toml`
+  for append-only records (a changelog, release notes, ADRs). A link in a
+  matching file that no longer resolves in the working tree passes if it
+  resolved at the commit that wrote its line, so a page those records
+  link to can be renamed or restructured without editing the record or
+  leaving stub headings behind. Uncommitted lines are unaffected, and a
+  line older than the commit that first added `claims.toml` is never
+  flagged. See `docs/adr/0002-historical-links-resolve-at-their-own-commit.md`.
+
 ## [0.9.0] - 2026-09-17
 
 - Added: any check can now be silenced from the automatic commit-time

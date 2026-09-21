@@ -173,3 +173,72 @@ def added_lines_by_file(repo_root: Path, diff_range: str) -> dict[str, set[int]]
                     added.setdefault(file_diff.dst, set()).add(line_no)
                 line_no += 1
     return added
+
+
+UNCOMMITTED = "0" * 40
+"""`git blame`'s own marker for a working-tree line no commit has yet."""
+
+_BLAME_HEADER_RE = re.compile(r"^([0-9a-f]{40}) \d+ \d+")
+
+
+def blame_commits(repo_root: Path, rel: str) -> list[str] | None:
+    """The commit each working-tree line of `rel` was last written in, in
+    line order — `UNCOMMITTED` for a line not yet in any commit (staged or
+    not). `None` when `rel` isn't in `HEAD` at all, which `git blame`
+    refuses to blame: an untracked or newly-added file is entirely
+    uncommitted, and the caller treats it that way.
+
+    Porcelain format: a `<sha> <orig-line> <final-line>[ <count>]` header
+    per line, metadata lines (`author ...`, `filename ...`) that never start
+    with forty hex digits and a space, and the content itself tab-prefixed
+    — so matching the header shape alone is unambiguous.
+    """
+
+    result = subprocess.run(
+        ["git", *QUOTEPATH_OFF, "-C", str(repo_root), "blame", "--porcelain", "--", rel],
+        capture_output=True,
+        text=True,
+        errors="replace",
+    )
+    if result.returncode != 0:
+        return None
+    return [
+        m.group(1)
+        for line in result.stdout.splitlines()
+        if (m := _BLAME_HEADER_RE.match(line))
+    ]
+
+
+def blob_text(repo_root: Path, commit: str, rel: str) -> str | None:
+    """`rel`'s content as of `commit`, or `None` if it had no such path."""
+
+    result = subprocess.run(
+        ["git", *QUOTEPATH_OFF, "-C", str(repo_root), "cat-file", "-p", f"{commit}:{rel}"],
+        capture_output=True,
+        text=True,
+        errors="replace",
+    )
+    return result.stdout if result.returncode == 0 else None
+
+
+def first_commit_adding(repo_root: Path, rel: str) -> str | None:
+    """The oldest commit that added `rel`, or `None` if none has."""
+
+    result = subprocess.run(
+        ["git", "-C", str(repo_root), "log", "--diff-filter=A", "--format=%H", "--", rel],
+        capture_output=True,
+        text=True,
+        errors="replace",
+    )
+    commits = result.stdout.split()
+    return commits[-1] if commits else None
+
+
+def is_ancestor(repo_root: Path, ancestor: str, descendant: str) -> bool:
+    """Whether `ancestor` is `descendant` or one of its ancestors."""
+
+    result = subprocess.run(
+        ["git", "-C", str(repo_root), "merge-base", "--is-ancestor", ancestor, descendant],
+        capture_output=True,
+    )
+    return result.returncode == 0

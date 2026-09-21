@@ -297,6 +297,164 @@ class CheckLinksTests(RegistryClearingTestCase):
         self.assertIn("escaped/leak.md", findings[0].message)
 
 
+
+class HistoricalFileTests(RegistryClearingTestCase):
+    """`[check-links] historical`: a link in an append-only record resolves
+    against the tree at the commit that wrote its line (ticket #50)."""
+
+    HISTORICAL = '[check-links]\nhistorical = ["CHANGELOG.md"]\n'
+
+    def setUp(self) -> None:
+        super().setUp()
+        register_check(NAME, check)
+
+    def _findings(self, repo_root: Path) -> list[Finding]:
+        return list(run(repo_root, "HEAD", load_config(repo_root)).findings)
+
+    def _write_untracked_config(self, repo: Repo) -> None:
+        (repo.root / "claims.toml").write_text(self.HISTORICAL)
+
+    def test_a_link_valid_when_its_line_was_written_passes_after_the_target_is_deleted(
+        self,
+    ) -> None:
+        with Repo() as repo:
+            repo.write("docs/OLD.md", "# Old Page\n")
+            repo.write("CHANGELOG.md", "- See [old](docs/OLD.md#old-page).\n")
+            repo.commit()
+            (repo.root / "docs" / "OLD.md").unlink()
+            repo.commit()
+            self._write_untracked_config(repo)
+
+            findings = self._findings(repo.root)
+
+        self.assertEqual(findings, [])
+
+    def test_an_anchor_valid_when_its_line_was_written_passes_after_the_heading_moves(
+        self,
+    ) -> None:
+        with Repo() as repo:
+            repo.write("docs/PAGE.md", "# Old Heading\n")
+            repo.write("CHANGELOG.md", "- See [it](docs/PAGE.md#old-heading).\n")
+            repo.commit()
+            repo.write("docs/PAGE.md", "# New Heading\n")
+            repo.commit()
+            self._write_untracked_config(repo)
+
+            findings = self._findings(repo.root)
+
+        self.assertEqual(findings, [])
+
+    def test_a_link_broken_when_its_line_was_written_is_still_flagged(self) -> None:
+        with Repo() as repo:
+            repo.write("CHANGELOG.md", "- See [gone](docs/NOPE.md).\n")
+            repo.commit()
+            self._write_untracked_config(repo)
+
+            findings = self._findings(repo.root)
+
+        self.assertEqual(len(findings), 1)
+        self.assertEqual(findings[0].citation, "CHANGELOG.md:1")
+        self.assertTrue(findings[0].gate)
+        self.assertIn("docs/NOPE.md", findings[0].message)
+
+    def test_a_link_that_resolves_today_passes_even_if_broken_when_written(
+        self,
+    ) -> None:
+        # A reader following it succeeds; nothing is broken by any reading.
+        with Repo() as repo:
+            repo.write("CHANGELOG.md", "- See [late](docs/LATE.md).\n")
+            repo.commit()
+            repo.write("docs/LATE.md", "# Late\n")
+            repo.commit()
+            self._write_untracked_config(repo)
+
+            findings = self._findings(repo.root)
+
+        self.assertEqual(findings, [])
+
+    def test_an_uncommitted_line_resolves_against_the_working_tree(self) -> None:
+        with Repo() as repo:
+            repo.write("CHANGELOG.md", "# Changelog\n")
+            repo.commit()
+            repo.write("CHANGELOG.md", "# Changelog\n- See [new](docs/NOPE.md).\n")
+            self._write_untracked_config(repo)
+
+            findings = self._findings(repo.root)
+
+        self.assertEqual(len(findings), 1)
+        self.assertEqual(findings[0].citation, "CHANGELOG.md:2")
+
+    def test_an_entirely_uncommitted_historical_file_resolves_against_the_working_tree(
+        self,
+    ) -> None:
+        with Repo() as repo:
+            repo.write("README.md", "# Readme\n")
+            repo.commit()
+            repo.write("CHANGELOG.md", "- See [new](docs/NOPE.md).\n")
+            self._write_untracked_config(repo)
+
+            findings = self._findings(repo.root)
+
+        self.assertEqual(len(findings), 1)
+        self.assertEqual(findings[0].citation, "CHANGELOG.md:1")
+
+    def test_a_line_rewritten_later_must_resolve_as_of_that_later_commit(self) -> None:
+        # Touching a historical line re-attributes it: the link now has to
+        # hold at the touching commit, which is what makes a deliberate
+        # retarget self-consistent with the gate.
+        with Repo() as repo:
+            repo.write("docs/OLD.md", "# Old Page\n")
+            repo.write("CHANGELOG.md", "- See [old](docs/OLD.md).\n")
+            repo.commit()
+            (repo.root / "docs" / "OLD.md").unlink()
+            repo.write("CHANGELOG.md", "- See [old page](docs/OLD.md).\n")
+            repo.commit()
+            self._write_untracked_config(repo)
+
+            findings = self._findings(repo.root)
+
+        self.assertEqual(len(findings), 1)
+        self.assertEqual(findings[0].citation, "CHANGELOG.md:1")
+
+    def test_a_line_older_than_the_commit_adopting_the_plugin_is_skipped(self) -> None:
+        # Never gated when written, so it may have been broken then and can't
+        # be fixed under the same append-only rule now.
+        with Repo() as repo:
+            repo.write("CHANGELOG.md", "- See [gone](docs/NOPE.md).\n")
+            repo.commit()
+            repo.write("claims.toml", self.HISTORICAL)
+            repo.commit()
+
+            findings = self._findings(repo.root)
+
+        self.assertEqual(findings, [])
+
+    def test_a_line_written_after_adopting_the_plugin_is_checked(self) -> None:
+        with Repo() as repo:
+            repo.write("claims.toml", self.HISTORICAL)
+            repo.commit()
+            repo.write("CHANGELOG.md", "- See [gone](docs/NOPE.md).\n")
+            repo.commit()
+
+            findings = self._findings(repo.root)
+
+        self.assertEqual(len(findings), 1)
+        self.assertEqual(findings[0].citation, "CHANGELOG.md:1")
+
+    def test_a_non_historical_file_is_unaffected(self) -> None:
+        with Repo() as repo:
+            repo.write("docs/OLD.md", "# Old Page\n")
+            repo.write("README.md", "See [old](docs/OLD.md).\n")
+            repo.commit()
+            (repo.root / "docs" / "OLD.md").unlink()
+            repo.commit()
+            self._write_untracked_config(repo)
+
+            findings = self._findings(repo.root)
+
+        self.assertEqual(len(findings), 1)
+        self.assertEqual(findings[0].citation, "README.md:1")
+
 class CheckLinksCliTests(RegistryClearingTestCase):
     def setUp(self) -> None:
         super().setUp()
