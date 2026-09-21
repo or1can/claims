@@ -95,6 +95,63 @@ Only this commit-time decision is affected, same as the plugin-wide flag
 above — `python3 -m claims.cli` and the skill still run and report that
 check's own findings on demand.
 
+## Using it outside Claude Code
+
+The automatic gate above only fires through Claude Code's own `PreToolUse`
+hook — a human running `git commit` from a plain terminal, or a CI job,
+never triggers it at all; nothing here is a push-time or CI check by
+itself (see the top-level `README.md`'s own "What it isn't"). `claims.cli`
+is the same underlying runner (`claims/hook.py` and `claims/cli.py` both
+just call `claims/runner.py`'s `run()`), so it works equally well as a
+plain git pre-commit hook or a CI step — the same exit code (`0`/`1`) a
+shell script or CI job already expects.
+
+`claims` isn't pip-installable (`pyproject.toml`'s own `package = false`)
+and the Claude Code plugin cache it normally runs from
+(`CLAUDE_PLUGIN_ROOT`, set only by Claude Code itself when invoking the
+hook — see `claims/hooks.json`) is a per-user, undocumented install
+location that won't exist at all on a CI runner. Outside Claude Code, get
+a checkout of this repo some other way instead — a pinned clone step in
+CI, a git submodule, or a sibling checkout for a local pre-commit hook —
+and point `PYTHONPATH` at it directly:
+
+```sh
+# .git/hooks/pre-commit (executable)
+#!/bin/sh
+PYTHONPATH=/path/to/claims python3 -m claims.cli --repo-root .
+```
+
+```yaml
+# a CI job step, e.g. GitHub Actions
+- uses: actions/checkout@v4
+  with:
+    repository: or1can/claims
+    ref: <pinned tag or commit>
+    path: claims
+- run: PYTHONPATH=claims python3 -m claims.cli --repo-root .
+```
+
+**What's different from the full Claude Code experience:** every
+mechanical check still runs exactly as it does at commit time — the same
+`run()` seam, the same gate/advisory split, the same exit code. Two
+things don't, because both need an LLM to actually interpret what the
+mechanical half only sets up:
+
+- **`judgment-agent`'s own candidates never become verdicts.**
+  `claims/checks/judgment_agent.py` only ever computes the *candidate
+  list* — a diff-touched subject with a claim about it — and reports each
+  one as an advisory finding; the actual true/false judgment is a
+  separate step, the `claims:judgment-agent` subagent, that only the
+  `check-claims` skill invokes (`claims/skill/SKILL.md`). Run this way,
+  those candidates still show up in the output, but as raw, un-judged
+  data points to read yourself — nothing resolves them into an answer.
+- **The skill's own on-demand `claims.toml` review doesn't run at all.**
+  Whether a project's own config values (a stale `exclude` glob matching
+  nothing, say) are actually doing anything is reasoned prose the
+  `check-claims` skill produces on explicit ask — not a `Finding`, so it
+  was never part of `run()`'s own output to begin with, and nothing here
+  replaces it.
+
 ## `claims.toml`
 
 Optional, at the consuming project's repo root. No file at all means
