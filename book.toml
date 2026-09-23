@@ -1,0 +1,9 @@
+# The documentation site published at https://claims.apps.orican.eu by
+# .github/workflows/docs.yml. `src` is the repo's user-facing tree and
+# nothing else — architecture decision records live in `decisions/` and
+# agent process docs in `agents/`, neither of which is published, per
+# `decisions/0004-docs-is-the-user-facing-tree.md`.
+[book]
+title = "claims"
+description = "Checks documentation and agent-instruction claims against the code they describe, by executing against the artifact rather than matching words near a claim."
+src = "docs"

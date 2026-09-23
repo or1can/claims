@@ -1,0 +1,107 @@
+name: Docs
+
+# Builds the mdBook site from docs/ and, on push to main, publishes it to
+# GitHub Pages. Also link-checks docs/ on every run (build and deploy
+# alike) — mdbook-linkcheck, the mdBook ecosystem's own tool for this,
+# hasn't been released since 2022 and no longer parses current mdBook's
+# render context, so this runs lychee directly against the Markdown
+# sources instead: `--offline` skips the http(s) links docs/ also has (no
+# dependency on a third party's uptime), `--include-fragments` checks
+# `#anchor` targets too, and running it against the .md files rather than
+# the rendered HTML means a relative link out to something else in the
+# repo (../AGENTS.md, ../decisions/*, ...) is checked against what's
+# actually on disk rather than flagged just because docs/ is the only
+# tree this site publishes.
+#
+# Ported from or1can/ratect's workflow of the same name, minus its mermaid
+# and ANSI preprocessors: `claims` emits no colour and the site draws no
+# diagrams, so a plain fenced block is the whole requirement.
+#
+# Path-filtered so a pull request touching neither the documentation
+# sources nor the book itself never runs this.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - docs/**
+      - book.toml
+      - .github/workflows/docs.yml
+  pull_request:
+    branches: [main]
+    paths:
+      - docs/**
+      - book.toml
+      - .github/workflows/docs.yml
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: taiki-e/install-action@mdbook
+      - run: mdbook build
+      # Generated rather than a static file under docs/, so a page added
+      # to or removed from SUMMARY.md can't leave it stale.
+      # 404.html/print.html/toc.html are mdBook's own infrastructure pages
+      # (an error page, the whole-book duplicate-content print view, and
+      # the sidebar's iframe source respectively), not content — excluded
+      # so a crawler is never pointed at them.
+      - name: Generate sitemap.xml
+        run: |
+          base=https://claims.apps.orican.eu
+          {
+            echo '<?xml version="1.0" encoding="UTF-8"?>'
+            echo '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">'
+            for f in book/*.html; do
+              name=$(basename "$f")
+              case "$name" in
+                404.html|print.html|toc.html) continue ;;
+              esac
+              rel="$name"
+              [ "$name" = index.html ] && rel=""
+              echo "  <url><loc>$base/$rel</loc></url>"
+            done
+            echo '</urlset>'
+          } > book/sitemap.xml
+      - uses: lycheeverse/lychee-action@v2
+        with:
+          args: --offline --include-fragments --no-progress 'docs/**/*.md'
+      # mdBook writes book/.nojekyll (telling GitHub Pages' legacy
+      # branch-based build not to run Jekyll over the output) — v4+ of this
+      # action drops dotfiles from the artifact unless told to keep them.
+      - uses: actions/upload-pages-artifact@v5
+        with:
+          path: book
+          include-hidden-files: true
+
+  # A pull request only runs the `build` job above — this one publishes,
+  # and only for a push that landed on main.
+  deploy:
+    name: Deploy to GitHub Pages
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    concurrency:
+      group: pages
+      cancel-in-progress: false
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      # `enablement` defaults to `false`, so without it a repo that has
+      # never had Pages turned on stays that way and the deploy 404s
+      # looking up a Pages site.
+      - uses: actions/configure-pages@v6
+        with:
+          enablement: true
+      - id: deployment
+        uses: actions/deploy-pages@v5
