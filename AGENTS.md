@@ -217,10 +217,6 @@ so an agent running that skill may propose the wrong directory.
 
 `docs/` is the source root of the published documentation site
 (`book.toml`, built and deployed by `.github/workflows/docs.yml`). Writing
-a page there — a new one, or a change to an existing one — follows
-`agents/docs.md`, which states the editorial rules the site is held to:
-captured output or none at all, with provenance; show, then clarify what
-the capture cannot; present tense, with version numbers and tracker
-references belonging in `CHANGELOG.md`; a page links out for reasoning but
-never for the fact it states; a page in a reading path hands off to the
-next; and drift-tool-relative framing stays on the index page.
+a page there — a new one, or a change to an existing one — is the trigger
+for `agents/docs.md`, which states the editorial rules the site is held
+to. They are stated there and only there.

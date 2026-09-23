@@ -27,13 +27,22 @@ adding a page means adding it there too.
 
 ## Examples and captured output
 
-1. **Captured or absent.** A block showing what `claims` prints comes from
-   a real run against a checked-in example, produced by this repository's
-   own capture tooling — not typed, not hand-edited, not tidied up
-   afterwards. If there is no capture, the page says what the check does
-   and shows no output at all. Each block carries a one-line provenance
-   naming the command and the example it was run against, so a reader can
-   see where the text came from and the next editor knows what to re-run.
+1. **Captured or absent.** A block showing output comes from a real run —
+   not typed, not hand-edited, not tidied up afterwards — or the page
+   shows no output at all and says in prose what happens instead. Either
+   way the block carries a one-line provenance: the command, and what it
+   was run against, so a reader can see where the text came from and the
+   next editor knows what to re-run.
+
+   Where the output is a check's own findings, what it was run against is
+   a checked-in example and the run goes through the repository's capture
+   tooling, so that a test can re-run it and fail when the check's output
+   changes. Where no example can produce the output —
+   [`docs/installation.md`](../docs/installation.md)'s plugin inventory
+   comes from installing into a disposable project — the provenance names
+   what was actually done instead. That is the exception, not a second
+   equal option.
+
    There is no ANSI handling here and none is needed: `claims` emits no
    colour, so a plain fenced block is the whole requirement.
 2. **Show, then clarify.** Where the capture shows it, prose does not

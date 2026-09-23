@@ -44,27 +44,39 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
-      - uses: taiki-e/install-action@mdbook
+      # `@v2` rather than the `@mdbook` convenience tag: that tag moves and
+      # carries no version, so dependabot (which does watch this workflow)
+      # can neither pin nor bump it.
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: mdbook
       - run: mdbook build
       # Generated rather than a static file under docs/, so a page added
-      # to or removed from SUMMARY.md can't leave it stale.
+      # to or removed from SUMMARY.md can't leave it stale. A recursive
+      # walk rather than a `book/*.html` glob, so a page under a nested
+      # SUMMARY.md section is listed too — the glob would drop it silently,
+      # which is the staleness this step exists to prevent.
       # 404.html/print.html/toc.html are mdBook's own infrastructure pages
       # (an error page, the whole-book duplicate-content print view, and
       # the sidebar's iframe source respectively), not content — excluded
-      # so a crawler is never pointed at them.
+      # so a crawler is never pointed at them. They are matched at the book
+      # root only: mdBook writes no nested copy of any of the three, so a
+      # page a section happened to name `print.md` is content.
       - name: Generate sitemap.xml
         run: |
+          set -euo pipefail
           base=https://claims.apps.orican.eu
           {
             echo '<?xml version="1.0" encoding="UTF-8"?>'
             echo '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">'
-            for f in book/*.html; do
-              name=$(basename "$f")
-              case "$name" in
+            find book -name '*.html' | sed 's|^book/||' | sort | while read -r rel; do
+              case "$rel" in
                 404.html|print.html|toc.html) continue ;;
               esac
-              rel="$name"
-              [ "$name" = index.html ] && rel=""
+              # A directory's own index page is served as the directory.
+              case "$rel" in
+                index.html|*/index.html) rel="${rel%index.html}" ;;
+              esac
               echo "  <url><loc>$base/$rel</loc></url>"
             done
             echo '</urlset>'
