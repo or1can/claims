@@ -19,7 +19,7 @@ the report stays private while a fix is prepared.
 `claims` installs a `PreToolUse` hook that runs its full check suite
 against whatever repository it's installed into, and one of those checks
 (`executable-claims`) executes commands named in that repository's own
-`<!-- verify: -->` markers. As of `docs/adr/0001-executable-claims-deny-by-default.md`,
+`<!-- verify: -->` markers. As of `decisions/0001-executable-claims-deny-by-default.md`,
 a command only runs once it's been explicitly, locally granted in
 `claims.local.toml` (git-ignored, per-machine) — a repo's own committed
 `claims.toml` can no longer authorize execution by itself, and a

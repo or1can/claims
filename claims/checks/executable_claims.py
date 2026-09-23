@@ -165,7 +165,7 @@ run a marker's command just by calling this check a different way. Grants
 are per-machine and match on the command's exact string, not a hash of the
 script it might invoke by path or a pattern over it: a one-character change
 to a previously-granted command is a new, ungranted command, not a variant
-of a trusted one — see `docs/adr/0001-executable-claims-deny-by-default.md`
+of a trusted one — see `decisions/0001-executable-claims-deny-by-default.md`
 for the residual gap this leaves (a granted command string can stay
 trusted while a script it invokes by path changes independently) and the
 directions deliberately deferred past this round.

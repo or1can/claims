@@ -112,7 +112,7 @@ explicit rather than implicit.
 **Triage of the first full run.** 8 checks ran; after the `executable-claims`
 fix above, 0 gate failures and 20 advisory findings, all from `stale-claims`.
 Every one is the same shape: a ticket's own `## Answer` section (or
-`spec.md`/`map.md`/`docs/agents/issue-tracker.md`) cites a source file that
+`spec.md`/`map.md`/`agents/issue-tracker.md`) cites a source file that
 picked up further commits after the section was last touched — exactly the
 check's own documented, named blind spot (`stale_claims.py`'s docstring:
 "a churn-ranked candidate list, not a verdict... a hot file makes an
@@ -132,7 +132,7 @@ legitimate hit in the sense the check's own docstring names, not a silently
 ignored one.
 
 One adjacent, already-known gap surfaced again while reading these (not new
-here, not fixed here): `docs/agents/issue-tracker.md`'s Wayfinding section
+here, not fixed here): `agents/issue-tracker.md`'s Wayfinding section
 is itself one of the 20 hits, and separately (per `TODO.md`, noticed twice
 already during tickets 15 and 19) describes a map-append convention that
 stopped applying once `spec.md` superseded the wayfinder phase. Still
