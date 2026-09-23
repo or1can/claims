@@ -35,7 +35,7 @@ an agent rather than deciding by itself:
   Beyond that, a command only runs once it's been explicitly, locally
   granted by exact string in `claims.local.toml` (git-ignored, per-machine
   — not committed config) — see
-  [`docs/adr/0001-executable-claims-deny-by-default.md`](docs/adr/0001-executable-claims-deny-by-default.md).
+  [`decisions/0001-executable-claims-deny-by-default.md`](decisions/0001-executable-claims-deny-by-default.md).
 - **check-citations** (gate) — flags a backticked name, in Markdown or
   Swift comments, that cites a symbol this repo once declared but no longer
   has.
@@ -44,7 +44,7 @@ an agent rather than deciding by itself:
   project can name its append-only records (`historical` in `claims.toml`)
   so a link there is instead held to the tree as of the commit that wrote
   its line — see
-  [`docs/adr/0002-historical-links-resolve-at-their-own-commit.md`](docs/adr/0002-historical-links-resolve-at-their-own-commit.md).
+  [`decisions/0002-historical-links-resolve-at-their-own-commit.md`](decisions/0002-historical-links-resolve-at-their-own-commit.md).
 - **check-file-refs** (gate) — flags a bare, unmarked prose mention of a
   path (not real `[text](path)` link syntax — that's `check-links`' job)
   whose extension is in a recognized set and that doesn't resolve to a
@@ -64,7 +64,7 @@ an agent rather than deciding by itself:
   list the flag. `claims`' second execution-capable check alongside
   `executable-claims`, sharing its deny-by-default local-grant mechanism
   (`claims.local.toml`) — see
-  [`docs/adr/0001-executable-claims-deny-by-default.md`](docs/adr/0001-executable-claims-deny-by-default.md).
+  [`decisions/0001-executable-claims-deny-by-default.md`](decisions/0001-executable-claims-deny-by-default.md).
 - **stale-claims** (advisory) — ranks prose sections by how much the code
   they name has changed since the section was last touched; a churn-ranked
   candidate list, not a verdict.

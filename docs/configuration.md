@@ -59,7 +59,7 @@ parse it, so it fails closed rather than risk a disguised file write
 (ticket #30).
 
 Clearing the blocklist and `permitted_prefixes` still isn't enough to run:
-since `docs/adr/0001-executable-claims-deny-by-default.md`, a command also
+since `decisions/0001-executable-claims-deny-by-default.md`, a command also
 needs an exact-string grant in a second, **git-ignored, per-machine** file,
 `claims.local.toml` (not `claims.toml` — this is deliberately not a
 committed, PR-tamperable trust boundary), sibling to `claims.toml` at the
@@ -111,7 +111,7 @@ historical = ["CHANGELOG.md", "RELEASES.md", "decisions/*.md"]
 | Key | Shape | Default | Reach for this when |
 | --- | --- | --- | --- |
 | `exclude` | list of glob strings (bare string → one-element list) | `[]` — nothing excluded | A file's internal links/anchors shouldn't be validated — e.g. a tutorial whose example deliberately links to a heading that doesn't exist yet. |
-| `historical` | list of glob strings (bare string → one-element list) | `[]` — every link resolves against the working tree | A file is an append-only record (a changelog, release notes, ADRs) whose shipped entries your own rules forbid editing, and you still want to be able to rename or restructure the pages they link to. A link in a matching file that fails against the working tree is re-resolved against the tree at the commit `git blame` attributes its line to, and passes if it held there — the record stays what it was, without leaving stub headings behind at every old destination. Uncommitted lines (a changelog's Unreleased section) still resolve against the working tree, so the live part stays fully gated; a line a later commit touched must hold as of that commit; and a line older than the commit that first added `claims.toml` is skipped when it fails, since it was written before anything gated it. See [ADR 0002](adr/0002-historical-links-resolve-at-their-own-commit.md). |
+| `historical` | list of glob strings (bare string → one-element list) | `[]` — every link resolves against the working tree | A file is an append-only record (a changelog, release notes, ADRs) whose shipped entries your own rules forbid editing, and you still want to be able to rename or restructure the pages they link to. A link in a matching file that fails against the working tree is re-resolved against the tree at the commit `git blame` attributes its line to, and passes if it held there — the record stays what it was, without leaving stub headings behind at every old destination. Uncommitted lines (a changelog's Unreleased section) still resolve against the working tree, so the live part stays fully gated; a line a later commit touched must hold as of that commit; and a line older than the commit that first added `claims.toml` is skipped when it fails, since it was written before anything gated it. See [ADR 0002](../decisions/0002-historical-links-resolve-at-their-own-commit.md). |
 
 ## `check-file-refs`
 
@@ -208,7 +208,7 @@ keyed under a different table name.
 
 ```toml
 [claim-words]
-files = ["docs/adr/*.md", "CONTEXT.md"]
+files = ["decisions/*.md", "CONTEXT.md"]
 ```
 
 | Key | Shape | Default | Reach for this when |

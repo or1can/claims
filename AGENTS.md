@@ -144,6 +144,14 @@ exists to remove. One or two bullet points, from a consuming project's
 own point of view (what they'd notice), not an implementation narrative
 — the commit message and PR already carry that.
 
+A released `CHANGELOG.md` section is append-only in its prose and only in
+its prose: never reword a shipped entry, but do retarget a pointer in one
+when the file it names moves. A moved path left unretargeted is a dead
+pointer for every reader of that entry, and `check-file-refs` resolves
+against the working tree, so it gates on the move rather than on the
+entry. Retarget in the same commit as the move — see
+`decisions/0004-docs-is-the-user-facing-tree.md`, which settled this.
+
 ### Shipping a change
 
 `main` is protected by a repository ruleset — no direct push lands there,
@@ -189,15 +197,18 @@ reasoning about one.
 
 ### Issue tracker
 
-Issues tracked as GitHub issues. See `docs/agents/issue-tracker.md`.
+Issues tracked as GitHub issues. See `agents/issue-tracker.md`.
 
 ### Triage labels
 
-Five canonical roles, label string equal to name (`needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`). See `docs/agents/triage-labels.md`.
+Five canonical roles, label string equal to name (`needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`). See `agents/triage-labels.md`.
 
 ### Domain docs
 
-Single-context layout — `docs/adr/` at repo root, plus a root `CONTEXT.md`
-added lazily if and when a cross-cutting term needs one. See
-`docs/agents/domain.md`, which says to proceed silently when either is
-absent rather than create it upfront.
+Single-context layout — ADRs in `decisions/` at the repo root, plus a
+root `CONTEXT.md` added lazily if and when a cross-cutting term needs
+one. See `agents/domain.md`, which says to proceed silently when either
+is absent rather than create it upfront. `decisions/`, not the
+`domain-modeling` skill's own `docs/adr/` default: `docs/` here holds
+user-facing pages only, per `decisions/0004-docs-is-the-user-facing-tree.md`,
+so an agent running that skill may propose the wrong directory.

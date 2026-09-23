@@ -148,7 +148,7 @@ just checked at the call site instead of inside that function, since
 `_repo_relative` only ever sees the stripped candidate string, not the
 source line or the match's own position. **Known, deliberate gap this
 also creates:** a genuinely broken *repo-root-anchored* mention written
-Markdown-link-style (`/docs/agents/nonexistent.md`, the same leading-`/`
+Markdown-link-style (`/agents/nonexistent.md`, the same leading-`/`
 convention `check-links` uses for its own destinations) is now silently
 skipped here too, rather than flagged — bare prose gives no reliable way
 to tell "this leading `/` means host-absolute" from "this leading `/`

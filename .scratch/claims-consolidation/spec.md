@@ -136,7 +136,7 @@ map.md standing decision):
   `permitted_prefixes` (ticket #11). Beyond the blocklist, a command only
   runs once explicitly granted by exact string in a second, git-ignored,
   per-machine file, `claims.local.toml` — deny by default otherwise
-  (ticket #15, `docs/adr/0001-executable-claims-deny-by-default.md`).
+  (ticket #15, `decisions/0001-executable-claims-deny-by-default.md`).
 - `stale-claims` — **advisory**. Churn-ranked candidate list; explicitly
   documented as blind to same-commit claim-and-code moves.
 - `restatement` — **advisory**. Merged from the two source tools into one

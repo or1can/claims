@@ -70,7 +70,7 @@ directory — a literal `Read repo/cache.py` from inside that cwd 404s, one
 directory too deep. Reworded the claims to `cache.py:4`, matching the cwd
 the harness actually sets; re-ran, both fixtures still pass. The review's
 second finding — that resolving this ticket should append a context
-pointer to `map.md`'s Decisions-so-far, per `docs/agents/issue-tracker.md`
+pointer to `map.md`'s Decisions-so-far, per `agents/issue-tracker.md`
 — was checked against actual practice and not applied: no implementation
 ticket since 06 touches `map.md` on resolve (that convention belongs to the
 5-ticket wayfinder phase, already superseded by `spec.md`), so doing it

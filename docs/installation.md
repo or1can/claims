@@ -167,4 +167,4 @@ under `claims/checks/` directly, if this page and the code ever disagree.
 `executable-claims` also reads a second, **git-ignored, per-machine** file,
 `claims.local.toml` — committed `claims.toml` can't be the trust boundary
 for what commands are allowed to actually run; see
-`docs/adr/0001-executable-claims-deny-by-default.md`.
+`decisions/0001-executable-claims-deny-by-default.md`.

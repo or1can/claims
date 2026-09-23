@@ -11,6 +11,14 @@ reached you, not just that one was pushed upstream.
 
 ## [Unreleased]
 
+## [0.10.1] - 2026-09-23
+
+- Changed: this plugin's own architecture decision records moved from
+  `docs/adr/` to `decisions/`, and its agent process docs from
+  `docs/agents/` to `agents/`. Nothing a consuming project configures or
+  runs changes; the paths only matter if you follow a pointer out of a
+  check's own docstring, this changelog, or the README into the repo.
+
 ## [0.10.0] - 2026-09-21
 
 - Added: `check-links` accepts a `historical` glob list in `claims.toml`
@@ -20,7 +28,7 @@ reached you, not just that one was pushed upstream.
   link to can be renamed or restructured without editing the record or
   leaving stub headings behind. Uncommitted lines are unaffected, and a
   line older than the commit that first added `claims.toml` is never
-  flagged. See `docs/adr/0002-historical-links-resolve-at-their-own-commit.md`.
+  flagged. See `decisions/0002-historical-links-resolve-at-their-own-commit.md`.
 
 ## [0.9.0] - 2026-09-17
 
@@ -138,7 +146,7 @@ reached you, not just that one was pushed upstream.
 - Changed: `executable-claims` now denies a marker's command by default,
   requiring an exact-string grant in a git-ignored, per-machine
   `claims.local.toml` before it will run. See
-  `docs/adr/0001-executable-claims-deny-by-default.md`.
+  `decisions/0001-executable-claims-deny-by-default.md`.
 
 ## [0.3.0] - 2026-09-14
 
