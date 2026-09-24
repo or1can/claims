@@ -17,18 +17,19 @@ on one line is reported once, at that line.
 A **declaration** is a Swift declaration: a line introducing a function,
 variable, constant, type, protocol, actor, type alias, enum case or
 initialiser, with any access and modifier keywords in front of it. The set
-of names ever declared comes from the full commit history of every tracked
-`.swift` file, including a declaration that only ever existed in a merge
-commit's own conflict resolution. The set declared now comes from the
+of names ever declared comes from the full commit history of every
+`.swift` file any commit touched, whether or not it is still tracked,
+including a declaration that only ever existed in a merge commit's own
+conflict resolution. The set declared now comes from the
 tracked `.swift` files as they stand, plus the name of any directory
-ending in `Tests`, since a test target is cited in prose like a symbol and
-declared nowhere. A name in the first set and not the second is gone, and
+ending in `Tests`, other than one named exactly that, since a test target
+is cited in prose like a symbol and declared nowhere. A name in the first set and not the second is gone, and
 a citation of it is a finding.
 
 Only Swift declarations are read. A name a Python, Rust or TypeScript file
 once declared is outside what the check can see, and a citation of it is
 never reported, which is a gap rather than a false positive. In a project
-with no tracked Swift file the check finds nothing.
+whose history holds no Swift file the check finds nothing.
 
 Citations are read from every tracked `.md` file, whole, and from the
 comment portion of every line of every tracked `.swift` file. The check is
@@ -51,8 +52,8 @@ a comment explaining a rename, is exempted by a `was:` marker: in Markdown,
 an HTML comment containing `was: name`; in Swift, a comment that is the
 marker and nothing else, `// was: name`. The marker covers citations of
 that name on its own line and on the next line, and no further. A wider
-scope was tried and silenced real dead citations along with the one it
-was meant to cover. The word `was:` in ordinary prose is not a marker,
+scope silences real dead citations along with the one it is meant to
+cover. The word `was:` in ordinary prose is not a marker,
 so a sentence such as "the old name was: `loadWidget`" still fires.
 
 ## Why it exists

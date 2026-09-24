@@ -59,8 +59,8 @@ The check is whole-tree, over every tracked `.md` file on every run.
 A path that is not meant to exist, a template such as
 `decisions/NNNN-slug.md` <!-- example --> or a hypothetical
 `plugins/extra.toml` <!-- example -->, is exempted by writing the HTML
-comment `example` immediately after it. Only a closing backtick and plain
-spaces or tabs may sit between the mention and the marker; the marker's
+comment `example` immediately after it. Only backticks and plain spaces or
+tabs may sit between the mention and the marker; the marker's
 own spelling is matched without regard to case or internal spacing. The
 marker binds to one mention. It is not a configuration entry, because a
 list in `claims.toml` has no structural link to the prose it exempts and
@@ -79,9 +79,9 @@ with no link syntax around it makes the same claim, that this file is
 here, and is at least as common, in a README's directory tour, a
 changelog's "moved to", an agent instruction file's "read `x/y.md` <!-- example -->
 first". Nothing read it. A citation-ranking check drops a path it cannot
-resolve as noise, which is right for ranking and wrong for a claim, and
-so the bare mention was the one shape of file reference that could be
-false forever without a finding.
+resolve as noise, which is right for ranking and wrong for a claim.
+Without this check, the bare mention is the one shape of file reference
+that can be false forever without a finding.
 
 ## Example
 
@@ -112,9 +112,11 @@ reports:
 The gate finding is the deploy script, named on the first line of prose
 and present nowhere in the tree. The build script, named on the same line,
 resolves and produces nothing. The release notes are a Markdown link,
-which this check leaves to check-links; the installer is a URL; the log
-file starts with `/`; the endpoint reference ends in `.0`; and the plugin
-settings file carries an example marker, so none of those is a candidate.
+which this check leaves to check-links; the installer is a URL; the
+defaults file starts with `/`; and the endpoint reference ends in `.0`,
+so none of those four is a candidate. The plugin settings file is a
+candidate, and would be a finding, but carries an example marker and is
+exempted.
 The advisory finding is the last line's marker, which follows a sentence
 rather than a path and so exempts nothing.
 

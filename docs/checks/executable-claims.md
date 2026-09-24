@@ -12,12 +12,13 @@ which is where the rest of this page spends most of its time.
 ## What it checks
 
 A marker is an HTML comment alone on its own line, and it is live when the
-next non-blank line opens a fenced block:
+next non-blank line opens a fenced block. The shape, with placeholders for
+the command and the block:
 
 ````markdown
-<!-- verify: npm test -->
+<!-- verify: the command -->
 ```
-Tests: 42 passed
+what the command prints
 ```
 ````
 
@@ -58,9 +59,8 @@ A marker's command passes three tests in order, and fails closed at the
 first it does not pass. A command that fails any of them never runs, and
 is reported as a gate finding naming the reason.
 
-1. The fixed blocklist: chaining, redirection, command substitution, and
-   piping through `sed`, `awk` or `grep`. It has no configuration and is
-   the same for every project; [Configuring
+1. The fixed blocklist, which has no configuration and is the same for
+   every project. [Configuring
    `claims`](../configuring.md#the-fixed-command-blocklist) lists it.
 2. `permitted_prefixes`, if the project set one. The command must start
    with one of the listed strings. This is the check's own key and is
@@ -73,12 +73,11 @@ is reported as a gate finding naming the reason.
    executes what prose names; this page does not repeat it.
 
 The first two tests decide whether a command is obviously unfit to run.
-Only the third decides whether anyone chose to run it, and that is why it
-cannot live in committed configuration: a branch checked out to review
-carries whatever `claims.toml` its author wrote, and the commit hook fires
-on the reviewer's next unrelated commit. The reasoning, and what was
-considered and set aside, is in [ADR
-0001](../../decisions/0001-executable-claims-deny-by-default.md).
+Only the third decides whether anyone chose to run it, which is why it
+lives in a file no pull request can change; the grant file section linked
+above says why committed configuration cannot carry that choice, and [ADR
+0001](../../decisions/0001-executable-claims-deny-by-default.md) records
+what was considered and set aside.
 
 ## Why it exists
 

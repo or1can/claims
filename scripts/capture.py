@@ -78,18 +78,21 @@ def capture(check: str) -> str:
     # stray editor or Finder file there would otherwise be committed
     # into the throwaway repository on one machine and not another.
     # (So a new example file is seen once it's `git add`ed.)
-    steps: dict[str, dict[str, str]] = {}
+    history: dict[str, dict[str, str]] = {}  # step name -> files
+    own: dict[str, str] = {}
     for rel in tracked_files(REPO_ROOT, example):
         parts = Path(rel).relative_to(example).parts
-        step, inner = ("", parts) if parts[0] != "history" else (parts[1], parts[2:])
-        steps.setdefault(step, {})[str(Path(*inner))] = (REPO_ROOT / rel).read_text(
-            encoding="utf-8"
-        )
+        text = (REPO_ROOT / rel).read_text(encoding="utf-8")
+        if parts[0] == "history":
+            history.setdefault(parts[1], {})[str(Path(*parts[2:]))] = text
+        else:
+            own[str(Path(*parts))] = text
     with Repo() as repo:
-        # `history/` steps in name order, then the example's own files
-        # (keyed `""`). One commit per step, an hour apart, still fixed.
-        for n, step in enumerate(sorted(steps, key=lambda s: (s == "", s))):
-            for name, text in steps[step].items():
+        # `history/` steps in name order, then the example's own files.
+        # One commit per step, an hour apart, still fixed.
+        commits = [*(history[step] for step in sorted(history)), own]
+        for n, files in enumerate(commits):
+            for name, text in files.items():
                 repo.write(name, text)
             repo.commit(when=COMMIT_TIME + 3600 * n)
         findings = module.check(repo.root, "HEAD", {})
