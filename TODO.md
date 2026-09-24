@@ -96,3 +96,14 @@
   affects a destination `check-links` already validates (another `.md`
   file or a bare `#anchor`), not `check_file_refs`' wider extension set.
   Not fixed here — #38 was scoped to `check_file_refs.py`'s own copy.
+- `docs/installation.md` is now served from the documentation site, and
+  breaks two of the editorial rules `agents/docs.md` states as it does: it
+  links out of `docs/` for facts rather than for reasoning (its opening
+  cites a `.scratch/` design note for why distribution works the way it
+  does, and it states several facts via `claims/hook.py`, `claims/cli.py`
+  and `pyproject.toml`), and as the reading path's last page it ends on a
+  pointer rather than a hand-off. Both predate the rules; making the page
+  self-contained is a rewrite, not a tidy-up, and the ticket that published
+  it was scoped to moving it in as-is. Its "See `docs/configuration.md`"
+  pointer lands a site reader on a page the site deliberately does not
+  publish — that one closes when the configuration page absorbs it.

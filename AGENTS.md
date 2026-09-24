@@ -212,3 +212,11 @@ is absent rather than create it upfront. `decisions/`, not the
 `domain-modeling` skill's own `docs/adr/` default: `docs/` here holds
 user-facing pages only, per `decisions/0004-docs-is-the-user-facing-tree.md`,
 so an agent running that skill may propose the wrong directory.
+
+### User documentation
+
+`docs/` is the source root of the published documentation site
+(`book.toml`, built and deployed by `.github/workflows/docs.yml`). Writing
+a page there — a new one, or a change to an existing one — is the trigger
+for `agents/docs.md`, which states the editorial rules the site is held
+to. They are stated there and only there.
