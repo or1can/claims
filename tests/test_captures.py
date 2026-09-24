@@ -46,6 +46,14 @@ class CaptureFreshnessTests(unittest.TestCase):
         # runs, and the citation of the removed name is a finding.
         self.assertIn("`loadWidget` no longer exists", capture("check-citations"))
 
+    def test_an_example_claims_toml_configures_the_check_it_is_captured_for(self) -> None:
+        # `check-config-defaults` sees nothing for a setting with no mapping
+        # entry, so its example carries the mapping in a `claims.toml` of
+        # its own; the capture reads that file's section for the check the
+        # way `runner.run` would, so the page can show the configuration
+        # that brings the claim into scope beside the finding it produces.
+        self.assertIn("`TIMEOUT` claims default `30`", capture("check-config-defaults"))
+
 
 if __name__ == "__main__":
     unittest.main()

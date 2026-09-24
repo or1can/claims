@@ -53,9 +53,11 @@ exclude = ["examples/*"]
 
 # `spliced-docs` reads only `*.rs` and `*.swift`, and has no `exclude`
 # key, so a Swift or Rust example under `examples/` can't be path-scoped
-# out. The only Swift in this tree is `check-citations`' worked example
-# (`examples/check-citations/history/`), so the check is switched off
-# rather than left to sweep that. Re-enable it if any Swift or Rust ever
-# lands outside `examples/`.
+# out. The only Swift and Rust in this tree are worked examples, and
+# `spliced-docs`' own (`examples/spliced-docs/`) is a splice by design
+# that the check would otherwise report on every commit, so the check is
+# switched off at commit time instead. The CLI and the skill still show
+# that finding. Re-enable it if any Swift or Rust ever lands outside
+# `examples/`.
 [spliced-docs]
 enabled = false

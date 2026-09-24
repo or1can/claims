@@ -1,0 +1,3 @@
+[check-config-defaults]
+STATION_NAME = "src/config.py:1"
+TIMEOUT = "src/config.py:2"

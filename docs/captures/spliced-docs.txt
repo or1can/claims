@@ -1,0 +1,3 @@
+# python3 scripts/capture.py: spliced-docs, run against a throwaway git repository seeded from examples/spliced-docs
+[advisory] src/project.rs:3 (spliced-docs-undocumented) stranded doc comment names `load_project`, undocumented in this file
+[advisory] Sources/Room.swift:4 (spliced-docs-undocumented) stranded doc comment names `canRestoreInPlace`, undocumented in this file

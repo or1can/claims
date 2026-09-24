@@ -1,0 +1,2 @@
+# python3 scripts/capture.py: check-config-defaults, run against a throwaway git repository seeded from examples/check-config-defaults
+[advisory] README.md:3 (check-config-defaults) `TIMEOUT` claims default `30`, but src/config.py:2 does not contain it — found: 'TIMEOUT = 60'

@@ -1,0 +1,4 @@
+STATION_NAME = "ai_radio"
+TIMEOUT = 60
+LOG_LEVEL = "info"
+RETRIES = 3
