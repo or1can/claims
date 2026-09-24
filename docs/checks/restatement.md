@@ -22,8 +22,9 @@ subtraction is per file, so an unrelated addition elsewhere in the diff
 cannot cancel a genuine retraction.
 
 Each line is reduced to its **words** before anything is compared: link
-syntax is replaced by its text, inline markup characters are dropped,
-letters are lowercased, and every other character becomes a space. A
+syntax is replaced by its text, inline markup characters become spaces,
+letters are lowercased, and every other character becomes a space too.
+A
 sentence that survives with different emphasis or a re-pointed link is
 the same sentence.
 
@@ -33,7 +34,7 @@ that fired:
 - `restatement-ngram` takes every run of six consecutive words the diff
   removed and did not add back, and reports a line anywhere in scope
   that still contains one. A line with several matching runs is reported
-  once, quoting the longest.
+  once, quoting the one with the most characters.
 - `restatement-whole-line` takes every removed line of at least ten
   words whose whole word sequence does not reappear in the file's added
   words, in order, across line breaks, and reports a line anywhere in
@@ -115,9 +116,8 @@ Run with that edit staged, the check reports:
 ```
 
 Both findings are the one surviving copy of the retracted sentence, in
-the setup page, once from each mode: the first quotes the longest
-six-word run the two lines share, the second quotes the whole line as
-words. The FAQ says the same thing and is not reported, because it says
+the setup page, once from each mode: the first quotes one six-word
+run the two lines share, the second quotes the whole line as words. The FAQ says the same thing and is not reported, because it says
 it in different words; that is the verbatim limit, and a reader who
 wants the FAQ found has to search for it. The banner was removed too,
 and survives in both the setup page and the FAQ, which is one file more
@@ -145,7 +145,7 @@ duplication_threshold = 3
 | --- | --- | --- | --- |
 | `exclude` | list of glob strings; a bare string is a one-element list | `[]`: nothing excluded | A file is expected to keep retracted prose on purpose: a release history that still describes a shipped release as it shipped, or a directory of inputs written to be broken, like this site's own examples. An excluded file contributes no removed lines from its own diff, and is dropped from the survivor sweep entirely, so it neither counts toward another file's duplication nor is reported for it. |
 | `extensions` | list of dotted suffixes; a bare string is a one-element list | the built-in set alone: `.md`, `.swift`, `.py`, `.sh`, `.yml` | The project has prose or source in a language the built-in set does not cover, `.rs` for a Rust project, and wants its retractions and its survivors read too. Entries are added to the built-in set, never substituted for it. |
-| `duplication_threshold` | integer; a boolean or a non-integer is a configuration error | `1` | Text is duplicated on purpose across more files than the default tolerates, a shared licence header or a generated banner, and each copy is reported every time one of the others changes. `0` reports every survivor, including the two-copy case the default keeps. |
+| `duplication_threshold` | integer; a boolean or a non-integer is a configuration error | `1` | Text is duplicated on purpose across more files than the default tolerates, a shared licence header or a generated banner, and each copy is reported every time one of the others changes. `0` reports nothing at all, since every survivor is in at least one file; the lowest useful value is the default. |
 
 `enabled`, which takes this check out of the commit gate while leaving it
 in the on-demand skill and the CLI, is shared by every check and covered

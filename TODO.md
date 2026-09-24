@@ -104,3 +104,6 @@
   and `pyproject.toml`). That predates the rules; making the page
   self-contained is a rewrite, not a tidy-up, and the ticket that published
   it was scoped to moving it in as-is.
+- `claim_words._files` is a private copy of `config.string_list_config`,
+  same coercion, same comment; noticed while documenting the check, left
+  because folding it in touches `claims/` for no consumer-visible change.

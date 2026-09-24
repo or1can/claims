@@ -85,6 +85,8 @@ class CaptureFreshnessTests(unittest.TestCase):
         # way `runner.run` would, so the page can show the configuration
         # that brings the claim into scope beside the finding it produces.
         self.assertIn("`TIMEOUT` claims default `30`", capture("check-config-defaults"))
+
+    def test_an_example_claims_toml_designates_the_files_a_diff_scoped_check_reads(self) -> None:
         # `claim-words` sweeps nothing until `files` names a file; its
         # example's `claims.toml` designates the record its own step
         # extends, and only the added sentences are read.

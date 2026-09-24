@@ -15,9 +15,10 @@ has not changed at all.
 ## What it checks
 
 A **section** is a heading and everything below it to the next heading,
-at any level, or the whole file when it has no heading. The section is
-the unit because a claim about a file is rarely one sentence, and the
-heading is what the finding names.
+at any level, or the whole file when it has no heading. In a file with
+headings, lines above the first belong to no section and are not
+ranked. The section is the unit because a claim about a file is rarely
+one sentence, and the heading is what the finding names.
 
 A **subject** is a tracked file the section names, in one of two shapes.
 An explicit relative path, a directory and a file name with an
@@ -53,8 +54,8 @@ claim to match a change to its subject, landed together, is therefore
 invisible here, and nothing else in the check compensates for it.
 
 The check is whole-tree, over every tracked `.md` file on every run, and
-runs no command. `CHANGELOG.md` is skipped by name in any directory,
-because a changelog entry describes a release as it shipped and its
+runs no command. A file named `CHANGELOG.md`, in any letter case and
+any directory, is skipped, because a changelog entry describes a release as it shipped and its
 subjects moving afterwards is expected.
 
 ## Why it exists
