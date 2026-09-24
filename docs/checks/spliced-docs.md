@@ -55,12 +55,7 @@ between, or, in Swift, attributes and blank lines.
 
 The check is whole-tree, and has no `exclude`: a splice can predate the
 commit being checked by years, and every tracked Swift and Rust file is
-read on every run. The only way to keep a file from being read is to take
-the check out of the commit gate altogether, and this repository does
-exactly that. Its only Swift and Rust are the worked examples under
-`examples/`, one of which is the splice on this page, so the check is
-switched off here at commit time rather than left to report its own
-example on every commit.
+read on every run.
 
 ## Why it exists
 
