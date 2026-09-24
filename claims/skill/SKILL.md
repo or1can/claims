@@ -180,8 +180,8 @@ happening.
    forward-looking choice (e.g. a project adding `.rs` to
    `restatement.extensions` before its first Rust file lands) — using the
    project's actual file layout and language mix as evidence, and
-   `docs/configuration.md`'s own "reach for this when" guidance for that
-   key as context for what the entry is supposed to accomplish. This is
+   that check's own module docstring under `claims/checks/` for what the
+   key is supposed to accomplish. This is
    the same evidence-citing standard `judgment-agent`'s subagent already
    holds itself to: a verdict with cited reasoning, never a bare
    pattern-match flag.

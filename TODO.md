@@ -101,9 +101,16 @@
   links out of `docs/` for facts rather than for reasoning (its opening
   cites a `.scratch/` design note for why distribution works the way it
   does, and it states several facts via `claims/hook.py`, `claims/cli.py`
-  and `pyproject.toml`), and as the reading path's last page it ends on a
-  pointer rather than a hand-off. Both predate the rules; making the page
+  and `pyproject.toml`). That predates the rules; making the page
   self-contained is a rewrite, not a tidy-up, and the ticket that published
-  it was scoped to moving it in as-is. Its "See `docs/configuration.md`"
-  pointer lands a site reader on a page the site deliberately does not
-  publish — that one closes when the configuration page absorbs it.
+  it was scoped to moving it in as-is.
+- The per-check `claims.toml` key tables (one section per check: an
+  example block, then a key/shape/default/reach-for-this-when table) came
+  off the site when the in-repo configuration page was dissolved in
+  favour of `docs/concepts.md` and `docs/configuring.md`. Each belongs on
+  that check's own page under `docs/`, none of which exist yet; until
+  then the check's module docstring is the only documentation of its
+  keys. The dissolved page's last revision is in git history, one commit
+  before `docs/configuring.md` first appears (`git log --diff-filter=A --
+  docs/configuring.md`), and is the starting point for each table rather
+  than the docstring.

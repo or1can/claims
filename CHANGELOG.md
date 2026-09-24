@@ -11,6 +11,18 @@ reached you, not just that one was pushed upstream.
 
 ## [Unreleased]
 
+## [0.10.2] - 2026-09-24
+
+- Changed: the documentation site gains a Concepts page (gate versus
+  advisory, mode, candidate versus verdict, designated and record-like
+  files, the retired-quote exemption) and a Configuring `claims` page
+  (the hook toggle, per-check `enabled`, the unrecognized-table gate,
+  the fixed command blocklist, and the `claims.local.toml` grant
+  mechanism). The former in-repo configuration page is gone; a check's
+  own `claims.toml` keys are documented in its module docstring under
+  `claims/checks/` until each check has a page of its own, and the
+  `check-claims` skill now points there too.
+
 ## [0.10.1] - 2026-09-23
 
 - Changed: this plugin's own architecture decision records moved from
@@ -52,7 +64,7 @@ reached you, not just that one was pushed upstream.
   immediately after a bare path mention — a template placeholder like
   `decisions/NNNN-slug.md`<!-- example --> or a fully hypothetical
   example — to declare it's not a real path, so it stops gating
-  identically to a broken reference. See `docs/configuration.md` for the
+  identically to a broken reference. See `claims/checks/check_file_refs.py` for the
   exact syntax. An annotation with nothing valid immediately before it is
   itself an advisory finding.
 

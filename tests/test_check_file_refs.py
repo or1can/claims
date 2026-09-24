@@ -261,7 +261,7 @@ class CheckFileRefsTests(RegistryClearingTestCase):
         self.assertEqual(findings, [])
 
     def test_a_known_untracked_glob_pattern_matches_a_real_file(self) -> None:
-        # `docs/configuration.md`'s own worked example (`*.local.toml`) is
+        # A `*.local.toml`-shaped entry is
         # a real glob, not a literal path — pin that `path_matches`' own
         # `fnmatch` semantics, not just literal-string equality, is what's
         # actually wired up.

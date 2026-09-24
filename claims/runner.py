@@ -97,8 +97,8 @@ def _crash_finding(name: str, exc: Exception) -> Finding:
 
 
 # `claims.toml`'s one legitimate top-level table that isn't a registered
-# check's own name — see `docs/installation.md`'s "Disabling the automatic
-# hook" section. Any other unrecognized table is a project's config
+# check's own name — see `docs/configuring.md`'s "Switching the commit hook
+# off" section. Any other unrecognized table is a project's config
 # silently doing nothing (ticket #21), not a second exception to add here.
 _KNOWN_NON_CHECK_TABLES = frozenset({"hook"})
 

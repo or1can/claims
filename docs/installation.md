@@ -68,36 +68,9 @@ fails the same way (`... is not installed at scope user`). Confirmed by
 running all three against a real `--scope project` install — only the
 full form above succeeds.
 
-## Disabling the automatic hook
-
-Installing always gets you the on-demand `check-claims` skill; if a project
-wants the automatic commit gate off without uninstalling the plugin
-entirely, add to that project's `claims.toml`:
-
-```toml
-[hook]
-enabled = false
-```
-
-`claims/hook.py` checks this key (`config.get("hook", {}).get("enabled",
-True)`) before running anything — with it `false`, `git commit` is never
-gated by this plugin, though the skill still works on demand.
-
-To silence just *one* check at commit time instead of every check, add
-`enabled = false` to that check's own section instead:
-
-```toml
-[stale-claims]
-enabled = false
-```
-
-Only this commit-time decision is affected, same as the plugin-wide flag
-above — `python3 -m claims.cli` and the skill still run and report that
-check's own findings on demand.
-
 ## Using it outside Claude Code
 
-The automatic gate above only fires through Claude Code's own `PreToolUse`
+The automatic gate only fires through Claude Code's own `PreToolUse`
 hook — a human running `git commit` from a plain terminal, or a CI job,
 never triggers it at all; nothing here is a push-time or CI check by
 itself (see the top-level `README.md`'s own "What it isn't"). `claims.cli`
@@ -160,11 +133,13 @@ its own defaults, defined in its own module under `claims/checks/` —
 nothing to configure to get started. Where present, each top-level table is
 one check's own config section, read by that check's name.
 
-See `docs/configuration.md` for every check's config keys, their defaults,
-and when to reach for each one — or that check's own module docstring
-under `claims/checks/` directly, if this page and the code ever disagree.
+A check's own keys are documented with that check. The settings no single
+check owns — switching the commit gate off, silencing one check at commit
+time, and the git-ignored `claims.local.toml` that governs what a check may
+execute — are on [Configuring `claims`](configuring.md).
 
-`executable-claims` also reads a second, **git-ignored, per-machine** file,
-`claims.local.toml` — committed `claims.toml` can't be the trust boundary
-for what commands are allowed to actually run; see
-`decisions/0001-executable-claims-deny-by-default.md`.
+## Next
+
+[Concepts](concepts.md) defines the vocabulary the rest of the site uses:
+gate versus advisory, mode, candidate versus verdict, and what makes a
+file record-like.
