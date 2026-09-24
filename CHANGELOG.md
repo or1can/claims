@@ -11,6 +11,13 @@ reached you, not just that one was pushed upstream.
 
 ## [Unreleased]
 
+## [0.10.3] - 2026-09-24
+
+- Fixed: `enabled = false` under `[check-config-defaults]` no longer
+  crashes the check. It read every key of its section as a setting
+  mapping, so the shared per-check switch was reported as a malformed
+  target instead of silencing the check at commit time.
+
 ## [0.10.2] - 2026-09-24
 
 - Changed: the documentation site gains a Concepts page (gate versus

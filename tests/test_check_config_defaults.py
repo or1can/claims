@@ -80,6 +80,23 @@ class CheckConfigDefaultsTests(RegistryClearingTestCase):
             findings = self._findings(repo.root)
         self.assertEqual(findings, [])
 
+    def test_the_shared_enabled_key_is_not_read_as_a_setting_mapping(self) -> None:
+        # `enabled = false` is the hook's own per-check switch, documented as
+        # shared by every check; here every other key of the section is a
+        # setting name, so this one must be set aside rather than parsed
+        # as a target and crashed on.
+        with Repo() as repo:
+            repo.write("src/config.py", "STATION_NAME = 'talk_radio'\n")
+            repo.write("README.md", "`STATION_NAME` defaults to `ai_radio`.\n")
+            repo.commit()
+            findings = self._findings_with_config(
+                repo.root,
+                '[check-config-defaults]\nenabled = false\n'
+                'STATION_NAME = "src/config.py:1"\n',
+            )
+        self.assertEqual(len(findings), 1)
+        self.assertIn("`STATION_NAME` claims default `ai_radio`", findings[0].message)
+
     def test_a_claim_without_both_backticks_is_not_detected(self) -> None:
         with Repo() as repo:
             repo.write("src/config.py", "STATION_NAME = 'ai_radio'\n")
