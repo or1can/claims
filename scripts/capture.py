@@ -41,7 +41,6 @@ lives under `scripts/`, not `tests/`, and isn't named `test_*.py`).
 from __future__ import annotations
 
 import importlib
-import shutil
 import sys
 from pathlib import Path
 
@@ -54,7 +53,7 @@ CAPTURES_DIR = REPO_ROOT / "docs" / "captures"
 # already use, with the same git isolation (fixed identity, no machine-wide
 # excludes file) — so a capture built here matches one built anywhere.
 sys.path[:0] = [str(REPO_ROOT), str(REPO_ROOT / "tests")]
-from claims.config import load_config  # noqa: E402
+from claims.git import tracked_files  # noqa: E402
 from support import Repo  # noqa: E402
 
 # Fixed rather than wall-clock, so a check that ranks by commit age sees
@@ -67,14 +66,23 @@ def capture(check: str) -> str:
     CLI prints them, headed by a one-line provenance note."""
 
     module = importlib.import_module(f"claims.checks.{check.replace('-', '_')}")
+    example = f"examples/{check}"
     with Repo() as repo:
-        shutil.copytree(EXAMPLES_DIR / check, repo.root, dirs_exist_ok=True)
+        # Only what git tracks, not the directory as it sits on disk — a
+        # stray editor or Finder file there would otherwise be committed
+        # into the throwaway repository on one machine and not another.
+        # (So a new example file is seen once it's `git add`ed.)
+        for rel in tracked_files(REPO_ROOT, example):
+            repo.write(
+                str(Path(rel).relative_to(example)),
+                (REPO_ROOT / rel).read_text(encoding="utf-8"),
+            )
         repo.commit(when=COMMIT_TIME)
-        # The example's own `claims.toml`, where it has one, is the check's
-        # configuration — the same section `runner.run` would hand it.
-        config = load_config(repo.root).get(check, {})
-        findings = module.check(repo.root, "HEAD", config)
-    lines = [f"# {check}, run against a throwaway git repository seeded from examples/{check}"]
+        findings = module.check(repo.root, "HEAD", {})
+    lines = [
+        f"# python3 scripts/capture.py: {check}, run against a throwaway git "
+        f"repository seeded from {example}"
+    ]
     lines.extend(str(finding) for finding in findings)
     return "\n".join(lines) + "\n"
 

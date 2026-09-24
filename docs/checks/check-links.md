@@ -36,8 +36,9 @@ the context to fix it.
 
 ## Example
 
-The example is two files. The first links to the second five times, plus
-an external URL and an image.
+The example is two files. The first links to the second three times, to
+a page that does not exist, and to its own title, and also carries an
+external URL and an image.
 
 `examples/check-links/README.md`:
 
@@ -85,12 +86,10 @@ A `historical` file's links get one more chance. A link that fails against
 the working tree is re-resolved against the tree at the commit that wrote
 its line, as `git blame` attributes it, and passes if it held there. The
 record's shipped entries stay what they were without leaving a stub
-heading behind at every old destination, and the finding for a link that
-held nowhere says so:
-
-```
-[GATE] CHANGELOG.md:40 (check-links) broken link: docs/old-page.md (not in the working tree, nor at 3f9c2a1 where this line was written)
-```
+heading behind at every old destination. A link that held nowhere is
+still a finding, and its message says both where it was tested: not in
+the working tree, nor at the commit where the line was written, named by
+its short hash.
 
 Three consequences follow, and all three are the same rule read
 consistently rather than special cases:
