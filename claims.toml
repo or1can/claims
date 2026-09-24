@@ -11,7 +11,7 @@
 # ADR 0004 — the pre-move `docs/adr/`, quoted deliberately to record what
 # the layout used to be.
 [check-file-refs]
-exclude = [".scratch/*", "decisions/*.md"]
+exclude = [".scratch/*", "decisions/*.md", "examples/*"]
 
 # `.claude/settings.local.json` is a real, deliberately gitignored,
 # per-machine file (ticket #33) — its own mention in `CHANGELOG.md`'s
@@ -25,4 +25,36 @@ known_untracked = [".claude/settings.local.json"]
 # name scripts (`claims/cli.py`, `restatement.py`, ...) from before this
 # project's own current layout, not real, currently-runnable commands.
 [check-cli-flags]
-exclude = [".scratch/*"]
+exclude = [".scratch/*", "examples/*"]
+
+# `examples/<check>/` holds each documentation page's worked example: an
+# input deliberately written to trip that check, so that `docs/captures/`
+# can show the real finding beside it (`scripts/capture.py`). Every check
+# that takes a path-scoped `exclude` gets one here rather than being
+# switched off, so the rest of the tree stays covered. `check-file-refs`
+# and `check-cli-flags` carry theirs above. Of the checks with no
+# `exclude`, `check-citations` and `judgment-agent` read no config at all,
+# and `claim-words` and `check-config-defaults` sweep only what a project
+# names, which `examples/` isn't.
+[check-links]
+exclude = ["examples/*"]
+
+[executable-claims]
+exclude = ["examples/*"]
+
+[stale-claims]
+exclude = ["examples/*"]
+
+[restatement]
+exclude = ["examples/*"]
+
+[check-env-vars]
+exclude = ["examples/*"]
+
+# `spliced-docs` reads only `*.rs` and `*.swift`, and has no `exclude`
+# key, so a Swift or Rust example under `examples/` can't be path-scoped
+# out. Nothing else in this repo is Swift or Rust, so the check sweeps
+# nothing here either way — switched off rather than left sweeping an
+# empty set. Re-enable it if any Swift or Rust ever lands in this tree.
+[spliced-docs]
+enabled = false

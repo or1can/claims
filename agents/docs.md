@@ -35,9 +35,12 @@ adding a page means adding it there too.
    next editor knows what to re-run.
 
    Where the output is a check's own findings, what it was run against is
-   a checked-in example and the run goes through the repository's capture
-   tooling, so that a test can re-run it and fail when the check's output
-   changes. Where no example can produce the output —
+   a checked-in example under `examples/<check>/`, and the run goes
+   through [`scripts/capture.py`](../scripts/capture.py), which writes
+   `docs/captures/<check>.txt` for the page to `{{#include}}` and which
+   [`tests/test_captures.py`](../tests/test_captures.py) re-runs, failing
+   when the committed text no longer matches. Where no example can
+   produce the output —
    [`docs/installation.md`](../docs/installation.md)'s plugin inventory
    comes from installing into a disposable project — the provenance names
    what was actually done instead. That is the exception, not a second

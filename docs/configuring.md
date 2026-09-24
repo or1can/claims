@@ -180,7 +180,8 @@ reasoning, and the directions deliberately deferred, are in [ADR
 
 ## Next
 
-Each check's own section of `claims.toml` is documented with the check,
-and the check's module docstring is where a key's exact shape and default
-live. The [Concepts](concepts.md) page is where to look up a word a check's
-description uses without defining it.
+Each check's own section of `claims.toml` is documented with the check.
+The check pages follow, gate checks first, and
+[check-links](checks/check-links.md) opens them. The [Concepts](concepts.md)
+page is where to look up a word a check's description uses without
+defining it.
