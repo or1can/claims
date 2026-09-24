@@ -32,7 +32,12 @@ longer has) gets that history authored here: each directory under the
 example's `history/`, in name order, is written over the repository and
 committed as one step before the example's own files are, so the page can
 show every step of the input as a checked-in file rather than describe
-commits only the script knows about.
+commits only the script knows about. A check that sees nothing until a
+project configures it (`check-config-defaults` verifies only a setting
+with a mapping entry) gets that configuration from the same example too:
+a `claims.toml` under `examples/<check>/` is committed with the example's
+own files and read through the same loader `runner.run` uses, so the page
+can include the file that brings its claim into scope.
 One check, not the whole CLI run: every other check sweeps the same tiny
 repository too, and at least one of them always has something to say about
 it (`executable-claims` gates a repository with no verify markers at all),
@@ -60,6 +65,7 @@ CAPTURES_DIR = REPO_ROOT / "docs" / "captures"
 # already use, with the same git isolation (fixed identity, no machine-wide
 # excludes file) — so a capture built here matches one built anywhere.
 sys.path[:0] = [str(REPO_ROOT), str(REPO_ROOT / "tests")]
+from claims.config import load_config  # noqa: E402
 from claims.git import tracked_files  # noqa: E402
 from support import Repo  # noqa: E402
 
@@ -95,7 +101,11 @@ def capture(check: str) -> str:
             for name, text in files.items():
                 repo.write(name, text)
             repo.commit(when=COMMIT_TIME + 3600 * n)
-        findings = module.check(repo.root, "HEAD", {})
+        # The example's own `claims.toml`, if it has one, read exactly as
+        # a real run reads a project's — `{}` for the check's section when
+        # there is no file, the same as a project with no config at all.
+        config = load_config(repo.root).get(check, {})
+        findings = module.check(repo.root, "HEAD", config)
     lines = [
         f"# python3 scripts/capture.py: {check}, run against a throwaway git "
         f"repository seeded from {example}"

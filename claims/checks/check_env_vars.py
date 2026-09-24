@@ -73,8 +73,9 @@ scope files to search, so this check produces nothing at all — the same
 opt-in-by-omission precedent `claim-words` already established. This is
 tracked by *how many scope files were found*, not by whether their
 concatenated text happens to be non-empty — a tracked but empty
-`.env.example` is one found scope file (inert, matching "nothing
-configured yet"), not the same case as truly zero scope files existing.
+`.env.example` is one found scope file, a scope that defines nothing, so
+every candidate is then a finding; not the same case as truly zero scope
+files existing.
 Sweeping all tracked source unconditionally when nothing is configured
 was considered and rejected: unlike `check-file-refs` (checking a
 self-contained, unambiguous path), matching a bare token against all

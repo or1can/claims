@@ -156,6 +156,6 @@ is gone, the example marker says so for that one mention.
 
 ## Next
 
-This is the last page. [Configuring `claims`](../configuring.md) holds the
-settings shared across checks, and [Concepts](../concepts.md) the
-vocabulary this page used without defining.
+That is the last of the gate checks. The advisory checks follow, and
+[check-config-defaults](check-config-defaults.md) opens them: a stated
+default value, held to the line of code that sets it.

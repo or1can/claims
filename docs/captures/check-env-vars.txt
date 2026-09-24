@@ -1,0 +1,2 @@
+# python3 scripts/capture.py: check-env-vars, run against a throwaway git repository seeded from examples/check-env-vars
+[advisory] README.md:4 (check-env-vars) `CACHE_TTL_SECONDS` is not defined or used anywhere in the configured scope

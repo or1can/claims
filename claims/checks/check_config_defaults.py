@@ -166,7 +166,15 @@ def _targets(config: Mapping[str, object]) -> dict[str, tuple[str, int, int]]:
     config mistake regardless of whether this run's tracked tree cites it.
     """
 
-    return {name: _parse_target(name, spec) for name, spec in config.items()}
+    # `enabled` is the hook's own per-check switch (see `hook.py`), shared
+    # by every check and documented as such — the one key of this section
+    # that is not a setting name, so it is set aside rather than parsed as
+    # a target and crashed on.
+    return {
+        name: _parse_target(name, spec)
+        for name, spec in config.items()
+        if name != "enabled"
+    }
 
 
 def _read_lines(path: Path) -> list[str] | None:
