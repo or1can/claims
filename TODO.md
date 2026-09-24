@@ -108,9 +108,10 @@
   example block, then a key/shape/default/reach-for-this-when table) came
   off the site when the in-repo configuration page was dissolved in
   favour of `docs/concepts.md` and `docs/configuring.md`. Each belongs on
-  that check's own page under `docs/`, none of which exist yet; until
-  then the check's module docstring is the only documentation of its
-  keys. The dissolved page's last revision is in git history, one commit
-  before `docs/configuring.md` first appears (`git log --diff-filter=A --
+  that check's own page under `docs/checks/`; `check-links` has one, the
+  other eleven do not yet, and until each does the check's module
+  docstring is the only documentation of its keys. The dissolved page's
+  last revision is in git history, one commit before `docs/configuring.md`
+  first appears (`git log --diff-filter=A --
   docs/configuring.md`), and is the starting point for each table rather
   than the docstring.
