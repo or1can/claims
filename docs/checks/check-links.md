@@ -129,6 +129,5 @@ is what `historical` is for.
 
 ## Next
 
-This is the last page. [Configuring `claims`](../configuring.md) holds the
-settings shared across checks, and [Concepts](../concepts.md) the
-vocabulary this page used without defining.
+[check-file-refs](check-file-refs.md), which holds a bare path mention in
+prose to the same standard this check holds a link.

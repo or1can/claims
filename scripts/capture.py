@@ -26,6 +26,13 @@ drift.
 at a fixed timestamp, and calls the named check through the same
 `(repo_root, diff_range, config) -> findings` seam every entry point and
 every check test calls, rendering each finding the way the CLI prints it.
+A check keyed on history rather than on the tree as it stands
+(`check-citations` flags a name the repository once declared and no
+longer has) gets that history authored here: each directory under the
+example's `history/`, in name order, is written over the repository and
+committed as one step before the example's own files are, so the page can
+show every step of the input as a checked-in file rather than describe
+commits only the script knows about.
 One check, not the whole CLI run: every other check sweeps the same tiny
 repository too, and at least one of them always has something to say about
 it (`executable-claims` gates a repository with no verify markers at all),
@@ -67,17 +74,27 @@ def capture(check: str) -> str:
 
     module = importlib.import_module(f"claims.checks.{check.replace('-', '_')}")
     example = f"examples/{check}"
+    # Only what git tracks, not the directory as it sits on disk — a
+    # stray editor or Finder file there would otherwise be committed
+    # into the throwaway repository on one machine and not another.
+    # (So a new example file is seen once it's `git add`ed.)
+    history: dict[str, dict[str, str]] = {}  # step name -> files
+    own: dict[str, str] = {}
+    for rel in tracked_files(REPO_ROOT, example):
+        parts = Path(rel).relative_to(example).parts
+        text = (REPO_ROOT / rel).read_text(encoding="utf-8")
+        if parts[0] == "history":
+            history.setdefault(parts[1], {})[str(Path(*parts[2:]))] = text
+        else:
+            own[str(Path(*parts))] = text
     with Repo() as repo:
-        # Only what git tracks, not the directory as it sits on disk — a
-        # stray editor or Finder file there would otherwise be committed
-        # into the throwaway repository on one machine and not another.
-        # (So a new example file is seen once it's `git add`ed.)
-        for rel in tracked_files(REPO_ROOT, example):
-            repo.write(
-                str(Path(rel).relative_to(example)),
-                (REPO_ROOT / rel).read_text(encoding="utf-8"),
-            )
-        repo.commit(when=COMMIT_TIME)
+        # `history/` steps in name order, then the example's own files.
+        # One commit per step, an hour apart, still fixed.
+        commits = [*(history[step] for step in sorted(history)), own]
+        for n, files in enumerate(commits):
+            for name, text in files.items():
+                repo.write(name, text)
+            repo.commit(when=COMMIT_TIME + 3600 * n)
         findings = module.check(repo.root, "HEAD", {})
     lines = [
         f"# python3 scripts/capture.py: {check}, run against a throwaway git "

@@ -39,7 +39,11 @@ adding a page means adding it there too.
    through [`scripts/capture.py`](../scripts/capture.py), which writes
    `docs/captures/<check>.txt` for the page to `{{#include}}` and which
    [`tests/test_captures.py`](../tests/test_captures.py) re-runs, failing
-   when the committed text no longer matches. Where no example can
+   when the committed text no longer matches. A check whose bait is
+   history rather than a tree gets its commits from the same example:
+   each directory under `examples/<check>/history/` is committed as one
+   step, in name order, before the example's own files, so every step
+   of the input is a checked-in file the page can include. Where no example can
    produce the output —
    [`docs/installation.md`](../docs/installation.md)'s plugin inventory
    comes from installing into a disposable project — the provenance names
