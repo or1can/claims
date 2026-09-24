@@ -53,8 +53,9 @@ exclude = ["examples/*"]
 
 # `spliced-docs` reads only `*.rs` and `*.swift`, and has no `exclude`
 # key, so a Swift or Rust example under `examples/` can't be path-scoped
-# out. Nothing else in this repo is Swift or Rust, so the check sweeps
-# nothing here either way — switched off rather than left sweeping an
-# empty set. Re-enable it if any Swift or Rust ever lands in this tree.
+# out. The only Swift in this tree is `check-citations`' worked example
+# (`examples/check-citations/history/`), so the check is switched off
+# rather than left to sweep that. Re-enable it if any Swift or Rust ever
+# lands outside `examples/`.
 [spliced-docs]
 enabled = false

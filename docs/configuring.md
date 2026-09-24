@@ -182,6 +182,6 @@ reasoning, and the directions deliberately deferred, are in [ADR
 
 Each check's own section of `claims.toml` is documented with the check.
 The check pages follow, gate checks first, and
-[check-links](checks/check-links.md) opens them. The [Concepts](concepts.md)
+[executable-claims](checks/executable-claims.md) opens them. The [Concepts](concepts.md)
 page is where to look up a word a check's description uses without
 defining it.

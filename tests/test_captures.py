@@ -38,6 +38,14 @@ class CaptureFreshnessTests(unittest.TestCase):
             with self.subTest(capture=path.name):
                 self.assertEqual(capture(path.stem), path.read_text(encoding="utf-8"))
 
+    def test_an_example_history_is_committed_step_by_step_before_its_own_files(self) -> None:
+        # `check-citations` flags a name the repository once declared and no
+        # longer has, which no static tree can show: the example's
+        # `history/` steps are committed in order first, so the declaring
+        # commit is behind the one that removed it by the time the check
+        # runs, and the citation of the removed name is a finding.
+        self.assertIn("`loadWidget` no longer exists", capture("check-citations"))
+
 
 if __name__ == "__main__":
     unittest.main()
