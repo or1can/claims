@@ -89,8 +89,9 @@ an agent rather than deciding by itself:
 A gate finding blocks the commit it's attached to; an advisory finding is
 surfaced but never fails the run. See each check's module docstring
 (`claims/checks/`) for what it does and, as importantly, what it misses —
-or `docs/configuration.md` for every `claims.toml` key mentioned above (and
-a couple not), its default, and when to reach for it.
+including every `claims.toml` key mentioned above (and a couple not), its
+default, and when to reach for it. `docs/configuring.md` covers the
+settings no single check owns.
 
 ## Using it
 
