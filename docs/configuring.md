@@ -23,6 +23,10 @@ A key whose value is a list accepts a bare string as a one-element list,
 so `exclude = "CHANGELOG.md"` and `exclude = ["CHANGELOG.md"]` mean the
 same thing. That holds for every list-valued key of every check.
 
+Two checks, `check-citations` and `judgment-agent`, read nothing from
+`claims.toml`. A section named for either is accepted and configures
+nothing.
+
 `claims.local.toml`, beside it, is git-ignored and per-machine. It holds
 the one kind of setting that must never arrive by pull request: the grants
 that let a check execute a command. The [grant file](#the-grant-file)
@@ -84,12 +88,15 @@ still grants nothing and reports nothing.
 
 Two checks execute a command a project's own prose names: `executable-claims`
 runs the command in a marker above a fenced block, and `check-cli-flags`
-runs a script with `--help`. Before either runs anything, the command is
-checked against a blocklist that has no configuration surface, because it
-holds for any project using the mechanism rather than for one project's own
-conventions.
+runs a script with `--help`. Before `executable-claims` runs anything, the
+marker's command is checked against a blocklist that has no configuration
+surface, because it holds for any project using the marker mechanism rather
+than for one project's own conventions. `check-cli-flags` has no such list,
+and needs none: the only command it ever runs is a script token drawn from
+path characters, followed by `--help`.
 
-A command is rejected, and reported without running, when it contains:
+A marker's command is rejected, and reported without running, when it
+contains:
 
 - a chaining or backgrounding operator: `;`, `&&`, `||`, `&`;
 - a redirect: `>`, `>>`, `<`, `<<`, which would let the command read or
@@ -117,9 +124,9 @@ documented with it.
 
 ## The grant file
 
-Passing the blocklist means a command is not obviously dangerous. It does
-not mean anyone chose to run it, and a committed file cannot carry that
-choice: a branch a maintainer checks out to review carries whatever
+A command that clears the checks above is not obviously dangerous. That
+does not mean anyone chose to run it, and a committed file cannot carry
+that choice: a branch a maintainer checks out to review carries whatever
 `claims.toml` the branch author wrote, and the hook fires on the
 maintainer's next unrelated commit. So before a command runs, it is looked
 up by exact string in `claims.local.toml`, under the running check's own

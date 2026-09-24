@@ -16,7 +16,7 @@ One thing a check found, cited to a `file:line`.
 _Avoid_: Error, warning, violation
 
 **Gate**:
-A finding severity that blocks the commit it is attached to.
+The finding severity that stops a commit.
 _Avoid_: Failure, blocker
 
 **Advisory**:
@@ -43,20 +43,19 @@ The code a claim names.
 _Avoid_: Target, reference
 
 **Candidate**:
-A claim a check has put in doubt without deciding it.
+A claim in doubt but not yet decided.
 _Avoid_: Suspect, hit
 
 **Verdict**:
-A decision that a claim is true or false, with the evidence that decided it.
+An evidenced decision that a claim is true or false.
 _Avoid_: Result
 
 **Record-like file**:
-A file whose sentences are assertions worth holding to account: a spec, an
-ADR, a changelog.
+A file whose sentences are assertions rather than asides: a spec, an ADR, a
+changelog.
 
 **Designated file**:
-A file a project has opted into a check's scope by listing it under that
-check's `files` key.
+A file a project has opted into a check's scope.
 _Avoid_: Configured file, included file
 
 **Retired quote**:
@@ -72,14 +71,12 @@ The typographic form that marks a sentence as a retired quote; which
 markers count is each check's own decision.
 
 **Verify marker**:
-The HTML comment above a fenced block naming the command whose output the
+The annotation above a fenced block naming the command whose output the
 block pins.
 
 **Grant**:
-An exact command string a machine's owner has listed as allowed or denied
-in `claims.local.toml`.
+An exact command string a machine's owner has allowed or denied.
 _Avoid_: Permission, allowlist entry
 
 **Execution-capable check**:
-A check that runs a command a project's own prose names, and so requires a
-grant first.
+A check that runs a command the project's own prose names.

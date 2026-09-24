@@ -101,8 +101,7 @@
   links out of `docs/` for facts rather than for reasoning (its opening
   cites a `.scratch/` design note for why distribution works the way it
   does, and it states several facts via `claims/hook.py`, `claims/cli.py`
-  and `pyproject.toml`), and as the reading path's last page it ends on a
-  pointer rather than a hand-off. Both predate the rules; making the page
+  and `pyproject.toml`). That predates the rules; making the page
   self-contained is a rewrite, not a tidy-up, and the ticket that published
   it was scoped to moving it in as-is.
 - The per-check `claims.toml` key tables (one section per check: an

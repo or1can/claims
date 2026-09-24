@@ -20,8 +20,8 @@ the plain CLI.
 ## Gate versus advisory
 
 A **gate** finding blocks the commit it is attached to. Through the hook,
-the `git commit` is denied with the finding as the reason; through the
-CLI, the run exits non-zero. A check is a gate when what it reports is a
+the `git commit` is denied, with every finding of the run as the reason;
+through the CLI, the run exits non-zero. A check is a gate when what it reports is a
 claim it has actually disproved: a link with no target, a cited symbol the
 repository no longer declares, a bare path mention that resolves to no
 tracked file, a command whose real output no longer matches the block
@@ -34,12 +34,13 @@ might be spliced. An advisory check can be certain of what it saw and still
 be advisory, because what it saw is a place to look rather than a claim
 proved false.
 
-Severity belongs to the check, not to the individual finding, with a small
-number of stated exceptions: a command that times out is reported advisory
-by an otherwise gate check, because a timeout is no answer rather than a
-wrong one; and a grant file that has been committed is reported as a gate
-by an otherwise advisory check, because that is a compromise indicator
-whatever the check's own severity. Each check states its own severity.
+Severity belongs to the check, not to the individual finding, and a check
+that departs from its own severity for one kind of finding says so. A
+command that times out is reported advisory by an otherwise gate check,
+because a timeout is no answer rather than a wrong one; a grant file that
+has been committed is reported as a gate by an otherwise advisory check,
+because that is a compromise indicator whatever the check's own severity.
+Each check states its own severity and its own exceptions.
 
 One gate finding belongs to no check at all: a top-level `claims.toml`
 table naming no check is reported under the fixed mode `config`.
