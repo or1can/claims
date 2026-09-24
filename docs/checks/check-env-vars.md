@@ -13,7 +13,8 @@ default, and it is the first thing to know about this check.
 
 A **candidate** is a backticked token in tracked Markdown shaped
 `ALL_CAPS_WITH_UNDERSCORES`: an uppercase letter first, then uppercase
-letters and digits, with at least one underscore. The underscore is what
+letters and digits in segments joined by single underscores, with at
+least one underscore. The underscore is what
 keeps a protocol acronym in backticks, `HTTP` or `TLS`, and an emphasised
 word such as `NOTE`, from being read as a variable. A name that is not
 backticked is never a candidate, however it is shaped. A candidate

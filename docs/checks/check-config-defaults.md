@@ -39,8 +39,9 @@ text of the mapped lines. The code side is not normalised at all: a claim
 of `ai_radio` matches a line reading `STATION_NAME = "ai_radio"` because
 the bare characters are there inside the quotes, not because either side
 was parsed. A mapped file that does not exist, or a range beyond the end
-of it, is reported as not containing the value, and the message says
-which.
+of it, is reported as not containing the value, with the message saying
+that nothing was found there rather than quoting a line; it does not say
+which of the two it was.
 
 The substring test cuts both ways, and the check accepts that rather than
 parse code. A claimed `30` passes against a line reading `TIMEOUT = 300`;

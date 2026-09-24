@@ -50,8 +50,8 @@ mode that fired:
 
 A comment whose declaration is documented and whose stranded half names
 nothing bare is not reported, whatever its breaks. A documented
-declaration is one whose `///` run sits immediately above it, with only
-attributes between.
+declaration is one whose `///` run sits above it with only attributes
+between, or, in Swift, attributes and blank lines.
 
 The check is whole-tree, and has no `exclude`: a splice can predate the
 commit being checked by years, and every tracked Swift and Rust file is
