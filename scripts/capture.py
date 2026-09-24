@@ -22,22 +22,31 @@ same `capture` function to assert the committed text still matches a
 fresh run. One code path for writing and for verifying, so the two cannot
 drift.
 
-`capture` builds a throwaway git repository from the example, commits it
-at a fixed timestamp, and calls the named check through the same
-`(repo_root, diff_range, config) -> findings` seam every entry point and
-every check test calls, rendering each finding the way the CLI prints it.
-A check keyed on history rather than on the tree as it stands
-(`check-citations` flags a name the repository once declared and no
-longer has) gets that history authored here: each directory under the
-example's `history/`, in name order, is written over the repository and
-committed as one step before the example's own files are, so the page can
-show every step of the input as a checked-in file rather than describe
-commits only the script knows about. A check that sees nothing until a
+`capture` builds a throwaway git repository from the example and calls
+the named check through the same `(repo_root, diff_range, config) ->
+findings` seam every entry point and every check test calls, rendering
+each finding the way the CLI prints it. The repository is built the way
+the commit hook meets one: whatever the example's `history/` holds is
+committed, one step per directory in name order, at fixed timestamps an
+hour apart; the example's own files are then written over that and
+staged, never committed, so they are the pending change `git commit` is
+about to land and the diff range `HEAD` (the hook's own, working tree
+against `HEAD`) is exactly that change. A whole-tree check reads the
+staged files like any tracked file and needs no history at all; a check
+keyed on history (`check-citations` flags a name the repository once
+declared and no longer has; `stale-claims` counts the commits a subject
+saw after a section's last touch, so its example is history alone) gets
+it from the committed steps; a diff-scoped check (`restatement` starts
+from a retracted line, `claim-words` reads added ones, `judgment-agent`
+computes what the diff touched) reads the staged files as the diff. Every
+step of the input is a checked-in file the page can include, rather than
+a commit only the script knows about. A check that sees nothing until a
 project configures it (`check-config-defaults` verifies only a setting
-with a mapping entry) gets that configuration from the same example too:
-a `claims.toml` under `examples/<check>/` is committed with the example's
-own files and read through the same loader `runner.run` uses, so the page
-can include the file that brings its claim into scope.
+with a mapping entry; `claim-words` sweeps only designated files) gets
+that configuration from the same example too: a `claims.toml` under
+`examples/<check>/` is staged with the example's own files and read
+through the same loader `runner.run` uses, so the page can include the
+file that brings its claim into scope.
 One check, not the whole CLI run: every other check sweeps the same tiny
 repository too, and at least one of them always has something to say about
 it (`executable-claims` gates a repository with no verify markers at all),
@@ -94,13 +103,15 @@ def capture(check: str) -> str:
         else:
             own[str(Path(*parts))] = text
     with Repo() as repo:
-        # `history/` steps in name order, then the example's own files.
-        # One commit per step, an hour apart, still fixed.
-        commits = [*(history[step] for step in sorted(history)), own]
-        for n, files in enumerate(commits):
-            for name, text in files.items():
+        # `history/` steps in name order, one commit per step, an hour
+        # apart, still fixed; then the example's own files, staged and
+        # left uncommitted as the change a commit hook would be gating.
+        for n, step in enumerate(sorted(history)):
+            for name, text in history[step].items():
                 repo.write(name, text)
             repo.commit(when=COMMIT_TIME + 3600 * n)
+        for name, text in own.items():
+            repo.write(name, text)
         # The example's own `claims.toml`, if it has one, read exactly as
         # a real run reads a project's — `{}` for the check's section when
         # there is no file, the same as a project with no config at all.

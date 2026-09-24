@@ -145,6 +145,5 @@ from being read as a break by a blank `///` line before it.
 
 ## Next
 
-This is the last page. The settings shared across checks are on
-[Configuring `claims`](../configuring.md), and the words this page used
-without defining are on [Concepts](../concepts.md).
+[claim-words](claim-words.md), which sweeps the sentences a diff adds
+to a project's designated record files for the words a claim is made of.
