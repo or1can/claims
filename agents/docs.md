@@ -39,15 +39,19 @@ adding a page means adding it there too.
    through [`scripts/capture.py`](../scripts/capture.py), which writes
    `docs/captures/<check>.txt` for the page to `{{#include}}` and which
    [`tests/test_captures.py`](../tests/test_captures.py) re-runs, failing
-   when the committed text no longer matches. A check whose bait is
-   history rather than a tree gets its commits from the same example:
-   each directory under `examples/<check>/history/` is committed as one
-   step, in name order, before the example's own files, so every step
-   of the input is a checked-in file the page can include. A check that
-   sees nothing until a project configures it gets that from the same
-   example too: a `claims.toml` under `examples/<check>/` is read for the
-   check's own section, so the page can include the configuration that
-   brings its claim into scope. Where no example can
+   when the committed text no longer matches. The throwaway repository
+   is built the way the commit hook meets one: each directory under
+   `examples/<check>/history/` is committed as one step, in name order,
+   at fixed timestamps, and the example's own files are then staged on
+   top without being committed, so they are the pending change a
+   diff-scoped check reads and a whole-tree check sees like any tracked
+   file. A check whose bait is history alone, `stale-claims`, has no own
+   files. Every step of the input is a checked-in file the page can
+   include. A check that sees nothing until a project configures it gets
+   that from the same example too: a `claims.toml` under
+   `examples/<check>/` is read for the check's own section, so the page
+   can include the configuration that brings its claim into scope. Where
+   no example can
    produce the output —
    [`docs/installation.md`](../docs/installation.md)'s plugin inventory
    comes from installing into a disposable project — the provenance names

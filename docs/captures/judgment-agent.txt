@@ -1,0 +1,4 @@
+# python3 scripts/capture.py: judgment-agent, run against a throwaway git repository seeded from examples/judgment-agent
+[advisory] CHANGELOG.md:3 (judgment-agent-removed) cites `fetchRecord`, removed by this diff — declared at Sources/Store.swift:2 (uncommitted working-tree change)
+[advisory] docs/ARCHITECTURE.md:3 (judgment-agent-removed) cites `fetchRecord`, removed by this diff — declared at Sources/Store.swift:2 (uncommitted working-tree change)
+[advisory] CHANGELOG.md:3 (judgment-agent-added) cites `readRecord`, added by this diff — declared at Sources/Store.swift:2 (uncommitted working-tree change)

@@ -104,15 +104,6 @@
   and `pyproject.toml`). That predates the rules; making the page
   self-contained is a rewrite, not a tidy-up, and the ticket that published
   it was scoped to moving it in as-is.
-- The per-check `claims.toml` key tables (one section per check: an
-  example block, then a key/shape/default/reach-for-this-when table) came
-  off the site when the in-repo configuration page was dissolved in
-  favour of `docs/concepts.md` and `docs/configuring.md`. Each belongs on
-  that check's own page under `docs/checks/`; the four gate checks and
-  four of the eight advisory checks have one, `stale-claims`,
-  `restatement`, `claim-words` and `judgment-agent` do not yet, and until
-  each does the check's module docstring is the only documentation of its keys. The dissolved page's
-  last revision is in git history, one commit before `docs/configuring.md`
-  first appears (`git log --diff-filter=A --
-  docs/configuring.md`), and is the starting point for each table rather
-  than the docstring.
+- `claim_words._files` is a private copy of `config.string_list_config`,
+  same coercion, same comment; noticed while documenting the check, left
+  because folding it in touches `claims/` for no consumer-visible change.

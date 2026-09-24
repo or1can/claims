@@ -18,4 +18,8 @@
 - [check-config-defaults](checks/check-config-defaults.md)
 - [check-env-vars](checks/check-env-vars.md)
 - [check-cli-flags](checks/check-cli-flags.md)
+- [stale-claims](checks/stale-claims.md)
+- [restatement](checks/restatement.md)
 - [spliced-docs](checks/spliced-docs.md)
+- [claim-words](checks/claim-words.md)
+- [judgment-agent](checks/judgment-agent.md)

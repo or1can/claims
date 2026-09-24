@@ -158,5 +158,5 @@ advisory finding rather than hiding it.
 
 ## Next
 
-[spliced-docs](spliced-docs.md), which reads Swift and Rust doc comments
-for one that an insertion has pushed onto the wrong declaration.
+[stale-claims](stale-claims.md), which ranks prose sections by how much
+the code they name has changed since the section was last edited.

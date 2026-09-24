@@ -1,0 +1,5 @@
+# python3 scripts/capture.py: claim-words, run against a throwaway git repository seeded from examples/claim-words
+[advisory] decisions/0001-one-cache.md:7 (claim-words-totalising) [claim-words-totalising] Every read goes through the cache, and nothing else touches the store.
+[advisory] decisions/0001-one-cache.md:9 (claim-words-counts) [claim-words-counts] The cache has three backends.
+[advisory] decisions/0001-one-cache.md:11 (claim-words-about-elsewhere) [claim-words-about-elsewhere] Without `evict`, the cache would grow until restart.
+[advisory] decisions/0001-one-cache.md:21 (claim-words-totalising) [claim-words-totalising] We used to say "every backend shares a single lock".

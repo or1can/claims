@@ -71,8 +71,8 @@ finding possible.
 ## Example
 
 The example is history, because no static tree can be missing a symbol
-it once had. The capture builds it as three commits. The first declares
-`loadWidget`:
+it once had. The capture builds it as two commits and a pending edit.
+The first commit declares `loadWidget`:
 
 `examples/check-citations/history/01-declares/Sources/Room.swift`:
 
@@ -89,8 +89,8 @@ name it removed:
 {{#include ../../examples/check-citations/history/02-renames/Sources/Room.swift}}
 ```
 
-The third adds a note that cites the old name twice, once as a live
-recommendation and once under a `was:` marker:
+The pending edit adds a note that cites the old name twice, once as a
+live recommendation and once under a `was:` marker:
 
 `examples/check-citations/docs/NOTES.md`:
 
@@ -98,7 +98,7 @@ recommendation and once under a `was:` marker:
 {{#include ../../examples/check-citations/docs/NOTES.md}}
 ```
 
-Run against that repository at its third commit, the check reports:
+Run with that note staged on top of the two commits, the check reports:
 
 ```
 {{#include ../captures/check-citations.txt}}

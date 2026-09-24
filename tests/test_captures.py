@@ -46,6 +46,38 @@ class CaptureFreshnessTests(unittest.TestCase):
         # runs, and the citation of the removed name is a finding.
         self.assertIn("`loadWidget` no longer exists", capture("check-citations"))
 
+    def test_an_example_with_only_history_ranks_by_fixed_commit_timestamps(self) -> None:
+        # `stale-claims` scores a section by the commits its subjects saw
+        # after the section's own last touch, read from blame and log
+        # timestamps, so its example is history alone and the steps are
+        # committed an hour apart at a fixed epoch. The capture ranks the
+        # section whose subject churned most first, on every machine.
+        text = capture("stale-claims")
+        self.assertLess(text.index("'Caching'"), text.index("'Storage'"))
+        self.assertNotIn("'Logging'", text)
+
+    def test_an_example_own_files_are_staged_as_the_pending_change(self) -> None:
+        # A diff-scoped check reads what a commit is about to change: the
+        # hook runs it against the working tree before `git commit`
+        # completes. The example's own files are written over the
+        # committed history and staged, never committed, so `restatement`
+        # sees the retracted sentence in its diff and reports the copy
+        # that survives.
+        text = capture("restatement")
+        self.assertIn("docs/setup.md:7 (restatement-whole-line)", text)
+        self.assertIn("docs/setup.md:7 (restatement-ngram)", text)
+        # The banner all three pages share is duplicated past the
+        # threshold and is not reported, in either file that keeps it.
+        self.assertNotIn("docs/faq.md", text)
+
+    def test_a_judgment_agent_candidate_names_the_pending_change_as_its_evidence(self) -> None:
+        # With the rename staged and uncommitted there is no commit to
+        # cite, and the candidate says so rather than naming nothing; that
+        # is also what keeps the capture free of a commit hash.
+        text = capture("judgment-agent")
+        self.assertIn("`fetchRecord`, removed by this diff", text)
+        self.assertIn("(uncommitted working-tree change)", text)
+
     def test_an_example_claims_toml_configures_the_check_it_is_captured_for(self) -> None:
         # `check-config-defaults` sees nothing for a setting with no mapping
         # entry, so its example carries the mapping in a `claims.toml` of
@@ -53,6 +85,15 @@ class CaptureFreshnessTests(unittest.TestCase):
         # way `runner.run` would, so the page can show the configuration
         # that brings the claim into scope beside the finding it produces.
         self.assertIn("`TIMEOUT` claims default `30`", capture("check-config-defaults"))
+
+    def test_an_example_claims_toml_designates_the_files_a_diff_scoped_check_reads(self) -> None:
+        # `claim-words` sweeps nothing until `files` names a file; its
+        # example's `claims.toml` designates the record its own step
+        # extends, and only the added sentences are read.
+        text = capture("claim-words")
+        self.assertIn("(claim-words-totalising)", text)
+        self.assertNotIn("Every request reads through the same cache", text)
+        self.assertNotIn("README.md", text)
 
 
 if __name__ == "__main__":
