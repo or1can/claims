@@ -142,4 +142,4 @@ execute — are on [Configuring `claims`](configuring.md).
 
 [Concepts](concepts.md) defines the vocabulary the rest of the site uses:
 gate versus advisory, mode, candidate versus verdict, and what makes a
-file record-like.
+claim live or dated.

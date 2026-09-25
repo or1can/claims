@@ -76,12 +76,12 @@ thing lands, and nothing about the sentence changes to say so. Both
 belong in a changelog, which is read as a record of a moment and is
 never expected to describe the present.
 
-That is also why this is a check of its own rather than a fourth mode of
+This is a check of its own rather than a fourth mode of
 [claim-words](claim-words.md). The two read sentences the same way and
-report the same way, but they want opposite file sets: a changelog and
-release notes are where a project's totalising sentences are worth
-holding to account and where its temporal wording is exactly correct.
-One `files` key cannot mean both.
+report the same way, but they want different file sets: a to-do list
+makes live claims worth holding to account, and its temporal wording is
+exactly correct, since it exists to say what is not done yet. One
+`files` key cannot mean both.
 
 ## Example
 
@@ -153,7 +153,7 @@ files = ["docs/*.md", "README.md"]
 
 | Key | Shape | Default | Reach for this when |
 | --- | --- | --- | --- |
-| `files` | list of glob strings; a bare string is a one-element list | `[]`: nothing is swept | Always, since the check reads nothing until this names a file. List the pages that describe what the software does now: a documentation site's own source, a README, a manual. Leave out the changelog, the release notes and anything else written as a record of a moment — that prose is dated on purpose. A file not listed is never read, whatever it says. |
+| `files` | list of glob strings; a bare string is a one-element list | `[]`: nothing is swept | Always, since the check reads nothing until this names a file. List the pages that describe what the software does now: a documentation site's own source, a README, a manual. Leave out the changelog, the release notes and anything else whose claims are dated: true at their writing and not meant to be re-read against today's tree. A file not listed is never read, whatever it says. |
 
 There is no `exclude`. `files` is the only scope the check has, and a
 file outside it is already excluded.
@@ -176,8 +176,9 @@ skip it, and that is the one place this check differs from
 [claim-words](claim-words.md).
 
 The [retired-quote exemption](../concepts.md#the-retired-quote-exemption)
-is decided per check against the prose that check reads. In a record-like
-file a `>` means "here is what we used to say". In the reference prose
+is decided per check against the prose that check reads. In a file of
+dated claims, such as a changelog, a `>` means "here is what we used to
+say". In the reference prose
 this check reads, a `>` is a callout: the claim the author wants read
 first, and a live one. The reasoning and the measurement behind dropping
 it are in [ADR

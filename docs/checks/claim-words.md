@@ -1,14 +1,15 @@
 # claim-words
 
-A sentence added to a file the project has designated as a record, that
-asserts something over a whole set, counts something in the tree, or
-reaches for code it is not itself showing. The check reads the sentences
-a diff added to those files and reports each one that is shaped like a
-claim: "every", "never", "three backends", "without `evict` this would
-grow". It cannot tell whether the claim is true, only that the sentence
-is making one, so every finding is advisory. And it reads nothing until
-the project has said which files count: with no `files` key the check is
-installed and inert, and that is the state every project starts in.
+A sentence added to a file the project has designated for its live
+claims, that asserts something over a whole set, counts something in the
+tree, or reaches for code it is not itself showing. The check reads the
+sentences a diff added to those files and reports each one that is
+shaped like a claim: "every", "never", "three backends", "without
+`evict` this would grow". It cannot tell whether the claim is true, only
+that the sentence is making one, so every finding is advisory. And it
+reads nothing until the project has said which files count: with no
+`files` key the check is installed and inert, and that is the state
+every project starts in.
 
 ## What it checks
 
@@ -56,26 +57,26 @@ its subject in backticks is the shape most worth handing to it.
 
 ## Why it exists
 
-A specification, a decision record or a changelog is where a project
-writes down what is true of the whole tree, and the sentences there are
-the ones that go wrong quietly: "every check gates" was true when the
-third check landed and false when the fourth did. No mechanical check
-can verify a sentence like that, and the alternative to a sweep for the
-words such sentences are made of is to never look at them at all. The
-sweep is confined to designated files because the same words in a
-tutorial are asides, and a check that reported every "always" in a
-README would be dismissed on its first run.
+A specification, a glossary or an agent instruction file is where a
+project writes down what is true of the whole tree, and the sentences
+there are the ones that go wrong quietly: "every check gates" was true
+when the third check landed and false when the fourth did. No
+mechanical check can verify a sentence like that, and the alternative to
+a sweep for the words such sentences are made of is to never look at
+them at all. The sweep is confined to designated files because the same
+words in a tutorial are asides, and a check that reported every
+"always" in a README would be dismissed on its first run.
 
 ## Example
 
-The example is a committed decision record, a `claims.toml` that
-designates it, and a pending edit that extends it. The record as
+The example is a committed specification, a `claims.toml` that
+designates it, and a pending edit that extends it. The specification as
 committed already holds a totalising sentence:
 
-`examples/claim-words/history/01-records/decisions/0001-one-cache.md`:
+`examples/claim-words/history/01-records/spec.md`:
 
 ```markdown
-{{#include ../../examples/claim-words/history/01-records/decisions/0001-one-cache.md}}
+{{#include ../../examples/claim-words/history/01-records/spec.md}}
 ```
 
 `examples/claim-words/claims.toml`:
@@ -90,10 +91,10 @@ under each of the three markers, and the same sentence quoted with no
 marker. It also adds a README, which the configuration does not
 designate:
 
-`examples/claim-words/decisions/0001-one-cache.md`:
+`examples/claim-words/spec.md`:
 
 ```markdown
-{{#include ../../examples/claim-words/decisions/0001-one-cache.md}}
+{{#include ../../examples/claim-words/spec.md}}
 ```
 
 `examples/claim-words/README.md`:
@@ -116,7 +117,7 @@ three marked copies of the retired sentence, the blockquote, the
 italics and the "Previously said:" lead-in, are skipped; the unmarked
 quotation of the same sentence is the fourth finding, because an
 unmarked quotation cannot be told from the claim still being made. The
-record's original sentence, "Every request reads through the same
+specification's original sentence, "Every request reads through the same
 cache", was not added by this edit and is not read. The README's
 "every" is in a file the configuration does not name, and is not read
 either.
@@ -133,12 +134,12 @@ one of the three markers if it is being quoted to say it was wrong.
 
 ```toml
 [claim-words]
-files = ["decisions/*.md", "CONTEXT.md"]
+files = ["spec.md", "CONTEXT.md", "AGENTS.md"]
 ```
 
 | Key | Shape | Default | Reach for this when |
 | --- | --- | --- | --- |
-| `files` | list of glob strings; a bare string is a one-element list | `[]`: nothing is swept | Always, since the check reads nothing until this names a file. List every file whose sentences are assertions about the tree and worth holding to account: specifications, decision records, a changelog, an agent instruction file. A file not listed is never read, whatever it says. |
+| `files` | list of glob strings; a bare string is a one-element list | `[]`: nothing is swept | Always, since the check reads nothing until this names a file. List every file whose sentences are claims you would want re-verified against the tree as it stands: a specification, a glossary, an agent instruction file, a README, a documentation site's own prose pages. In practice a changelog and a decision record fail that test — a changelog entry is dated at writing, and while a decision record's consequences are live, its motivation and counts are frozen at the decision's date and outnumber them. Designation is per file, so a file carrying both kinds is included on which kind predominates. A file not listed is never read, whatever it says. |
 
 There is no `exclude`. `files` is the only scope the check has, and a
 file outside it is already excluded.
@@ -157,12 +158,14 @@ three suppresses the sentence, and nothing else does.
 
 That is this check's own set, not a shared one. The [retired-quote
 exemption](../concepts.md#the-retired-quote-exemption) is decided per
-check against the prose that check reads, and a blockquote is
-unambiguous here because a record-like file quotes in order to retire.
-A `>` with no space after it is not a blockquote and not a marker. The
-reasoning for keeping
-the sets separate is in [ADR
-0003](../../decisions/0003-retirement-markers-are-scope-dependent.md).
+check against the prose that check reads, and this check honours the
+blockquote because narrowing an existing check's exemptions would break
+a project already relying on it. A `>` with no space after it is not a
+blockquote and not a marker. The reasoning for keeping the sets separate
+is in [ADR
+0003](../../decisions/0003-retirement-markers-are-scope-dependent.md),
+and for keeping this one whole in [ADR
+0005](../../decisions/0005-live-and-dated-claims.md).
 
 ## Next
 

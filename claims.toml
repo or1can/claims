@@ -88,8 +88,8 @@ enabled = false
 # `claim-words` is opt-in by omission — an empty `files` sweeps nothing —
 # so this section is what makes the check run on this repo at all (#55).
 # Each glob was chosen from what it was measured to find over `HEAD~1`,
-# `HEAD~5` and `HEAD~15` at 6b72e14 (9 / 20 / 132 findings), not from the
-# file looking record-like. Agent instructions and the site's prose pages
+# `HEAD~5` and `HEAD~15` at 6b72e14 (9 / 20 / 132 findings), not from
+# what kind of file it is. Agent instructions and the site's prose pages
 # earn their place on the counts and totalising claims they make about
 # this tree — "five canonical roles", "twelve checks", "read nothing from
 # `claims.toml`" — which is the class of sentence that rots the day a
@@ -99,15 +99,16 @@ enabled = false
 # Measured and deliberately absent — re-adding one wants new reasoning,
 # not just an edit here:
 #
-# - `decisions/*.md` and `CHANGELOG.md` are record-like by design, which
-#   is the opposite of what this check wants. An ADR's counts are frozen
-#   at the decision's date on purpose, and a shipped changelog entry is
-#   never reworded (`AGENTS.md`, "Versioning"); on #55's own measurement
-#   of a list built around them, over the same `HEAD~15`, they supplied
-#   77 of its 99 findings, essentially none actionable — a denominator
-#   from that list, not from the 132 above. Sweeping only an ADR's
-#   "Consequences" section, the part meant to stay true, would be the
-#   finer cut — the check can't key on document structure today.
+# - `decisions/*.md` and `CHANGELOG.md` are predominantly dated claims
+#   (`CONTEXT.md`), which is the opposite of what this check wants. An
+#   ADR's counts are frozen at the decision's date on purpose, and a
+#   shipped changelog entry is never reworded (`AGENTS.md`,
+#   "Versioning"); on #55's own measurement of a list built around them,
+#   over the same `HEAD~15`, they supplied 77 of its 99 findings,
+#   essentially none actionable — a denominator from that list, not from
+#   the 132 above. Sweeping only an ADR's "Consequences" section, the part
+#   meant to stay true, would be the finer cut — the check can't key on
+#   document structure today.
 # - `docs/checks/*.md` and `docs/SUMMARY.md`. The check pages were the
 #   noisiest source measured: precisely-hedged reference prose trips
 #   `totalising` and `counts` on careful writing far more than on
@@ -144,12 +145,12 @@ files = [
 ]
 
 # `temporal-words` is opt-in by omission the same way `claim-words` above
-# is, and wants the opposite file set: the pages describing what this tool
-# does now, with every file written as a record of a moment left out. The
-# list is the site's own prose pages plus the README, measured over
-# `HEAD~1`, `HEAD~5` and `HEAD~15` at 4afaff6 (0 / 0 / 3 findings). Zero
-# over a release's worth of commits is the expected steady state, not a
-# sign the globs are wrong: `agents/docs.md` already forbids a version
+# is, and wants a different file set: the pages describing what this tool
+# does now, with every file of dated claims left out. The list is the
+# site's own prose pages plus the README, measured over `HEAD~1`,
+# `HEAD~5` and `HEAD~15` at 4afaff6 (0 / 0 / 3 findings). Zero over a
+# release's worth of commits is the expected steady state, not a sign the
+# globs are wrong: `agents/docs.md` already forbids a version
 # number or a "not yet" on a page editorially, and this is the mechanical
 # backstop for a rule that was enforced by review alone.
 #
@@ -162,12 +163,15 @@ files = [
 #   said:", and a word list cannot tell a quoted marker from a dated
 #   claim. A check page is reference prose and belongs here on every other
 #   ground; it is out until that shape can be told apart.
-# - `CHANGELOG.md`, `decisions/*.md` and `TODO.md`, where temporal wording
-#   is correct by design: a shipped changelog entry describes a moment, an
-#   ADR is frozen at its decision's date, and `TODO.md` exists to say what
-#   isn't done yet. They supplied 31 findings over `HEAD~15`, none
-#   actionable. This is the file set `claim-words` above wants and this
-#   check must not have, and the reason the two can't share one key.
+# - `CHANGELOG.md` and `decisions/*.md`, whose claims are dated: a shipped
+#   changelog entry describes a moment, and an ADR is frozen at its
+#   decision's date. `claim-words` above leaves them out for the same
+#   reason.
+# - `TODO.md`, for a different one: its claims are live, which is why
+#   `claim-words` above sweeps it, but its temporal phrasing is correct by
+#   nature, since it exists to say what isn't done yet. That is the
+#   reason the two checks can't share one key. With the two above, it
+#   supplied 31 findings over `HEAD~15`, none actionable.
 # - `AGENTS.md`, `CONTEXT.md`, `agents/*.md` and `claims/skill/SKILL.md`:
 #   contributor and agent instructions, not a description of the binary a
 #   reader installed. Every hit measured across them was a rule about

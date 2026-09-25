@@ -38,6 +38,15 @@ A statement in prose about the code, narrow enough that something can be
 executed against it.
 _Avoid_: Assertion, statement
 
+**Live claim**:
+A claim meant to be re-verified against the tree as it stands.
+_Avoid_: Record-like
+
+**Dated claim**:
+A claim true at its writing and not meant to be re-read against today's
+tree.
+_Avoid_: Record-like
+
 **Subject**:
 The code a claim names.
 _Avoid_: Target, reference
@@ -50,17 +59,13 @@ _Avoid_: Suspect, hit
 An evidenced decision that a claim is true or false.
 _Avoid_: Result
 
-**Record-like file**:
-A file whose sentences are assertions rather than asides: a spec, an ADR, a
-changelog.
-
 **Designated file**:
 A file a project has opted into a check's scope.
 _Avoid_: Configured file, included file
 
 **Retired quote**:
-A sentence a record-like file quotes in order to say what was wrong with
-it.
+A sentence quoted in order to say what was wrong with it, rather than to
+assert it.
 _Avoid_: Retracted claim, old wording
 
 **Retired-quote exemption**:

@@ -16,7 +16,7 @@
 
 Exercises the shared `run(repo_root, diff_range, config)` seam — see
 spec.md's Testing Decisions, which name this check's fixtures as confirming
-a quoted/retired false claim in a record-like file does not fire, per the
+a quoted/retired false claim in a designated file does not fire, per the
 "house style for retiring a sentence" suppression rule. Ported from
 Project B's `tools/claim-words.py` (same author, relicensed).
 """
