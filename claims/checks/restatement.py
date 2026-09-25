@@ -12,66 +12,58 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""The `restatement` check.
+"""The `restatement` check: prose a diff retracted that is still asserted,
+verbatim, somewhere else in the tree. `docs/checks/restatement.md` is the
+account of the two modes, the word reduction, which keys it takes and
+what it misses; this docstring is why the code is shaped the way it is.
 
-Finds prose a diff retracted that is still asserted, verbatim, somewhere
-else in the tree. Registered as an **advisory** check — see spec.md's check
-inventory — so it never fails the run: a hit is a place to look, not a
+Advisory (spec.md's check inventory): a hit is a place to look, not a
 verdict, since the same fact can legitimately appear twice on purpose (a
 summary and the page it summarises).
 
 Merged from two source tools that solved this independently, kept as two
 reported modes on one `Finding.mode` rather than two maintained checks:
 
-- `restatement-ngram` — a short run of words (`NGRAM_WORDS`, 6) removed
-  from a diff and still found intact elsewhere. Ported from `ratect`'s
-  `echoed-claims.py` (Apache-2.0 prior art, same author); the 6-word
-  default is empirically tuned, not a guess — 8 missed a real case ("for
-  every network *it* creates" against "...*Ratect* creates") that 6 caught.
-- `restatement-whole-line` — a whole line (`MIN_LINE_WORDS`, 10 words),
-  normalized, removed from a diff and still found intact elsewhere. This
-  consolidation's own port of the private Swift project's `split-claims.py`
-  (same author) — a Swift tool, so re-expressed here in Python rather than
-  copied.
+- `restatement-ngram`, ported from `ratect`'s `echoed-claims.py`
+  (Apache-2.0 prior art, same author). `NGRAM_WORDS` (6) is empirically
+  tuned, not a guess — 8 missed a real case ("for every network *it*
+  creates" against "...*Ratect* creates") that 6 caught.
+- `restatement-whole-line` (`MIN_LINE_WORDS`, 10 words), this
+  consolidation's own port of the private Swift project's
+  `split-claims.py` (same author) — a Swift tool, so re-expressed here in
+  Python rather than copied.
 
-**Verbatim-only by design, not a solved paraphrase detector.** A file that
-restates the same fact in different words shares too few consecutive words
-(n-gram mode) and won't match line-for-line (whole-line mode) — this check
-cannot and does not claim to see that. A private-project evaluation of
-adopting the n-gram tool independently confirmed this: its real restatement
-failures that session were paraphrase, not verbatim duplication, and the
-tool "would have caught none of them." Paraphrase detection is judgement-
-shaped, not mechanical — out of scope here.
+**Verbatim-only by design, not a solved paraphrase detector.** A
+private-project evaluation of adopting the n-gram tool independently
+confirmed this: its real restatement failures that session were
+paraphrase, not verbatim duplication, and the tool "would have caught none
+of them." Paraphrase detection is judgement-shaped, not mechanical — out
+of scope here.
 
-Both modes read a diff's removed lines only after subtracting words/lines
-the diff also *added* — reflowing a paragraph removes and re-adds most of
-it, and a thing still said is not a thing retracted.
+Words/lines the diff also *added* are subtracted before its removed lines
+are searched for, because reflowing a paragraph removes and re-adds most
+of it, and a thing still said is not a thing retracted.
 
-File-type scope is a config surface (`extensions`, a list of dotted
-suffixes), *added* to the default union of both source tools' original
-coverage (Markdown, Swift, Python, Shell, YAML) rather than replacing it —
-e.g. `ratect` would add `.rs`, covered by neither source tool.
+`extensions` is *added* to the default union of both source tools'
+original coverage rather than replacing it — e.g. `ratect` would add
+`.rs`, covered by neither source tool.
 
-**Duplication threshold.** A survivor hit is only reported while the
-retracted text existed, pre-diff, in at most `duplication_threshold`
-*other* tracked files (a `claims.toml` config surface, default **1**) —
-chosen to land exactly on this check's own documented tolerance above:
-"twice on purpose" is 2 total copies (the edited file plus one survivor),
-so threshold 1 keeps that case reported and only suppresses once a third
-copy existed. Text duplicated across many files by design (a shared
-license header, a generated-file banner) is the common case this exists
-to filter: removing one copy of many is not evidence a fact drifted, the
-other copies were never at risk because this one existed and aren't now
-because it's gone. The count comes for free from the existing
-survivor-sweep (how many distinct files, besides the one the diff
-touched, still hold the exact matched text) — no extra git-history walk.
+**Duplication threshold.** The default of **1** is chosen to land exactly
+on this check's own documented tolerance above: "twice on purpose" is 2
+total copies (the edited file plus one survivor), so threshold 1 keeps
+that case reported and only suppresses once a third copy existed. Text
+duplicated across many files by design (a shared license header, a
+generated-file banner) is the common case this exists to filter: removing
+one copy of many is not evidence a fact drifted, the other copies were
+never at risk because this one existed and aren't now because it's gone.
+The count comes for free from the existing survivor-sweep (how many
+distinct files, besides the one the diff touched, still hold the exact
+matched text) — no extra git-history walk.
 
-**Exclude.** `exclude` (a `claims.toml` list of path globs, or a bare
-string for one) — same shape and matching as the `exclude` config
-`executable-claims` and `check-links` already support. An excluded file
-contributes no removed-text candidates from its own diff, and is dropped
-from the survivor sweep entirely — it neither counts toward nor is
-reported as another file's duplication.
+`exclude` has the same shape and matching as `executable-claims`' and
+`check-links`' own. An excluded file is dropped from the survivor sweep
+entirely, not just from candidate extraction, so it neither counts toward
+nor is reported as another file's duplication.
 """
 
 from __future__ import annotations

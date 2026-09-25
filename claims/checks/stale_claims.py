@@ -12,26 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""The `stale-claims` check.
+"""The `stale-claims` check: prose sections ranked by how much the code they
+name has changed since the section was last touched.
+`docs/checks/stale-claims.md` is the account of sections, subjects, the
+score, which keys it takes and the same-commit blind spot; this docstring
+is why the code is shaped the way it is.
 
-Ranks prose sections in tracked Markdown by how much the code they name has
-changed since the section was last touched. A churn-ranked candidate list,
-not a verdict: a hot file makes an accurate claim look suspicious, and a
-claim can rot while its subject sits still. Registered as an **advisory**
-check — see spec.md's check inventory — so it never fails the run.
-
-A claim is a Markdown *section* (heading to next heading, or the whole file
-if it has none). Its subject is the code it names: an explicit relative path
-that exists in the tree, or a backtick-quoted bare name that uniquely
-matches a tracked file's stem — a stem shared by more than one file names no
-single subject and is dropped rather than guessed at. `CHANGELOG.md` is
-excluded: its entries describe a release as it shipped, so their subjects
-moving afterwards is expected, not suspicious.
-
-Score is the largest fraction of any subject's commit history that happened
-strictly after the section was last touched (via `git blame`), so a claim
-predating most of a quiet file's life outranks one predating a sliver of a
-busier one.
+Advisory (spec.md's check inventory): a churn-ranked candidate list, not
+a verdict — a hot file makes an accurate claim look suspicious, and a
+claim can rot while its subject sits still.
 
 **Known blind spot, not a silently accepted gap:** a claim and its subject
 edited in the same commit score zero for that subject — the commit that
@@ -50,26 +39,18 @@ bare-name match. `MODULE_RE` (bare backtick names) keeps the original's one
 behaviour worth keeping exactly — an optional trailing extension is stripped
 before the stem lookup, so `` `docker.rs` `` and `` `docker` `` name the same
 subject — generalised past `.rs` to any extension, so this stays useful
-outside a Rust-only repo.
+outside a Rust-only repo. A stem shared by more than one file names no
+single subject and is dropped rather than guessed at.
 
-A backtick citation with an extension (`` `cache.rs` ``) or an explicit
-relative path is unambiguous and always counts as a subject, anywhere. A
-*bare* citation (`` `cache` ``, no extension) is ambiguous — it's also
-ordinary English or a config-field name as often as it's a module — so it
-only counts where a project says module names are actually discussed: this
-check's own `module_reference_scope` key in `claims.toml`, a list of
-repo-relative globs (a bare string is treated as a one-element list, same
-coercion `exclude` uses). Key absent means today's default: a bare citation
-counts everywhere, same as the qualified and path forms.
-
-Not diff-scoped, matching the check inventory: every tracked `*.md` file is
-swept, not just one a diff touched.
-
-A file can also be excluded from that sweep entirely via this check's own
-`exclude` glob list (`claims.toml`), same shape/coercion as every sibling
-check's own `exclude` (ticket #43) — `CHANGELOG.md` above is a fixed,
-built-in instance of the same idea, not a substitute for a project naming
-its own.
+A *bare* citation (`` `cache` ``, no extension) is ambiguous in a way the
+qualified and path forms are not — it's also ordinary English or a
+config-field name as often as it's a module — so `module_reference_scope`
+lets a project say where module names are actually discussed; key absent
+means the pre-key default, a bare citation counting everywhere.
+`CHANGELOG.md` is excluded built-in because its entries describe a
+release as it shipped, so their subjects moving afterwards is expected,
+not suspicious; `exclude` (ticket #43) is the same idea under a project's
+own control, not a substitute for it.
 """
 
 from __future__ import annotations

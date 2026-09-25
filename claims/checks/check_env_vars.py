@@ -12,96 +12,87 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""The `check-env-vars` check (ticket #18).
+"""The `check-env-vars` check (ticket #18): a backticked environment-variable
+name, held to the files a project says define its environment.
+`docs/checks/check-env-vars.md` is the account of what it reads, which
+keys it takes and what it misses; this docstring is why the code is
+shaped the way it is.
 
-Nothing today verifies an env var name mentioned in prose actually exists
-anywhere in the project: `check-citations` only verifies backticked
-*symbol* citations against declared Swift/Rust history — an env var name
-(a naming convention, not a language-level declaration) is entirely
-outside its vocabulary.
+Its own check because `check-citations` only verifies backticked *symbol*
+citations against declared Swift/Rust history — an env var name (a naming
+convention, not a language-level declaration) is entirely outside its
+vocabulary.
 
-**Detection** is a backtick-quoted token shaped `ALL_CAPS_WITH_UNDERSCORES`
-— starts with an uppercase letter, then any run of uppercase
-letters/digits/underscore-separated segments, with at least one
-underscore. A bare, unbacktick mention is never a candidate — same
-reasoning as `check-config-defaults` (#17): backticking is the cheap
-signal that distinguishes a real named technical thing from ordinary
-emphasis-caps prose ("NOTE", "TODO") or a short protocol acronym ("HTTP",
-"TLS", both rejected by the underscore requirement alone). A candidate
-inside a fenced code block is skipped — illustrative example content, not
-a claim (`check_file_refs._fence_state`'s own precedent; ticket #17's own
-copy of this check doesn't have this fix yet, see `TODO.md`).
+A candidate must be backticked, for the same reason as
+`check-config-defaults` (#17): backticking is the cheap signal that
+distinguishes a real named technical thing from ordinary emphasis-caps
+prose ("NOTE", "TODO"). The underscore requirement in `ENV_VAR_SHAPE_RE`
+is what rejects a short protocol acronym ("HTTP", "TLS") on its own. A
+candidate inside a fenced code block is skipped — illustrative example
+content, not a claim (`check_file_refs._fence_state`'s own precedent;
+ticket #17's own copy of this check doesn't have this fix yet, see
+`TODO.md`).
 
-**Verification is existence, not value** — unlike #17's `config_default`,
-which needs a per-setting mapping specifically to pin down where to
-compare a *value*, this check only asks "does this name appear anywhere
-in a project-configured scope of files." That scope is one `claims.toml`
-list-config key, `definition_files` — deliberately **not** named `files`
-the way `claim-words` names its own scope key: that name would mean the
-opposite thing here. `claim-words`' `files` scopes *which prose is
-searched for candidates*; this check's candidates always come from every
-tracked `*.md` file (narrowed only by `exclude`, below) — `definition_files`
-scopes *which files count as a definition a candidate is checked against*.
-Reusing `files` for that inverted meaning risks exactly the silent
-misconfiguration this naming avoids: a project meaning "also check my
-docs" that writes `definition_files = ["docs/*.md"]` would instead make
-every mention in those docs self-satisfying and quietly disable the
-check for them. `definition_files` is a glob list, **additive** to a
-built-in default of `.env.example` if that file is tracked, the same
+**Verification is existence, not value** — unlike #17, which needs a
+per-setting mapping specifically to pin down where to compare a *value*,
+this check only asks "does this name appear anywhere in a
+project-configured scope of files." That scope key is `definition_files`
+— deliberately **not** named `files` the way `claim-words` names its own
+scope key: that name would mean the opposite thing here. `claim-words`'
+`files` scopes *which prose is searched for candidates*; this check's
+candidates always come from every tracked `*.md` file (narrowed only by
+`exclude`) — `definition_files` scopes *which files count as a definition
+a candidate is checked against*. Reusing `files` for that inverted
+meaning risks exactly the silent misconfiguration this naming avoids: a
+project meaning "also check my docs" that writes
+`definition_files = ["docs/*.md"]` would instead make every mention in
+those docs self-satisfying and quietly disable the check for them. It is
+additive to a built-in default of `.env.example`, the same
 default-plus-project-additions shape `restatement.extensions` and
-`check-file-refs.extensions` already use. No per-variable registration:
-a project names *files*, not variables, and any candidate is checked
-against all of them.
-
-A second, independent config key, `exclude` (same shape/coercion as every
-sibling check's own `exclude`), narrows which tracked `*.md` files are
-swept for *candidates* — the same escape hatch `check-links`/
-`check-file-refs` already give a project for a directory of historical or
-illustrative prose that was never meant to be checked against the
-project's current definitions.
+`check-file-refs.extensions` already use. No per-variable registration: a
+project names *files*, not variables, and any candidate is checked
+against all of them. `exclude` is the same escape hatch
+`check-links`/`check-file-refs` already give a project for a directory of
+historical or illustrative prose.
 
 **Matching is plain, word-boundary-safe text search** — no language-aware
-parsing of what "uses an env var" looks like in any particular language;
-the configured scope is searched as plain text regardless of whether it's
-`.env.example`, Python, JS, or anything else. A project wanting real
-usage-pattern awareness (`os.environ`, `process.env`, ...) is out of
-scope for this check.
+parsing of what "uses an env var" looks like in any particular language.
+A project wanting real usage-pattern awareness (`os.environ`,
+`process.env`, ...) is out of scope for this check.
 
-**An empty scope is genuinely inert, not a sweep of everything.** No
-`.env.example` tracked and no `definition_files` configured means zero
-scope files to search, so this check produces nothing at all — the same
-opt-in-by-omission precedent `claim-words` already established. This is
+**An empty scope is genuinely inert, not a sweep of everything** — the
+same opt-in-by-omission precedent `claim-words` already established.
+Sweeping all tracked source unconditionally when nothing is configured
+was considered and rejected: unlike `check-file-refs` (checking a
+self-contained, unambiguous path), matching a bare token against all
+source risks colliding with a same-named local variable, class attribute,
+or unrelated constant that merely happens to share the name. "Empty" is
 tracked by *how many scope files were found*, not by whether their
 concatenated text happens to be non-empty — a tracked but empty
 `.env.example` is one found scope file, a scope that defines nothing, so
 every candidate is then a finding; not the same case as truly zero scope
 files existing.
-Sweeping all tracked source unconditionally when nothing is configured
-was considered and rejected: unlike `check-file-refs` (checking a
-self-contained, unambiguous path), matching a bare token against all
-source risks colliding with a same-named local variable, class attribute,
-or unrelated constant that merely happens to share the name.
 
 No command is ever executed here — pure file-read and text search,
 keeping this out of #15's permission-gate scope (execution-based
 verification is `cli_command`'s own territory, #19).
 
-Findings are **advisory**, explicitly provisional. **Both directions of
-this check's own error rate are real, not just one:** a genuinely-used
-var consumed only via a build tool's own config, or constructed
-indirectly rather than appearing as a literal token anywhere in the
-configured scope, could go unfound through no fault of the claim itself
-(a false negative) — but the reverse also happens in practice, not just
-in theory: shape-only detection (no phrase anchor the way #17 requires
-one) means an ordinary backticked `ALL_CAPS_WITH_UNDERSCORES` constant,
-enum value, or regex name that was never meant to name an env var at all
-is an equally valid candidate, and gets flagged the same way a real,
-missing env var would if the configured scope doesn't happen to mention
-it too. Confirmed empirically while dogfooding this exact check against
-this repo's own historical `.scratch/` notes, which is exactly the class
-of prose `exclude` (above) exists to keep out of the sweep. Revisit
-detection precision, not just recall, once real usage gives an actual
-rate to argue from — not a permanent design choice either way.
+Findings are advisory, explicitly provisional. **Both directions of this
+check's own error rate are real, not just one:** a genuinely-used var
+consumed only via a build tool's own config, or constructed indirectly
+rather than appearing as a literal token anywhere in the configured
+scope, could go unfound through no fault of the claim itself (a false
+negative) — but the reverse also happens in practice, not just in theory:
+shape-only detection (no phrase anchor the way #17 requires one) means an
+ordinary backticked `ALL_CAPS_WITH_UNDERSCORES` constant, enum value, or
+regex name that was never meant to name an env var at all is an equally
+valid candidate, and gets flagged the same way a real, missing env var
+would if the configured scope doesn't happen to mention it too. Confirmed
+empirically while dogfooding this exact check against this repo's own
+historical `.scratch/` notes, which is exactly the class of prose
+`exclude` exists to keep out of the sweep. Revisit detection precision,
+not just recall, once real usage gives an actual rate to argue from — not
+a permanent design choice either way.
 
 **Note for whoever picks up #22** (on-demand config-fit review): a
 project with no `definition_files` configured and no `.env.example`

@@ -38,9 +38,10 @@ see `AGENTS.md`'s Typechecking section.
   (specification → red → code → green → prose), surgical-changes and
   constant-gardening principles, and the versioning policy for
   `.claude-plugin/plugin.json`. Both human and AI contributors follow it.
-- **Checks**: each check under `claims/checks/` documents what it verifies
-  and, as importantly, what it doesn't, in its own module docstring — read
-  that before assuming a gap is a bug.
+- **Checks**: each check's page under `docs/checks/` documents what it
+  verifies and, as importantly, what it doesn't; its module docstring
+  under `claims/checks/` holds the reasoning behind that shape — read
+  both before assuming a gap is a bug.
 
 ## Developer Certificate of Origin
 

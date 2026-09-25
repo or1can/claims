@@ -1,6 +1,6 @@
 # This repo's own config for the `claims` plugin it installs on itself
-# (ticket 25). See `claims/config.py` and each check's own module
-# docstring for what a check's defaults are, otherwise.
+# (ticket 25). See `claims/config.py` and each check's own page under
+# `docs/checks/` for what a check's defaults are, otherwise.
 
 # `.scratch/claims-consolidation/` is historical design-notes prior art —
 # it discusses other real projects (`ratect`) and hypothetical example
@@ -18,7 +18,8 @@ exclude = [".scratch/*", "decisions/*.md", "examples/*"]
 # shipped entry for that ticket shouldn't gate identically to a typo. (`claims.local.toml`'s own many mentions across
 # this repo never need an entry here at all: every one is a bare name
 # with no directory separator, which `PATH_RE` never treats as a
-# candidate in the first place — see this check's own module docstring.)
+# candidate in the first place — see this check's own page,
+# `docs/checks/check-file-refs.md`.)
 known_untracked = [".claude/settings.local.json"]
 
 # Same reasoning as check-file-refs above: .scratch/'s own prior-art notes

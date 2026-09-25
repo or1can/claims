@@ -12,11 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""The `judgment-agent` check — the deterministic candidate-list half.
+"""The `judgment-agent` check — the deterministic candidate-list half: every
+backticked citation of a Swift/Rust name this diff added or removed.
+`docs/checks/judgment-agent.md` is the account of what the check computes,
+what the subagent decides and what each candidate's message carries; this
+docstring is why the code is shaped the way it is.
 
-Registered as an **advisory** check — see spec.md's check inventory — this
-is the mechanism ticket 15's subagent reads candidates from; it never itself
-judges a claim true or false, and it never blocks a commit.
+Advisory (spec.md's check inventory): this is the mechanism ticket 15's
+subagent reads candidates from; it never itself judges a claim true or
+false, and it never blocks a commit.
 
 Not a port: ticket 04's research
 (`.scratch/claims-consolidation/issues/04-judgment-agent-candidate-list.md`)
@@ -28,51 +32,42 @@ Two failure modes this exists to avoid, both demonstrated in that research:
 
 - **Diff-scoping by file under-selects.** A rename falsifies prose in a file
   the diff never touched; scoping the candidate search to changed *files*
-  (as `doc-accuracy --diff-base` does) misses it structurally.
+  (as `doc-accuracy --diff-base` does) misses it structurally. Hence
+  citations are read whole-tree.
 - **Churn-ranking reads zero on a same-commit move.** `stale-claims.py`
   scores a claim's subject by commits *since* the claim's last touch; when
   claim and subject move in the same commit, that count is zero by
-  construction. This check computes a binary before/after set membership
-  instead, so a same-commit move is still caught.
+  construction. Hence a binary before/after set membership instead, so a
+  same-commit move is still caught.
 
-Three operations, run in order:
+The subject index reuses `spliced_docs.SWIFT_DECL_RE` and
+`spliced_docs.RUST_ITEM_RE`, the same "what does this repo declare"
+answer `check-citations` and `spliced-docs` already share (this
+consolidation's own precedent for not letting that answer drift twice).
+A plain `diff_range` naming one revision compares it against the working
+tree, matching every other check's convention in this codebase.
+`A..B`/`A...B` is split into two revisions at the separator — a
+deliberate simplification, not a real merge-base resolution for the
+three-dot form (that would need an extra `git merge-base` call this check
+doesn't make; no fixture here needs it). A rename is an unpaired
+remove-and-add, not a matched pair — ticket 04's research found no
+surveyed tool pairs renames either, and called pairing "a refinement, not
+solved by any tool surveyed"; the same is true here. The citation match
+uses `check_citations.CITATION_RE` against a closed, code-derived
+vocabulary, not an open keyword search, which is what keeps this within
+"never grep the prose" (ticket 04's research works through why a closed,
+citation-shaped match is a different operation in kind from the
+transcript-grep failure that constraint was written against, not just a
+narrower version of it). Scope is Markdown only, narrower than
+`check-citations`' md-plus-Swift-comments: this check's job is prose
+citing code, and every one of this consolidation's user stories about
+"architecture or intent" claims names documentation, not source comments.
 
-1. **Subject index.** A name this repo's tracked `*.swift`/`*.rs` declares,
-   at a given tree — reusing `spliced_docs.SWIFT_DECL_RE` and
-   `spliced_docs.RUST_ITEM_RE`, the same "what does this repo declare"
-   answer `check-citations` and `spliced-docs` already share (this
-   consolidation's own precedent for not letting that answer drift twice).
-2. **Touched-subject delta.** The subject index is built once at
-   `diff_range`'s base revision and once at its head (the working tree, for
-   a plain `diff_range` naming one revision — matching every other check's
-   convention in this codebase). `A..B`/`A...B` is split into two revisions
-   at the separator instead — a deliberate simplification, not a real
-   merge-base resolution for the three-dot form (that would need an extra
-   `git merge-base` call this check doesn't make; no fixture here needs it).
-   The symmetric difference of the two name sets is the delta: a name only
-   in the base tree was removed by this diff, a name only in the head tree
-   was added. A rename is therefore an unpaired remove-and-add, not a
-   matched pair — ticket 04's research found no surveyed tool pairs renames
-   either, and called pairing "a refinement, not solved by any tool
-   surveyed"; the same is true here.
-3. **Citation match.** Every backtick-delimited citation
-   (`check_citations.CITATION_RE`) in tracked `*.md` text is tested for exact
-   membership in the delta from (2) — a closed, code-derived vocabulary, not
-   an open keyword search, which is what keeps this within "never grep the
-   prose" (ticket 04's research works through why a closed, citation-shaped
-   match is a different operation in kind from the transcript-grep failure
-   that constraint was written against, not just a narrower version of it).
-   Scope is Markdown only, narrower than `check-citations`' md-plus-Swift-
-   comments: this check's job is prose citing code, and every one of this
-   consolidation's user stories about "architecture or intent" claims names
-   documentation, not source comments.
-
-Each candidate carries the citing `file:line` (the `Finding`'s own
-`file`/`line`) and, in its message, the diff evidence: the subject's own
-declaration site and the commit(s) — if any are already committed — that
-changed it. A `PreToolUse` hook runs before `git commit` completes, so the
-common case is an uncommitted working-tree change with no commit yet to
-name; that's reported as exactly that; never as an empty-looking omission.
+Each candidate's message carries the diff evidence rather than a bare
+citation because a `PreToolUse` hook runs before `git commit` completes,
+so the common case is an uncommitted working-tree change with no commit
+yet to name; that's reported as exactly that, never as an empty-looking
+omission.
 
 **Known imprecision, not a silently accepted gap:** the subject index keeps
 only a name's *first* declaration, by sorted file path — a name declared in
@@ -83,13 +78,12 @@ its declaration *line* (a `git log -L` per subject would fix this at a cost
 this check doesn't pay). Both bias toward more evidence shown, never toward
 hiding a real candidate — a citation is never dropped for either reason.
 
-Ranked, not filtered: every citation of a touched subject becomes a
-candidate. There is no scoring step that could discard one as "probably
-fine" — the ticket this implements is explicit that a candidate list must
-never collapse into a clean "nothing to review" verdict, and a per-check
-verdict isn't this check's job in the first place (ticket 15's subagent's).
-Removed-subject candidates sort first (a citation of a now-gone name is the
-more urgent read), then by how many commits already evidence the change.
+Ranked, not filtered: there is no scoring step that could discard a
+candidate as "probably fine" — the ticket this implements is explicit
+that a candidate list must never collapse into a clean "nothing to
+review" verdict, and a per-check verdict isn't this check's job in the
+first place (ticket 15's subagent's). Removed-subject candidates sort
+first because a citation of a now-gone name is the more urgent read.
 """
 
 from __future__ import annotations

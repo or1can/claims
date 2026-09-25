@@ -12,43 +12,40 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""The `claim-words` check.
+"""The `claim-words` check: a sentence a diff added to a designated
+record-like file that is shaped like a claim. `docs/checks/claim-words.md`
+is the account of the three modes, the word lists, the `files` key and
+the retirement markers; this docstring is why the code is shaped the way
+it is.
 
-Diff-scoped sweep over added lines in **designated record-like files**
-(`files`, a config list of glob patterns — nothing is swept unless a project
-opts a file in) for totalising words ("every", "only", "never"), spelled-out
-or digit counts, and words asserting something "elsewhere" only when they
-sit beside a backticked citation. Registered as an **advisory** check — see
-spec.md's check inventory — so it never fails the run: it cannot tell you
-whether a claim is true, only that a sentence is making one.
+Advisory (spec.md's check inventory): it cannot tell you whether a claim
+is true, only that a sentence is making one.
 
-Ported from Project B's `tools/claim-words.py` (same author, relicensed for
-this consolidation), narrowed from that tool's per-paragraph, per-language
-(Python/Swift/Shell/Markdown comment) sweep to whole *sentences* within
-*designated* files only — spec.md user story 17. Two source-tool choices
-don't carry over:
+Ported from Project B's `tools/claim-words.py` (same author, relicensed
+for this consolidation), narrowed from that tool's per-paragraph,
+per-language (Python/Swift/Shell/Markdown comment) sweep to whole
+*sentences* within *designated* files only — spec.md user story 17. Two
+source-tool choices don't carry over:
 
-- Scope is opt-in (`files` config), not a blanket sweep with a `CHANGELOG.md`
-  exemption — the ticket's "specifically-designated record-like files" is
-  the opposite default from the source tool's "everywhere, minus one path".
-- The count word list is uncapped (any run of spelled-out number words, not
-  a fixed `two`..`twelve` list) — a count's *size* isn't what makes it a
+- Scope is opt-in (`files` config), not a blanket sweep with a
+  `CHANGELOG.md` exemption — the ticket's "specifically-designated
+  record-like files" is the opposite default from the source tool's
+  "everywhere, minus one path".
+- The count word list is uncapped (any run of spelled-out number words,
+  not a fixed `two`..`twelve` list) — a count's *size* isn't what makes a
   claim.
 
-**House style for retiring a sentence**, established here since no prior
-check in this codebase's history defines one: a sentence a record-like file
-quotes to explain what was wrong with it is exempt when it is a Markdown
-blockquote (`>` ...), wrapped whole in `*italics*`/`_italics_`, or opens with
-the fixed lead-in phrase "Previously said:". Any one of the three suppresses
-that sentence; nothing else does — an unmarked quotation of a retired claim
-still fires, on the theory that an unmarked quotation is indistinguishable
-from the claim still being made.
+**House style for retiring a sentence** — blockquote, whole-sentence
+italics, or the lead-in "Previously said:" — is established here, since
+no prior check in this codebase's history defines one. An unmarked
+quotation of a retired claim still fires, on the theory that an unmarked
+quotation is indistinguishable from the claim still being made.
 
-**A count that measures the world, not the tree, is not this check's
-business.** "the file grew to twelve megabytes" and "the API waited three
-seconds" describe something outside the diff that a count of tree elements
-("the only three checks", "seven of these") does not — flagged only when
-the counted noun isn't a known unit of measurement (`UNIT_WORDS`).
+`UNIT_WORDS` exists because **a count that measures the world, not the
+tree, is not this check's business.** "the file grew to twelve megabytes"
+and "the API waited three seconds" describe something outside the diff
+that a count of tree elements ("the only three checks", "seven of these")
+does not.
 
 Three modes, one per matching strategy — `runner.Finding`'s own contract —
 so a consumer can filter or count by which kind of claim fired without

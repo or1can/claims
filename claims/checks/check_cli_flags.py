@@ -12,117 +12,101 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""The `check-cli-flags` check (ticket #19).
+"""The `check-cli-flags` check (ticket #19): a script and a flag named
+together in prose, verified by running the script with `--help`.
+`docs/checks/check-cli-flags.md` is the account of what it reads, which
+keys it takes and what it misses; this docstring is why the code is
+shaped the way it is.
 
-Nothing today verifies a claimed CLI flag against a script's real, current
-argument surface. `check-citations` verifies backticked symbol citations
-against declared source history — a CLI flag isn't a language-level
-declaration at all, entirely outside its vocabulary.
+Its own check rather than an extension of `check-citations`: that check
+verifies backticked symbol citations against declared source history, and
+a CLI flag isn't a language-level declaration at all.
 
-**Detection** requires both a script/command identifier and a flag-shaped
-token (`--word` or `-x`) backticked in the same claim (this check reads
-"claim" as "line", matching #17/#18's own per-line precedent) — either as
-one full invocation in a single backtick span (`` `tools/warm_cache.py
---normalize` ``), or as two separate backticked mentions on the same line
-("the `` `tools/warm_cache.py` `` script supports `` `--normalize` ``").
-A bare, standalone flag mention with no script context is never a
-candidate — there's no reliable way to know which of a project's possibly
-several CLI entry points it refers to without the claim stating it, and no
-external mapping is used to resolve that ambiguity (unlike #17/#18's
-project-supplied mappings, which map a *name* to a *verification
-location*; here the claim itself already carries everything needed once
-both parts are present).
+A "claim" is a line, matching #17/#18's own per-line precedent, and both
+the script and the flag must be backticked on it. A bare, standalone flag
+with no script context is never a candidate — there's no reliable way to
+know which of a project's possibly several CLI entry points it refers to
+without the claim stating it, and no external mapping is used to resolve
+that ambiguity (unlike #17/#18's project-supplied mappings, which map a
+*name* to a *verification location*; here the claim itself already
+carries everything needed once both parts are present). Every tracked
+`*.md` file is swept unconditionally, matching #16/#17/#18's "catches a
+claim that's false right now" precedent, narrowed only by `exclude`; a
+candidate inside a fenced code block is skipped, #16/#18's own
+`_fence_state` precedent.
 
-Every tracked `*.md` file is swept unconditionally, matching #16/#17/#18's
-own "catches a claim that's false right now" precedent — narrowed only by
-this check's own `exclude` glob list (same shape/coercion as every
-sibling check's own `exclude`), for a directory of historical or
-illustrative prose that was never meant to name real, currently-runnable
-scripts. A candidate inside a fenced code block is skipped, same as
-#16/#18's own `_fence_state` precedent — illustrative example content, not
-a claim.
+A "script" is deliberately narrow — a path-shaped token ending in a
+recognized script extension — and a bare command name (`docker`, `npm`,
+`git`) is never detected: a known, deliberate gap, not silently accepted.
+There's no reliable way to distinguish a real CLI tool name from any
+other backticked word without a vocabulary of known tools, and guessing
+wrong would mean running an arbitrary backticked word as a command. The
+narrow shape is also what keeps this check's own command construction
+safe: `SCRIPT_RE`'s character class (`[\\w.-]` plus `/`) contains no
+shell metacharacter, so appending `--help` to it can never smuggle a
+chained or substituted command the way a fully free-form claim could.
 
-**A "script" is deliberately narrow: a path-shaped token ending in a
-recognized script extension** (`.py`, `.sh`, `.rb`, `.js`, `.ts`, `.pl`).
-A bare command name with no extension (`docker`, `npm`, `git`) is never
-detected — a known, deliberate gap, not silently accepted: there's no
-reliable way to distinguish a real CLI tool name from any other
-backticked word without a vocabulary of known tools, and guessing wrong
-would mean running an arbitrary backticked word as a command. The
-narrower, extension-anchored shape is also what keeps this check's own
-command construction safe: the character class a script token must match
-(`[\\w.-]` plus `/`) contains no shell metacharacter, so appending
-`--help` to it can never smuggle a chained or substituted command the way
-a fully free-form claim could.
-
-**Verification extracts the script, runs `<script> --help`, and checks
-whether the claimed flag token appears in the combined stdout+stderr
-text.** `--help` is the near-universal introspection convention across
+`--help` because it is the near-universal introspection convention across
 CLI frameworks (`argparse`, `click`, `clap`, cobra, commander.js) — good
 enough for v1; a project whose CLI uses a nonstandard help flag is a
 documented limitation, not something made configurable now. A script
-token with no directory separator (`manage.py`, `setup.py` — a common
-repo-root-script shape) is run as `./{script}`, not the bare name: a bare
-name is a `$PATH` lookup, not "the script this repo tracks," and would
-otherwise either fail outright or silently run some unrelated same-named
-binary. The grant is keyed on this same, already-`./`-prefixed command —
-what a human approves in `claims.local.toml` is exactly what runs, never
-a different string. Matching is a **word/hyphen-boundary-anchored**
-search for the flag token in that output, not a bare substring — `-n`
-must not "match" merely because it's a substring of a real `--normalize`
-flag, and `--norm` must not match as a prefix of `--normalize` either;
-both are real flags this check would otherwise wrongly confirm as
-supported. Still no language-aware parsing of the output's own structure,
-the same "near-exact" philosophy #17/#18 already use — just anchored
-enough that a substring/prefix collision can't manufacture a false
-"supported" verdict.
+token with no directory separator (`manage.py`, `setup.py`) is run as
+`./{script}`, not the bare name: a bare name is a `$PATH` lookup, not
+"the script this repo tracks," and would otherwise either fail outright
+or silently run some unrelated same-named binary. The grant is keyed on
+this same, already-`./`-prefixed command — what a human approves in
+`claims.local.toml` is exactly what runs, never a different string.
+Matching is a word/hyphen-boundary-anchored search for the flag token in
+the help output, not a bare substring — `-n` must not "match" merely
+because it's a substring of a real `--normalize` flag, and `--norm` must
+not match as a prefix of `--normalize` either; both are real flags this
+check would otherwise wrongly confirm as supported. Still no
+language-aware parsing of the output's own structure, the same
+"near-exact" philosophy #17/#18 already use.
 
-**A failed, errored, or timed-out `--help` invocation is inconclusive,
-not confirmed-false** — mirrors `executable-claims`' own "a timeout means
-the check never got an answer, not that the claim is false" precedent
+A failed, errored, or timed-out `--help` invocation is inconclusive, not
+confirmed-false — mirrors `executable-claims`' own "a timeout means the
+check never got an answer, not that the claim is false" precedent
 exactly, including that it still produces its own (advisory) finding
-rather than staying silent, the same way `executable-claims` surfaces its
-own timeout. Only a clean run whose output doesn't contain the flag is a
-"confirmed missing" finding.
+rather than staying silent.
 
-**This is `claims`' second execution-capable check, alongside
-`executable-claims` (#15)** — the exact trigger condition #15's own brief
+This is `claims`' second execution-capable check, alongside
+`executable-claims` (#15) — the exact trigger condition #15's own brief
 named for generalizing its local-permission-gate mechanism rather than
 keeping it bespoke. `claims/execution_grants.py` now holds that mechanism
 once, keyed by whichever check calls it; see that module and
 `executable_claims.py`'s own module docstring for the full security
 reasoning (committed config can't be the trust boundary; a tracked grant
-file must not be honored either). The grant is keyed on the **exact
-command this check will actually run** (`<script> --help`), not the bare
-script name alone — auditable and consistent with `executable-claims`'
-own exact-string philosophy.
+file must not be honored either). The grant is keyed on the exact command
+this check will actually run (`<script> --help`), not the bare script
+name alone — auditable and consistent with `executable-claims`' own
+exact-string philosophy.
 
-**Severity is advisory, explicitly provisional, same as #17/#18** — with
-one deliberate exception: a *tracked* `claims.local.toml` (see
-`execution_grants.local_grants`) still produces its own **gate** finding,
+Severity is advisory, explicitly provisional, same as #17/#18 — with one
+deliberate exception: a *tracked* `claims.local.toml` (see
+`execution_grants.local_grants`) still produces its own gate finding,
 matching #15's own precedent. That one case is a security compromise
 indicator regardless of this check's own otherwise-advisory severity
-policy; every other finding this check produces (ungranted, denied,
-flag-not-found, inconclusive) is advisory.
+policy.
 
-**Known, deliberate gap, not silently accepted:** verification
-completeness, same risk class as #18 — a flag consumed only via a build
-tool's own config, or a `--help` invocation that succeeds but doesn't
-enumerate every flag the script actually accepts (some frameworks
-truncate long help text, or require a subcommand first), could go
-unfound through no fault of the claim itself. A related, permanent case
-rather than an occasional miss: a CLI convention where `--help` itself
-exits non-zero (some `docopt`-based tools do this) makes that script's
-own claims inconclusive on every single run, re-nagging without ever
-resolving — the escape hatch is `denied` (silences it, with a reason
-recorded), not a fix. Revisit once real usage gives an actual
-false-positive/false-negative rate to argue from.
+Known, deliberate gap, not silently accepted: verification completeness,
+same risk class as #18 — a flag consumed only via a build tool's own
+config, or a `--help` invocation that succeeds but doesn't enumerate
+every flag the script actually accepts (some frameworks truncate long
+help text, or require a subcommand first), could go unfound through no
+fault of the claim itself. A related, permanent case rather than an
+occasional miss: a CLI convention where `--help` itself exits non-zero
+(some `docopt`-based tools do this) makes that script's own claims
+inconclusive on every single run, re-nagging without ever resolving — the
+escape hatch is `denied` (silences it, with a reason recorded), not a
+fix. Revisit once real usage gives an actual false-positive/false-negative
+rate to argue from.
 
-**Known, accepted trait:** a script token may itself contain `../`
-segments and resolve outside the repo (`SCRIPT_RE` only restricts the
-*character set*, not the resolved location) — not treated as its own
-gate, since the exact-string local grant is already the human checkpoint
-this whole mechanism relies on: a project reviewing
+Known, accepted trait: a script token may itself contain `../` segments
+and resolve outside the repo (`SCRIPT_RE` only restricts the *character
+set*, not the resolved location) — not treated as its own gate, since the
+exact-string local grant is already the human checkpoint this whole
+mechanism relies on: a project reviewing
 `allowed = ["../../../tmp/evil.py --help"]` before adding it has the same
 opportunity to notice the escape as it does for any other suspicious
 grant.
@@ -210,9 +194,9 @@ def _read(path: Path) -> str | None:
 def _candidates(line: str) -> set[tuple[str, str]]:
     """Every `(script, flag)` pairing this line's backtick spans imply —
     both the single-span-invocation shape and the two-separate-mentions
-    shape (see module docstring). A `set`: the same pairing named twice
-    (or implied both ways at once) is one candidate, not a duplicate
-    finding.
+    shape (`docs/checks/check-cli-flags.md` shows both). A `set`: the same
+    pairing named twice (or implied both ways at once) is one candidate,
+    not a duplicate finding.
     """
 
     spans = BACKTICK_RE.findall(line)
