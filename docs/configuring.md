@@ -82,8 +82,11 @@ for a check that exists upstream but not in the installed version is
 reported the same way, and the fix there is updating the plugin rather than
 editing the table.
 
-The gate reads `claims.toml` only. A mistyped table in `claims.local.toml`
-still grants nothing and reports nothing.
+The gate reads `claims.local.toml` too, and reports a mistyped table there
+against that file, with the same suggestion. Any registered check's name
+is accepted there, but `hook` is not: the commit hook reads its switch
+from `claims.toml` only. A `claims.local.toml` that does not parse is
+left to the checks that read it, which report it when they run.
 
 ## The fixed command blocklist
 
