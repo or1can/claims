@@ -82,6 +82,7 @@ from pathlib import Path
 
 from ..config import ConfigError
 from ..git import tracked_files
+from ..markdown import fence_state
 from ..runner import Finding, register_check
 
 NAME = "check-config-defaults"
@@ -205,7 +206,10 @@ def check(repo_root: Path, diff_range: str, config: Mapping[str, object]) -> lis
         lines = _read_lines(repo_root / rel)
         if lines is None:
             continue
+        in_fence = fence_state(lines)
         for line_no, line in enumerate(lines, 1):
+            if in_fence[line_no - 1]:
+                continue
             for match in CLAIM_RE.finditer(line):
                 name = match.group(1).strip()
                 target = targets.get(name)

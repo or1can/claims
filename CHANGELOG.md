@@ -11,6 +11,14 @@ reached you, not just that one was pushed upstream.
 
 ## [Unreleased]
 
+## [0.12.2] - 2026-09-25
+
+- Fixed: `check-config-defaults` no longer reads lines inside a fenced
+  code block. A page showing the claim syntax as an example, such as
+  `` `TIMEOUT` defaults to `30` `` inside a fence, was previously checked
+  as a real claim. `check-env-vars`, `check-file-refs` and
+  `check-cli-flags` already skip fenced blocks the same way.
+
 ## [0.12.1] - 2026-09-25
 
 - Fixed: the skill's on-demand `claims.toml` review now checks the
