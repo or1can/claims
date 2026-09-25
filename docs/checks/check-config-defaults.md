@@ -57,8 +57,9 @@ lines and a start no greater than its end, is a configuration error,
 reported as a crash of the check rather than skipped.
 
 The check is whole-tree, over every line of every tracked `.md` file on
-every run, including lines inside fenced code blocks. It runs no command;
-the mapped lines are read as text.
+every run, except lines inside a fenced code block: a block showing the
+claim syntax is an example rather than a claim. It runs no command; the
+mapped lines are read as text.
 
 ## Why it exists
 
