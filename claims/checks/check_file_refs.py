@@ -177,7 +177,8 @@ ineffective" concern ticket #21's own unrecognized-`claims.toml`-table
 gate exists for. A marker on a *fenced* line is the one exception to that
 same rule rather than an instance of it: the whole line is skipped before
 either candidate- or marker-detection ever runs on it (matching
-`_fence_state`'s own treatment of everything else on that line), so it
+`claims.markdown.fence_state`'s own treatment of everything else on that
+line), so it
 produces no finding of either kind — not dangling, just never looked at.
 """
 
@@ -190,6 +191,7 @@ from posixpath import dirname, join, normpath
 
 from ..config import exclude_patterns, path_matches, string_list_config
 from ..git import tracked_files
+from ..markdown import fence_state
 from ..runner import Finding, register_check
 
 NAME = "check-file-refs"
@@ -366,46 +368,6 @@ def _citing_relative(citing: str, candidate: str) -> str:
     return normpath(join(dirname(citing), candidate))
 
 
-FENCE_RE = re.compile(r"^\s*(`{3,})")
-
-
-def _fence_state(lines: Sequence[str]) -> list[bool]:
-    """Whether each of `lines` should be excluded from detection because
-    it's a fenced code block's own delimiter line or content.
-
-    Same nesting rule as `executable_claims._fence_state` (a fence only
-    closes on a same-or-longer run of backticks) — reused here so example
-    code inside a fence (illustrative, not a claim that a named path is a
-    real tracked file) isn't treated as a candidate at all. Unlike that
-    function, this doesn't need to distinguish "the opening delimiter
-    line" from "content" — a delimiter line's own info string (` ```json
-    title="config/app.json" `, a real Docusaurus/MkDocs convention) is
-    itself excluded too, not just the lines between the delimiters, so a
-    fence-opener's own trailing text is never scanned either.
-
-    A fence that's opened but never closed silences every line after it
-    for the rest of the file — deliberately not treated as its own
-    failure case here (unlike `executable_claims`'s own dangling-fence
-    gate finding, which exists because a marker could be trapped inside
-    one): `executable-claims` already reports that over the same tracked
-    `*.md` sweep, so relying on it rather than duplicating the check is a
-    real cross-check dependency, not an oversight — it only lapses if a
-    project's `[executable-claims]` and `[check-file-refs]` `exclude`
-    lists ever name different files for the same fence.
-    """
-
-    in_fence: list[bool] = []
-    open_fence: int | None = None
-    for line in lines:
-        match = FENCE_RE.match(line)
-        if match and (open_fence is None or len(match.group(1)) >= open_fence):
-            open_fence = None if open_fence is not None else len(match.group(1))
-            in_fence.append(True)
-            continue
-        in_fence.append(open_fence is not None)
-    return in_fence
-
-
 def _finding(rel: str, line_no: int, candidate: str) -> Finding:
     return Finding(
         file=rel,
@@ -463,7 +425,7 @@ def check(repo_root: Path, diff_range: str, config: Mapping[str, object]) -> lis
         if text is None:
             continue
         lines = text.splitlines()
-        in_fence = _fence_state(lines)
+        in_fence = fence_state(lines)
         for line_no, line in enumerate(lines, 1):
             if in_fence[line_no - 1]:
                 continue

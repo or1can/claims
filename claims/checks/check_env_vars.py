@@ -29,7 +29,7 @@ distinguishes a real named technical thing from ordinary emphasis-caps
 prose ("NOTE", "TODO"). The underscore requirement in `ENV_VAR_SHAPE_RE`
 is what rejects a short protocol acronym ("HTTP", "TLS") on its own. A
 candidate inside a fenced code block is skipped — illustrative example
-content, not a claim (`check_file_refs._fence_state`'s own precedent;
+content, not a claim (`claims.markdown.fence_state`'s own precedent;
 ticket #17's own copy of this check doesn't have this fix yet, see
 `TODO.md`).
 
@@ -106,11 +106,12 @@ here.
 from __future__ import annotations
 
 import re
-from collections.abc import Mapping, Sequence
+from collections.abc import Mapping
 from pathlib import Path
 
 from ..config import exclude_patterns, path_matches, string_list_config
 from ..git import tracked_files
+from ..markdown import fence_state
 from ..runner import Finding, register_check
 
 NAME = "check-env-vars"
@@ -127,28 +128,6 @@ BACKTICK_RE = re.compile(r"`([^`\n]+)`")
 # ("HTTP", "TLS") or a plain emphasis-caps word ("NOTE") from ever being a
 # candidate — see the module docstring.
 ENV_VAR_SHAPE_RE = re.compile(r"^[A-Z][A-Z0-9]*(?:_[A-Z0-9]+)+$")
-
-FENCE_RE = re.compile(r"^\s*(`{3,})")
-
-
-def _fence_state(lines: Sequence[str]) -> list[bool]:
-    """Whether each of `lines` should be excluded from detection because
-    it's a fenced code block's own delimiter line or content — same
-    nesting rule and delimiter-line handling as
-    `check_file_refs._fence_state`; see that function's own docstring for
-    the full reasoning, not repeated here.
-    """
-
-    in_fence: list[bool] = []
-    open_fence: int | None = None
-    for line in lines:
-        match = FENCE_RE.match(line)
-        if match and (open_fence is None or len(match.group(1)) >= open_fence):
-            open_fence = None if open_fence is not None else len(match.group(1))
-            in_fence.append(True)
-            continue
-        in_fence.append(open_fence is not None)
-    return in_fence
 
 
 def _definition_scope_patterns(config: Mapping[str, object]) -> tuple[str, ...]:
@@ -214,7 +193,7 @@ def check(repo_root: Path, diff_range: str, config: Mapping[str, object]) -> lis
         if text is None:
             continue
         lines = text.splitlines()
-        in_fence = _fence_state(lines)
+        in_fence = fence_state(lines)
         for line_no, line in enumerate(lines, 1):
             if in_fence[line_no - 1]:
                 continue

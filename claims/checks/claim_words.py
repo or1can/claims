@@ -59,9 +59,9 @@ import fnmatch
 import re
 from collections.abc import Mapping, Sequence
 from pathlib import Path
-from typing import NamedTuple
 
 from ..git import added_lines_by_file
+from ..markdown import CODE_SPAN_RE, ITALIC_RE, RETIRED_LEAD_IN, sentences_from
 from ..runner import Finding, register_check
 
 NAME = "claim-words"
@@ -134,19 +134,10 @@ COUNT_RE = re.compile(
     re.IGNORECASE,
 )
 
-BACKTICKED = re.compile(r"`([^`]+)`")
-
-# A terminator may be immediately followed by closing markup (the `*` of an
-# `*italicised*` sentence, a closing quote or bracket) before the boundary —
-# without this, "*claim.*" splits before the closing `*`, and the retired-
-# quote suppression's italics check never sees a whole-wrapped sentence.
-SENTENCE_RE = re.compile(r"\S.*?[.!?][*_'\")\]]*(?=\s|$)|\S.+$", re.DOTALL)
-ITALIC_RE = re.compile(r"^(\*|_)(?!\1).+\1$", re.DOTALL)
 # A bare `>` used as a threshold marker ("> 5 failures") isn't a Markdown
 # blockquote — CommonMark's own marker is `>` followed by whitespace or
 # end-of-line, so that's what's required here too.
 BLOCKQUOTE_RE = re.compile(r"^>(\s|$)")
-LEAD_IN = "previously said:"
 
 
 def _files(config: Mapping[str, object]) -> Sequence[str]:
@@ -181,7 +172,7 @@ def _is_retired_quote(sentence: str, lines: Sequence[str], start: int, end: int)
         return True
     if ITALIC_RE.match(sentence.strip()):
         return True
-    return sentence.strip().lower().startswith(LEAD_IN)
+    return sentence.strip().lower().startswith(RETIRED_LEAD_IN)
 
 
 def _classify(sentence: str) -> list[str]:
@@ -192,41 +183,9 @@ def _classify(sentence: str) -> list[str]:
         modes.append(MODE_TOTALISING)
     if _is_count_claim(sentence):
         modes.append(MODE_COUNTS)
-    if BACKTICKED.search(sentence) and ELSEWHERE_RE.search(sentence):
+    if CODE_SPAN_RE.search(sentence) and ELSEWHERE_RE.search(sentence):
         modes.append(MODE_ABOUT_ELSEWHERE)
     return modes
-
-
-class _Sentence(NamedTuple):
-    text: str
-    start: int  # 0-based, inclusive
-    end: int  # 0-based, inclusive
-
-
-def _sentences_from(text: str) -> list[_Sentence]:
-    """Every sentence in `text`, with the line span it occupies.
-
-    Paragraphs (blank-line separated) are joined before splitting into
-    sentences, so a sentence soft-wrapped across lines is read whole.
-    """
-
-    lines = text.splitlines()
-    results: list[_Sentence] = []
-    para_start = 0
-    for i in range(len(lines) + 1):
-        at_end = i == len(lines)
-        if at_end or not lines[i].strip():
-            if i > para_start:
-                para_text = "\n".join(lines[para_start:i])
-                for match in SENTENCE_RE.finditer(para_text):
-                    before = para_text[: match.start()]
-                    start = para_start + before.count("\n")
-                    end = para_start + para_text[: match.end()].count("\n")
-                    sentence = " ".join(match.group(0).split())
-                    if sentence:
-                        results.append(_Sentence(sentence, start, end))
-            para_start = i + 1
-    return results
 
 
 def check(
@@ -249,7 +208,7 @@ def check(
         lines = text.splitlines()
         zero_based_added = {n - 1 for n in added_line_numbers}
 
-        for sentence, start, end in _sentences_from(text):
+        for sentence, start, end in sentences_from(text):
             if zero_based_added.isdisjoint(range(start, end + 1)):
                 continue
             if _is_retired_quote(sentence, lines, start, end):

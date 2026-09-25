@@ -33,7 +33,7 @@ carries everything needed once both parts are present). Every tracked
 `*.md` file is swept unconditionally, matching #16/#17/#18's "catches a
 claim that's false right now" precedent, narrowed only by `exclude`; a
 candidate inside a fenced code block is skipped, #16/#18's own
-`_fence_state` precedent.
+`claims.markdown.fence_state` precedent.
 
 A "script" is deliberately narrow — a path-shaped token ending in a
 recognized script extension — and a bare command name (`docker`, `npm`,
@@ -116,12 +116,13 @@ from __future__ import annotations
 
 import re
 import subprocess
-from collections.abc import Mapping, Sequence
+from collections.abc import Mapping
 from pathlib import Path
 
 from ..config import exclude_patterns, numeric_config, path_matches
 from ..execution_grants import local_grants, toml_string
 from ..git import tracked_files
+from ..markdown import fence_state
 from ..runner import Finding, register_check
 
 NAME = "check-cli-flags"
@@ -138,28 +139,6 @@ SCRIPT_RE = re.compile(
     r"^(?:[\w.-]+/)*[\w.-]+(?:" + "|".join(re.escape(e) for e in SCRIPT_EXTENSIONS) + r")\Z"
 )
 FLAG_RE = re.compile(r"^(?:--[A-Za-z][\w-]*|-[A-Za-z])\Z")
-
-FENCE_RE = re.compile(r"^\s*(`{3,})")
-
-
-def _fence_state(lines: Sequence[str]) -> list[bool]:
-    """Whether each of `lines` should be excluded from detection because
-    it's a fenced code block's own delimiter line or content — same
-    nesting rule and delimiter-line handling as
-    `check_file_refs._fence_state`/`check_env_vars._fence_state`; see
-    either for the full reasoning, not repeated a third time here.
-    """
-
-    in_fence: list[bool] = []
-    open_fence: int | None = None
-    for line in lines:
-        match = FENCE_RE.match(line)
-        if match and (open_fence is None or len(match.group(1)) >= open_fence):
-            open_fence = None if open_fence is not None else len(match.group(1))
-            in_fence.append(True)
-            continue
-        in_fence.append(open_fence is not None)
-    return in_fence
 
 
 def _runnable(script: str) -> str:
@@ -304,7 +283,7 @@ def check(repo_root: Path, diff_range: str, config: Mapping[str, object]) -> lis
         if text is None:
             continue
         lines = text.splitlines()
-        in_fence = _fence_state(lines)
+        in_fence = fence_state(lines)
         for line_no, line in enumerate(lines, 1):
             if in_fence[line_no - 1]:
                 continue
