@@ -43,11 +43,33 @@ exclude = ["examples/*"]
 [executable-claims]
 exclude = ["examples/*"]
 
+# Same directory as the two `.scratch/*` entries above, excluded for a
+# different reason: not for what its notes *say* (hypothetical paths,
+# superseded script names), but because they are frozen — `AGENTS.md`'s
+# "Pre-GitHub history" declares nothing under `.scratch/` a surface
+# anyone keeps current. `stale-claims` ranks a section by how much the
+# code it names has changed since the section was last touched, so prose
+# that will never be touched again only ever climbs: 53 of the 80
+# `stale-claims` findings when this glob was added, none of them
+# something to act on. The check's own built-in `CHANGELOG.md` exclusion
+# is additive to this and stays in force.
 [stale-claims]
-exclude = ["examples/*"]
+exclude = ["examples/*", ".scratch/*"]
 
+# A released `CHANGELOG.md` entry describes a change as it shipped and is
+# never reworded afterwards (`AGENTS.md`, "Versioning"), so prose a later
+# diff retracts elsewhere legitimately goes on being asserted there — the
+# same reason `stale-claims` excludes the file built-in, and the check's
+# own documented example of this key (`docs/checks/restatement.md`).
+# Excluding a file drops it from the duplication count as well as from
+# the survivor sweep, so this isn't purely subtractive: a text the
+# changelog held the second surviving copy of now falls under
+# `duplication_threshold` and gets reported where it lives. Over
+# `HEAD~15` that traded 31 suppressed findings for 3 new ones — two in
+# `.scratch/`, which this check doesn't exclude (see `TODO.md`), and one
+# genuine duplicate in `claims/hook.py` the changelog had been masking.
 [restatement]
-exclude = ["examples/*"]
+exclude = ["examples/*", "CHANGELOG.md"]
 
 [check-env-vars]
 exclude = ["examples/*"]

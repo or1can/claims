@@ -107,3 +107,24 @@
 - `claim_words._files` is a private copy of `config.string_list_config`,
   same coercion, same comment; noticed while documenting the check, left
   because folding it in touches `claims/` for no consumer-visible change.
+- `stale_claims.check` applies `exclude` to the claim side only: `docs` is
+  filtered by it, but `_module_index` is built from the whole tracked tree,
+  so an excluded file stops being a place a claim can be *found* and goes
+  on being a subject a claim can be *matched against*. That's why
+  `docs/installation.md`'s `--scope project` scores 100% — the bare
+  `` `project` `` resolves to `examples/spliced-docs/src/project.rs`, which
+  `examples/*` was meant to keep out of this check entirely. Affects every
+  `examples/*` entry in `claims.toml`, not just that finding. Surfaced by
+  `/code-review` while reading #53's survivors; out of scope there, which
+  changed no check's code.
+- `restatement` has no `.scratch/*` exclusion, so the frozen archive is
+  still swept for both retracted lines and survivors. Excluding
+  `CHANGELOG.md` there (#53) newly reported three findings, two of them in
+  `.scratch/claims-consolidation/spec.md`, the changelog having been the
+  second surviving copy holding them under `duplication_threshold`. (The
+  third, in `claims/hook.py`, is a real duplicate the changelog had been
+  masking, and wants no exclusion at all.) Adding
+  the glob wasn't in #53's scope — its acceptance criteria are measured
+  against exactly the two globs it names — and unlike `stale-claims`, a
+  retracted line still asserted in the archive isn't obviously noise, so
+  this wants deciding rather than copying across.
