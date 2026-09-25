@@ -47,7 +47,14 @@ def every_check_name() -> set[str]:
 
 
 class RegistryClearingTestCase(unittest.TestCase):
-    """Base for tests that register checks: keeps the global registry isolated per test."""
+    """Base for tests that register checks: keeps the global registry isolated per test.
+
+    Only the checks a test registers exist while it runs, so a fixture
+    `claims.toml` naming any other check's table, a real one included
+    (`[executable-claims]` in a test that registered only a fake `spy`),
+    gets `runner`'s unrecognized-table gate finding. Register that check
+    too, or expect the finding.
+    """
 
     def setUp(self) -> None:
         runner.clear_registry()
