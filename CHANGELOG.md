@@ -11,6 +11,14 @@ reached you, not just that one was pushed upstream.
 
 ## [Unreleased]
 
+## [0.12.5] - 2026-09-26
+
+- Fixed: a `claims.local.toml` table that names no registered check, such
+  as `[executable_claims]` for `[executable-claims]`, is now a gate
+  finding against that file, with the same suggestion `claims.toml` gets.
+  It previously granted nothing and reported nothing. `[hook]` there is
+  reported too, since the hook's switch is read from `claims.toml` only.
+
 ## [0.12.4] - 2026-09-25
 
 - Fixed: the commit hook now gates a `git commit` run through a git alias

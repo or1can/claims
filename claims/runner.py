@@ -25,7 +25,7 @@ from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
 from pathlib import Path
 
-from .config import CONFIG_FILENAME
+from .config import CONFIG_FILENAME, LOCAL_CONFIG_FILENAME, ConfigError, load_local_config
 
 CheckFn = Callable[[Path, str, Mapping[str, object]], Sequence["Finding"]]
 
@@ -39,8 +39,8 @@ class Finding:
     checks with only one strategy may leave it as the check's own name. A
     finding with no originating check at all — `_crash_finding` uses the
     crashed check's own name, `_unrecognized_table_findings` (ticket #21)
-    uses the fixed name `"config"`, since no `claims.toml` table can
-    collide with it — is the one exception to "names a check."
+    uses the fixed name `"config"`, since no config table can collide
+    with it — is the one exception to "names a check."
     `gate` is True when this finding's check type should block a commit.
     """
 
@@ -117,16 +117,26 @@ def _normalize_table_name(name: str) -> str:
 
 
 def _unrecognized_table_findings(
-    config: Mapping[str, Mapping[str, object]], registered_names: Sequence[str]
+    config: Mapping[str, Mapping[str, object]],
+    registered_names: Sequence[str],
+    filename: str,
+    known_non_check_tables: frozenset[str],
 ) -> list[Finding]:
-    """One gate finding per top-level `claims.toml` table that names
-    neither a registered check nor `_KNOWN_NON_CHECK_TABLES` — a project's
-    entry under a table like that silently configures nothing today (`{}`
-    is what `config.get(name, {})` gets every check whose name it doesn't
-    match), which looks like a working opt-out right up until it isn't.
-    Scoped to `claims.toml` specifically: `claims.local.toml` (this
-    check's own git-ignored grant file, ticket #15) isn't validated here —
-    a mistyped table there is a separate, currently-unclosed gap.
+    """One gate finding, cited against `filename`, per top-level table of
+    `config` that names neither a registered check nor one of
+    `known_non_check_tables` — a project's entry under a table like that
+    silently configures nothing today (`{}` is what `config.get(name, {})`
+    gets every check whose name it doesn't match), which looks like a
+    working opt-out right up until it isn't.
+
+    Run over both `claims.toml` (ticket #21) and `claims.local.toml`
+    (ticket #86), where a mistyped grant table grants nothing just as
+    silently. The local file's accepted set is every registered check
+    name, not only the checks that read local grants today: which checks
+    those are is recorded only inside their own bodies (their
+    `local_grants` call), so a hardcoded subset here would drift the
+    moment a check started or stopped reading grants. `[hook]` is not
+    accepted there — the hook reads `claims.toml` only.
 
     Checked against the registry's *live* names, not a hardcoded list, so
     this never drifts out of sync with whatever checks actually exist —
@@ -140,14 +150,16 @@ def _unrecognized_table_findings(
     normalized_registered = {_normalize_table_name(n): n for n in registered_names}
     findings: list[Finding] = []
     for table in config:
-        if table in registered_names or table in _KNOWN_NON_CHECK_TABLES:
+        if table in registered_names or table in known_non_check_tables:
             continue
-        message = f"[{table}] is not a registered check name or [hook]"
+        message = f"[{table}] is not a registered check name"
+        if known_non_check_tables:
+            message += " or " + ", ".join(f"[{t}]" for t in sorted(known_non_check_tables))
         suggestion = normalized_registered.get(_normalize_table_name(table))
         if suggestion is not None:
             message += f" — did you mean [{suggestion}]?"
         findings.append(
-            Finding(file=CONFIG_FILENAME, line=0, message=message, mode="config", gate=True)
+            Finding(file=filename, line=0, message=message, mode="config", gate=True)
         )
     return findings
 
@@ -170,10 +182,26 @@ def run(
     checked against the live registry (`_unrecognized_table_findings`,
     ticket #21): a table naming neither a registered check nor `[hook]`
     gets its own gate finding rather than silently resolving to an empty
-    section for a check that doesn't exist.
+    section for a check that doesn't exist. `repo_root`'s own
+    `claims.local.toml` gets the same check (ticket #86). A local file
+    that doesn't parse is skipped here rather than raised: each check that
+    reads it turns that `ConfigError` into its own crash finding when it
+    runs.
     """
 
-    findings: list[Finding] = list(_unrecognized_table_findings(config, tuple(_registry)))
+    registered = tuple(_registry)
+    findings: list[Finding] = _unrecognized_table_findings(
+        config, registered, CONFIG_FILENAME, _KNOWN_NON_CHECK_TABLES
+    )
+    try:
+        local_config = load_local_config(repo_root)
+    except ConfigError:
+        local_config = {}
+    findings.extend(
+        _unrecognized_table_findings(
+            local_config, registered, LOCAL_CONFIG_FILENAME, frozenset()
+        )
+    )
     for name, check in _registry.items():
         check_config = config.get(name, {})
         try:

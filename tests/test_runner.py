@@ -20,6 +20,7 @@ never internal helpers in isolation — see spec.md's Testing Decisions.
 
 from __future__ import annotations
 
+import tempfile
 import unittest
 from pathlib import Path
 
@@ -197,6 +198,63 @@ class RunnerTests(RegistryClearingTestCase):
         self.assertTrue(any("typo-one" in m for m in messages))
         self.assertTrue(any("typo-two" in m for m in messages))
         self.assertEqual(len(result.findings), 2)
+
+    def _local_config_repo(self, content: str | None) -> Path:
+        temp = tempfile.TemporaryDirectory()
+        self.addCleanup(temp.cleanup)
+        repo_root = Path(temp.name)
+        if content is not None:
+            (repo_root / "claims.local.toml").write_text(content)
+        return repo_root
+
+    def test_an_unrecognized_local_table_is_a_gate_finding_naming_the_local_file(
+        self,
+    ) -> None:
+        register_check("executable-claims", lambda repo_root, diff_range, config: [])
+        repo_root = self._local_config_repo('[executable_claims]\nallowed = ["make"]\n')
+
+        result = run(repo_root, "HEAD", {})
+
+        self.assertEqual(len(result.findings), 1)
+        finding = result.findings[0]
+        self.assertTrue(finding.gate)
+        self.assertEqual(finding.file, "claims.local.toml")
+        self.assertEqual(finding.line, 0)
+        self.assertEqual(finding.mode, "config")
+        self.assertIn("did you mean [executable-claims]?", finding.message)
+
+    def test_a_local_table_naming_a_registered_check_produces_no_finding(self) -> None:
+        register_check("executable-claims", lambda repo_root, diff_range, config: [])
+        repo_root = self._local_config_repo('[executable-claims]\nallowed = ["make"]\n')
+
+        result = run(repo_root, "HEAD", {})
+
+        self.assertEqual(result.findings, ())
+
+    def test_a_missing_local_file_produces_no_finding(self) -> None:
+        register_check("executable-claims", lambda repo_root, diff_range, config: [])
+        repo_root = self._local_config_repo(None)
+
+        result = run(repo_root, "HEAD", {})
+
+        self.assertEqual(result.findings, ())
+
+    def test_a_local_hook_table_is_flagged_since_the_hook_never_reads_it(self) -> None:
+        repo_root = self._local_config_repo("[hook]\nenabled = false\n")
+
+        result = run(repo_root, "HEAD", {})
+
+        self.assertEqual(len(result.findings), 1)
+        self.assertEqual(result.findings[0].file, "claims.local.toml")
+        self.assertNotIn("or [hook]", result.findings[0].message)
+
+    def test_an_unparseable_local_file_is_left_to_the_checks_that_read_it(self) -> None:
+        register_check("check-a", lambda repo_root, diff_range, config: [])
+        repo_root = self._local_config_repo("[not toml\n")
+
+        result = run(repo_root, "HEAD", {})
+
+        self.assertEqual(result.findings, ())
 
 
 if __name__ == "__main__":
