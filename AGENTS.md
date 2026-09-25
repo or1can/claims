@@ -201,12 +201,12 @@ to GitHub, and tickets 01–37 as closed Markdown files (see
 `agents/issue-tracker.md`'s "Pre-publish history"). None of it is
 maintained: what a check does today is stated on its page under
 `docs/checks/`, and nothing under `.scratch/` is a surface to keep
-current when a check changes. `claims.toml` excludes the tree from three
+current when a check changes. `claims.toml` excludes the tree from four
 checks: `check-file-refs` and `check-cli-flags` for the hypothetical
-paths and superseded commands it names, and `stale-claims` because prose
-nobody will touch again can only ever look staler. `restatement` and
-`judgment-agent` still sweep it; whether `restatement` should is noted in
-`TODO.md`.
+paths and superseded commands it names, `stale-claims` because prose
+nobody will touch again can only ever look staler, and `restatement`
+because a retracted line still asserted there will never be reconciled.
+`judgment-agent` still sweeps it.
 
 ## Agent skills
 

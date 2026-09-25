@@ -69,10 +69,17 @@ exclude = ["examples/*", ".scratch/*"]
 # changelog held the second surviving copy of now falls under
 # `duplication_threshold` and gets reported where it lives. Over
 # `HEAD~15` that traded 31 suppressed findings for 3 new ones — two in
-# `.scratch/`, which this check doesn't exclude (see `TODO.md`), and one
-# genuine duplicate in `claims/hook.py` the changelog had been masking.
+# `.scratch/`, and one genuine duplicate in `claims/hook.py` the changelog
+# had been masking.
+#
+# `.scratch/*` is excluded for the reason `stale-claims` gives above: the
+# archive is frozen, so a retracted line still asserted there will never
+# be reconciled, and a finding in it is nothing anyone will act on. Over
+# `HEAD~15` that removed 66 findings, all in `.scratch/`, and for the
+# same reason as the changelog surfaced 9 new ones outside it that the
+# archive had been holding under `duplication_threshold`.
 [restatement]
-exclude = ["examples/*", "CHANGELOG.md"]
+exclude = ["examples/*", "CHANGELOG.md", ".scratch/*"]
 
 [check-env-vars]
 exclude = ["examples/*"]
