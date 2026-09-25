@@ -115,6 +115,20 @@ class CaptureFreshnessTests(unittest.TestCase):
         self.assertNotIn("used to be external", text)
         self.assertNotIn("CHANGELOG.md", text)
 
+    def test_an_example_local_file_grants_a_command_the_capture_then_runs(self) -> None:
+        # `executable-claims` runs nothing a machine has not granted in an
+        # untracked `claims.local.toml`, so the drift its whole gate exists
+        # for cannot be shown from tracked files alone: the example's
+        # `local/` is written into the working tree unstaged, and the
+        # program it grants prints what the documented block no longer
+        # says. The second assertion is what fails if that seeding is ever
+        # staged instead — a tracked grant file has its grants ignored.
+        text = capture("executable-claims")
+        self.assertIn(
+            "output of `./widget status` no longer matches the documented block", text
+        )
+        self.assertNotIn("claims.local.toml is tracked by git", text)
+
 
 if __name__ == "__main__":
     unittest.main()

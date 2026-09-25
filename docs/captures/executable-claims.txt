@@ -2,3 +2,4 @@
 [GATE] README.md:5 (executable-claims) `./widget --version` has no local grant in claims.local.toml — under `[executable-claims]`, add "./widget --version" to an existing `allowed` list or start one with `allowed = ["./widget --version"]`, or the same into `denied` to skip it and record that choice
 [GATE] README.md:12 (executable-claims) `./widget plugins | grep -c enabled` pipes through `grep` — text-processing logic must live in a testable script, not a marker
 [GATE] README.md:19 (executable-claims) verify marker is not above a fenced block
+[GATE] README.md:25 (executable-claims) output of `./widget status` no longer matches the documented block

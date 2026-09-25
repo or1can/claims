@@ -1,0 +1,5 @@
+# Per-machine and never committed: a claims.local.toml git tracks has its
+# grants ignored outright. Granting the command is what lets the marker
+# below it be checked at all, rather than reported as undecided.
+[executable-claims]
+allowed = ["./widget status"]

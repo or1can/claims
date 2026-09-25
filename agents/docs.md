@@ -46,8 +46,13 @@ adding a page means adding it there too.
    top without being committed, so they are the pending change a
    diff-scoped check reads and a whole-tree check sees like any tracked
    file. A check whose bait is history alone, `stale-claims`, has no own
-   files. Every step of the input is a checked-in file the page can
-   include. A check that sees nothing until a project configures it gets
+   files. What an example keeps under `examples/<check>/local/` is
+   written into the working tree unstaged instead, with its executable
+   bit carried over, for the state a per-machine file has on a real
+   machine: `executable-claims` runs only a command granted in a
+   `claims.local.toml` git does not track, so its drift finding cannot be
+   captured from tracked files at all. Every step of the input is a
+   checked-in file the page can include. A check that sees nothing until a project configures it gets
    that from the same example too: a `claims.toml` under
    `examples/<check>/` is read for the check's own section, so the page
    can include the configuration that brings its claim into scope. Where

@@ -91,9 +91,12 @@ person whose change caused it.
 
 ## Example
 
-The example is one file with three markers. The first is well-formed and
-names a command nothing on this machine has been asked to run. The second
-pipes through `grep`. The third is followed by prose rather than a fence.
+The example is one file with four markers, beside the per-machine state
+the last of them needs. The first marker is well-formed and names a
+command nothing on this machine has been asked to run. The second pipes
+through `grep`. The third is followed by prose rather than a fence. The
+fourth names a command this machine has granted, whose block is out of
+date.
 
 `examples/executable-claims/README.md`:
 
@@ -101,34 +104,53 @@ pipes through `grep`. The third is followed by prose rather than a fence.
 {{#include ../../examples/executable-claims/README.md}}
 ````
 
-Run against a fresh repository holding that file, with no
-`claims.local.toml` beside it, the check reports:
+A granted marker needs two things a repository cannot commit: the grant,
+and the program the command names. Both sit under the example's own
+`local/`, and `scripts/capture.py` writes them into the working tree of
+the throwaway repository it builds without ever staging them — which is
+the state they have on a real machine, and what makes the last finding
+below a command that really ran rather than an illustration of one. A
+committed grant file is exactly the trust boundary the mechanism exists
+not to rely on, and the check ignores the grants in any
+`claims.local.toml` that git tracks.
+
+`examples/executable-claims/local/claims.local.toml`:
+
+```toml
+{{#include ../../examples/executable-claims/local/claims.local.toml}}
+```
+
+`examples/executable-claims/local/widget`:
+
+```sh
+{{#include ../../examples/executable-claims/local/widget}}
+```
+
+Run against a fresh repository holding all of that, the check reports:
 
 ```
 {{#include ../captures/executable-claims.txt}}
 ```
 
-This is the ungranted state, and it is the one every reader meets first:
-a marker's command with no grant on this machine, which is what a fresh
-clone, a colleague's checkout and a CI runner all have. The first finding
-says so and gives the exact TOML that would grant or deny the command.
-Nothing ran to produce it, and the example needs no local file, which is
-also why it can be captured identically on any machine. A capture of the
-granted state would need the capture to write a `claims.local.toml` of
-its own first, because no repository can commit one: a committed grant
-file is exactly the trust boundary the mechanism exists not to rely on,
-and the check ignores the grants in any `claims.local.toml` that git
-tracks.
+The first finding is the ungranted state, and it is the one every reader
+meets first: a marker's command with no grant on this machine, which is
+what a fresh clone, a colleague's checkout and a CI runner all have. It
+gives the exact TOML that would grant or deny the command. Nothing ran to
+produce it.
 
 The second finding is the blocklist, reached before the grant is even
 consulted. The third is the malformed marker. Neither depends on any
-local state either.
+local state either, which is why the first three lines are what this
+example reports on a machine that has granted nothing.
 
-Once a command is granted, the same marker reports one of two things when
-the block is wrong: that the command exited non-zero, naming the code, or
-that its output no longer matches the documented block. Both name the
-marker's file and line. A marker whose command and block agree reports
-nothing, which is the state a granted, correct example sits in.
+The fourth is the drift the check exists for. `./widget status` is
+granted, so it ran; the program prints a version and a plugin count the
+block beneath the marker no longer states, and the claim that block makes
+is disproved. A granted command reports one of two things when the block
+is wrong: this, or that the command exited non-zero, naming the code.
+Both name the marker's file and line. A marker whose command and block
+agree reports nothing, which is the state a granted, correct example sits
+in.
 
 ## Configuration
 
