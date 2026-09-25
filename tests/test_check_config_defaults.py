@@ -227,6 +227,34 @@ class CheckConfigDefaultsTests(RegistryClearingTestCase):
         self.assertEqual(len(findings), 1)
         self.assertIn("30", findings[0].message)
 
+    def test_a_claim_inside_a_fenced_code_block_is_not_detected(self) -> None:
+        with Repo() as repo:
+            repo.write("src/config.py", "TIMEOUT = 99\n")
+            repo.write(
+                "README.md",
+                "Example:\n\n```markdown\n`TIMEOUT` defaults to `30`.\n```\n",
+            )
+            repo.commit()
+            findings = self._findings_with_config(
+                repo.root, '[check-config-defaults]\nTIMEOUT = "src/config.py:1"\n'
+            )
+        self.assertEqual(findings, [])
+
+    def test_a_claim_outside_a_fence_is_still_flagged(self) -> None:
+        with Repo() as repo:
+            repo.write("src/config.py", "TIMEOUT = 99\n")
+            repo.write(
+                "README.md",
+                "```markdown\n`TIMEOUT` defaults to `99`.\n```\n\n"
+                "`TIMEOUT` defaults to `30`.\n",
+            )
+            repo.commit()
+            findings = self._findings_with_config(
+                repo.root, '[check-config-defaults]\nTIMEOUT = "src/config.py:1"\n'
+            )
+        self.assertEqual(len(findings), 1)
+        self.assertEqual(findings[0].citation, "README.md:5")
+
 
 if __name__ == "__main__":
     import unittest

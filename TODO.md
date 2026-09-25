@@ -50,15 +50,6 @@
   copy via a negative lookbehind instead of `\b`; porting that fix here
   needs its own verification pass against `stale-claims`' existing ranking
   output and tests, out of scope for #16.
-- `check_config_defaults.py` (ticket #17) has no fenced-code-block
-  awareness — a claim shaped `` `NAME` defaults to `value` `` inside a
-  ` ``` ` fence (e.g. a docs page's own illustrative example of this
-  check's syntax) is scanned as a real claim, not skipped as example
-  content. `check_env_vars.py` (ticket #18), `check_file_refs.py`
-  (ticket #16) and `check_cli_flags.py` (ticket #19) all fixed this via
-  the fence-state pass now shared as `claims.markdown.fence_state`; #17
-  shipped before the gap was noticed and hasn't been revisited. Cheap to
-  port (an import and two lines), just not done yet.
 - `claim_words.py` carries its own `_files`/`_designated` pair rather than
   calling `config.string_list_config` and `config.path_matches`, which do
   the same two jobs for every other check. `_designated` uses plain
