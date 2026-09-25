@@ -57,15 +57,15 @@ its subject in backticks is the shape most worth handing to it.
 
 ## Why it exists
 
-A specification, a decision record or a changelog is where a project
-writes down what is true of the whole tree, and the sentences there are
-the ones that go wrong quietly: "every check gates" was true when the
-third check landed and false when the fourth did. No mechanical check
-can verify a sentence like that, and the alternative to a sweep for the
-words such sentences are made of is to never look at them at all. The
-sweep is confined to designated files because the same words in a
-tutorial are asides, and a check that reported every "always" in a
-README would be dismissed on its first run.
+A specification, a glossary or an agent instruction file is where a
+project writes down what is true of the whole tree, and the sentences
+there are the ones that go wrong quietly: "every check gates" was true
+when the third check landed and false when the fourth did. No
+mechanical check can verify a sentence like that, and the alternative to
+a sweep for the words such sentences are made of is to never look at
+them at all. The sweep is confined to designated files because the same
+words in a tutorial are asides, and a check that reported every
+"always" in a README would be dismissed on its first run.
 
 ## Example
 
@@ -134,12 +134,12 @@ one of the three markers if it is being quoted to say it was wrong.
 
 ```toml
 [claim-words]
-files = ["decisions/*.md", "CONTEXT.md"]
+files = ["spec.md", "CONTEXT.md", "AGENTS.md"]
 ```
 
 | Key | Shape | Default | Reach for this when |
 | --- | --- | --- | --- |
-| `files` | list of glob strings; a bare string is a one-element list | `[]`: nothing is swept | Always, since the check reads nothing until this names a file. List every file whose sentences are assertions about the tree and worth holding to account: specifications, decision records, a changelog, an agent instruction file. A file not listed is never read, whatever it says. |
+| `files` | list of glob strings; a bare string is a one-element list | `[]`: nothing is swept | Always, since the check reads nothing until this names a file. List every file whose sentences are claims you would want re-verified against the tree as it stands: a specification, a glossary, an agent instruction file, a README, a documentation site's own prose pages. In practice a changelog and a decision record fail that test — a changelog entry is dated at writing, and while a decision record's consequences are live, its motivation and counts are frozen at the decision's date and outnumber them. Designation is per file, so a file carrying both kinds is included on which kind predominates. A file not listed is never read, whatever it says. |
 
 There is no `exclude`. `files` is the only scope the check has, and a
 file outside it is already excluded.

@@ -76,12 +76,12 @@ thing lands, and nothing about the sentence changes to say so. Both
 belong in a changelog, which is read as a record of a moment and is
 never expected to describe the present.
 
-That is also why this is a check of its own rather than a fourth mode of
+This is a check of its own rather than a fourth mode of
 [claim-words](claim-words.md). The two read sentences the same way and
-report the same way, but they want opposite file sets: a changelog and
-release notes are where a project's totalising sentences are worth
-holding to account and where its temporal wording is exactly correct.
-One `files` key cannot mean both.
+report the same way, but they want different file sets: a to-do list
+makes live claims worth holding to account, and its temporal wording is
+exactly correct, since it exists to say what is not done yet. One
+`files` key cannot mean both.
 
 ## Example
 

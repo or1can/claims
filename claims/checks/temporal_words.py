@@ -23,11 +23,11 @@ made of cannot tell you the claim is wrong.
 
 **Why not a fourth `claim-words` mode.** The two checks share sentence
 splitting, diff scoping, severity and the shape of `files` — but not the
-file set. A changelog and release notes are where temporal wording is
-*correct*, and they are exactly what a project designates for
-`claim-words`' other modes. Sharing one `files` key would either sweep
-the changelog for "since 0.21.0" or drop the reference pages from the
-other three modes. A per-mode scope is the same separation with a worse
+file set. A to-do list's temporal wording is *correct* — it exists to
+say what is not done yet — while its claims are live and exactly what a
+project designates for `claim-words`. Sharing one `files` key would
+either sweep the to-do list for "not yet" or drop it from `claim-words`'
+three modes. A per-mode scope is the same separation with a worse
 config shape, so this is its own check with its own key (ticket #52).
 
 **Three modes, one per matching strategy**, matching `claim_words`' own

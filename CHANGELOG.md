@@ -11,6 +11,19 @@ reached you, not just that one was pushed upstream.
 
 ## [Unreleased]
 
+## [0.11.1] - 2026-09-25
+
+- Changed: the `claim-words` page no longer recommends designating a
+  changelog or decision records. Its `files` row now gives the test —
+  would you want this file's claims re-verified against the tree as it
+  stands? — and names those two as files that usually fail it; the
+  example configuration is `["spec.md", "CONTEXT.md", "AGENTS.md"]`. If
+  you followed the old advice, expect most of this check's findings in
+  those files to be noise, and consider dropping them.
+- Changed: the Concepts page's "record-like" is replaced by live and
+  dated claims, under the headings "Live and dated claims" and
+  "Designated files".
+
 ## [0.11.0] - 2026-09-25
 
 - Added: `temporal-words`, an advisory check that reads the sentences a
