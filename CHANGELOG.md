@@ -11,6 +11,17 @@ reached you, not just that one was pushed upstream.
 
 ## [Unreleased]
 
+## [0.12.0] - 2026-09-25
+
+- Added: `check-file-refs` accepts a `historical` glob list in
+  `claims.toml`, the same key `check-links` already takes. A bare path
+  mention in a matching file that no longer resolves passes if a file was
+  at that path in the commit that wrote its line, so a shipped changelog
+  or decision-record entry citing a file by its bare path no longer
+  blocks moving that file. Uncommitted lines, and lines a later commit
+  touched, are still checked; a finding on a historical line names the
+  commit it was also tested at. See `docs/checks/check-file-refs.md`.
+
 ## [0.11.1] - 2026-09-25
 
 - Changed: the `claim-words` page no longer recommends designating a

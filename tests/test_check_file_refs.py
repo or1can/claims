@@ -20,6 +20,7 @@ fixture git repos — see spec.md's Testing Decisions.
 
 from __future__ import annotations
 
+import subprocess
 from pathlib import Path
 
 from claims.checks.check_file_refs import NAME, check
@@ -755,6 +756,193 @@ class CheckFileRefsTests(RegistryClearingTestCase):
         self.assertEqual(len(findings), 1)
         self.assertIn("<!-- example -->", findings[0].message)
         self.assertFalse(findings[0].gate)
+
+
+class HistoricalFileTests(RegistryClearingTestCase):
+    """`[check-file-refs] historical`: a bare path in an append-only record
+    resolves against the tree at the commit that wrote its line (#57, on
+    ADR 0002's reasoning)."""
+
+    HISTORICAL = '[check-file-refs]\nhistorical = ["CHANGELOG.md"]\n'
+
+    def setUp(self) -> None:
+        super().setUp()
+        register_check(NAME, check)
+
+    def _findings(self, repo_root: Path) -> list[Finding]:
+        return list(run(repo_root, "HEAD", load_config(repo_root)).findings)
+
+    def _write_untracked_config(self, repo: Repo) -> None:
+        (repo.root / "claims.toml").write_text(self.HISTORICAL)
+
+    def test_a_path_valid_when_its_line_was_written_passes_after_the_file_is_deleted(
+        self,
+    ) -> None:
+        with Repo() as repo:
+            repo.write("docs/old.md", "# Old\n")
+            repo.write("CHANGELOG.md", "- See `docs/old.md`.\n")
+            repo.commit()
+            (repo.root / "docs" / "old.md").unlink()
+            repo.commit()
+            self._write_untracked_config(repo)
+
+            findings = self._findings(repo.root)
+
+        self.assertEqual(findings, [])
+
+    def test_a_path_broken_when_its_line_was_written_is_still_flagged_naming_the_commit(
+        self,
+    ) -> None:
+        with Repo() as repo:
+            repo.write("CHANGELOG.md", "- See `docs/nope.md`.\n")
+            repo.commit()
+            commit = subprocess.run(
+                ["git", "-C", str(repo.root), "rev-parse", "--short=7", "HEAD"],
+                capture_output=True,
+                text=True,
+                check=True,
+            ).stdout.strip()
+            self._write_untracked_config(repo)
+
+            findings = self._findings(repo.root)
+
+        self.assertEqual(len(findings), 1)
+        self.assertEqual(findings[0].citation, "CHANGELOG.md:1")
+        self.assertTrue(findings[0].gate)
+        self.assertIn("docs/nope.md", findings[0].message)
+        self.assertIn(f"nor at {commit}", findings[0].message)
+
+    def test_a_path_that_resolves_today_passes_even_if_broken_when_written(
+        self,
+    ) -> None:
+        with Repo() as repo:
+            repo.write("CHANGELOG.md", "- See `docs/late.md`.\n")
+            repo.commit()
+            repo.write("docs/late.md", "# Late\n")
+            repo.commit()
+            self._write_untracked_config(repo)
+
+            findings = self._findings(repo.root)
+
+        self.assertEqual(findings, [])
+
+    def test_a_citing_relative_path_valid_when_written_passes_after_the_file_is_deleted(
+        self,
+    ) -> None:
+        # The working tree accepts either resolution base, so history must
+        # too, or a citing-relative mention fails for a reason unrelated to
+        # history.
+        with Repo() as repo:
+            repo.write("notes/refs/old.md", "# Old\n")
+            repo.write("notes/CHANGELOG.md", "- See `refs/old.md`.\n")
+            repo.commit()
+            (repo.root / "notes" / "refs" / "old.md").unlink()
+            repo.commit()
+            (repo.root / "claims.toml").write_text(
+                '[check-file-refs]\nhistorical = ["notes/CHANGELOG.md"]\n'
+            )
+
+            findings = self._findings(repo.root)
+
+        self.assertEqual(findings, [])
+
+    def test_an_uncommitted_line_resolves_against_the_working_tree(self) -> None:
+        with Repo() as repo:
+            repo.write("CHANGELOG.md", "# Changelog\n")
+            repo.commit()
+            repo.write("CHANGELOG.md", "# Changelog\n- See `docs/nope.md`.\n")
+            self._write_untracked_config(repo)
+
+            findings = self._findings(repo.root)
+
+        self.assertEqual(len(findings), 1)
+        self.assertEqual(findings[0].citation, "CHANGELOG.md:2")
+
+    def test_an_entirely_uncommitted_historical_file_resolves_against_the_working_tree(
+        self,
+    ) -> None:
+        with Repo() as repo:
+            repo.write("README.md", "# Readme\n")
+            repo.commit()
+            repo.write("CHANGELOG.md", "- See `docs/nope.md`.\n")
+            self._write_untracked_config(repo)
+
+            findings = self._findings(repo.root)
+
+        self.assertEqual(len(findings), 1)
+        self.assertEqual(findings[0].citation, "CHANGELOG.md:1")
+
+    def test_a_line_rewritten_later_must_resolve_as_of_that_later_commit(self) -> None:
+        with Repo() as repo:
+            repo.write("docs/old.md", "# Old\n")
+            repo.write("CHANGELOG.md", "- See `docs/old.md`.\n")
+            repo.commit()
+            (repo.root / "docs" / "old.md").unlink()
+            repo.write("CHANGELOG.md", "- See `docs/old.md` for details.\n")
+            repo.commit()
+            self._write_untracked_config(repo)
+
+            findings = self._findings(repo.root)
+
+        self.assertEqual(len(findings), 1)
+        self.assertEqual(findings[0].citation, "CHANGELOG.md:1")
+
+    def test_a_line_rewritten_later_passes_if_it_resolved_at_that_later_commit(
+        self,
+    ) -> None:
+        # The retarget commit is what the line is tested at — not the
+        # working tree, where the new target has since gone too.
+        with Repo() as repo:
+            repo.write("CHANGELOG.md", "- See `docs/old.md`.\n")
+            repo.commit()
+            repo.write("docs/new.md", "# New\n")
+            repo.write("CHANGELOG.md", "- See `docs/new.md`.\n")
+            repo.commit()
+            (repo.root / "docs" / "new.md").unlink()
+            repo.commit()
+            self._write_untracked_config(repo)
+
+            findings = self._findings(repo.root)
+
+        self.assertEqual(findings, [])
+
+    def test_a_line_older_than_the_commit_adopting_the_plugin_is_skipped(self) -> None:
+        with Repo() as repo:
+            repo.write("CHANGELOG.md", "- See `docs/nope.md`.\n")
+            repo.commit()
+            repo.write("claims.toml", self.HISTORICAL)
+            repo.commit()
+
+            findings = self._findings(repo.root)
+
+        self.assertEqual(findings, [])
+
+    def test_a_line_written_after_adopting_the_plugin_is_checked(self) -> None:
+        with Repo() as repo:
+            repo.write("claims.toml", self.HISTORICAL)
+            repo.commit()
+            repo.write("CHANGELOG.md", "- See `docs/nope.md`.\n")
+            repo.commit()
+
+            findings = self._findings(repo.root)
+
+        self.assertEqual(len(findings), 1)
+        self.assertEqual(findings[0].citation, "CHANGELOG.md:1")
+
+    def test_a_non_historical_file_is_unaffected(self) -> None:
+        with Repo() as repo:
+            repo.write("docs/old.md", "# Old\n")
+            repo.write("README.md", "See `docs/old.md`.\n")
+            repo.commit()
+            (repo.root / "docs" / "old.md").unlink()
+            repo.commit()
+            self._write_untracked_config(repo)
+
+            findings = self._findings(repo.root)
+
+        self.assertEqual(len(findings), 1)
+        self.assertEqual(findings[0].citation, "README.md:1")
+        self.assertNotIn("nor at", findings[0].message)
 
 
 if __name__ == "__main__":
