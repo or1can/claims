@@ -11,6 +11,14 @@ reached you, not just that one was pushed upstream.
 
 ## [Unreleased]
 
+## [0.10.5] - 2026-09-25
+
+- Fixed: the Configuring page and the `check-citations` and
+  `judgment-agent` pages no longer say that a table named for either
+  check "configures nothing". Both accept `enabled = false` like any
+  other check, which takes them out of the commit gate; the two checks
+  read no other key.
+
 ## [0.10.4] - 2026-09-25
 
 - Changed: the Configuring page and the `check-claims` skill now send

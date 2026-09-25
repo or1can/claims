@@ -183,7 +183,8 @@ confirmed one is nothing. A candidate is never itself something to fix.
 None. The check reads no key from `claims.toml`, and there is no
 `exclude`: every tracked `.swift` and `.rs` file is a source of subjects
 and every tracked `.md` file is a source of citations. A
-`[judgment-agent]` table is accepted and configures nothing.
+`[judgment-agent]` table is accepted, and `enabled` below is the only
+key that does anything in it.
 
 `enabled`, which takes a check out of the commit gate while leaving it
 in the on-demand skill and the CLI, is read by the commit hook rather

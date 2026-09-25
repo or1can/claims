@@ -23,8 +23,10 @@ so `exclude = "CHANGELOG.md"` and `exclude = ["CHANGELOG.md"]` mean the
 same thing. That holds for every list-valued key of every check.
 
 Two checks, `check-citations` and `judgment-agent`, read nothing from
-`claims.toml`. A section named for either is accepted and configures
-nothing.
+`claims.toml`. A section named for either is accepted, and the only key
+that does anything in it is `enabled`, which is read by the commit hook
+rather than by the check and so applies to every check alike — see
+[Silencing one check at commit time](#silencing-one-check-at-commit-time).
 
 `claims.local.toml`, beside it, is git-ignored and per-machine. It holds
 the one kind of setting that must never arrive by pull request: the grants
