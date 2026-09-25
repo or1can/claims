@@ -180,6 +180,18 @@ either candidate- or marker-detection ever runs on it (matching
 `claims.markdown.fence_state`'s own treatment of everything else on that
 line), so it
 produces no finding of either kind — not dangling, just never looked at.
+
+`historical` (#57) is `check-links`' own key on ADR 0002's own reasoning:
+a bare path in an append-only record is a claim about the tree as it was
+when its line was written, so a candidate that fails against the working
+tree is re-tested at the commit `git blame` attributes the line to, via
+the same `claims.historical.HistoricalResolver`. Only the at-commit test
+differs — whether the path was a file in that commit's tree
+(`git.is_file_at`), not whether a heading slug was in its blob — and it
+tries both resolution bases the working tree does, so a citing-relative
+mention in a record isn't flagged for a reason unrelated to history.
+`known_untracked` is not consulted there: a deliberately untracked file
+was never in any commit's tree, so it has no commit-time meaning.
 """
 
 from __future__ import annotations
@@ -190,7 +202,8 @@ from pathlib import Path
 from posixpath import dirname, join, normpath
 
 from ..config import exclude_patterns, path_matches, string_list_config
-from ..git import tracked_files
+from ..git import is_file_at, tracked_files
+from ..historical import HistoricalResolver
 from ..markdown import fence_state
 from ..runner import Finding, register_check
 
@@ -368,11 +381,14 @@ def _citing_relative(citing: str, candidate: str) -> str:
     return normpath(join(dirname(citing), candidate))
 
 
-def _finding(rel: str, line_no: int, candidate: str) -> Finding:
+def _finding(rel: str, line_no: int, candidate: str, where: str = "") -> Finding:
+    message = f"`{candidate}` does not resolve to a tracked file"
+    if where:
+        message += f" (not in the working tree{where})"
     return Finding(
         file=rel,
         line=line_no,
-        message=f"`{candidate}` does not resolve to a tracked file",
+        message=message,
         mode=NAME,
         gate=True,
     )
@@ -416,6 +432,20 @@ def check(repo_root: Path, diff_range: str, config: Mapping[str, object]) -> lis
     known_untracked = _known_untracked(config)
     tracked_set = set(tracked_files(repo_root))
     repo_real = repo_root.resolve()
+    historical = string_list_config(config, "historical")
+    resolver = HistoricalResolver(repo_root) if historical else None
+    # Per (commit, path), for the same reason `check_links` caches its
+    # slugs per (commit, path): one lookup however many lines name it.
+    file_at: dict[tuple[str, str], bool] = {}
+
+    def held_at(commit: str, paths: tuple[str, str]) -> bool:
+        for path in paths:
+            if (commit, path) not in file_at:
+                file_at[(commit, path)] = is_file_at(repo_root, commit, path)
+            if file_at[(commit, path)]:
+                return True
+        return False
+
     findings: list[Finding] = []
 
     for rel in sorted(tracked_files(repo_root, "*.md")):
@@ -424,6 +454,7 @@ def check(repo_root: Path, diff_range: str, config: Mapping[str, object]) -> lis
         text = _read(repo_root / rel)
         if text is None:
             continue
+        file_resolver = resolver if path_matches(rel, historical) else None
         lines = text.splitlines()
         in_fence = fence_state(lines)
         for line_no, line in enumerate(lines, 1):
@@ -446,13 +477,24 @@ def check(repo_root: Path, diff_range: str, config: Mapping[str, object]) -> lis
                 if marker is not None:
                     consumed_marker_starts.add(marker.start())
                     continue
-                if candidate in tracked_set or _citing_relative(rel, candidate) in tracked_set:
+                citing_relative = _citing_relative(rel, candidate)
+                if candidate in tracked_set or citing_relative in tracked_set:
                     continue
                 if path_matches(candidate, known_untracked):
                     real = (repo_root / candidate).resolve()
                     if real.is_relative_to(repo_real) and real.is_file():
                         continue
-                findings.append(_finding(rel, line_no, raw))
+                where = ""
+                if file_resolver is not None:
+                    paths = (candidate, citing_relative)
+                    verdict = file_resolver.held_when_written(
+                        rel, line_no, lambda commit: held_at(commit, paths)
+                    )
+                    if verdict is True:
+                        continue
+                    if isinstance(verdict, str):
+                        where = f", nor at {verdict[:7]} where this line was written"
+                findings.append(_finding(rel, line_no, raw, where))
             for marker in EXAMPLE_MARKER_RE.finditer(line):
                 if marker.start() not in consumed_marker_starts:
                     findings.append(_dangling_marker_finding(rel, line_no))

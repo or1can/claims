@@ -16,12 +16,14 @@
 
 from __future__ import annotations
 
+import subprocess
 import unittest
 
 from claims.git import (
     DiffHunkStart,
     DiffLine,
     added_lines_by_file,
+    is_file_at,
     iter_diff,
     tracked_files,
 )
@@ -270,6 +272,47 @@ class AddedLinesByFileTests(unittest.TestCase):
             added = added_lines_by_file(repo.root, "HEAD")
 
         self.assertEqual(added, {"normal.md": {3}, "café.md": {3}})
+
+
+class IsFileAtTests(unittest.TestCase):
+    def _head(self, repo: Repo) -> str:
+        return subprocess.run(
+            ["git", "-C", str(repo.root), "rev-parse", "HEAD"],
+            capture_output=True,
+            text=True,
+            check=True,
+        ).stdout.strip()
+
+    def test_a_file_in_the_commits_tree_is_found(self) -> None:
+        with Repo() as repo:
+            repo.write("docs/page.md", "text\n")
+            repo.commit()
+
+            self.assertTrue(is_file_at(repo.root, self._head(repo), "docs/page.md"))
+
+    def test_a_file_deleted_since_is_still_found_at_its_commit(self) -> None:
+        with Repo() as repo:
+            repo.write("docs/page.md", "text\n")
+            repo.commit()
+            commit = self._head(repo)
+            (repo.root / "docs" / "page.md").unlink()
+            repo.commit()
+
+            self.assertTrue(is_file_at(repo.root, commit, "docs/page.md"))
+
+    def test_a_path_absent_from_the_commits_tree_is_not_found(self) -> None:
+        with Repo() as repo:
+            repo.write("docs/page.md", "text\n")
+            repo.commit()
+
+            self.assertFalse(is_file_at(repo.root, self._head(repo), "docs/other.md"))
+
+    def test_a_directory_is_not_a_file(self) -> None:
+        with Repo() as repo:
+            repo.write("docs/page.md", "text\n")
+            repo.commit()
+
+            self.assertFalse(is_file_at(repo.root, self._head(repo), "docs"))
 
 
 if __name__ == "__main__":

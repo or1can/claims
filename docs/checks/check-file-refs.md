@@ -131,6 +131,7 @@ mention as an example if it was never meant to exist.
 exclude = ["docs/legacy/*.md"]
 extensions = [".proto"]
 known_untracked = [".claude/settings.local.json", "*.local.toml"]
+historical = ["CHANGELOG.md", "decisions/*.md"]
 ```
 
 | Key | Shape | Default | Reach for this when |
@@ -138,6 +139,40 @@ known_untracked = [".claude/settings.local.json", "*.local.toml"]
 | `exclude` | list of glob strings; a bare string is a one-element list | `[]`, nothing excluded | A file's bare path mentions should not be validated at all: prior-art notes discussing another project's tree, decision records quoting a layout that no longer exists, or a directory of inputs written to be broken, like this site's own examples. An excluded file is skipped whole. |
 | `extensions` | list of extension strings, each with its leading dot; a bare string is a one-element list | the built-in set: `.py`, `.rs`, `.go`, `.js`, `.ts`, `.rb`, `.java`, `.c`, `.h`, `.cpp`, `.swift`, `.sh`, `.md`, `.txt`, `.yml`, `.yaml`, `.json`, `.toml` | The project's prose names a file type outside that set, such as `.proto`, and a bare mention of one should be held to the same standard. Entries are added to the built-in set, never substituted for it. |
 | `known_untracked` | list of glob strings; a bare string is a one-element list | `[]`, every candidate must be tracked | A correctly cited file is real but deliberately never added to git, such as a git-ignored per-machine settings file, and should not gate identically to a typo. A match must still exist on disk inside the repository. |
+| `historical` | list of glob strings; a bare string is a one-element list | `[]`, every mention resolves against the working tree | A file is an append-only record, such as a changelog or a set of decision records, whose shipped entries your own rules forbid editing, and you still want to rename or move the files it names. |
+
+A `historical` file's mentions get one more chance. A mention that fails
+against the working tree is looked up again in the tree at the commit
+that wrote its line, as `git blame` attributes it, and passes if a file
+was there, taken from either the repository root or the citing file's
+directory, as in the working tree. A shipped entry that named a file
+before it moved stays as written, and the move does not have to leave
+the old path behind. A mention found in neither place is still a
+finding, and its message names both: not in the working tree, nor at
+the commit where the line was written, given by its short hash.
+`known_untracked` plays no part in that second lookup, since a file never
+added to git is in no commit's tree.
+
+The same rule, read consistently, settles three edge cases:
+
+- An uncommitted line is checked against the working tree only. A
+  changelog's unreleased section is being written now, and is gated like
+  any other file.
+- A line a later commit touched belongs to that commit, and the mention
+  has to have resolved there. Retargeting an old path, if your rules
+  allow it, is checked against the tree it was retargeted in.
+- A line older than the commit that first added `claims.toml` is skipped
+  when it fails. Nothing gated it when it was written, so it may have
+  been wrong then, and the append-only rule leaves no way to fix it now.
+  With no tracked `claims.toml` there is no such commit, and every line
+  is checked.
+
+History is read only for a mention that has already failed against the
+working tree, so records whose mentions all still resolve cost nothing
+extra. [check-links](check-links.md) takes the same key for links, and
+[ADR 0002](../../decisions/0002-historical-links-resolve-at-their-own-commit.md)
+has the reasoning, including which other checks it does and does not
+reach.
 
 `enabled`, which takes this check out of the commit gate while leaving it
 in the on-demand skill and the CLI, is shared by every check and covered
@@ -152,7 +187,8 @@ exemption](../concepts.md#the-retired-quote-exemption) exists for a
 sentence quoted in order to retire it, and a path is a pointer rather
 than a sentence: a changelog entry saying a file moved is making a claim
 about where it is now, and if the sentence is genuinely about a file that
-is gone, the example marker says so for that one mention.
+is gone, the example marker says so for that one mention. A record whose
+old mentions must stay intact is what `historical` is for.
 
 ## Next
 

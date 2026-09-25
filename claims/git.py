@@ -221,6 +221,20 @@ def blob_text(repo_root: Path, commit: str, rel: str) -> str | None:
     return result.stdout if result.returncode == 0 else None
 
 
+def is_file_at(repo_root: Path, commit: str, rel: str) -> bool:
+    """Whether `commit`'s tree has a file at `rel` — asks for the object's
+    type rather than reading it, so answering costs nothing per byte, and
+    a directory at `rel` (a tree, not a blob) is not a file."""
+
+    result = subprocess.run(
+        ["git", *QUOTEPATH_OFF, "-C", str(repo_root), "cat-file", "-t", f"{commit}:{rel}"],
+        capture_output=True,
+        text=True,
+        errors="replace",
+    )
+    return result.returncode == 0 and result.stdout.strip() == "blob"
+
+
 def first_commit_adding(repo_root: Path, rel: str) -> str | None:
     """The oldest commit that added `rel`, or `None` if none has."""
 
