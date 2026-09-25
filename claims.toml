@@ -5,13 +5,16 @@
 # `.scratch/claims-consolidation/` is historical design-notes prior art —
 # it discusses other real projects (`ratect`) and hypothetical example
 # paths by design, not this repo's own current tree, so a bare path
-# mention there intentionally won't resolve (ticket #16). `decisions/`
-# similarly narrates paths that aren't this tree's: hypothetical or
-# illustrative scenarios (an ADR's own named attack example), and — since
-# ADR 0004 — the pre-move `docs/adr/`, quoted deliberately to record what
-# the layout used to be.
+# mention there intentionally won't resolve (ticket #16).
+#
+# `decisions/` is checked, but as `historical`: an ADR is frozen at its
+# decision's date, so a path it names that has since moved — the
+# pre-move `docs/adr/` since ADR 0004 — resolves at the commit that wrote
+# the line (ADR 0002). Its hypothetical paths carry an example marker
+# instead, which binds to the one mention rather than the whole file.
 [check-file-refs]
-exclude = [".scratch/*", "decisions/*.md", "examples/*"]
+exclude = [".scratch/*", "examples/*"]
+historical = ["decisions/*.md"]
 
 # `.claude/settings.local.json` is a real, deliberately gitignored,
 # per-machine file (ticket #33) — its own mention in `CHANGELOG.md`'s

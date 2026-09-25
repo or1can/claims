@@ -100,7 +100,7 @@ checks today.
 
 A granted command string can stay exactly the same while a script it
 invokes by path changes independently — granting
-`python3 tools/warm-cache.py` once doesn't re-verify `tools/warm-cache.py`'s
+`python3 tools/warm-cache.py`<!-- example --> once doesn't re-verify `tools/warm-cache.py`<!-- example -->'s
 own contents on every later run. Pinning or hashing the invoked script's
 content was considered and deliberately deferred: it's a meaningfully
 larger mechanism (content-addressed grants, invalidation on script change)
