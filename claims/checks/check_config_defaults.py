@@ -12,55 +12,44 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""The `check-config-defaults` check (ticket #17).
+"""The `check-config-defaults` check (ticket #17): a stated default value,
+held to the line of code a project maps the setting to.
+`docs/checks/check-config-defaults.md` is the account of what it reads,
+the mapping's shape and what it misses; this docstring is why the code is
+shaped the way it is.
 
-Nothing else verifies a stated default *value* against code:
-`check-citations` verifies a backticked symbol's *existence* in history,
-never a claimed value; nothing else comes close. A claim like "`STATION_NAME`
-defaults to `ai_radio`" is invisible to every other check regardless of
-whether it's still true.
+Its own check because nothing else verifies a stated default *value*
+against code: `check-citations` verifies a backticked symbol's
+*existence* in history, never a claimed value; nothing else comes close.
 
-**Detection is deliberately narrow.** A candidate needs a fixed phrase
-anchor ("defaults to", "default is", "defaulting to", "default:") *and*
-both the setting's name and its stated value backticked, in that order, in
-the same claim — `` `STATION_NAME` defaults to `ai_radio` ``. A claim
-stating a default in ordinary prose without a backticked exact value
-("defaults to the AI Radio station") is not detected at all — not a miss,
-simply outside what this check verifies. Requiring the claim itself to
-state the exact value is what makes the rest of this check honest: the
-precision requirement lives in how the claim is written, not in the
-checker trying to bridge a prose-vs-code gap it can't reliably close
-without real language-aware parsing.
+**Detection is deliberately narrow** — a fixed phrase anchor *and* both
+the setting's name and its stated value backticked — because requiring
+the claim itself to state the exact value is what makes the rest of this
+check honest: the precision requirement lives in how the claim is
+written, not in the checker trying to bridge a prose-vs-code gap it can't
+reliably close without real language-aware parsing. That same requirement
+is what makes the near-exact comparison affordable — a bare substring
+test against the mapped line's raw text, with no normalization applied to
+the code side at all; a checker trying to bridge a looser claim's wording
+against arbitrary code would need real parsing this check deliberately
+doesn't attempt.
 
 **Where to verify against is explicit, per project.** This check's own
-`claims.toml` section is itself the setting-name → file:line mapping —
-`STATION_NAME = "src/config.py:42"`, or `"src/config.py:40-45"` for a
-narrow range — matching the same "project states what it means, we don't
-guess your structure" philosophy `claim-words`'s `files` and
-`stale-claims`'s `module_reference_scope` already use. A setting name with
-no mapping entry produces no finding: out of scope, not flagged as broken
-— this check only verifies settings a project has explicitly registered.
-A malformed mapping value (not shaped `path:line` or `path:start-end`)
-raises `ConfigError`, surfacing as `runner.run`'s own gate crash finding —
-the same treatment every other check's own malformed config gets.
-
-**Comparison is near-exact, on purpose.** The claimed value, with only its
-own surrounding quote characters stripped, must appear as a substring
-somewhere in the mapped line(s)' raw text — not semantic or fuzzy
-matching, and no normalization applied to the code side at all (a claim's
-`ai_radio` matches code reading `STATION_NAME = "ai_radio"` because the
-bare substring is still there inside the quotes, not because either side
-was specially unquoted to compare). Point 1's backtick-both requirement is
-what makes this precision affordable: a checker trying to bridge a looser
-claim's wording against arbitrary code would need real parsing this check
-deliberately doesn't attempt.
+`claims.toml` section is itself the setting-name → file:line mapping,
+matching the same "project states what it means, we don't guess your
+structure" philosophy `claim-words`'s `files` and `stale-claims`'s
+`module_reference_scope` already use. A setting name with no mapping
+entry produces no finding: out of scope, not flagged as broken. A
+malformed mapping value raises `ConfigError`, surfacing as `runner.run`'s
+own gate crash finding — the same treatment every other check's own
+malformed config gets.
 
 No command is ever executed here — pure file-read and text comparison,
 deliberately, to avoid entangling this with #15's permission-gate work
-(execution-based verification is `cli_command`'s own territory, #19).
+(execution-based verification is `check-cli-flags`' own territory, #19).
 
-Findings are **advisory**, explicitly provisional pending real
-false-positive data from actual use — not a permanent severity choice.
+Findings are advisory, explicitly provisional pending real false-positive
+data from actual use — not a permanent severity choice.
 
 **Known, deliberate gap, not silently accepted:** a mapped file:line can
 drift out of sync with the actual code over time — the default moves to a

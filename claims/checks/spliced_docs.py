@@ -12,52 +12,45 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""The `spliced-docs` check.
+"""The `spliced-docs` check: a `///` doc comment an insertion has pushed onto
+the wrong declaration. `docs/checks/spliced-docs.md` is the account of
+runs, breaks, evidence, the two modes and the `modes` key; this docstring
+is why the code is shaped the way it is.
 
-Inserting a declaration above an existing one, anchored on that one's `///`
-lines, splices the new declaration into its neighbour's documentation.
-Nothing catches it mechanically: the compiler/doc-renderer is happy, and the
-text ends up rendered under whichever declaration ends up last, leaving the
-declaration it was written for bare. Registered as an **advisory** check —
-see spec.md's check inventory — so it never fails the run: a break in a doc
-run is common (an ordinary second sentence), and only some are splices.
+Advisory (spec.md's check inventory): a break in a doc run is common (an
+ordinary second sentence), and only some are splices. Nothing catches a
+splice mechanically otherwise — the compiler/doc-renderer is happy, and
+the text ends up rendered under whichever declaration ends up last.
 
 Ported from `ratect`'s `tools/spliced-docs.py` (Rust) and Project B's
 `tools/spliced-docs.py` (Swift) — same author, both Apache-2.0/relicensed
 prior art for this consolidation — onto the *union* of their evidence
 rules (spec.md's "stronger variant" applied to both languages, not just
-Swift's): a break is reported when the stranded prose names, in backticks,
-either an undocumented declaration in the same file (`undocumented` mode)
-or a name that resolves to nothing anywhere in the repo (`unknown` mode).
-No adapter interface is introduced for this — spec.md defers that design;
-the two languages are handled by two concrete, independent functions.
+Swift's). No adapter interface is introduced for this — spec.md defers
+that design; the two languages are handled by two concrete, independent
+functions.
 
 Only `undocumented` mode runs by default. `unknown`'s weaker rule ("names a
 backtick term that resolves to nothing") fires on ordinary technical prose
 almost as often as it fires on a real splice, on a codebase with dense,
 cross-referencing doc comments (confirmed against a real Rust project: 15
 `unknown` findings to 1 `undocumented` finding, all 15 false positives) —
-opt in via `modes = ["undocumented", "unknown"]` (or `["unknown"]` alone)
-in this check's `claims.toml` section once that noise level is checked to
-be acceptable for a given project. Naming anything other than
-`undocumented`/`unknown` in `modes` raises `ConfigError`.
+so it is opt-in via `modes` once that noise level is checked to be
+acceptable for a given project.
 
-How it works, per language:
-
-  run       one contiguous block of `///` lines, plus the attributes and
-            declaration beneath it
-  break     inside a run, a line ending a sentence followed — with no blank
-            `///` between — by a line reading like a fresh summary. Each
-            source codebase's own house style (a summary, a blank `///`,
-            then detail) is what makes a summary mid-run mean two documents
-  evidence  a break alone is far too noisy (an ordinary second sentence
-            trips it constantly). What distinguishes a splice is that the
-            stranded half names, in backticks, a declaration that is either
-            undocumented in the same file or absent from the repo entirely
+The break rule leans on each source codebase's own house style (a
+summary, a blank `///`, then detail): that is what makes a summary
+mid-run mean two documents. Evidence beyond the break is required because
+a break alone is far too noisy.
 
 Not diff-scoped: every tracked `*.rs`/`*.swift` file is swept, matching the
 source tools' whole-tree behaviour — a splice can predate the diff being
 checked.
+
+`SWIFT_DECL_RE` and `RUST_ITEM_RE` are the "what does this repository
+declare" answer `check-citations` and `judgment-agent` import rather than
+redefine — see `check_citations.py` for why that answer must not exist
+twice.
 """
 
 from __future__ import annotations

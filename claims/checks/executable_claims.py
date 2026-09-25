@@ -12,36 +12,35 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""The `executable-claims` check.
+"""The `executable-claims` check: a `<!-- verify: cmd -->` marker above a
+fenced block pins that block to what `cmd` prints.
+`docs/checks/executable-claims.md` is the account of what a live marker
+is, how output is compared, which keys it takes and where severity
+departs from gate; the fixed blocklist and the grant file are on
+`docs/configuring.md`. This docstring is why the code is shaped the way
+it is.
 
-A `<!-- verify: cmd -->` marker directly above a fenced block runs `cmd`
-through the shell and diffs its combined stdout+stderr, and its exit code,
-against the block. Registered as a **gate** check — see spec.md's check
-inventory — except a `cmd` that exceeds its timeout (`TIMEOUT_SECONDS`,
-overridable via this check's `claims.toml` `timeout` key): that's reported
-advisory, not gate, since a timeout means the check never got an answer,
-not that the claim was proven false.
+Gate (spec.md's check inventory), except a `cmd` that exceeds its
+timeout: that's reported advisory, since a timeout means the check never
+got an answer, not that the claim was proven false.
 
 The command runs through a shell rather than `shlex.split`, so a marker
-needing a pipe works; that also means it runs exactly what it says, with the
-same trust boundary as running the repo's own tests.
+needing a pipe works; that also means it runs exactly what it says, with
+the same trust boundary as running the repo's own tests. Not diff-scoped:
+every tracked `*.md` file is swept, matching the check's job of catching
+a claim that's false right now, not just one a diff just introduced.
 
-Not diff-scoped: every tracked `*.md` file is swept, matching the check's
-job of catching a claim that's false right now, not just one a diff just
-introduced.
-
-Before a live marker's command ever runs, it's checked against a fixed
-blocklist — no `claims.toml` entry required, since this is true of *any*
-project using the marker mechanism, not just one project's own naming
-(ticket #11): a chaining/backgrounding operator (`;`, `&&`, `||`, `&`), a
-redirect (`>`, `>>`, `<`, `<<` — a marker reading or writing an arbitrary
-file is exactly the "more than the one thing pinned" this exists to stop,
-not merely a chained command), or a command substitution (`` ` ``, `$(`)
-lets a marker do more than the one thing being pinned, and `sed`/`awk`/`grep`
-turn a marker into inline text logic that only ever exists as a string in
-an HTML comment, with nothing able to unit-test it. `tail`/`head` are
-deliberately not in this blocklist: trimming a suite's last line or two is
-still the one thing being pinned, not extra untested logic.
+**The blocklist is fixed, with no `claims.toml` entry**, since it is
+true of *any* project using the marker mechanism, not just one project's
+own naming (ticket #11): a chaining/backgrounding operator, a redirect (a
+marker reading or writing an arbitrary file is exactly the "more than
+the one thing pinned" this exists to stop, not merely a chained command),
+or a command substitution lets a marker do more than the one thing being
+pinned, and `sed`/`awk`/`grep` turn a marker into inline text logic that
+only ever exists as a string in an HTML comment, with nothing able to
+unit-test it. `tail`/`head` are deliberately not in this blocklist:
+trimming a suite's last line or two is still the one thing being pinned,
+not extra untested logic.
 
 `>&`/`<&` are checked differently from the rest of the redirection set
 (ticket #30): the bare operator token doesn't say whether it's `N>&M`
@@ -51,18 +50,18 @@ runners, including Python's own `unittest`, write their real summary to
 stderr, not stdout) or `>&file`, bash's own deprecated-but-real synonym
 for `&>file` — a genuine arbitrary-file write, exactly the risk the rest
 of this blocklist exists to stop. Only the token immediately following
-`>&`/`<&` decides it: a bare digit run (`1`, `2`, ...) is safe
-duplication and permitted; anything else — a filename, nothing at all —
-rejects exactly like every other redirect. This applies to both
-directions (`2>&1` and `1>&2` alike, no reason to special-case one over
-the other) and both operators (`>&` and `<&` symmetrically), and doesn't
-excuse a *separate* real redirect elsewhere in the same command — `echo
-hi 2>&1 > /tmp/out` still rejects on the unrelated `>`. A leading, already
-verified-safe `N>&M` in a pipe segment (`2>&1 grep a`, POSIX allows a
-redirection before the command name too) doesn't hide that segment's real
-command word from the `sed`/`awk`/`grep` check either — `_strip_fd_duplication`
-removes it before the segment's own head is read, the same way a `(`/`)`
-subshell wrapper already gets stripped.
+`>&`/`<&` decides it: a bare digit run is safe duplication and permitted;
+anything else — a filename, nothing at all — rejects exactly like every
+other redirect. This applies to both directions (`2>&1` and `1>&2` alike,
+no reason to special-case one over the other) and both operators
+symmetrically, and doesn't excuse a *separate* real redirect elsewhere in
+the same command — `echo hi 2>&1 > /tmp/out` still rejects on the
+unrelated `>`. A leading, already verified-safe `N>&M` in a pipe segment
+(`2>&1 grep a`, POSIX allows a redirection before the command name too)
+doesn't hide that segment's real command word from the `sed`/`awk`/`grep`
+check either — `_strip_fd_duplication` removes it before the segment's
+own head is read, the same way a `(`/`)` subshell wrapper already gets
+stripped.
 
 The digit-only lookahead itself is only trusted when the command contains
 no backslash outside single quotes (`_has_backslash_outside_single_quotes`
@@ -99,9 +98,10 @@ does with each construct, not one blanket "ignore anything quoted" rule:
   tokenize down to the bare word `grep`. A pipe segment's head is checked
   past a `(`/`)` subshell wrapper too, so `| (grep pattern)` doesn't dodge
   it either — and `|&` (bash's combined stdout+stderr pipe) is treated as
-  the same kind of boundary as `|`, not missed as an unrecognized word. A backslash-escaped operator (`find ... -exec ... \\;`) is
-  neutralized before tokenizing — replaced with a placeholder, not its own
-  bare character, so it can't still tokenize as a real operator — but an
+  the same kind of boundary as `|`, not missed as an unrecognized word. A
+  backslash-escaped operator (`find ... -exec ... \\;`) is neutralized
+  before tokenizing — replaced with a placeholder, not its own bare
+  character, so it can't still tokenize as a real operator — but an
   escaped ordinary character (`` \\grep ``, a common way to bypass a shell
   alias of the same name) keeps its own identity, or `grep` piped through
   that way would silently stop matching `TEXT_PROCESSING_TOOLS`. Unlike
@@ -118,16 +118,14 @@ does with each construct, not one blanket "ignore anything quoted" rule:
   found while inside single quotes as inert. It never fails to run the way
   tokenizing can — there's no rejected-input case to fall back from.
 
-A project may additionally narrow *which* commands a marker may name at
-all — "only our own test suites, or a script under our own scripts
-directory" — via this check's own `permitted_prefixes` list in
-`claims.toml`: a literal string prefix (`command.startswith(...)`, no glob
-expansion the way `exclude`'s globs get, and no word-boundary check after
-the prefix — `permitted_prefixes = ["npm test"]` also permits
-`npm test-anything-else`, so a project wanting an exact match includes its
-own trailing boundary, e.g. `"npm test "`). The check has no way to know a
-project's own suite-invocation or script-layout conventions, so this stays
-opt-in: absent means the blocklist above is the only content check.
+`permitted_prefixes` is opt-in, layered on top of the blocklist rather
+than replacing it: the check has no way to know a project's own
+suite-invocation or script-layout conventions, so absent means the
+blocklist above is the only content check. It is a literal string prefix
+(`command.startswith(...)`, no glob expansion the way `exclude`'s globs
+get, and no word-boundary check after the prefix — `permitted_prefixes =
+["npm test"]` also permits `npm test-anything-else`, so a project wanting
+an exact match includes its own trailing boundary, e.g. `"npm test "`).
 
 A command failing either check is reported as a gate finding and never
 runs — the same failure class as a marker that isn't above a fenced block,
@@ -149,15 +147,11 @@ only stops git from ever adding a matching path, though — it does nothing
 once one is already tracked, so a `claims.local.toml` that's tracked at
 all (an attacker's PR could commit one) has its grants ignored outright,
 with a gate finding naming the problem, rather than trusted just because
-its filename matches the git-ignored one:
-
-- In `denied` → skipped, reported as an advisory finding (not a gate) so a
-  deliberately-declined marker doesn't just silently vanish from view.
-- In `allowed` → runs and is verified exactly as before this ticket.
-- In neither (the default for any command never explicitly decided,
-  including one that's new or has changed even slightly since it was last
-  granted) → gate finding, naming the exact command and the exact TOML to
-  add under `[executable-claims]` in `claims.local.toml` to resolve it.
+its filename matches the git-ignored one. A `denied` command is reported
+as an advisory finding (not a gate) so a deliberately-declined marker
+doesn't just silently vanish from view; an undecided one — including one
+that has changed even slightly since it was last granted — is a gate
+finding naming the exact command and the exact TOML that would resolve it.
 
 This lives in `check()` itself, not the `PreToolUse` hook — the on-demand
 skill and any CI invocation go through the same `check()`, so nothing can

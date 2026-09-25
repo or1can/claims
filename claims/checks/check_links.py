@@ -12,57 +12,43 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""The `check-links` check.
+"""The `check-links` check: every internal Markdown link resolves to the
+file and heading it names. `docs/checks/check-links.md` is the account of
+what is in scope, which keys it takes and how `historical` resolves; this
+docstring is why the code is shaped the way it is.
 
-Every internal Markdown link — a link to another tracked `*.md` file, or a
-bare `#anchor` within the same file — resolves: the target file exists, and
-if the link names a heading anchor, that anchor matches one of the target's
-headings under GitHub's slug rule. Registered as a **gate** check — see
-spec.md's check inventory — a broken relative link is inert now, not a
-judgment call for later.
+Gate (spec.md's check inventory): a broken relative link is inert now,
+not a judgment call for later.
 
 Ported from Project B's `scripts/check-links`, plus its shared
 `scripts/slugs.sh` for the heading-slug rule (Apache-2.0/relicensed prior
 art, same author); `ratect` has no equivalent (tool-survey.md). Scope
-matches the source tool's own: a link is only checked here when its target
-names another `.md` file (with or without `#anchor`) or is a bare `#anchor`
-into the current file — an image, a source-file link, or an external URL is
-out of scope, same as upstream. A scheme (`https://...`, `mailto:...`) is
-excluded explicitly, since a URL that happens to end `.md` would otherwise
-pass the source tool's own path-shaped filter.
+matches the source tool's own — another `.md` file, with or without
+`#anchor`, or a bare `#anchor` into the current file — with a scheme
+(`https://...`, `mailto:...`) excluded explicitly, since a URL that
+happens to end `.md` would otherwise pass the source tool's own
+path-shaped filter.
 
-The source tool's first version required a link to end in bare `.md)`, so a
-link ending `...md#anchor)` — path *plus* anchor — silently never got
-validated at all; this port checks the path-plus-anchor form from the start
-(ticket 13's named regression case).
+Two departures from the source tool, both fixes rather than ports. Its
+first version required a link to end in bare `.md)`, so a link ending
+`...md#anchor)` — path *plus* anchor — silently never got validated at
+all; this port checks the path-plus-anchor form from the start (ticket
+13's named regression case). And its `slugs_of` stripped underscores,
+which GitHub's slugger does not (ticket 26); no de-duplication for
+repeated identical headings, matching upstream's own scope.
 
-Heading slugs follow GitHub's real anchor algorithm: lowercase, strip
-anything outside `[a-z0-9 _-]`, spaces to hyphens — no de-duplication for
-repeated identical headings, matching upstream's own scope. (Ticket 26: the
-source tool's `slugs_of` stripped underscores too, which GitHub's slugger
-does not; fixed here rather than ported as-is.)
-
-A file matched by the check's own `historical` glob list (ticket #50 —
-an append-only record like a changelog, whose shipped entries a project's
-rules forbid editing) gets one extra chance: a link that fails against the
-working tree is re-resolved against the tree at the commit `git blame`
-attributes its line to, and passes if it held there. The link was a true
-claim when written, and the record's job is to stay what it was — so a
-page rename elsewhere in the tree doesn't turn every old entry naming it
-into a gate finding nothing is allowed to fix. See ADR 0002 for the
-reasoning. Three consequences worth knowing:
-
-- An uncommitted line (blame's all-zero SHA, or a file not yet in `HEAD`
-  at all) is being written *now*, and resolves against the working tree
-  exactly like any other file — a changelog's Unreleased section stays
-  fully gated.
-- A line a later commit touched is re-attributed to that commit and must
-  hold as of it, so deliberately retargeting a historical link (if a
-  project ever chooses to) is self-consistent with the gate.
-- A line older than the commit that first added `claims.toml` — written
-  before this plugin gated anything — is skipped when it fails: it may have
-  been broken when written, and can't be fixed under the same rule now. No
-  tracked `claims.toml` means no cutoff, and every line is checked.
+`historical` (ticket #50) exists for an append-only record like a
+changelog, whose shipped entries a project's rules forbid editing: the
+link was a true claim when written, and the record's job is to stay what
+it was — so a page rename elsewhere in the tree shouldn't turn every old
+entry naming it into a gate finding nothing is allowed to fix. Hence a
+link that fails against the working tree is re-resolved against the tree
+at the commit `git blame` attributes its line to. See ADR 0002 for the
+reasoning and the alternatives considered. The cutoff at the commit that
+first added `claims.toml` is deliberate: a line older than that was
+written before this plugin gated anything, may have been broken when
+written, and can't be fixed under the same rule now; no tracked
+`claims.toml` means no cutoff, and every line is checked.
 """
 
 from __future__ import annotations

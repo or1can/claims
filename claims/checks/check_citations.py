@@ -12,47 +12,44 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""The `check-citations` check.
+"""The `check-citations` check: a backticked name citing a symbol this
+repository once declared and no longer does. `docs/checks/check-citations.md`
+is the account of what it reads, what it reports and what it misses; this
+docstring is why the code is shaped the way it is.
 
-A backticked name in tracked Markdown, or in a tracked Swift comment, that
-cites a symbol this repository once declared (via full commit history) but
-no longer has. Registered as a **gate** check — see spec.md's check
-inventory — unlike this repo's other, advisory ports: a rename either left a
-citation behind or it did not, so there is nothing here for a person to
-weigh.
+Gate, unlike this repo's other, advisory ports (spec.md's check
+inventory): a rename either left a citation behind or it did not, so
+there is nothing here for a person to weigh.
 
 Ported from Project B's `scripts/check-citations` (Apache-2.0/relicensed
 prior art, same author) — the only surveyed source tool with this check;
 `ratect` has no equivalent (tool-survey.md). Scope is therefore kept as
 narrow as the source tool's own: tracked `*.md` and comments in tracked
 `*.swift`. A citation to a symbol some other language ever declared is
-outside what `_declared_ever` can see and is never flagged — a conservative
-gap (this check does nothing for it), not a false positive.
+outside what `_declared_ever` can see and is never flagged — a
+conservative gap, not a false positive.
 
-**Only names this repository once declared**, which is every name any
-commit ever added — not the trees at the working copy and `HEAD` alone,
-which miss anything renamed away before the current tip. Reading that
-requires full history; a shallow clone (or any other git failure while
-reading it) cannot answer honestly, so it is reported as a (gate) finding
-of its own rather than a silent, false-clean pass — this repo's existing
-`executable-claims` check established the same "say so, don't just report
-zero" shape for its own "nothing to check" case.
+Full history, not the trees at the working copy and `HEAD` alone, because
+those two miss anything renamed away before the current tip. A shallow
+clone (or any other git failure while reading history) cannot answer
+honestly, so it is reported as a gate finding of its own rather than a
+silent, false-clean pass — the same "say so, don't just report zero"
+shape `executable-claims` established for its own "nothing to check"
+case.
 
-Mark a deliberately historical reference with `was: <name>` — `<!-- was:
-name -->` in Markdown, `// was: name` in Swift, the whole comment and
-nothing else — which exempts citations on its own line and the next one,
-and no further (Project B's own tuning: a wider scope, tried and reverted,
-silenced real dead citations alongside the one it was meant to cover). The
-marker is anchored to that syntax, not to the bare substring `was:`, so an
+The `was:` marker exempts its own line and the next one, and no further —
+Project B's own tuning: a wider scope, tried and reverted, silenced real
+dead citations alongside the one it was meant to cover. The marker is
+anchored to comment syntax, not to the bare substring `was:`, so an
 ordinary sentence that happens to use the word ("the old name was:
 `loadWidget`") does not accidentally exempt a real dead citation.
 
-The Swift declaration regex (`SWIFT_DECL_RE`) is imported from
-`spliced_docs`, not redefined here: Project B's own `tools/claims.py` (this
-check's and `spliced-docs`' shared prior art there) exists specifically
-because two independently-written answers to "what does this repository
-declare" once drifted apart; importing the one this consolidation already
-ported for `spliced-docs` avoids reintroducing that exact drift.
+`SWIFT_DECL_RE` is imported from `spliced_docs`, not redefined here:
+Project B's own `tools/claims.py` (this check's and `spliced-docs`' shared
+prior art there) exists specifically because two independently-written
+answers to "what does this repository declare" once drifted apart;
+importing the one this consolidation already ported for `spliced-docs`
+avoids reintroducing that exact drift.
 """
 
 from __future__ import annotations

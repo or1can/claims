@@ -12,91 +12,82 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""The `check-file-refs` check (ticket #16).
+"""The `check-file-refs` check (ticket #16): a bare path mention in prose
+that resolves to no tracked file. `docs/checks/check-file-refs.md` is the
+account of what counts as a mention, what is set aside, which keys it
+takes and what it misses; this docstring is why the code is shaped the
+way it is.
 
-`stale-claims` already scans prose for path-shaped text (its own `PATH_RE`)
-but only *keeps* a match that resolves to a tracked file — a match that
-doesn't resolve is silently dropped, never reported anywhere. `check-links`
-only validates real Markdown link syntax (`[text](path)`); a bare,
-unmarked prose mention of a path is outside its regex entirely. Nothing
-today reports "this prose names a file that isn't there" for that bare
-case, which this check exists to close.
+Its own check because `stale-claims` already scans prose for path-shaped
+text (its own `PATH_RE`) but only *keeps* a match that resolves to a
+tracked file — a match that doesn't resolve is silently dropped, never
+reported anywhere — and `check-links` only validates real Markdown link
+syntax (`[text](path)`); a bare, unmarked prose mention of a path is
+outside its regex entirely. Nothing else reports "this prose names a file
+that isn't there" for that bare case.
 
-Registered as a **gate** check, matching `check-links`' own "does this
-reference resolve" precedent — safe here specifically because the
-extension check below is tightened, unlike `stale-claims`' own untightened
-pattern (see below).
+Gate, matching `check-links`' own "does this reference resolve" precedent
+— safe here specifically because the extension check is tightened, unlike
+`stale-claims`' own untightened pattern. `stale_claims.PATH_RE` accepts
+any alphanumeric run as an "extension" (`\\.[A-Za-z0-9]+`), which is
+harmless for `stale-claims` (a false match just fails to resolve and
+silently drops out of its ranking) but would not be harmless for a check
+whose entire job is "reports when a match doesn't resolve": confirmed
+empirically that `api/v2.0` and `getting-started/v1.2` both match that
+pattern, a trailing `.0`/`.2` satisfying it same as a real extension
+would. So a match is a candidate at all only when its trailing extension
+is in `DEFAULT_EXTENSIONS`, extendable per project via `extensions`
+(additive, mirroring `restatement.extensions`' own behavior, not a
+replacement for the built-in set). Every tracked `*.md` file is swept, not
+diff-scoped — matching `check-links`/`stale-claims`/`executable-claims`'s
+"catches a claim that's false right now" precedent, not
+`claim-words`/`restatement`'s diff-scoped one.
 
-Sweeps every tracked `*.md` file unconditionally, not diff-scoped —
-matching `check-links`/`stale-claims`/`executable-claims`'s "catches a
-claim that's false right now" precedent, not `claim-words`/`restatement`'s
-diff-scoped one.
+The citing-directory fallback (`_citing_relative`, ticket #32) uses the
+same `dirname`/`join`/`normpath` approach `check_links._resolve` already
+uses for a real Markdown link's own destination, so a per-module or
+per-skill `references/*.md` layout, cited from its own sibling doc as a
+bare `references/foo.md`, resolves even though it was never a real path
+from the repo root. This does trade away some precision for recall
+(CLAUDE.md's own stated preference): a genuinely broken
+repo-root-relative reference now resolves silently instead of being
+flagged, if a same-named file happens to also sit somewhere under the
+citing file's own directory — accepted as the same "a missed claim stays
+invisible forever" tradeoff, not an oversight. A candidate with a leading
+`../` never reaches this fallback at all — `_repo_relative` already ruled
+it out as not a candidate, unchanged by #32.
 
-A candidate is checked two ways before being reported: first as
-repo-root-relative (`tracked_set` membership directly), then, only if that
-fails to resolve, against the *citing file's own directory*
-(`_citing_relative`, the same `dirname`/`join`/`normpath` approach
-`check_links._resolve` already uses for a real Markdown link's own
-destination) — ticket #32. A per-module or per-skill `references/*.md`
-layout, cited from its own sibling doc as a bare `references/foo.md`,
-resolves this way even though it was never a real path from the repo
-root. A candidate with a leading `../` never reaches this fallback at
-all — `_repo_relative` already ruled it out as not a candidate, unchanged
-by this ticket (see its own docstring below). This does trade away some
-precision for recall (CLAUDE.md's own stated preference): a genuinely
-broken repo-root-relative reference now resolves silently instead of
-being flagged, if a same-named file happens to also sit somewhere under
-the citing file's own directory — accepted as the same "a missed claim
-stays invisible forever" tradeoff, not an oversight.
-
-Neither of those two resolution attempts helps a candidate that's real on
+`known_untracked` (ticket #33) exists because a candidate that's real on
 disk but deliberately never `git add`ed — a project's own gitignored,
 per-machine file (`.claude/settings.local.json`, the same shape
-`claims.local.toml` itself is) is indistinguishable from an outright typo
-to `tracked_set` membership alone. A candidate matching this check's own
-`known_untracked` glob list (`claims.toml`, same shape as `exclude`) is
-exempted from that requirement — but still has to resolve to a real file
-*inside the repo* (`Path.resolve()` confined via `is_relative_to`, the
-same guard `check_links._target_slugs` already uses for the identical
-reason: a lexical check alone would miss a symlink, and a candidate's own
-embedded `..` isn't rejected the way a *leading* `../` is by
-`_repo_relative`), so a genuine typo under an exempted pattern is still
-caught, and a `known_untracked` pattern can't be walked outside the repo
-via `../` or followed outside it via a symlink (ticket #33). A real
-symlink pointing outside the repo (a `.claude/settings.local.json`
-symlinked into a separate dotfiles checkout, say) is refused by this same
-guard, not silently followed — stricter than this file's own `_read`
-(which refuses *any* symlink outright), but consistent with
-`check_links`' own choice to follow a symlink as long as where it leads
-is still confined. Deliberately not real
-`.gitignore`-status detection (`git check-ignore` or equivalent) — that
-would conflate "gitignored" with "deliberately documented as untracked"
-(a project can gitignore something for an unrelated reason, or leave
-something untracked without gitignoring it at all) and adds a git
-dependency this config-only approach doesn't need. Only ever checked
-against the repo-root-relative candidate, not the citing-relative one
-above — a gitignored file cited relative to the citing file's own
-directory is `#32`'s and this ticket's shared, named, independently
-shippable gap, not silently accepted as solved.
+`claims.local.toml` itself is) — is indistinguishable from an outright
+typo to `tracked_set` membership alone. An exempted candidate still has
+to resolve to a real file *inside the repo* (`Path.resolve()` confined
+via `is_relative_to`, the same guard `check_links._target_slugs` already
+uses for the identical reason: a lexical check alone would miss a
+symlink, and a candidate's own embedded `..` isn't rejected the way a
+*leading* `../` is by `_repo_relative`), so a genuine typo under an
+exempted pattern is still caught, and a `known_untracked` pattern can't
+be walked outside the repo via `../` or followed outside it via a
+symlink. A real symlink pointing outside the repo (a
+`.claude/settings.local.json` symlinked into a separate dotfiles
+checkout, say) is refused by this same guard, not silently followed —
+stricter than this file's own `_read` (which refuses *any* symlink
+outright), but consistent with `check_links`' own choice to follow a
+symlink as long as where it leads is still confined. Deliberately not
+real `.gitignore`-status detection (`git check-ignore` or equivalent) —
+that would conflate "gitignored" with "deliberately documented as
+untracked" (a project can gitignore something for an unrelated reason,
+or leave something untracked without gitignoring it at all) and adds a
+git dependency this config-only approach doesn't need. Only ever checked
+against the repo-root-relative candidate, not the citing-relative one — a
+gitignored file cited relative to the citing file's own directory is
+#32's and #33's shared, named, independently shippable gap, not silently
+accepted as solved.
 
-**The extension-tightening fix.** `stale-claims`' `PATH_RE` accepts any
-alphanumeric run as a "extension" (`\\.[A-Za-z0-9]+`), which is harmless
-for `stale-claims` (a false match just fails to resolve and silently drops
-out of its ranking) but would not be harmless for a check whose entire job
-is "reports when a match doesn't resolve": confirmed empirically that
-`api/v2.0` and `getting-started/v1.2` both match that pattern, a trailing
-`.0`/`.2` satisfying it same as a real extension would. This check reuses
-the same path shape but only treats a match as a candidate at all when its
-trailing extension is in a **recognized set** (`DEFAULT_EXTENSIONS`,
-extendable per project via this check's own `extensions` config key —
-additive, mirroring `restatement.extensions`' own behavior, not a
-replacement for the built-in set). A version-number lookalike's `.0`/`.2`
-"extension" isn't in that set, so it's never a candidate in the first
-place — not flagged, not silently "maybe".
-
-A mention already inside real Markdown link syntax (`[text](path)`) is
-excluded from detection entirely — checked against the destination span a
-`check-links`-shaped regex would itself validate, so a single broken
+A mention already inside real Markdown link syntax is excluded from
+detection entirely — checked against the destination span a
+`check-links`-shaped regex would itself validate — so a single broken
 reference doesn't produce two separate gate findings from two different
 checks under two different names. **Known, deliberate gap, not silently
 accepted:** `check-links` itself only validates a destination naming
@@ -106,67 +97,62 @@ markdown-link destination naming some other recognized extension (e.g.
 from this check by the same "already inside link syntax" rule, but isn't
 in `check-links`' own scope either, so a broken reference of that
 particular shape currently goes unflagged by both checks. Narrowing this
-would mean either broadening `check-links`' own scope past `.md`/anchors,
-or excluding only the subset of link destinations `check-links` actually
-validates — either is a bigger change than this ticket's own scope, so the
-gap is named here rather than silently accepted.
+would mean either broadening `check-links`' own scope past
+`.md`/anchors, or excluding only the subset of link destinations
+`check-links` actually validates — either is a bigger change than this
+ticket's own scope, so the gap is named here rather than silently
+accepted.
 
-**Known, deliberate gap shared with the out-of-scope list below:** a bare
-filename with no directory separator (e.g. "see README") is not detected
-at all — `PATH_RE` requires at least one `segment/` before the final
-`segment.ext`, the same shape `stale-claims`' own bare-citation scoping
-problem (`module_reference_scope`) already had to solve once for exactly
-this false-positive-collision-with-ordinary-English-words risk; deserves
-its own dedicated pass rather than folding in here.
+**Known, deliberate gap:** a bare filename with no directory separator
+(e.g. "see README") is not detected at all — `PATH_RE` requires at least
+one `segment/` before the final `segment.ext`, the same shape
+`stale-claims`' own bare-citation scoping problem
+(`module_reference_scope`) already had to solve once for exactly this
+false-positive-collision-with-ordinary-English-words risk; deserves its
+own dedicated pass rather than folding in here.
 
-**Known, deliberate gap:** `URL_RE` (below) only recognizes a URL with an
-explicit `scheme://` — a scheme-less mention (`www.example.com/x.sh`)
-isn't excluded, and unlike `check_links.py`'s own identical `SCHEME_RE`
-blind spot (where a scheme-less host just falls outside that check's own
+**Known, deliberate gap:** `URL_RE` only recognizes a URL with an explicit
+`scheme://` — a scheme-less mention (`www.example.com/x.sh`) isn't
+excluded, and unlike `check_links.py`'s own identical `SCHEME_RE` blind
+spot (where a scheme-less host just falls outside that check's own
 relevance filter), here it becomes a gate finding rather than merely
 being skipped. Not solved here: recognizing a bare domain reliably
 without a real URL grammar risks its own false-positive/negative
 tradeoffs of a different kind, disproportionate for a shape rare enough
 in practice. (A *protocol-relative* URL, `//cdn.example.com/x.js`, isn't
-part of this gap — `_host_relative` below treats its leading `//` the
-same as any other unconsumed `/`, so it's skipped as not a candidate
-rather than becoming a false gate finding.)
+part of this gap — `_host_relative` treats its leading `//` the same as
+any other unconsumed `/`, so it's skipped as not a candidate rather than
+becoming a false gate finding.)
 
-An unconsumed leading `/` immediately before a match — `/` isn't in
+`_host_relative` (ticket #38) checks for an unconsumed leading `/` at the
+call site rather than inside `_repo_relative` because `/` isn't in
 `PATH_RE`'s own character class, so a match starts right after it with no
-trace of it left in the captured text, and by the time `_repo_relative`
-would see the plain candidate string the leading `/` is already gone —
-is never treated as a repo-relative candidate (`_host_relative`, ticket
-#38). This is what makes a host-absolute path (`/etc/docker/
-daemon.json`) and a home-directory shorthand (`~/.docker/config.json` —
-the `~` itself never survives into any match either way; it's the `/`
-right after it doing the work here) both resolve correctly as "not a
-repo-relative claim at all," the same "recognized as clearly-not-a-
-candidate, skipped rather than resolved against the wrong base"
-treatment `_repo_relative`'s own leading `../` handling already gets,
-just checked at the call site instead of inside that function, since
-`_repo_relative` only ever sees the stripped candidate string, not the
-source line or the match's own position. **Known, deliberate gap this
-also creates:** a genuinely broken *repo-root-anchored* mention written
-Markdown-link-style (`/agents/nonexistent.md`, the same leading-`/`
-convention `check-links` uses for its own destinations) is now silently
-skipped here too, rather than flagged — bare prose gives no reliable way
-to tell "this leading `/` means host-absolute" from "this leading `/`
-means repo-root," and #38's own motivating reports were all the
-host-absolute shape, so that's the interpretation this check makes;
-`check-links` keeps its own, different interpretation for real link
-syntax, unaffected by this. `stale_claims.PATH_RE` and `check_links.py`'s
-own destination resolution both share the same underlying blind spot in
-their own copies — named in `TODO.md`, not fixed here.
+trace of it left in the captured text, and `_repo_relative` only ever
+sees the stripped candidate string, not the source line or the match's
+own position. This is what makes a host-absolute path
+(`/etc/docker/daemon.json`) and a home-directory shorthand
+(`~/.docker/config.json` — the `~` itself never survives into any match
+either way; it's the `/` right after it doing the work here) both resolve
+correctly as "not a repo-relative claim at all," the same "recognized as
+clearly-not-a-candidate, skipped rather than resolved against the wrong
+base" treatment `_repo_relative`'s own leading `../` handling already
+gets. **Known, deliberate gap this also creates:** a genuinely broken
+*repo-root-anchored* mention written Markdown-link-style
+(`/agents/nonexistent.md`, the same leading-`/` convention `check-links`
+uses for its own destinations) is now silently skipped here too, rather
+than flagged — bare prose gives no reliable way to tell "this leading `/`
+means host-absolute" from "this leading `/` means repo-root," and #38's
+own motivating reports were all the host-absolute shape, so that's the
+interpretation this check makes; `check-links` keeps its own, different
+interpretation for real link syntax, unaffected by this.
+`stale_claims.PATH_RE` and `check_links.py`'s own destination resolution
+both share the same underlying blind spot in their own copies — named in
+`TODO.md`, not fixed here.
 
-A doc author can also declare a mention non-real explicitly: `<!--
-example -->` (case-insensitive, tolerant of `<!--example-->`'s own
-tighter spacing) immediately after a mention — a run of closing backticks
-(covers a double-backtick span quoting a literal single backtick, `` ``
-`x` `` ``, not just a bare single-backtick mention) and/or plain
-spaces/tabs may sit in between, nothing else — exempts that one mention
-from ever being checked, resolving or not (ticket #39). Both the
-case-insensitivity and the backtick-run handling favor recall over
+The `<!-- example -->` marker (ticket #39) is matched case-insensitively
+and across a run of closing backticks between mention and marker (covers
+a double-backtick span quoting a literal single backtick, `` `` `x` `` ``,
+not just a bare single-backtick mention); both favor recall over
 precision on purpose: a marker written slightly differently than expected
 should still bind rather than silently fail, the same principle behind
 this feature's own dangling-marker advisory below. Mirrors

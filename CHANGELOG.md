@@ -11,6 +11,15 @@ reached you, not just that one was pushed upstream.
 
 ## [Unreleased]
 
+## [0.10.4] - 2026-09-25
+
+- Changed: the Configuring page and the `check-claims` skill now send
+  you to a check's page under `docs/checks/`, which ships in the plugin
+  beside `claims/`, for what the check does, every `claims.toml` key it
+  reads with its shape and default, and what it misses. A check's module
+  docstring under `claims/checks/` no longer carries that account; it
+  holds only the reasoning behind the check.
+
 ## [0.10.3] - 2026-09-24
 
 - Fixed: `enabled = false` under `[check-config-defaults]` no longer

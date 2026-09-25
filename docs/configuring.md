@@ -1,9 +1,8 @@
 # Configuring `claims`
 
 The settings that belong to no single check. A key that belongs to one
-check is documented with that check, and its module docstring under
-`claims/checks/` lists every key it reads with its default; this page is
-everything else.
+check is documented with that check: its page lists every key it reads
+with its shape and default. This page is everything else.
 
 ## Two files
 
