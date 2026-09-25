@@ -1,3 +1,3 @@
-# 1. One cache per process
+# Cache specification
 
 Every request reads through the same cache.

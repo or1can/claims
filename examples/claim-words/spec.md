@@ -1,8 +1,8 @@
-# 1. One cache per process
+# Cache specification
 
 Every request reads through the same cache.
 
-## Revisited
+## Backends
 
 Every read goes through the cache, and nothing else touches the store.
 

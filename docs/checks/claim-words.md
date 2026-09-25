@@ -69,14 +69,14 @@ words in a tutorial are asides, and a check that reported every
 
 ## Example
 
-The example is a committed decision record, a `claims.toml` that
-designates it, and a pending edit that extends it. The record as
+The example is a committed specification, a `claims.toml` that
+designates it, and a pending edit that extends it. The specification as
 committed already holds a totalising sentence:
 
-`examples/claim-words/history/01-records/decisions/0001-one-cache.md`:
+`examples/claim-words/history/01-records/spec.md`:
 
 ```markdown
-{{#include ../../examples/claim-words/history/01-records/decisions/0001-one-cache.md}}
+{{#include ../../examples/claim-words/history/01-records/spec.md}}
 ```
 
 `examples/claim-words/claims.toml`:
@@ -91,10 +91,10 @@ under each of the three markers, and the same sentence quoted with no
 marker. It also adds a README, which the configuration does not
 designate:
 
-`examples/claim-words/decisions/0001-one-cache.md`:
+`examples/claim-words/spec.md`:
 
 ```markdown
-{{#include ../../examples/claim-words/decisions/0001-one-cache.md}}
+{{#include ../../examples/claim-words/spec.md}}
 ```
 
 `examples/claim-words/README.md`:
@@ -117,7 +117,7 @@ three marked copies of the retired sentence, the blockquote, the
 italics and the "Previously said:" lead-in, are skipped; the unmarked
 quotation of the same sentence is the fourth finding, because an
 unmarked quotation cannot be told from the claim still being made. The
-record's original sentence, "Every request reads through the same
+specification's original sentence, "Every request reads through the same
 cache", was not added by this edit and is not read. The README's
 "every" is in a file the configuration does not name, and is not read
 either.
