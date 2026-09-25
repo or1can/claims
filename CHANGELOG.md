@@ -11,6 +11,14 @@ reached you, not just that one was pushed upstream.
 
 ## [Unreleased]
 
+## [0.12.1] - 2026-09-25
+
+- Fixed: the skill's on-demand `claims.toml` review now checks the
+  `historical` globs of `check-links` and `check-file-refs`. A
+  `historical` entry that matches no tracked file was previously never
+  reported, so a mistyped one went on resolving every mention against the
+  working tree without anything saying so.
+
 ## [0.12.0] - 2026-09-25
 
 - Added: `check-file-refs` accepts a `historical` glob list in

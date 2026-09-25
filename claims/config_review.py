@@ -47,8 +47,8 @@ from .git import tracked_files
 GLOB_CONFIG_KEYS: Mapping[str, Sequence[str]] = {
     "executable-claims": ("exclude",),
     "restatement": ("exclude",),
-    "check-links": ("exclude",),
-    "check-file-refs": ("exclude",),
+    "check-links": ("exclude", "historical"),
+    "check-file-refs": ("exclude", "historical"),
     "claim-words": ("files",),
     "check-env-vars": ("definition_files", "exclude"),
     "check-cli-flags": ("exclude",),

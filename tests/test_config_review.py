@@ -105,6 +105,27 @@ class ConfigValueMatchesTests(unittest.TestCase):
         self.assertEqual(matches[0].key, "exclude")
         self.assertEqual(matches[0].matched_files, ())
 
+    def test_historical_key_is_reviewed_for_both_checks_that_take_it(self) -> None:
+        # `historical` reached `check-links` (#50) and `check-file-refs`
+        # (#57) without either landing here, so a mistyped glob in it
+        # silently resolved every mention against the working tree only.
+        with Repo() as repo:
+            repo.write("real.md", "prose\n")
+            matches = config_value_matches(
+                repo.root,
+                {
+                    "check-links": {"historical": ["nonexistent.md"]},
+                    "check-file-refs": {"historical": ["nonexistent.md"]},
+                },
+            )
+        self.assertEqual(
+            sorted((m.check, m.key, m.matched_files) for m in matches),
+            [
+                ("check-file-refs", "historical", ()),
+                ("check-links", "historical", ()),
+            ],
+        )
+
     def test_a_non_glob_key_in_a_known_check_is_ignored(self) -> None:
         # `executable-claims`' own `permitted_prefixes` is a literal
         # command-string prefix, not a file glob — it has no "matches
