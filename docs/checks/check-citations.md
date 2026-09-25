@@ -124,7 +124,8 @@ the past.
 None. The check reads no key from `claims.toml`, and there is no `exclude`:
 every tracked `.md` and `.swift` file is read, and the only way to keep a
 citation from being checked is the `was:` marker on the line above it. A
-`[check-citations]` table is accepted and configures nothing.
+`[check-citations]` table is accepted, and `enabled` below is the only
+key that does anything in it.
 
 `enabled`, which takes a check out of the commit gate while leaving it in
 the on-demand skill and the CLI, is read by the commit hook rather than by
