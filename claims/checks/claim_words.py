@@ -39,7 +39,8 @@ source-tool choices don't carry over:
 italics, or the lead-in "Previously said:" — is established here, since
 no prior check in this codebase's history defines one. An unmarked
 quotation of a retired claim still fires, on the theory that an unmarked
-quotation is indistinguishable from the claim still being made.
+quotation is indistinguishable from the claim still being made. ADR 0003
+is why the set is this check's own rather than a shared one.
 
 `UNIT_WORDS` exists because **a count that measures the world, not the
 tree, is not this check's business.** "the file grew to twelve megabytes"

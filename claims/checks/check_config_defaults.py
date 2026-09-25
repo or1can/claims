@@ -46,7 +46,7 @@ malformed config gets.
 
 No command is ever executed here — pure file-read and text comparison,
 deliberately, to avoid entangling this with #15's permission-gate work
-(execution-based verification is `cli_command`'s own territory, #19).
+(execution-based verification is `check-cli-flags`' own territory, #19).
 
 Findings are advisory, explicitly provisional pending real false-positive
 data from actual use — not a permanent severity choice.

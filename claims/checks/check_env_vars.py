@@ -19,7 +19,7 @@ keys it takes and what it misses; this docstring is why the code is
 shaped the way it is.
 
 Its own check because `check-citations` only verifies backticked *symbol*
-citations against declared Swift/Rust history — an env var name (a naming
+citations against declared Swift history — an env var name (a naming
 convention, not a language-level declaration) is entirely outside its
 vocabulary.
 
@@ -75,7 +75,7 @@ files existing.
 
 No command is ever executed here — pure file-read and text search,
 keeping this out of #15's permission-gate scope (execution-based
-verification is `cli_command`'s own territory, #19).
+verification is `check-cli-flags`' own territory, #19).
 
 Findings are advisory, explicitly provisional. **Both directions of this
 check's own error rate are real, not just one:** a genuinely-used var
@@ -94,13 +94,13 @@ historical `.scratch/` notes, which is exactly the class of prose
 not just recall, once real usage gives an actual rate to argue from — not
 a permanent design choice either way.
 
-**Note for whoever picks up #22** (on-demand config-fit review): a
-project with no `definition_files` configured and no `.env.example`
+A project with no `definition_files` configured and no `.env.example`
 tracked means this check is silently a no-op — legitimately, for a
 project that simply doesn't use env vars, or accidentally, because the
-scope was never configured. This check doesn't distinguish the two;
-that judgment call is exactly what #22 exists to make on demand, not
-something to special-case here.
+scope was never configured. This check doesn't distinguish the two; that
+judgment call is what the on-demand config-fit review (#22,
+`claims/config_review.py`) exists to make, not something to special-case
+here.
 """
 
 from __future__ import annotations
