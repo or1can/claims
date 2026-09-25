@@ -193,6 +193,18 @@ Not a blanket license to skip judgment: cite this principle for a real,
 already-reasoned-through precision/recall tradeoff, not instead of
 reasoning about one.
 
+### Pre-GitHub history
+
+`.scratch/claims-consolidation/` is frozen. It holds the survey, spec,
+map and check inventory this tool was built from before the repo moved
+to GitHub, and tickets 01–37 as closed Markdown files (see
+`agents/issue-tracker.md`'s "Pre-publish history"). None of it is
+maintained: what a check does today is stated on its page under
+`docs/checks/`, and nothing under `.scratch/` is a surface to keep
+current when a check changes. `claims.toml` already excludes the tree
+from the checks that would otherwise gate on its pre-layout paths and
+commands.
+
 ## Agent skills
 
 ### Issue tracker
@@ -219,4 +231,8 @@ so an agent running that skill may propose the wrong directory.
 (`book.toml`, built and deployed by `.github/workflows/docs.yml`). Writing
 a page there — a new one, or a change to an existing one — is the trigger
 for `agents/docs.md`, which states the editorial rules the site is held
-to. They are stated there and only there.
+to. They are stated there and only there. Every registered check has a
+page there, a `docs/SUMMARY.md` entry, a line in `README.md`'s index and
+a capture under `docs/captures/`: `tests/test_check_pages.py` and
+`tests/test_captures.py` hold the check modules on disk to that, so a
+new check with no page fails CI rather than shipping undocumented.
