@@ -11,6 +11,21 @@ reached you, not just that one was pushed upstream.
 
 ## [Unreleased]
 
+## [0.11.0] - 2026-09-25
+
+- Added: `temporal-words`, an advisory check that reads the sentences a
+  diff added to the pages you designate and reports the ones dated by a
+  version number (`0.3.0`, `pre-0.9.0`) or by version-history wording
+  (`yet`, `used to`, `currently`, `previously`, and `now` beside a
+  backticked citation). A reference page has no version picker, so
+  "since 0.21.0" is unusable to a reader and a "yet" goes false the day
+  the thing lands. Opt in with `files` under `[temporal-words]`; with no
+  section the check reports nothing. Give it the opposite file set from
+  `claim-words`: a changelog and release notes are where this wording is
+  correct. A match inside a code span or a fenced block is never
+  reported, and a blockquote does not exempt a sentence here the way it
+  does under `claim-words` — see `docs/checks/temporal-words.md`.
+
 ## [0.10.5] - 2026-09-25
 
 - Fixed: the Configuring page and the `check-citations` and

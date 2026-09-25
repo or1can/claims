@@ -21,7 +21,7 @@ way that answer is available: by going and looking.
 
 ## What it does with an answer
 
-Twelve checks run over a commit's own diff. Most of what they report is
+Thirteen checks run over a commit's own diff. Most of what they report is
 *advisory*: surfaced alongside the commit and never failing the run,
 because the check ranks, samples or suspects rather than decides. A finding
 that names a claim the tool has actually disproved — a link with no target,
