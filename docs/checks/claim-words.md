@@ -1,14 +1,15 @@
 # claim-words
 
-A sentence added to a file the project has designated as a record, that
-asserts something over a whole set, counts something in the tree, or
-reaches for code it is not itself showing. The check reads the sentences
-a diff added to those files and reports each one that is shaped like a
-claim: "every", "never", "three backends", "without `evict` this would
-grow". It cannot tell whether the claim is true, only that the sentence
-is making one, so every finding is advisory. And it reads nothing until
-the project has said which files count: with no `files` key the check is
-installed and inert, and that is the state every project starts in.
+A sentence added to a file the project has designated for its live
+claims, that asserts something over a whole set, counts something in the
+tree, or reaches for code it is not itself showing. The check reads the
+sentences a diff added to those files and reports each one that is
+shaped like a claim: "every", "never", "three backends", "without
+`evict` this would grow". It cannot tell whether the claim is true, only
+that the sentence is making one, so every finding is advisory. And it
+reads nothing until the project has said which files count: with no
+`files` key the check is installed and inert, and that is the state
+every project starts in.
 
 ## What it checks
 
@@ -157,12 +158,14 @@ three suppresses the sentence, and nothing else does.
 
 That is this check's own set, not a shared one. The [retired-quote
 exemption](../concepts.md#the-retired-quote-exemption) is decided per
-check against the prose that check reads, and a blockquote is
-unambiguous here because a record-like file quotes in order to retire.
-A `>` with no space after it is not a blockquote and not a marker. The
-reasoning for keeping
-the sets separate is in [ADR
-0003](../../decisions/0003-retirement-markers-are-scope-dependent.md).
+check against the prose that check reads, and this check honours the
+blockquote because narrowing an existing check's exemptions would break
+a project already relying on it. A `>` with no space after it is not a
+blockquote and not a marker. The reasoning for keeping the sets separate
+is in [ADR
+0003](../../decisions/0003-retirement-markers-are-scope-dependent.md),
+and for keeping this one whole in [ADR
+0005](../../decisions/0005-live-and-dated-claims.md).
 
 ## Next
 

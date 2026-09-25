@@ -2,7 +2,7 @@
 
 ## Status
 
-Accepted. Ticket #52.
+Accepted. Ticket #52. See also 0005.
 
 ## Context
 

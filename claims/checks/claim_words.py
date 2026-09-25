@@ -13,7 +13,7 @@
 # limitations under the License.
 
 """The `claim-words` check: a sentence a diff added to a designated
-record-like file that is shaped like a claim. `docs/checks/claim-words.md`
+file that is shaped like a claim. `docs/checks/claim-words.md`
 is the account of the three modes, the word lists, the `files` key and
 the retirement markers; this docstring is why the code is shaped the way
 it is.
@@ -28,9 +28,8 @@ per-language (Python/Swift/Shell/Markdown comment) sweep to whole
 source-tool choices don't carry over:
 
 - Scope is opt-in (`files` config), not a blanket sweep with a
-  `CHANGELOG.md` exemption — the ticket's "specifically-designated
-  record-like files" is the opposite default from the source tool's
-  "everywhere, minus one path".
+  `CHANGELOG.md` exemption — designating files is the opposite default
+  from the source tool's "everywhere, minus one path".
 - The count word list is uncapped (any run of spelled-out number words,
   not a fixed `two`..`twelve` list) — a count's *size* isn't what makes a
   claim.

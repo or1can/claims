@@ -69,26 +69,41 @@ A whole-tree check therefore reports a pre-existing defect on a commit that
 never touched it. That is the intended behaviour, and the reason a first run
 in a project with a history often has more to say than a later one.
 
-## Designated and record-like files
+## Live and dated claims
 
-A **record-like** file is one whose sentences are assertions worth holding
-to account: a specification, an architecture decision record, a changelog.
-A sentence there saying "every check does X" is a claim about the tree,
-where the same sentence in a tutorial is an aside.
+A **live claim** is meant to be re-verified against the tree as it stands.
+A sentence in a specification saying "every check does X" is one: it is
+wrong the day a check stops doing X, whenever it was written.
 
-`claims` does not guess which files those are. A project **designates**
-them, by listing them under a check's `files` key, and a check that reads
-only designated files reads nothing until the project has. The default is
-the empty set, so such a check is inert in a project that has not opted in,
-and finds nothing rather than sweeping everything and hoping.
+A **dated claim** was true at its writing and is not meant to be re-read
+against today's tree. A changelog entry is one, and so is the count in a
+decision record's motivation: both describe the tree on the day they were
+written, and are correct about that day forever.
+
+The distinction is per claim, not per file. A decision record's
+consequences are live while its motivation is dated, and a to-do list
+makes live claims in wording that is temporal by nature.
+
+## Designated files
+
+`claims` does not guess where a project's live claims are. A project
+**designates** files, by listing them under a check's `files` key, and a
+check that reads only designated files reads nothing until the project
+has. The default is the empty set, so such a check is inert in a project
+that has not opted in, and finds nothing rather than sweeping everything
+and hoping.
+
+Designation is per file, so it approximates a per-claim property at file
+granularity: a file carrying both kinds of claim is designated on which
+kind predominates.
 
 ## The retired-quote exemption
 
-A record-like file often quotes a sentence in order to say what was wrong
-with it: "we used to say every check gates; that was false." Read
-literally, the quoted sentence is still a claim, and a sweep for totalising
-words would flag it every time. The **retired-quote exemption** is the rule
-that a sentence marked as retired is skipped.
+Prose often quotes a sentence in order to say what was wrong with it: "we
+used to say every check gates; that was false." Read literally, the quoted
+sentence is still a claim, and a sweep for totalising words would flag it
+every time. The **retired-quote exemption** is the rule that a sentence
+marked as retired is skipped.
 
 A sentence is marked by how it is written: as a Markdown blockquote, wrapped
 whole in italics, or opening with the fixed lead-in "Previously said:". An
