@@ -157,11 +157,17 @@ own page and code:
 - A `historical` file's shipped entries stop being a reason a rename can't
   land. The rename commit still has to fix every *living* reference — the
   check reports those exactly as before.
-- A finding on a historical line now says where it was tested: `broken
-  link: docs/x.md (not in the working tree, nor at abc1234 where this
-  line was written)`, and `check-file-refs` the same way after its own
-  message: `` `docs/x.md` does not resolve to a tracked file (not in the
-  working tree, nor at abc1234 where this line was written) ``.
+- A finding on a historical line now says where it was tested:
+
+  ```
+  broken link: docs/x.md (not in the working tree, nor at abc1234 where this line was written)
+  ```
+
+  and `check-file-refs` the same way after its own message:
+
+  ```
+  `docs/x.md` does not resolve to a tracked file (not in the working tree, nor at abc1234 where this line was written)
+  ```
 - A check with the key shells out to `git blame`, `git cat-file`, `git
   log` and `git merge-base` — only for a `historical` file with a failing
   reference, and cached per file, per commit, and per (commit, path)
