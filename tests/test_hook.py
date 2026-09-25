@@ -30,7 +30,7 @@ from pathlib import Path
 from claims.hook import main
 from claims.runner import Finding, clear_registry, register_check
 
-from support import RegistryClearingTestCase
+from support import RegistryClearingTestCase, Repo
 
 PRE_TOOL_USE_PAYLOAD = {
     "session_id": "test-session",
@@ -123,6 +123,68 @@ class HookTests(RegistryClearingTestCase):
             with self.subTest(command=command):
                 with tempfile.TemporaryDirectory() as repo_root:
                     self.assertTrue(self._ran_checks(repo_root, command))
+
+    def _denied(self, repo_root: str, command: str) -> bool:
+        clear_registry()
+        register_check(
+            "failing-gate",
+            lambda repo_root, diff_range, config: [
+                Finding(file="a.md", line=1, message="bad", mode="failing-gate", gate=True)
+            ],
+        )
+        output = self._run_main(repo_root, command=command)
+        return output.get("hookSpecificOutput", {}).get("permissionDecision") == "deny"
+
+    def test_a_commit_inside_a_nested_shell_is_denied(self) -> None:
+        commits = [
+            'bash -c "git commit -m x"',
+            "sh -c 'git add . && git commit -m x'",
+            'eval "git commit -m x"',
+            '/bin/zsh -lc "git commit -m x"',
+            "bash -o pipefail -c 'git commit -m x'",
+            'bash -c "sh -c \\"git commit -m x\\""',
+        ]
+        for command in commits:
+            with self.subTest(command=command):
+                with tempfile.TemporaryDirectory() as repo_root:
+                    self.assertTrue(self._denied(repo_root, command))
+
+    def test_a_nested_shell_that_does_not_commit_is_not_a_commit(self) -> None:
+        not_commits = [
+            'bash -c "git status"',
+            "bash -c \"echo 'remember to git commit later'\"",
+            'eval "git log --grep commit"',
+            "bash script.sh",
+        ]
+        for command in not_commits:
+            with self.subTest(command=command):
+                with tempfile.TemporaryDirectory() as repo_root:
+                    self.assertFalse(self._ran_checks(repo_root, command))
+
+    def test_a_git_alias_resolving_to_commit_is_denied(self) -> None:
+        aliases = {
+            "ci": ("commit", "git ci -m x"),
+            "cm": ("commit -m", "git cm x"),
+            "c": ("ci", "git c -m x"),
+            "ac": ("!git add -A && git commit", "git ac -m x"),
+        }
+        for name, (expansion, command) in aliases.items():
+            with self.subTest(alias=name):
+                with Repo() as repo:
+                    repo.config("alias.ci", "commit")
+                    repo.config(f"alias.{name}", expansion)
+                    self.assertTrue(self._denied(str(repo.root), command))
+
+    def test_a_git_alias_not_resolving_to_commit_is_not_a_commit(self) -> None:
+        with Repo() as repo:
+            repo.config("alias.st", "status")
+            # Git ignores an alias that shadows a built-in command.
+            repo.config("alias.tag", "commit")
+            # A self-referencing shell alias must not recurse forever.
+            repo.config("alias.loop", "!git loop")
+            for command in ["git st", "git tag -m commit v1", "git loop"]:
+                with self.subTest(command=command):
+                    self.assertFalse(self._ran_checks(str(repo.root), command))
 
     def test_gate_finding_denies_with_a_human_readable_reason(self) -> None:
         register_check(

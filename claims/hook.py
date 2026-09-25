@@ -22,7 +22,14 @@ bare command name, defeating a `commit`-specific pattern for exactly the
 agent-authored commands (heredocs, command substitutions) this hook most
 needs to filter correctly. `_is_git_commit` below does the fine-grained
 "is it specifically a commit" narrowing in Python instead, over whatever
-`tool_input.command` the manifest already let through.
+`tool_input.command` the manifest already let through. `if` holds one
+rule only, so the manifest repeats the same handler once per command
+name `_is_git_commit` looks inside — `bash`, `sh`, `zsh` and `eval`
+besides `git` (ticket #85) — or `bash -c "git commit"` would never reach
+it. Each rule names the bare command, so `/bin/zsh -c`, which
+`_is_git_commit` itself handles, never reaches it; and a command
+matching two of them (`bash x.sh && git commit`) runs the hook twice,
+each running every check and reaching the same decision.
 
 Reads Claude Code's hook-event JSON from stdin and writes its hook-output
 JSON to stdout: `permissionDecision: deny` with a human-readable reason on a
@@ -47,6 +54,7 @@ from __future__ import annotations
 
 import json
 import shlex
+import subprocess
 import sys
 from collections.abc import Mapping, Sequence
 from pathlib import Path
@@ -80,6 +88,13 @@ _VALUE_TAKING_GIT_OPTIONS = {
 }
 
 
+# Shells whose `-c` script is searched too, matched on the token's own
+# basename so `/bin/sh -c` counts, and their options taking a separate
+# value token, so that value isn't mistaken for the script.
+_SHELLS = {"bash", "sh", "zsh"}
+_VALUE_TAKING_SHELL_OPTIONS = {"-o", "+o", "-O", "+O"}
+
+
 def _git_subcommand(tokens: list[str], git_index: int) -> str | None:
     """The subcommand the `git` token at `tokens[git_index]` runs, or
     `None` if nothing follows it.
@@ -101,7 +116,77 @@ def _git_subcommand(tokens: list[str], git_index: int) -> str | None:
     return tokens[i] if i < len(tokens) else None
 
 
-def _is_git_commit(command: object) -> bool:
+def _shell_script(tokens: list[str], shell_index: int) -> str | None:
+    """The script the shell at `tokens[shell_index]` runs via `-c`, or
+    `None` if it isn't given one — `-c` alone or inside a cluster (`-lc`),
+    after any other options, skipping the value of one taking its own
+    (`bash -o pipefail -c ...`)."""
+
+    i = shell_index + 1
+    has_c = False
+    while i < len(tokens) and tokens[i][:1] in ("-", "+"):
+        option = tokens[i]
+        i += 1
+        if option in _VALUE_TAKING_SHELL_OPTIONS:
+            i += 1
+        elif option.startswith("-") and not option.startswith("--") and "c" in option:
+            has_c = True
+    return tokens[i] if has_c and i < len(tokens) else None
+
+
+def _git_alias(repo_root: Path, name: str) -> str | None:
+    """`alias.<name>`'s value as `repo_root`'s git config resolves it, or
+    `None` if it has none."""
+
+    result = subprocess.run(
+        ["git", "-C", str(repo_root), "config", "--get", f"alias.{name}"],
+        capture_output=True,
+        text=True,
+        errors="replace",
+    )
+    return result.stdout.rstrip("\n") if result.returncode == 0 else None
+
+
+def _is_git_builtin(name: str) -> bool:
+    """Whether `name` is one of git's built-in commands, which git runs in
+    preference to an alias of the same name."""
+
+    result = subprocess.run(
+        ["git", "--list-cmds=builtins"], capture_output=True, text=True, errors="replace"
+    )
+    return name in result.stdout.split()
+
+
+def _runs_commit(
+    tokens: list[str], git_index: int, repo_root: Path, seen: frozenset[str]
+) -> bool:
+    """Whether the `git` at `tokens[git_index]` runs `commit`, directly or
+    through an alias.
+
+    An alias is searched as the command it expands to — `git <expansion>`,
+    or a `!` alias's shell command as-is — so an alias of an alias
+    resolves too. `seen` holds the aliases already expanded on the way
+    here, so one that refers back to itself (`!git loop` as `alias.loop`)
+    ends rather than recursing forever. An alias named after a built-in
+    is skipped, as git itself ignores it; asked only once an alias is
+    found, so a plain `git status` costs one `git config` call, not two.
+    """
+
+    subcommand = _git_subcommand(tokens, git_index)
+    if subcommand == "commit":
+        return True
+    if subcommand is None or subcommand in seen:
+        return False
+    expansion = _git_alias(repo_root, subcommand)
+    if expansion is None or _is_git_builtin(subcommand):
+        return False
+    inner = expansion[1:] if expansion.startswith("!") else f"git {expansion}"
+    return _is_git_commit(inner, repo_root, seen | {subcommand})
+
+
+def _is_git_commit(
+    command: object, repo_root: Path, seen: frozenset[str] = frozenset()
+) -> bool:
     """Whether `command`, tokenized, runs `git commit` anywhere in it.
 
     Checks every `git` token in the whole tokenized command, not just one
@@ -127,7 +212,14 @@ def _is_git_commit(command: object) -> bool:
     assumed live — the one case still erring toward not gating, since
     there's no token stream to search at all.
 
-    Residual accepted gap, in the *missed* direction this function
+    A commit one level removed is searched for too, with these same
+    rules (ticket #85): the script a `bash`/`sh`/`zsh` runs via `-c`
+    (`_shell_script`), everything after an `eval`, and a git alias
+    (`_runs_commit`) — including a `!` shell alias, whose command is
+    searched like any other rather than left as a gap, since `!git add -A
+    && git commit` is exactly the shape a commit-wrapping alias takes.
+
+    Residual accepted gaps, in the *missed* direction this function
     otherwise avoids: a compact, no-space operator (`cd /tmp&&git
     commit`) merges into the adjacent token (`/tmp&&git`), so `git` never
     appears as a token to find at all. Idiomatic shell style (this
@@ -137,7 +229,11 @@ def _is_git_commit(command: object) -> bool:
     contains one (`git commit -m "a|b"`) — the same class of parsing
     hazard this file's diff-parsing sibling module (`claims/git.py`)
     exists to avoid, not worth reintroducing for a rare, unidiomatic
-    input shape.
+    input shape. Aliases are looked up in `repo_root`'s own config only,
+    so one defined inline (`git -c alias.ci=commit ci`) or only in the
+    config of another repository named by `-C` is missed; so is a script
+    run by any other shell (`dash -c`, `ssh host "git commit"`), or a
+    `-c` script behind a value-taking long option (`bash --rcfile f -c`).
     """
 
     if not isinstance(command, str):
@@ -147,11 +243,21 @@ def _is_git_commit(command: object) -> bool:
     except ValueError:
         return False
 
-    return any(
-        _git_subcommand(tokens, i) == "commit"
-        for i, token in enumerate(tokens)
-        if token == "git"
-    )
+    for i, token in enumerate(tokens):
+        if token == "git":
+            commits = _runs_commit(tokens, i, repo_root, seen)
+        elif Path(token).name in _SHELLS:
+            script = _shell_script(tokens, i)
+            commits = script is not None and _is_git_commit(script, repo_root, seen)
+        elif token == "eval":
+            # `eval` joins its arguments with spaces and parses the result
+            # as shell — exactly this re-join and re-tokenize.
+            commits = _is_git_commit(" ".join(tokens[i + 1 :]), repo_root, seen)
+        else:
+            commits = False
+        if commits:
+            return True
+    return False
 
 
 def _summarize(findings: tuple[Finding, ...]) -> str:
@@ -229,7 +335,7 @@ def decide(repo_root: Path, command: str) -> dict[str, object]:
     just commits, so this is the actual gate.
     """
 
-    if not _is_git_commit(command):
+    if not _is_git_commit(command, repo_root):
         return {}
 
     try:
