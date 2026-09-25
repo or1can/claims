@@ -84,3 +84,61 @@ exclude = ["examples/*"]
 # `examples/`.
 [spliced-docs]
 enabled = false
+
+# `claim-words` is opt-in by omission — an empty `files` sweeps nothing —
+# so this section is what makes the check run on this repo at all (#55).
+# Each glob was chosen from what it was measured to find over `HEAD~1`,
+# `HEAD~5` and `HEAD~15` at 6b72e14 (9 / 20 / 132 findings), not from the
+# file looking record-like. Agent instructions and the site's prose pages
+# earn their place on the counts and totalising claims they make about
+# this tree — "five canonical roles", "twelve checks", "read nothing from
+# `claims.toml`" — which is the class of sentence that rots the day a
+# sixth, a thirteenth, or an `enabled` key arrives. That last one was
+# false when this section landed, and is what the adoption pass fixed.
+#
+# Measured and deliberately absent — re-adding one wants new reasoning,
+# not just an edit here:
+#
+# - `decisions/*.md` and `CHANGELOG.md` are record-like by design, which
+#   is the opposite of what this check wants. An ADR's counts are frozen
+#   at the decision's date on purpose, and a shipped changelog entry is
+#   never reworded (`AGENTS.md`, "Versioning"); on #55's own measurement
+#   of a list built around them, over the same `HEAD~15`, they supplied
+#   77 of its 99 findings, essentially none actionable — a denominator
+#   from that list, not from the 132 above. Sweeping only an ADR's
+#   "Consequences" section, the part meant to stay true, would be the
+#   finer cut — the check can't key on document structure today.
+# - `docs/checks/*.md` and `docs/SUMMARY.md`. The check pages were the
+#   noisiest source measured: precisely-hedged reference prose trips
+#   `totalising` and `counts` on careful writing far more than on
+#   anything at risk of drifting, and `tests/test_check_pages.py` and
+#   `tests/test_captures.py` already hold those pages to the code.
+#   `docs/SUMMARY.md` is navigation links, which can't form a sentence.
+# - `CONTRIBUTING.md` produced nothing across every range measured, and
+#   `.scratch/*` is the frozen pre-GitHub archive that three checks above
+#   already exclude for being prose nobody will touch again.
+#
+# `docs/concepts.md` and `docs/configuring.md` are the same genre as the
+# check pages and carry the same residual noise — 65 of the 132 between
+# them — and are kept anyway rather than narrowed away: they are where
+# this project's cross-cutting counts and absolutes live, `configuring.md`
+# is where the one real defect of the first pass was found, and the
+# steady-state cost is the per-commit number (9 over `HEAD~1`), not the
+# fifteen-commit one. Narrow them if a later pass finds no defect.
+#
+# `*` spans `/` here (`fnmatch`, not path-segment globbing), so `docs/`'s
+# top-level pages are named individually rather than as `docs/*.md`,
+# which would pull `docs/checks/` back in.
+[claim-words]
+files = [
+    "AGENTS.md",
+    "CONTEXT.md",
+    "TODO.md",
+    "README.md",
+    "agents/*.md",
+    "claims/skill/SKILL.md",
+    "docs/concepts.md",
+    "docs/configuring.md",
+    "docs/index.md",
+    "docs/installation.md",
+]
