@@ -112,9 +112,9 @@ Run against a fresh repository holding those three files, with no
 This is the ungranted state, the one every fresh clone, colleague's
 checkout and CI runner is in, and each finding gives the exact TOML that
 would grant or deny its command. Nothing ran to produce them, which is
-also why the capture is identical on any machine; a granted run would
-need a `claims.local.toml` no repository can commit, for the reasons the
-grant file section gives. The second finding shows the `./` the check
+also why the capture is identical on any machine; a grant is per-machine
+and no repository can commit one, for the reasons the grant file section
+gives. The second finding shows the `./` the check
 adds to a script named without a directory, and that string, not the
 bare name, is what a grant has to list. The package manager line is
 never a claim, and the fenced invocation is not read.
