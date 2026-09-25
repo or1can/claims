@@ -16,7 +16,8 @@ reached you, not just that one was pushed upstream.
 - Fixed: the commit hook now gates a `git commit` run through a git alias
   (`git ci` with `alias.ci = commit`, or a `!` shell alias that commits),
   inside `bash -c`, `sh -c` or `zsh -c`, or through `eval`. Each of these
-  previously let the commit land with every check skipped.
+  previously let the commit land with every check skipped. A shell called
+  by path (`/bin/zsh -c`) is still not gated.
 - Changed: the hook now also starts for any Bash command that runs
   `bash`, `sh`, `zsh` or `eval`, so that it can look inside them. It
   returns straight away when no commit is found.

@@ -80,9 +80,9 @@ class PluginManifestTests(unittest.TestCase):
         # most needs to filter correctly. `claims.hook`'s own
         # `_is_git_commit` (see tests/test_hook.py) does the fine-grained
         # "is it specifically a commit" narrowing in Python instead.
-        # `if` holds one rule only, so each shell `_is_git_commit` looks
-        # inside (ticket #85) gets its own handler — without one, `bash
-        # -c "git commit"` never reaches the hook at all.
+        # `if` holds one rule only, so each command name `_is_git_commit`
+        # looks inside (ticket #85) gets its own copy of the handler —
+        # without one, `bash -c "git commit"` never reaches the hook.
         manifest = _load(".claude-plugin/plugin.json")
         hooks_file = _load(manifest["hooks"])
         pre_tool_use = hooks_file["hooks"]["PreToolUse"][0]
@@ -92,9 +92,9 @@ class PluginManifestTests(unittest.TestCase):
             [handler["if"] for handler in handlers],
             ["Bash(git *)", "Bash(bash *)", "Bash(sh *)", "Bash(zsh *)", "Bash(eval *)"],
         )
-        for handler in handlers:
-            self.assertIn("claims.hook", handler["command"])
-            self.assertIn("CLAUDE_PLUGIN_ROOT", handler["command"])
+        self.assertEqual(len({handler["command"] for handler in handlers}), 1)
+        self.assertIn("claims.hook", handlers[0]["command"])
+        self.assertIn("CLAUDE_PLUGIN_ROOT", handlers[0]["command"])
 
     def test_claude_plugin_validate_passes_against_the_real_manifests(self) -> None:
         # Structural checks above can't catch what `claude plugin validate`

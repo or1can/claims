@@ -27,9 +27,9 @@ rule only, so the manifest repeats the same handler once per command
 name `_is_git_commit` looks inside — `bash`, `sh`, `zsh` and `eval`
 besides `git` (ticket #85) — or `bash -c "git commit"` would never reach
 it. Each rule names the bare command, so `/bin/zsh -c`, which
-`_is_git_commit` itself handles, never reaches it; and
-a command matching two of them (`bash x.sh && git commit`) runs the hook
-twice, each reaching the same decision.
+`_is_git_commit` itself handles, never reaches it; and a command
+matching two of them (`bash x.sh && git commit`) runs the hook twice,
+each running every check and reaching the same decision.
 
 Reads Claude Code's hook-event JSON from stdin and writes its hook-output
 JSON to stdout: `permissionDecision: deny` with a human-readable reason on a
