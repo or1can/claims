@@ -1,0 +1,5 @@
+#!/bin/sh
+# The program the documentation above is about, built rather than
+# committed — and moved on since the block pinning it was pasted. Only
+# `./widget status` is granted, so that is all it is ever asked for.
+echo "widget 2.2.0, 4 plugins enabled"
