@@ -39,6 +39,7 @@ Advisory:
 - [restatement](docs/checks/restatement.md)
 - [spliced-docs](docs/checks/spliced-docs.md)
 - [claim-words](docs/checks/claim-words.md)
+- [temporal-words](docs/checks/temporal-words.md)
 - [judgment-agent](docs/checks/judgment-agent.md)
 
 [`docs/configuring.md`](docs/configuring.md) covers the settings no single

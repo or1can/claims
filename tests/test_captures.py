@@ -33,7 +33,7 @@ from support import every_check_name
 class CaptureFreshnessTests(unittest.TestCase):
     def test_every_registered_check_has_a_capture(self) -> None:
         # Driven from the check modules themselves, not a list kept here:
-        # a thirteenth check with no worked example fails this test rather
+        # a fourteenth check with no worked example fails this test rather
         # than shipping with a page that shows no output.
         for name in sorted(every_check_name()):
             with self.subTest(check=name):
@@ -103,6 +103,17 @@ class CaptureFreshnessTests(unittest.TestCase):
         self.assertIn("(claim-words-totalising)", text)
         self.assertNotIn("Every request reads through the same cache", text)
         self.assertNotIn("README.md", text)
+
+    def test_an_example_shows_a_blockquote_is_not_a_retirement_marker(self) -> None:
+        # `temporal-words` honours two of `claim-words`' three markers
+        # (ADR 0003), so its example's callout is a finding while the
+        # italicised sentence and the "Previously said:" lead-in beside it
+        # are not. Its changelog carries the wording a changelog is for and
+        # is not designated, so nothing in it is read.
+        text = capture("temporal-words")
+        self.assertIn("From 0.9.0 the reader is native", text)
+        self.assertNotIn("used to be external", text)
+        self.assertNotIn("CHANGELOG.md", text)
 
 
 if __name__ == "__main__":

@@ -35,8 +35,8 @@ exclude = [".scratch/*", "examples/*"]
 # switched off, so the rest of the tree stays covered. `check-file-refs`
 # and `check-cli-flags` carry theirs above. Of the checks with no
 # `exclude`, `check-citations` and `judgment-agent` read no config at all,
-# and `claim-words` and `check-config-defaults` sweep only what a project
-# names, which `examples/` isn't.
+# and `claim-words`, `temporal-words` and `check-config-defaults` sweep
+# only what a project names, which `examples/` isn't.
 [check-links]
 exclude = ["examples/*"]
 
@@ -137,6 +137,49 @@ files = [
     "README.md",
     "agents/*.md",
     "claims/skill/SKILL.md",
+    "docs/concepts.md",
+    "docs/configuring.md",
+    "docs/index.md",
+    "docs/installation.md",
+]
+
+# `temporal-words` is opt-in by omission the same way `claim-words` above
+# is, and wants the opposite file set: the pages describing what this tool
+# does now, with every file written as a record of a moment left out. The
+# list is the site's own prose pages plus the README, measured over
+# `HEAD~1`, `HEAD~5` and `HEAD~15` at 4afaff6 (0 / 0 / 3 findings). Zero
+# over a release's worth of commits is the expected steady state, not a
+# sign the globs are wrong: `agents/docs.md` already forbids a version
+# number or a "not yet" on a page editorially, and this is the mechanical
+# backstop for a rule that was enforced by review alone.
+#
+# Measured and deliberately absent — re-adding one wants new reasoning,
+# not just an edit here:
+#
+# - `docs/checks/*.md`, the noisiest source measured by a wide margin: 17
+#   findings over `HEAD~15`, 12 of them one sentence shape. Every check
+#   page's "Retirement markers" section quotes the lead-in "Previously
+#   said:", and a word list cannot tell a quoted marker from a dated
+#   claim. A check page is reference prose and belongs here on every other
+#   ground; it is out until that shape can be told apart.
+# - `CHANGELOG.md`, `decisions/*.md` and `TODO.md`, where temporal wording
+#   is correct by design: a shipped changelog entry describes a moment, an
+#   ADR is frozen at its decision's date, and `TODO.md` exists to say what
+#   isn't done yet. They supplied 31 findings over `HEAD~15`, none
+#   actionable. This is the file set `claim-words` above wants and this
+#   check must not have, and the reason the two can't share one key.
+# - `AGENTS.md`, `CONTEXT.md`, `agents/*.md` and `claims/skill/SKILL.md`:
+#   contributor and agent instructions, not a description of the binary a
+#   reader installed. Every hit measured across them was a rule about
+#   temporal wording rather than an instance of one.
+#
+# `docs/concepts.md` supplies all three of the findings above and is kept
+# anyway, for the reason `claim-words` keeps it: it is where this
+# project's cross-cutting prose lives, and three findings over fifteen
+# commits is not a cost worth narrowing for.
+[temporal-words]
+files = [
+    "README.md",
     "docs/concepts.md",
     "docs/configuring.md",
     "docs/index.md",

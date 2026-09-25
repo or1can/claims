@@ -22,4 +22,5 @@
 - [restatement](checks/restatement.md)
 - [spliced-docs](checks/spliced-docs.md)
 - [claim-words](checks/claim-words.md)
+- [temporal-words](checks/temporal-words.md)
 - [judgment-agent](checks/judgment-agent.md)

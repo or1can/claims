@@ -54,10 +54,22 @@
   awareness — a claim shaped `` `NAME` defaults to `value` `` inside a
   ` ``` ` fence (e.g. a docs page's own illustrative example of this
   check's syntax) is scanned as a real claim, not skipped as example
-  content. `check_env_vars.py` (ticket #18) and `check_file_refs.py`
-  (ticket #16) both fixed this via `_fence_state`; #17 shipped before the
-  gap was noticed and hasn't been revisited. Cheap to port (three lines,
-  the pattern already exists twice), just not done yet.
+  content. `check_env_vars.py` (ticket #18), `check_file_refs.py`
+  (ticket #16) and `check_cli_flags.py` (ticket #19) all fixed this via
+  the fence-state pass now shared as `claims.markdown.fence_state`; #17
+  shipped before the gap was noticed and hasn't been revisited. Cheap to
+  port (an import and two lines), just not done yet.
+- `claim_words.py` carries its own `_files`/`_designated` pair rather than
+  calling `config.string_list_config` and `config.path_matches`, which do
+  the same two jobs for every other check. `_designated` uses plain
+  `fnmatch.fnmatch`, whose case folding is platform-dependent — the exact
+  defect `path_matches`' own docstring says it exists to avoid, so the
+  same `files` glob can match on macOS and not on Linux. `temporal_words.py`
+  (ticket #52) calls the shared helpers; swapping `claim-words` over is a
+  three-line change, but it alters a shipped check's matching on one
+  platform, so it wants its own commit and a changelog entry rather than
+  riding along with a new check.
+
 - Ticket #33's `known_untracked` (`check_file_refs.py`) only ever matches
   and verifies a candidate's repo-root-relative form — a gitignored file
   cited via a path relative to the citing file's own directory (`#32`'s

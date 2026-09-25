@@ -166,5 +166,5 @@ the sets separate is in [ADR
 
 ## Next
 
-[judgment-agent](judgment-agent.md), which works out which claims a
-diff has put in doubt and hands each to a subagent that reads the code.
+[temporal-words](temporal-words.md), the same sweep over the opposite
+file set, for sentences dated by a version number or a history word.

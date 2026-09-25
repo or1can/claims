@@ -1,0 +1,5 @@
+# python3 scripts/capture.py: temporal-words, run against a throwaway git repository seeded from examples/temporal-words
+[advisory] docs/reference.md:7 (temporal-words-version) [temporal-words-version] Native TOML configuration arrived in 0.3.0.
+[advisory] docs/reference.md:9 (temporal-words-phrase) [temporal-words-phrase] There is no `--output` mode yet.
+[advisory] docs/reference.md:11 (temporal-words-cited) [temporal-words-cited] `widget` now reads its own configuration.
+[advisory] docs/reference.md:21 (temporal-words-version) [temporal-words-version] From 0.9.0 the reader is native.
