@@ -129,14 +129,3 @@
   `examples/*` entry in `claims.toml`, not just that finding. Surfaced by
   `/code-review` while reading #53's survivors; out of scope there, which
   changed no check's code.
-- `restatement` has no `.scratch/*` exclusion, so the frozen archive is
-  still swept for both retracted lines and survivors. Excluding
-  `CHANGELOG.md` there (#53) newly reported three findings, two of them in
-  `.scratch/claims-consolidation/spec.md`, the changelog having been the
-  second surviving copy holding them under `duplication_threshold`. (The
-  third, in `claims/hook.py`, is a real duplicate the changelog had been
-  masking, and wants no exclusion at all.) Adding
-  the glob wasn't in #53's scope — its acceptance criteria are measured
-  against exactly the two globs it names — and unlike `stale-claims`, a
-  retracted line still asserted in the archive isn't obviously noise, so
-  this wants deciding rather than copying across.
