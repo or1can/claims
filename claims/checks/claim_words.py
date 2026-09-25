@@ -54,11 +54,11 @@ parsing the message text.
 
 from __future__ import annotations
 
-import fnmatch
 import re
 from collections.abc import Mapping, Sequence
 from pathlib import Path
 
+from ..config import path_matches, string_list_config
 from ..git import added_lines_by_file
 from ..markdown import CODE_SPAN_RE, ITALIC_RE, RETIRED_LEAD_IN, sentences_from
 from ..runner import Finding, register_check
@@ -139,21 +139,6 @@ COUNT_RE = re.compile(
 BLOCKQUOTE_RE = re.compile(r"^>(\s|$)")
 
 
-def _files(config: Mapping[str, object]) -> Sequence[str]:
-    patterns = config.get("files", [])
-    # A project meaning to designate one file (`files = "record.md"`) is a
-    # one-character typo away from `["record.md"]`; treated as a bare list
-    # of characters instead, `fnmatch` against `"*"` and similar chars would
-    # turn "opt in one file" into "sweep everything" without any error.
-    if isinstance(patterns, str):
-        return [patterns]
-    return list(patterns)  # type: ignore[arg-type]
-
-
-def _designated(path: str, patterns: Sequence[str]) -> bool:
-    return any(fnmatch.fnmatch(path, pattern) for pattern in patterns)
-
-
 def _is_count_claim(sentence: str) -> bool:
     return any(
         match.group("noun").lower().strip(".,;:") not in UNIT_WORDS
@@ -190,7 +175,7 @@ def _classify(sentence: str) -> list[str]:
 def check(
     repo_root: Path, diff_range: str, config: Mapping[str, object]
 ) -> list[Finding]:
-    patterns = _files(config)
+    patterns = string_list_config(config, "files")
     if not patterns:
         return []
 
@@ -198,7 +183,7 @@ def check(
     findings: list[Finding] = []
 
     for path, added_line_numbers in sorted(added.items()):
-        if not _designated(path, patterns):
+        if not path_matches(path, patterns):
             continue
         try:
             text = (repo_root / path).read_text(encoding="utf-8")

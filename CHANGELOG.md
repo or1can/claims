@@ -11,6 +11,13 @@ reached you, not just that one was pushed upstream.
 
 ## [Unreleased]
 
+## [0.12.3] - 2026-09-25
+
+- Fixed: `claim-words`' `files` globs now match case-sensitively on every
+  platform, like every other check's globs. On Windows they previously
+  ignored case, so a `docs/*.md` glob also designated the pages of a
+  capitalised `Docs` directory.
+
 ## [0.12.2] - 2026-09-25
 
 - Fixed: `check-config-defaults` no longer reads lines inside a fenced

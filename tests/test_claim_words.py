@@ -24,6 +24,7 @@ Project B's `tools/claim-words.py` (same author, relicensed).
 from __future__ import annotations
 
 from pathlib import Path
+from unittest import mock
 
 from claims.checks.claim_words import (
     MODE_ABOUT_ELSEWHERE,
@@ -159,6 +160,19 @@ class ClaimWordsTests(RegistryClearingTestCase):
             repo.write("notes.md", "Every host in the fleet reports up.\n")
 
             findings = self._findings(repo.root, ["record.md"])
+
+        self.assertEqual(findings, [])
+
+    def test_a_files_glob_matches_case_sensitively_on_every_platform(self) -> None:
+        # Windows' `normcase` lowercases, so `fnmatch.fnmatch` folds case
+        # there and nowhere else; patched in so this holds on any host.
+        with Repo() as repo:
+            repo.write("Record.md", "seed\n")
+            repo.commit()
+            repo.write("Record.md", "Every host in the fleet reports up.\n")
+
+            with mock.patch("os.path.normcase", str.lower):
+                findings = self._findings(repo.root, ["record.md"])
 
         self.assertEqual(findings, [])
 

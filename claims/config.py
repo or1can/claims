@@ -102,8 +102,9 @@ def path_matches(path: str, patterns: Sequence[str]) -> bool:
 
     `fnmatchcase`, not `fnmatch` — a git-tracked path is canonically
     case-sensitive, and `fnmatch`'s own case-folding is platform-dependent
-    (`os.path.normcase`), which would otherwise make the same `claims.toml`
-    match on macOS/Windows and not on Linux.
+    (`os.path.normcase`, which lowercases on Windows only), which would
+    otherwise make the same `claims.toml` match on Windows and not on
+    macOS or Linux.
     """
 
     return any(fnmatch.fnmatchcase(path, pattern) for pattern in patterns)
