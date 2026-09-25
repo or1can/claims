@@ -9,6 +9,26 @@
             "type": "command",
             "if": "Bash(git *)",
             "command": "PYTHONPATH=\"${CLAUDE_PLUGIN_ROOT}\" python3 -m claims.hook"
+          },
+          {
+            "type": "command",
+            "if": "Bash(bash *)",
+            "command": "PYTHONPATH=\"${CLAUDE_PLUGIN_ROOT}\" python3 -m claims.hook"
+          },
+          {
+            "type": "command",
+            "if": "Bash(sh *)",
+            "command": "PYTHONPATH=\"${CLAUDE_PLUGIN_ROOT}\" python3 -m claims.hook"
+          },
+          {
+            "type": "command",
+            "if": "Bash(zsh *)",
+            "command": "PYTHONPATH=\"${CLAUDE_PLUGIN_ROOT}\" python3 -m claims.hook"
+          },
+          {
+            "type": "command",
+            "if": "Bash(eval *)",
+            "command": "PYTHONPATH=\"${CLAUDE_PLUGIN_ROOT}\" python3 -m claims.hook"
           }
         ]
       }
