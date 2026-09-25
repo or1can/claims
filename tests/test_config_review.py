@@ -22,13 +22,10 @@ even though this isn't a registered check itself.
 
 from __future__ import annotations
 
-import importlib
-import pkgutil
 import tempfile
 import unittest
 from pathlib import Path
 
-import claims.checks as checks_package
 from claims.config_review import (
     EXTENSION_CONFIG_KEYS,
     GLOB_CONFIG_KEYS,
@@ -36,24 +33,7 @@ from claims.config_review import (
     config_value_matches,
 )
 
-from support import Repo
-
-
-def _every_check_module_name() -> set[str]:
-    """Every check's own `NAME`, discovered by walking `claims/checks/`'s
-    actual module files rather than a second hand-maintained import list —
-    a check module added to the package but never wired into this
-    module's own imports would otherwise leave a completeness test
-    checking against itself, unable to fail for the case it exists to
-    catch (a new check's config keys never being added to
-    `GLOB_CONFIG_KEYS`/`EXTENSION_CONFIG_KEYS`/`NO_PATH_SHAPED_CONFIG`).
-    """
-
-    names: set[str] = set()
-    for module_info in pkgutil.iter_modules(checks_package.__path__):
-        module = importlib.import_module(f"{checks_package.__name__}.{module_info.name}")
-        names.add(module.NAME)
-    return names
+from support import Repo, every_check_name
 
 
 class ConfigValueMatchesTests(unittest.TestCase):
@@ -171,7 +151,7 @@ class ConfigValueMatchesTests(unittest.TestCase):
         # reviewed — silently, the exact failure class this helper exists
         # to catch in a project's own config. This fails loud instead.
         # Compared against every check module `claims/checks/` actually
-        # has on disk (`_every_check_module_name`), not a second
+        # has on disk (`every_check_name`), not a second
         # hand-maintained list — a name appearing in more than one of the
         # three sets is also a contradiction (claiming both "has nothing
         # path-shaped" and "has this path-shaped key"), so disjointness is
@@ -180,7 +160,7 @@ class ConfigValueMatchesTests(unittest.TestCase):
         extension_names = set(EXTENSION_CONFIG_KEYS)
         self.assertTrue(NO_PATH_SHAPED_CONFIG.isdisjoint(glob_names | extension_names))
         accounted_for = glob_names | extension_names | NO_PATH_SHAPED_CONFIG
-        self.assertEqual(accounted_for, _every_check_module_name())
+        self.assertEqual(accounted_for, every_check_name())
 
     def test_a_non_repo_path_raises_rather_than_reporting_false_zero_matches(
         self,

@@ -27,9 +27,18 @@ from __future__ import annotations
 import unittest
 
 from scripts.capture import CAPTURES_DIR, capture
+from support import every_check_name
 
 
 class CaptureFreshnessTests(unittest.TestCase):
+    def test_every_registered_check_has_a_capture(self) -> None:
+        # Driven from the check modules themselves, not a list kept here:
+        # a thirteenth check with no worked example fails this test rather
+        # than shipping with a page that shows no output.
+        for name in sorted(every_check_name()):
+            with self.subTest(check=name):
+                self.assertTrue((CAPTURES_DIR / f"{name}.txt").is_file())
+
     def test_every_committed_capture_matches_a_fresh_run(self) -> None:
         captures = sorted(CAPTURES_DIR.glob("*.txt"))
         # An empty directory would otherwise pass vacuously.

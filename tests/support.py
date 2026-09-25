@@ -16,13 +16,34 @@
 
 from __future__ import annotations
 
+import importlib
 import os
+import pkgutil
 import subprocess
 import tempfile
 import unittest
 from pathlib import Path
 
+import claims.checks as checks_package
 from claims import runner
+
+
+def every_check_name() -> set[str]:
+    """Every check's own `NAME`, discovered by walking `claims/checks/`'s
+    actual module files rather than a second hand-maintained import list —
+    a check module added to the package but never wired into the
+    package's own imports would otherwise leave a completeness test
+    checking against itself, unable to fail for the case it exists to
+    catch. `NAME` is what each module passes to `register_check`, so this
+    is the registry's own key set, read without depending on the global
+    registry's state (which `RegistryClearingTestCase` empties per test).
+    """
+
+    names: set[str] = set()
+    for module_info in pkgutil.iter_modules(checks_package.__path__):
+        module = importlib.import_module(f"{checks_package.__name__}.{module_info.name}")
+        names.add(module.NAME)
+    return names
 
 
 class RegistryClearingTestCase(unittest.TestCase):
