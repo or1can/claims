@@ -27,7 +27,10 @@ backticked bare name, with or without an extension, counts when exactly
 one tracked file outside `exclude` has that stem: `cache.py` and `cache`
 both name the one file whose name without its extension is `cache`. A
 stem that two such files share names no single file and is dropped
-rather than guessed at. A section naming no subject is not ranked.
+rather than guessed at. The repository's own `claims.toml` is never
+named this way: `claims` names the tool, and a page about the
+configuration format does not go stale because the project tuned its
+own configuration. A section naming no subject is not ranked.
 
 The bare form is ambiguous in a way the path form is not, because a
 word such as `cache` or `config` is as often ordinary prose or a
