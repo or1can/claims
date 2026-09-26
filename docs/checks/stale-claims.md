@@ -24,10 +24,10 @@ A **subject** is a tracked file the section names, in one of two shapes.
 An explicit relative path, a directory and a file name with an
 extension, counts when a tracked file has exactly that path. A
 backticked bare name, with or without an extension, counts when exactly
-one tracked file outside `exclude` has that stem: `cache.py` and `cache` both name the
-one file whose name without its extension is `cache`. A stem that two
-tracked files share names no single file and is dropped rather than
-guessed at. A section naming no subject is not ranked.
+one tracked file outside `exclude` has that stem: `cache.py` and `cache`
+both name the one file whose name without its extension is `cache`. A
+stem that two such files share names no single file and is dropped
+rather than guessed at. A section naming no subject is not ranked.
 
 The bare form is ambiguous in a way the path form is not, because a
 word such as `cache` or `config` is as often ordinary prose or a

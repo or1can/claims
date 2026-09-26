@@ -179,7 +179,7 @@ class StaleClaimsTests(RegistryClearingTestCase):
         self.assertEqual(findings[0].citation, "guide.md:1")
         self.assertIn("legacy.md", findings[0].message)
 
-    def _excluded_project_fixture(self, repo: Repo, doc: str) -> list[Finding]:
+    def _findings_for_excluded_project(self, repo: Repo, doc: str) -> list[Finding]:
         repo.write("ex/project.rs", "v0")
         repo.write("guide.md", doc)
         repo.commit(BASE)
@@ -191,7 +191,7 @@ class StaleClaimsTests(RegistryClearingTestCase):
 
     def test_a_bare_name_never_resolves_to_an_excluded_file(self) -> None:
         with Repo() as repo:
-            findings = self._excluded_project_fixture(
+            findings = self._findings_for_excluded_project(
                 repo, "## install\nSee `project` for details.\n"
             )
         self.assertEqual(findings, [])
@@ -200,7 +200,7 @@ class StaleClaimsTests(RegistryClearingTestCase):
         self,
     ) -> None:
         with Repo() as repo:
-            findings = self._excluded_project_fixture(
+            findings = self._findings_for_excluded_project(
                 repo, "## install\nSee ex/project.rs for details.\n"
             )
         self.assertEqual(len(findings), 1)
