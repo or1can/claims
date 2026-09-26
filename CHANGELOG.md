@@ -11,6 +11,15 @@ reached you, not just that one was pushed upstream.
 
 ## [Unreleased]
 
+## [0.12.8] - 2026-09-26
+
+- Fixed: `check-links` no longer reports a link whose destination starts
+  with `~` or `/` as a broken link. Such a link is now skipped, as
+  `check-file-refs` already skips the same shape.
+- Changed: a GitHub-style repo-root link (`/docs/page.md`) is therefore
+  no longer checked by `check-links` either. Write it relative to the page
+  to keep it gated.
+
 ## [0.12.7] - 2026-09-26
 
 - Fixed: `stale-claims` no longer treats your root `claims.toml` as the
