@@ -50,7 +50,13 @@ means the pre-key default, a bare citation counting everywhere.
 `CHANGELOG.md` is excluded built-in because its entries describe a
 release as it shipped, so their subjects moving afterwards is expected,
 not suspicious; `exclude` (ticket #43) is the same idea under a project's
-own control, not a substitute for it.
+own control, not a substitute for it. An excluded file is also left out of
+the stem index (#92): a bare name is a guess at a subject, and a file the
+project has excluded is the one it least means, so a stem it shares with
+one other file resolves to that other file. An explicit path is not a
+guess, so it still reaches an excluded file. The built-in `CHANGELOG.md`
+exclusion stays out of this — a bare `` `CHANGELOG` `` names that file as
+much as it ever did.
 """
 
 from __future__ import annotations
@@ -114,8 +120,8 @@ def check(
 ) -> list[Finding]:
     tracked = tracked_files(repo_root)
     tracked_set = set(tracked)
-    modules = _module_index(tracked)
     exclude = exclude_patterns(config)
+    modules = _module_index([rel for rel in tracked if not path_matches(rel, exclude)])
     docs = sorted(
         rel
         for rel in tracked

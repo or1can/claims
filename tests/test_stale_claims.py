@@ -161,9 +161,9 @@ class StaleClaimsTests(RegistryClearingTestCase):
     def test_an_excluded_file_still_resolves_as_a_subject_named_elsewhere(
         self,
     ) -> None:
-        # `exclude` only skips ranking *that file's own* sections — it
-        # must not also remove the file from the tracked/module index
-        # every other file's own claims still resolve subjects against.
+        # `exclude` skips ranking *that file's own* sections and drops it
+        # from bare-name lookup (#92), but an explicit path still resolves
+        # against the whole tracked tree.
         with Repo() as repo:
             repo.write("docs/legacy.md", "prose\n")
             repo.write(
@@ -178,6 +178,52 @@ class StaleClaimsTests(RegistryClearingTestCase):
         self.assertEqual(len(findings), 1)
         self.assertEqual(findings[0].citation, "guide.md:1")
         self.assertIn("legacy.md", findings[0].message)
+
+    def _findings_for_excluded_project(self, repo: Repo, doc: str) -> list[Finding]:
+        repo.write("ex/project.rs", "v0")
+        repo.write("guide.md", doc)
+        repo.commit(BASE)
+        repo.write("ex/project.rs", "v1")
+        repo.commit(BASE + 100)
+        return self._findings_with_toml(
+            repo.root, '[stale-claims]\nexclude = ["ex/*"]\n'
+        )
+
+    def test_a_bare_name_never_resolves_to_an_excluded_file(self) -> None:
+        with Repo() as repo:
+            findings = self._findings_for_excluded_project(
+                repo, "## install\nSee `project` for details.\n"
+            )
+        self.assertEqual(findings, [])
+
+    def test_an_excluded_file_named_by_explicit_path_is_still_a_subject(
+        self,
+    ) -> None:
+        with Repo() as repo:
+            findings = self._findings_for_excluded_project(
+                repo, "## install\nSee ex/project.rs for details.\n"
+            )
+        self.assertEqual(len(findings), 1)
+        self.assertEqual(findings[0].citation, "guide.md:1")
+        self.assertIn("project.rs", findings[0].message)
+
+    def test_a_stem_shared_with_an_excluded_file_resolves_to_the_other(
+        self,
+    ) -> None:
+        with Repo() as repo:
+            repo.write("ex/project.rs", "v0")
+            repo.write("src/project.py", "v0")
+            repo.write("guide.md", "## install\nSee `project` for details.\n")
+            repo.commit(BASE)
+            repo.write("ex/project.rs", "v1")
+            repo.write("src/project.py", "v1")
+            repo.commit(BASE + 100)
+            findings = self._findings_with_toml(
+                repo.root, '[stale-claims]\nexclude = ["ex/*"]\n'
+            )
+        self.assertEqual(len(findings), 1)
+        self.assertIn("project.py", findings[0].message)
+        self.assertNotIn("project.rs", findings[0].message)
 
     def test_exclude_does_not_affect_a_non_matching_file(self) -> None:
         with Repo() as repo:
