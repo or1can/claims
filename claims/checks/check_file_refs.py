@@ -79,11 +79,11 @@ real `.gitignore`-status detection (`git check-ignore` or equivalent) —
 that would conflate "gitignored" with "deliberately documented as
 untracked" (a project can gitignore something for an unrelated reason,
 or leave something untracked without gitignoring it at all) and adds a
-git dependency this config-only approach doesn't need. Only ever checked
-against the repo-root-relative candidate, not the citing-relative one — a
+git dependency this config-only approach doesn't need. Tried against the
+repo-root-relative candidate and then the citing-relative one (#89), each
+matched as its own repo path and each under the same confinement, so a
 gitignored file cited relative to the citing file's own directory is
-#32's and #33's shared, named, independently shippable gap, not silently
-accepted as solved.
+exempted the same way.
 
 A mention already inside real Markdown link syntax is excluded from
 detection entirely — checked against the destination span a
@@ -370,11 +370,11 @@ def _citing_relative(citing: str, candidate: str) -> str:
 
     Purely lexical, same as its model — may land outside the repo (e.g. a
     non-`../`-prefixed candidate whose own embedded `..` segments walk
-    past the root once joined). Unlike `check_links._resolve`, whose
-    result is opened and so needs `_target_slugs`' own real-path
-    confinement, this result is only ever tested against `tracked_set`
-    membership — nothing ever reads it, so an out-of-repo result is just
-    another string that isn't in the set, not a path traversal risk.
+    past the root once joined). Against `tracked_set` an out-of-repo
+    result is just another string that isn't in the set; the one place it
+    touches disk, `check()`'s `known_untracked` test (#89), puts it through
+    the same real-path confinement `check_links._target_slugs` uses, so it
+    isn't a path traversal risk there either.
     """
 
     return normpath(join(dirname(citing), candidate))
@@ -445,6 +445,12 @@ def check(repo_root: Path, diff_range: str, config: Mapping[str, object]) -> lis
                 return True
         return False
 
+    def untracked_on_disk(path: str) -> bool:
+        if not path_matches(path, known_untracked):
+            return False
+        real = (repo_root / path).resolve()
+        return real.is_relative_to(repo_real) and real.is_file()
+
     findings: list[Finding] = []
 
     for rel in sorted(tracked_files(repo_root, "*.md")):
@@ -476,16 +482,13 @@ def check(repo_root: Path, diff_range: str, config: Mapping[str, object]) -> lis
                 if marker is not None:
                     consumed_marker_starts.add(marker.start())
                     continue
-                citing_relative = _citing_relative(rel, candidate)
-                if candidate in tracked_set or citing_relative in tracked_set:
+                paths = (candidate, _citing_relative(rel, candidate))
+                if any(path in tracked_set for path in paths):
                     continue
-                if path_matches(candidate, known_untracked):
-                    real = (repo_root / candidate).resolve()
-                    if real.is_relative_to(repo_real) and real.is_file():
-                        continue
+                if any(untracked_on_disk(path) for path in paths):
+                    continue
                 where = ""
                 if file_resolver is not None:
-                    paths = (candidate, citing_relative)
                     verdict = file_resolver.held_when_written(
                         rel, line_no, lambda commit: held_at(commit, paths)
                     )

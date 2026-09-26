@@ -362,6 +362,54 @@ class CheckFileRefsTests(RegistryClearingTestCase):
         self.assertEqual(len(findings), 1)
         self.assertIn(".claude/settings.local.json", findings[0].message)
 
+    def test_a_known_untracked_path_resolving_only_citing_relative_is_not_flagged(
+        self,
+    ) -> None:
+        # `known_untracked` is tried against the citing-relative form too
+        # (#89), matched as that form's own repo path.
+        with Repo() as repo:
+            repo.write("docs/sub/page.md", "See conf/local.json for local overrides.\n")
+            repo.commit()
+            # Created *after* the commit so it's genuinely untracked.
+            (repo.root / "docs" / "sub" / "conf").mkdir()
+            (repo.root / "docs" / "sub" / "conf" / "local.json").write_text("{}\n")
+            findings = self._findings_with_config(
+                repo.root, '[check-file-refs]\nknown_untracked = ["docs/sub/conf/local.json"]\n'
+            )
+        self.assertEqual(findings, [])
+
+    def test_a_citing_relative_known_untracked_match_still_requires_disk_existence(
+        self,
+    ) -> None:
+        with Repo() as repo:
+            repo.write("docs/sub/page.md", "See conf/local.json for local overrides.\n")
+            repo.commit()
+            findings = self._findings_with_config(
+                repo.root, '[check-file-refs]\nknown_untracked = ["docs/sub/conf/local.json"]\n'
+            )
+        self.assertEqual(len(findings), 1)
+        self.assertIn("conf/local.json", findings[0].message)
+
+    def test_a_citing_relative_known_untracked_symlink_outside_the_repo_is_still_flagged(
+        self,
+    ) -> None:
+        with Repo() as repo:
+            outside = repo.root.parent / "claims-test-outside-citing.json"
+            outside.write_text("secret\n")
+            try:
+                repo.write("docs/sub/page.md", "See conf/local.json for local overrides.\n")
+                repo.commit()
+                (repo.root / "docs" / "sub" / "conf").mkdir()
+                (repo.root / "docs" / "sub" / "conf" / "local.json").symlink_to(outside)
+                findings = self._findings_with_config(
+                    repo.root,
+                    '[check-file-refs]\nknown_untracked = ["docs/sub/conf/local.json"]\n',
+                )
+            finally:
+                outside.unlink()
+        self.assertEqual(len(findings), 1)
+        self.assertIn("conf/local.json", findings[0].message)
+
     def test_no_findings_on_a_repo_with_no_markdown(self) -> None:
         with Repo() as repo:
             repo.write("main.py", "print('hi')\n")

@@ -49,8 +49,9 @@ from a typo by tracking alone. The `known_untracked` key names such paths
 by glob; a candidate matching one is exempt from having to be tracked but
 must still exist on disk inside the repository, so a typo under an
 exempted pattern is still caught, and a symlink out of the repository is
-refused rather than followed. It applies to the root-relative form only,
-not to the citing-directory fallback.
+refused rather than followed. It applies to both forms: a pattern is
+matched against the root-relative path and against the path taken from
+the citing file's directory, and either one passing is enough.
 
 The check is whole-tree, over every tracked `.md` file on every run.
 
