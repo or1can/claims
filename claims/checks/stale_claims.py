@@ -57,6 +57,14 @@ one other file resolves to that other file. An explicit path is not a
 guess, so it still reaches an excluded file. The built-in `CHANGELOG.md`
 exclusion stays out of this — a bare `` `CHANGELOG` `` names that file as
 much as it ever did.
+
+The root `claims.toml` is left out of the stem index built-in (#100), the
+reverse case: every project running this check has one, and a bare
+`` `claims` `` names the tool, never its config file. Dropping it also
+drops `` `claims.toml` ``, since a root-level file has no directory to
+give an explicit-path match; a section about the config format is not
+made stale by a project tuning its own config, which is all that file's
+history records.
 """
 
 from __future__ import annotations
@@ -68,7 +76,7 @@ from collections.abc import Mapping
 from pathlib import Path
 from typing import NamedTuple
 
-from ..config import exclude_patterns, path_matches, string_list_config
+from ..config import CONFIG_FILENAME, exclude_patterns, path_matches, string_list_config
 from ..git import tracked_files
 from ..runner import Finding, register_check
 
@@ -121,7 +129,13 @@ def check(
     tracked = tracked_files(repo_root)
     tracked_set = set(tracked)
     exclude = exclude_patterns(config)
-    modules = _module_index([rel for rel in tracked if not path_matches(rel, exclude)])
+    modules = _module_index(
+        [
+            rel
+            for rel in tracked
+            if rel != CONFIG_FILENAME and not path_matches(rel, exclude)
+        ]
+    )
     docs = sorted(
         rel
         for rel in tracked

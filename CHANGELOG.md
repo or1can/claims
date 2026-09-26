@@ -11,6 +11,13 @@ reached you, not just that one was pushed upstream.
 
 ## [Unreleased]
 
+## [0.12.7] - 2026-09-26
+
+- Fixed: `stale-claims` no longer treats your root `claims.toml` as the
+  subject of a section. Since 0.12.6, a backticked `claims` (the tool's
+  name) or `claims.toml` could resolve to it, so edits to your own
+  configuration flagged most prose that mentions the tool.
+
 ## [0.12.6] - 2026-09-26
 
 - Fixed: in `stale-claims`, a bare backticked name no longer resolves to

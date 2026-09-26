@@ -225,6 +225,40 @@ class StaleClaimsTests(RegistryClearingTestCase):
         self.assertIn("project.py", findings[0].message)
         self.assertNotIn("project.rs", findings[0].message)
 
+    def _findings_for_churned_config(self, repo: Repo, doc: str) -> list[Finding]:
+        repo.write("claims.toml", "# v0\n")
+        repo.write("guide.md", doc)
+        repo.commit(BASE)
+        repo.write("claims.toml", "# v1\n")
+        repo.commit(BASE + 100)
+        return self._findings(repo.root)
+
+    def test_a_bare_claims_never_resolves_to_the_root_config(self) -> None:
+        with Repo() as repo:
+            findings = self._findings_for_churned_config(
+                repo, "## install\nRun `claims` on every commit.\n"
+            )
+        self.assertEqual(findings, [])
+
+    def test_a_backticked_claims_toml_is_not_a_subject(self) -> None:
+        with Repo() as repo:
+            findings = self._findings_for_churned_config(
+                repo, "## configure\nSettings live in `claims.toml`.\n"
+            )
+        self.assertEqual(findings, [])
+
+    def test_the_claims_stem_resolves_to_another_file_sharing_it(self) -> None:
+        with Repo() as repo:
+            repo.write("src/claims.py", "v0")
+            repo.write("claims.toml", "# v0\n")
+            repo.write("guide.md", "## api\nSee `claims` for details.\n")
+            repo.commit(BASE)
+            repo.write("src/claims.py", "v1")
+            repo.commit(BASE + 100)
+            findings = self._findings(repo.root)
+        self.assertEqual(len(findings), 1)
+        self.assertIn("claims.py", findings[0].message)
+
     def test_exclude_does_not_affect_a_non_matching_file(self) -> None:
         with Repo() as repo:
             _build_fixture(repo)
