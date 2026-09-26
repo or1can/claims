@@ -29,6 +29,20 @@ matches the source tool's own — another `.md` file, with or without
 happens to end `.md` would otherwise pass the source tool's own
 path-shaped filter.
 
+A destination starting with `~` or `/` (ticket #88) is skipped too: a
+home-directory or host-absolute path was never relative to the citing
+file, so joining it to that file's directory could only ever report it as
+an ordinary broken link, for the wrong reason. The shapes
+`check_file_refs._host_relative` skips, plus any leading `~`
+(`~user/x.md`): that helper stops short of a bare `~` only to spare
+Markdown strikethrough, which can't occur inside a link destination.
+**Known, deliberate gap:** GitHub
+renders a leading `/` in a link as repo-root-relative, so a broken
+`[x](/docs/missing.md)` goes unreported rather than being resolved against
+the repo root; nothing in the destination tells that convention from a
+host path, and matching `check-file-refs`' reading keeps the two checks
+from disagreeing about the same shape.
+
 Two departures from the source tool, both fixes rather than ports. Its
 first version required a link to end in bare `.md)`, so a link ending
 `...md#anchor)` — path *plus* anchor — silently never got validated at
@@ -183,6 +197,8 @@ def check(repo_root: Path, diff_range: str, config: Mapping[str, object]) -> lis
                 if SCHEME_RE.match(target) or not RELEVANT_RE.search(target):
                     continue
                 path, _, anchor = target.partition("#")
+                if path.startswith(("~", "/")):
+                    continue
                 resolved = _resolve(rel, path)
                 if resolved not in slug_cache:
                     slug_cache[resolved] = _target_slugs(repo_root, repo_real, resolved)

@@ -13,6 +13,15 @@ without a `#anchor`, or is a bare `#anchor` into the file it appears in.
 An image, a link to a source file, and any destination with a scheme
 (`https://`, `mailto:`) are out of scope and never reported.
 
+A destination starting with `~` or `/` is out of scope too, much as
+[check-file-refs](check-file-refs.md) sets aside a host path. Such a
+destination is not relative to the page, so resolving it against the
+page's directory could only report it as broken for the wrong reason. A leading `~` names a home
+directory. A leading `/` may name a place on the host or, as GitHub reads
+it, the repository root, and nothing in the link says which, so neither
+is checked: write a link relative to the page if you want it held to
+this check.
+
 An anchor matches a heading under GitHub's rule: the heading text is
 lowercased, every character outside letters, digits, spaces, hyphens and
 underscores is dropped, and each space becomes a hyphen. `## Upgrading an

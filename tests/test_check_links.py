@@ -201,6 +201,33 @@ class CheckLinksTests(RegistryClearingTestCase):
 
         self.assertEqual(findings, [])
 
+    def test_a_home_directory_link_is_not_checked(self) -> None:
+        with Repo() as repo:
+            repo.write("README.md", "See [notes](~/notes/setup.md).\n")
+            repo.commit()
+
+            findings = self._findings(repo.root)
+
+        self.assertEqual(findings, [])
+
+    def test_a_host_absolute_link_is_not_checked(self) -> None:
+        with Repo() as repo:
+            repo.write("README.md", "See [notes](/etc/docs/setup.md).\n")
+            repo.commit()
+
+            findings = self._findings(repo.root)
+
+        self.assertEqual(findings, [])
+
+    def test_a_repo_root_link_with_an_anchor_is_not_checked(self) -> None:
+        with Repo() as repo:
+            repo.write("README.md", "See [notes](/docs/setup.md#installing).\n")
+            repo.commit()
+
+            findings = self._findings(repo.root)
+
+        self.assertEqual(findings, [])
+
     def test_a_tracked_symlink_does_not_crash_the_check(self) -> None:
         with Repo() as repo:
             repo.write("README.md", "See [notes](docs/NOTES.md).\n")

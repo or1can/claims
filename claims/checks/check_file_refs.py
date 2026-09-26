@@ -138,16 +138,15 @@ clearly-not-a-candidate, skipped rather than resolved against the wrong
 base" treatment `_repo_relative`'s own leading `../` handling already
 gets. **Known, deliberate gap this also creates:** a genuinely broken
 *repo-root-anchored* mention written Markdown-link-style
-(`/agents/nonexistent.md`, the same leading-`/` convention `check-links`
-uses for its own destinations) is now silently skipped here too, rather
+(`/agents/nonexistent.md`, the leading-`/` convention GitHub renders as
+repo-root-relative) is now silently skipped here too, rather
 than flagged — bare prose gives no reliable way to tell "this leading `/`
 means host-absolute" from "this leading `/` means repo-root," and #38's
 own motivating reports were all the host-absolute shape, so that's the
-interpretation this check makes; `check-links` keeps its own, different
-interpretation for real link syntax, unaffected by this.
-`stale_claims.PATH_RE` and `check_links.py`'s own destination resolution
-both share the same underlying blind spot in their own copies — tracked
-as #87 and #88, not fixed here.
+interpretation this check makes; `check-links` makes the same one for
+real link syntax (#88).
+`stale_claims.PATH_RE` shares the same underlying blind spot in its own
+copy — tracked as #87, not fixed here.
 
 The `<!-- example -->` marker (ticket #39) is matched case-insensitively
 and across a run of closing backticks between mention and marker (covers
