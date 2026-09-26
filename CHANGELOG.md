@@ -11,6 +11,13 @@ reached you, not just that one was pushed upstream.
 
 ## [Unreleased]
 
+## [0.12.9] - 2026-09-26
+
+- Fixed: `check-file-refs`' `known_untracked` now also exempts an
+  untracked file cited relative to the citing page's own directory. The
+  glob is matched against that file's path from the repository root, and
+  the file must still exist inside the repository.
+
 ## [0.12.8] - 2026-09-26
 
 - Fixed: `check-links` no longer reports a link whose destination starts
