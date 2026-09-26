@@ -146,8 +146,8 @@ own motivating reports were all the host-absolute shape, so that's the
 interpretation this check makes; `check-links` keeps its own, different
 interpretation for real link syntax, unaffected by this.
 `stale_claims.PATH_RE` and `check_links.py`'s own destination resolution
-both share the same underlying blind spot in their own copies — named in
-`TODO.md`, not fixed here.
+both share the same underlying blind spot in their own copies — tracked
+as #87 and #88, not fixed here.
 
 The `<!-- example -->` marker (ticket #39) is matched case-insensitively
 and across a run of closing backticks between mention and marker (covers
