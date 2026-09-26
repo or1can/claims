@@ -11,6 +11,14 @@ reached you, not just that one was pushed upstream.
 
 ## [Unreleased]
 
+## [0.12.6] - 2026-09-26
+
+- Fixed: in `stale-claims`, a bare backticked name no longer resolves to
+  a file matching `[stale-claims] exclude`. A file named by explicit path
+  is still a subject even when excluded. A stem an excluded file shared
+  with one other file now names that other file, so a project whose
+  excluded files shared stems with its own may see new findings.
+
 ## [0.12.5] - 2026-09-26
 
 - Fixed: a `claims.local.toml` table that names no registered check, such

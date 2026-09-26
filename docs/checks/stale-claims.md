@@ -24,7 +24,7 @@ A **subject** is a tracked file the section names, in one of two shapes.
 An explicit relative path, a directory and a file name with an
 extension, counts when a tracked file has exactly that path. A
 backticked bare name, with or without an extension, counts when exactly
-one tracked file has that stem: `cache.py` and `cache` both name the
+one tracked file outside `exclude` has that stem: `cache.py` and `cache` both name the
 one file whose name without its extension is `cache`. A stem that two
 tracked files share names no single file and is dropped rather than
 guessed at. A section naming no subject is not ranked.
@@ -158,7 +158,7 @@ exclude = ["docs/legacy/*.md"]
 | Key | Shape | Default | Reach for this when |
 | --- | --- | --- | --- |
 | `module_reference_scope` | list of glob strings; a bare string is a one-element list | absent: a bare backticked name counts as a subject in every file | Common file stems double as ordinary words or configuration keys in the tree, so a bare `cache` or `config` in a tutorial names a module the sentence is not about. With the key set, a bare name counts only in a matching file; a name with an extension, and an explicit path, count everywhere regardless. |
-| `exclude` | list of glob strings; a bare string is a one-element list | `[]`: nothing excluded beyond the built-in `CHANGELOG.md` | A file's sections should not be ranked at all: prior-art notes about another project, or a directory of inputs written to be broken, like this site's own examples. An excluded file is skipped whole. |
+| `exclude` | list of glob strings; a bare string is a one-element list | `[]`: nothing excluded beyond the built-in `CHANGELOG.md` | A file's sections should not be ranked at all: prior-art notes about another project, or a directory of inputs written to be broken, like this site's own examples. An excluded file is skipped whole, and a bare backticked name never resolves to it, so a stem it shares with one other file names that other file. An explicit path to it still counts as a subject. |
 
 `enabled`, which takes this check out of the commit gate while leaving it
 in the on-demand skill and the CLI, is shared by every check and covered
