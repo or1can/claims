@@ -63,7 +63,7 @@ per-machine file (`.claude/settings.local.json`, the same shape
 `claims.local.toml` itself is) — is indistinguishable from an outright
 typo to `tracked_set` membership alone. An exempted candidate still has
 to resolve to a real file *inside the repo* (`Path.resolve()` confined
-via `is_relative_to`, the same guard `check_links._target_slugs` already
+via `is_relative_to`, the same guard `check_links._target` already
 uses for the identical reason: a lexical check alone would miss a
 symlink, and a candidate's own embedded `..` isn't rejected the way a
 *leading* `../` is by `_repo_relative`), so a genuine typo under an
@@ -89,19 +89,11 @@ A mention already inside real Markdown link syntax is excluded from
 detection entirely — checked against the destination span a
 `check-links`-shaped regex would itself validate — so a single broken
 reference doesn't produce two separate gate findings from two different
-checks under two different names. **Known, deliberate gap, not silently
-accepted:** `check-links` itself only validates a destination naming
-another `.md` file (with or without `#anchor`) or a bare `#anchor` — a
-markdown-link destination naming some other recognized extension (e.g.
-`[the script](scripts/foo.py)`, where `foo.py` doesn't exist) is excluded
-from this check by the same "already inside link syntax" rule, but isn't
-in `check-links`' own scope either, so a broken reference of that
-particular shape currently goes unflagged by both checks. Narrowing this
-would mean either broadening `check-links`' own scope past
-`.md`/anchors, or excluding only the subset of link destinations
-`check-links` actually validates — either is a bigger change than this
-ticket's own scope, so the gap is named here rather than silently
-accepted.
+checks under two different names. `check-links` validates every
+scheme-less destination (#91), so no live link is left unchecked by this
+exclusion. Link syntax inside a code span or a fence is left unchecked by
+both: it is example text, which `check-links` skips, and this exclusion
+still removes it here.
 
 **Known, deliberate gap:** a bare filename with no directory separator
 (e.g. "see README") is not detected at all — `PATH_RE` requires at least
@@ -373,7 +365,7 @@ def _citing_relative(citing: str, candidate: str) -> str:
     past the root once joined). Against `tracked_set` an out-of-repo
     result is just another string that isn't in the set; the one place it
     touches disk, `check()`'s `known_untracked` test (#89), puts it through
-    the same real-path confinement `check_links._target_slugs` uses, so it
+    the same real-path confinement `check_links._target` uses, so it
     isn't a path traversal risk there either.
     """
 

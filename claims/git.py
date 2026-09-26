@@ -221,10 +221,10 @@ def blob_text(repo_root: Path, commit: str, rel: str) -> str | None:
     return result.stdout if result.returncode == 0 else None
 
 
-def is_file_at(repo_root: Path, commit: str, rel: str) -> bool:
-    """Whether `commit`'s tree has a file at `rel` — asks for the object's
-    type rather than reading it, so answering costs nothing per byte, and
-    a directory at `rel` (a tree, not a blob) is not a file."""
+def _object_type_at(repo_root: Path, commit: str, rel: str) -> str | None:
+    """The type of `commit`'s object at `rel` (`blob`, `tree`, ...), or
+    `None` if it has none — asks for the type rather than reading the
+    object, so answering costs nothing per byte."""
 
     result = subprocess.run(
         ["git", *QUOTEPATH_OFF, "-C", str(repo_root), "cat-file", "-t", f"{commit}:{rel}"],
@@ -232,7 +232,21 @@ def is_file_at(repo_root: Path, commit: str, rel: str) -> bool:
         text=True,
         errors="replace",
     )
-    return result.returncode == 0 and result.stdout.strip() == "blob"
+    return result.stdout.strip() if result.returncode == 0 else None
+
+
+def is_file_at(repo_root: Path, commit: str, rel: str) -> bool:
+    """Whether `commit`'s tree has a file at `rel` — a directory at `rel`
+    (a tree, not a blob) is not a file."""
+
+    return _object_type_at(repo_root, commit, rel) == "blob"
+
+
+def exists_at(repo_root: Path, commit: str, rel: str) -> bool:
+    """Whether `commit`'s tree has a file *or* a directory at `rel` — the
+    `is_file_at` test widened for a link, which may name either (#91)."""
+
+    return _object_type_at(repo_root, commit, rel) in ("blob", "tree")
 
 
 def first_commit_adding(repo_root: Path, rel: str) -> str | None:

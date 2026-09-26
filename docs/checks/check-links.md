@@ -1,17 +1,35 @@
 # check-links
 
 Every internal Markdown link in every tracked `.md` file resolves: the
-file it names exists, and where it names a heading anchor, a heading in
-that file has that anchor. A link that fails either test is a gate
-finding. The claim "this page exists, with this section" has been
-disproved, and the commit is refused until it holds again.
+file or directory it names is tracked by git, and where it names a heading
+anchor in a Markdown page, a heading in that page has that anchor. A link
+that fails either test is a gate finding. The claim "this page exists,
+with this section" has been disproved, and the commit is refused until it
+holds again.
 
 ## What it checks
 
-A link is in scope when its destination names another `.md` file, with or
-without a `#anchor`, or is a bare `#anchor` into the file it appears in.
-An image, a link to a source file, and any destination with a scheme
-(`https://`, `mailto:`) are out of scope and never reported.
+Every link destination without a scheme is in scope: another `.md` file,
+with or without a `#anchor`; a bare `#anchor` into the file it appears in;
+a source file, a script, or an image (`![alt](img.png)`); and a directory
+(`[scripts](scripts/)`). A destination with a scheme (`https://`,
+`mailto:`) is out of scope and never reported. So is a link inside a fenced
+code block or an inline code span, which is example syntax rather than a
+link.
+
+The destination is resolved against the directory of the page it appears
+in, and what it names must be tracked by git. A file that is on disk but
+never added, or is git-ignored, is missing from every other clone, so a
+link to it is a finding like a link to nothing. A directory counts when
+git tracks at least one file under it. A link to a symlink, such as a
+`CLAUDE.md` pointing at `AGENTS.md`, is followed, provided it stays inside
+the repository, and so is a link through a symlinked directory. A link to
+a file deliberately kept out of git is what `known_untracked`, below, is
+for.
+
+An anchor is checked only on a Markdown page. On any other target it names
+a line or a viewer position, as in `claims/cli.py#L10`, and only the path is
+checked.
 
 A destination starting with `~` or `/` is out of scope too, much as
 [check-file-refs](check-file-refs.md) sets aside a host path. Such a
@@ -46,8 +64,8 @@ the context to fix it.
 ## Example
 
 The example is two files. The first links to the second three times, to
-a page that does not exist, and to its own title, and also carries an
-external URL and an image.
+a page that does not exist, to its own title, to a directory and to a
+script, and also carries an external URL and link syntax written as code.
 
 `examples/check-links/README.md`:
 
@@ -70,10 +88,12 @@ Run against a fresh repository holding those two files, the check reports:
 The first finding is a missing file: nothing in the example is named
 `configuration.md`. The second is a file that exists with a heading that
 does not: the setup page's heading is `## Upgrading`, whose anchor is
-`#upgrading`, and no rule maps the longer anchor onto it. The link to
-`#installing` resolves, as does the bare `#widget` link to the page's own
-title and the setup page's own `#installing`. The external URL and the
-image produce nothing, because neither is a link this check reads.
+`#upgrading`, and no rule maps the longer anchor onto it. The third is a
+script that does not exist, held to the same test as a page. The link to
+`#installing` resolves, as do the bare `#widget` link to the page's own
+title, the setup page's own `#installing`, and the `docs/` directory,
+which holds the setup page. The external URL and the code span produce
+nothing, because neither is a link this check reads.
 
 Every finding names the file and line of the link, so the fix is either to
 retarget the link or to restore what it named.
@@ -83,22 +103,27 @@ retarget the link or to restore what it named.
 ```toml
 [check-links]
 exclude = ["docs/legacy/*.md"]
+known_untracked = [".claude/settings.local.json"]
 historical = ["CHANGELOG.md", "RELEASES.md", "decisions/*.md"]
 ```
 
 | Key | Shape | Default | Reach for this when |
 | --- | --- | --- | --- |
 | `exclude` | list of glob strings; a bare string is a one-element list | `[]`, nothing excluded | A file's links should not be validated at all: a tutorial whose example deliberately links to a heading that does not exist yet, or a directory of inputs written to be broken, like this site's own examples. An excluded file is skipped whole, live parts included. |
+| `known_untracked` | list of glob strings; a bare string is a one-element list | `[]`, every target must be tracked | A link names a file that is real but deliberately never added to git, such as a git-ignored per-machine settings file, and should not gate like a link to nothing. A match must still exist on disk inside the repository, and a Markdown page reached this way still has its anchor checked. |
 | `historical` | list of glob strings; a bare string is a one-element list | `[]`, every link resolves against the working tree | A file is an append-only record, such as a changelog or a set of decision records, whose shipped entries your own rules forbid editing, and you still want to rename or restructure the pages it links to. |
 
 A `historical` file's links get one more chance. A link that fails against
 the working tree is re-resolved against the tree at the commit that wrote
-its line, as `git blame` attributes it, and passes if it held there. The
-record's shipped entries stay what they were without leaving a stub
-heading behind at every old destination. A link that held nowhere is
-still a finding, and its message says both where it was tested: not in
-the working tree, nor at the commit where the line was written, named by
-its short hash.
+its line, as `git blame` attributes it, and passes if it held there: for a
+Markdown page, that the page and its heading were in that commit's tree;
+for anything else, that a file or directory was at that path.
+`known_untracked` plays no part in that second lookup, since a file never
+added to git is in no commit's tree. The record's shipped entries stay
+what they were without leaving a stub heading behind at every old
+destination. A link that held nowhere is still a finding, and its message
+says both where it was tested: not in the working tree, nor at the commit
+where the line was written, named by its short hash.
 
 Three consequences follow, and all three are the same rule read
 consistently rather than special cases:

@@ -22,12 +22,26 @@ not a judgment call for later.
 
 Ported from Project B's `scripts/check-links`, plus its shared
 `scripts/slugs.sh` for the heading-slug rule (Apache-2.0/relicensed prior
-art, same author); `ratect` has no equivalent (tool-survey.md). Scope
-matches the source tool's own — another `.md` file, with or without
-`#anchor`, or a bare `#anchor` into the current file — with a scheme
-(`https://...`, `mailto:...`) excluded explicitly, since a URL that
-happens to end `.md` would otherwise pass the source tool's own
-path-shaped filter.
+art, same author); `ratect` has no equivalent (tool-survey.md). The
+source tool only read a destination naming another `.md` file or a bare
+`#anchor`; #91 widened that to every destination without a scheme
+(`https://...`, `mailto:...`), because `check-file-refs` leaves anything
+inside link syntax to this check, so a broken `[x](scripts/foo.py)` was
+reported by neither. Since this check now owns all link syntax, its
+existence test is the one `check-file-refs` applies to a bare path:
+tracked by git, not merely on disk, so a link to a gitignored file that
+no other clone has is a finding. A directory counts when git tracks a
+file under it. An anchor is held to headings only on a `.md` target; on
+any other it's a line or viewer fragment (`foo.py#L10`), so only the path
+is checked. `known_untracked` is `check-file-refs`' key of the same name
+for the same reason (see its #33 paragraph), matched against the
+resolved repo-relative path, and under the same real-path confinement.
+
+Fenced blocks and inline code spans are skipped (`claims.markdown`), and
+the wider scope is why: while only `.md` destinations were read, a code
+sample's `handlers[k](event)` or a quoted `` `[text](path)` `` almost
+never looked like a link; with every destination read, each is a gate
+finding for text that was never a link at all.
 
 A destination starting with `~` or `/` (ticket #88) is skipped too: a
 home-directory or host-absolute path was never relative to the citing
@@ -58,8 +72,12 @@ it was — so a page rename elsewhere in the tree shouldn't turn every old
 entry naming it into a gate finding nothing is allowed to fix. Hence a
 link that fails against the working tree is re-resolved against the tree
 at the commit `git blame` attributes its line to, by the
-`claims.historical` resolver `check-file-refs` shares (#57). See ADR 0002
-for the reasoning and the alternatives considered. The cutoff at the commit that
+`claims.historical` resolver `check-file-refs` shares (#57). A `.md`
+target is read from that commit's blob for its headings; any other held
+if that commit's tree had a file or directory at the path (#91).
+`known_untracked` isn't consulted there, since no commit's tree ever
+held a deliberately untracked file. See ADR 0002 for the reasoning and
+the alternatives considered. The cutoff at the commit that
 first added `claims.toml` is deliberate: a line older than that was
 written before this plugin gated anything, may have been broken when
 written, and can't be fixed under the same rule now; no tracked
@@ -69,13 +87,14 @@ written, and can't be fixed under the same rule now; no tracked
 from __future__ import annotations
 
 import re
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from pathlib import Path
 from posixpath import dirname, join, normpath
 
 from ..config import exclude_patterns, path_matches, string_list_config
-from ..git import blob_text, tracked_files
+from ..git import blob_text, exists_at, tracked_files
 from ..historical import HistoricalResolver
+from ..markdown import fence_state, mask_code_spans
 from ..runner import Finding, register_check
 
 NAME = "check-links"
@@ -85,11 +104,6 @@ NAME = "check-links"
 # markdown link's destination never itself contains a literal `)`, the same
 # assumption the source tool's line-based scan makes.
 LINK_RE = re.compile(r"\]\(([^)]*)\)")
-# Only a target naming another `.md` file (with or without `#anchor`), or a
-# bare `#anchor`, is in scope — this is what excludes images, source-file
-# links, and external URLs, without a special case for any of them
-# (matches the source tool's own filter).
-RELEVANT_RE = re.compile(r"\.md(?:$|#)|^#")
 SCHEME_RE = re.compile(r"^[A-Za-z][A-Za-z0-9+.-]*:")
 HEADING_RE = re.compile(r"^#{1,6} (.*)$")
 SLUG_STRIP_RE = re.compile(r"[^a-z0-9 _-]")
@@ -124,7 +138,7 @@ def _resolve(citing: str, path: str) -> str:
 
     Purely lexical (`posixpath.normpath`) — may still land outside the repo
     (a leading `../..`) or reach it only via a symlinked ancestor directory;
-    `_target_slugs` is what actually confines the read to `repo_root`.
+    `_target` is what actually confines the target to `repo_root`.
     """
 
     if not path:
@@ -132,30 +146,72 @@ def _resolve(citing: str, path: str) -> str:
     return normpath(join(dirname(citing), path))
 
 
-def _target_slugs(repo_root: Path, repo_real: Path, resolved: str) -> set[str] | None:
-    """Heading slugs for `resolved`, or `None` if it can't be read as an
-    ordinary file inside the repo.
+def _tracked_dirs(tracked: set[str]) -> set[str]:
+    """Every directory holding at least one tracked file, the repo root
+    (`.`, what `_resolve` yields for it) included."""
 
-    Used both to test whether the link's path resolves at all (`None` means
-    broken link) and, when there's an anchor, against its headings. Confines
-    the read to `repo_root` via the fully-resolved real path, not just a
-    string check on `resolved` — a lexical `../` guard alone would miss a
-    tracked symlinked *directory* pointing outside the repo, which still
-    produces a `resolved` string with no `..` or leading `/` in it at all.
-    `candidate` itself may be a symlink (the `CLAUDE.md` -> `AGENTS.md`
-    convention `executable_claims.py` names): it's followed, not refused
-    outright, since the same real-path check confines where it may lead.
+    dirs = {"."}
+    for rel in tracked:
+        parent = dirname(rel)
+        while parent and parent not in dirs:
+            dirs.add(parent)
+            parent = dirname(parent)
+    return dirs
+
+
+def _target(
+    repo_root: Path,
+    repo_real: Path,
+    resolved: str,
+    tracked: set[str],
+    tracked_dirs: set[str],
+    known_untracked: Sequence[str],
+) -> set[str] | None:
+    """Heading slugs for `resolved` if it's a `.md` file, an empty set for
+    any other file or a directory, or `None` if the link is broken.
+
+    Confines the target to `repo_root` via the fully-resolved real path,
+    not just a string check on `resolved` — a lexical `../` guard alone
+    would miss a tracked symlinked *directory* pointing outside the repo,
+    which still produces a `resolved` string with no `..` or leading `/`
+    in it at all. `candidate` itself may be a symlink (the `CLAUDE.md` ->
+    `AGENTS.md` convention `executable_claims.py` names): it's followed,
+    not refused outright, since the same real-path check confines where it
+    may lead. Only a `.md` file is ever read; an image or source file
+    needs nothing from its content.
     """
 
     candidate = repo_root / resolved
     real = candidate.resolve()
-    if not real.is_relative_to(repo_real) or not real.is_file():
+    if not real.is_relative_to(repo_real):
         return None
+    if not real.is_file() and not real.is_dir():
+        return None
+    # `resolved` for a tracked symlink itself (`CLAUDE.md`), the real path
+    # for one reached through a tracked symlinked directory, which `git
+    # ls-files` lists as the symlink alone, never the paths beneath it.
+    reached = (resolved, real.relative_to(repo_real).as_posix())
+    if not any(path in tracked or path in tracked_dirs for path in reached) and not (
+        path_matches(resolved, known_untracked)
+    ):
+        return None
+    if not real.is_file() or not resolved.endswith(".md"):
+        return set()
     try:
         text = real.read_text(encoding="utf-8", errors="replace")
     except OSError:
         return None
     return _slugs_of(text)
+
+
+def _holds(slugs: set[str] | None, resolved: str, anchor: str) -> bool:
+    """Whether a link whose target yielded `slugs` resolves: the target
+    exists, and an anchor names one of its headings — asked only of a
+    `.md` target, since `foo.py#L10`'s anchor is a line, not a heading."""
+
+    if slugs is None:
+        return False
+    return not anchor or not resolved.endswith(".md") or anchor in slugs
 
 
 def _finding(rel: str, line_no: int, message: str) -> Finding:
@@ -170,6 +226,9 @@ def check(repo_root: Path, diff_range: str, config: Mapping[str, object]) -> lis
     slug_cache: dict[str, set[str] | None] = {}
     findings: list[Finding] = []
     exclude = exclude_patterns(config)
+    known_untracked = string_list_config(config, "known_untracked")
+    tracked = set(tracked_files(repo_root))
+    tracked_dirs = _tracked_dirs(tracked)
     historical = string_list_config(config, "historical")
     resolver = HistoricalResolver(repo_root) if historical else None
     # Per (commit, path): the same target at the same commit is read once,
@@ -179,10 +238,12 @@ def check(repo_root: Path, diff_range: str, config: Mapping[str, object]) -> lis
     def held_at(commit: str, resolved: str, anchor: str) -> bool:
         key = (commit, resolved)
         if key not in slugs_at:
-            text = blob_text(repo_root, commit, resolved)
-            slugs_at[key] = None if text is None else _slugs_of(text)
-        slugs = slugs_at[key]
-        return slugs is not None and (not anchor or anchor in slugs)
+            if resolved.endswith(".md"):
+                text = blob_text(repo_root, commit, resolved)
+                slugs_at[key] = None if text is None else _slugs_of(text)
+            else:
+                slugs_at[key] = set() if exists_at(repo_root, commit, resolved) else None
+        return _holds(slugs_at[key], resolved, anchor)
 
     for rel in sorted(tracked_files(repo_root, "*.md")):
         if path_matches(rel, exclude):
@@ -191,19 +252,25 @@ def check(repo_root: Path, diff_range: str, config: Mapping[str, object]) -> lis
         if text is None:
             continue
         file_resolver = resolver if path_matches(rel, historical) else None
-        for line_no, line in enumerate(text.splitlines(), 1):
-            for match in LINK_RE.finditer(line):
+        lines = text.splitlines()
+        in_fence = fence_state(lines)
+        for line_no, line in enumerate(lines, 1):
+            if in_fence[line_no - 1]:
+                continue
+            for match in LINK_RE.finditer(mask_code_spans(line)):
                 target = match.group(1).strip()
-                if SCHEME_RE.match(target) or not RELEVANT_RE.search(target):
+                if not target or SCHEME_RE.match(target):
                     continue
                 path, _, anchor = target.partition("#")
                 if path.startswith(("~", "/")):
                     continue
                 resolved = _resolve(rel, path)
                 if resolved not in slug_cache:
-                    slug_cache[resolved] = _target_slugs(repo_root, repo_real, resolved)
+                    slug_cache[resolved] = _target(
+                        repo_root, repo_real, resolved, tracked, tracked_dirs, known_untracked
+                    )
                 slugs = slug_cache[resolved]
-                if slugs is not None and (not anchor or anchor in slugs):
+                if _holds(slugs, resolved, anchor):
                     continue
                 where = ""
                 if file_resolver is not None:
