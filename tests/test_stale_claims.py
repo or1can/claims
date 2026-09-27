@@ -345,6 +345,68 @@ class StaleClaimsTests(RegistryClearingTestCase):
 
         self.assertEqual({f.citation for f in findings}, {"doc.md:1", "doc.md:4"})
 
+    def _findings_for_churned(
+        self, repo: Repo, subject: str, doc: str, citing: str = "guide.md"
+    ) -> list[Finding]:
+        repo.write(citing, doc)
+        repo.write(subject, "v0")
+        repo.commit(BASE)
+        repo.write(subject, "v1")
+        repo.commit(BASE + 100)
+        return self._findings(repo.root)
+
+    def test_a_dot_directory_path_is_a_subject(self) -> None:
+        with Repo() as repo:
+            findings = self._findings_for_churned(
+                repo,
+                ".github/workflows/ci.yml",
+                "## ci\nSee .github/workflows/ci.yml for details.\n",
+            )
+        self.assertEqual(len(findings), 1)
+        self.assertIn("ci.yml", findings[0].message)
+
+    def test_a_home_or_host_absolute_path_is_not_a_repo_subject(self) -> None:
+        for cited in ("~/foo/bar.py", "/usr/foo/bar.py", "/foo/bar.py"):
+            with self.subTest(cited=cited), Repo() as repo:
+                findings = self._findings_for_churned(
+                    repo, "foo/bar.py", f"## host\nSee {cited} for details.\n"
+                )
+                self.assertEqual(findings, [])
+
+    def test_a_dot_slash_path_names_its_repo_relative_subject(self) -> None:
+        with Repo() as repo:
+            findings = self._findings_for_churned(
+                repo, "foo/bar.py", "## here\nSee ./foo/bar.py for details.\n"
+            )
+        self.assertEqual(len(findings), 1)
+        self.assertIn("bar.py", findings[0].message)
+
+    def test_a_dot_dot_path_resolves_from_the_citing_file(self) -> None:
+        doc = "## up\nSee ../foo/bar.py for details.\n"
+        with Repo() as repo:
+            findings = self._findings_for_churned(
+                repo, "foo/bar.py", doc, citing="docs/guide.md"
+            )
+        self.assertEqual(len(findings), 1)
+        self.assertIn("bar.py", findings[0].message)
+
+        with Repo() as repo:
+            findings = self._findings_for_churned(
+                repo, "foo/bar.py", doc, citing="docs/sub/guide.md"
+            )
+        self.assertEqual(findings, [])
+
+    def test_a_path_missing_at_the_root_resolves_from_the_citing_file(self) -> None:
+        with Repo() as repo:
+            findings = self._findings_for_churned(
+                repo,
+                "docs/sub/bar.py",
+                "## beside\nSee sub/bar.py for details.\n",
+                citing="docs/guide.md",
+            )
+        self.assertEqual(len(findings), 1)
+        self.assertIn("bar.py", findings[0].message)
+
 
 class StaleClaimsCliTests(RegistryClearingTestCase):
     def setUp(self) -> None:
