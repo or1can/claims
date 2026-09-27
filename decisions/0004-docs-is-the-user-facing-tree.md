@@ -2,7 +2,8 @@
 
 ## Status
 
-Accepted. Spec #56, implemented by ticket #58.
+Accepted. Spec #56, implemented by ticket #58. See also #57, which later
+gave `check-file-refs` a `historical` key.
 
 ## Context
 
