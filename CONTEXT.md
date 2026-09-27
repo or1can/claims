@@ -2,8 +2,9 @@
 
 Checks whether what a repository's prose says about its code is true, by
 executing against the thing the prose describes. This glossary is the
-vocabulary shared across checks; the behavioural account of each term is
-`docs/concepts.md`.
+vocabulary shared across checks; `docs/concepts.md` gives the behavioural
+account of most terms, and the check pages and `docs/configuring.md` give
+the rest.
 
 ## Language
 

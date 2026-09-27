@@ -221,8 +221,8 @@ Five canonical roles, label string equal to name (`needs-triage`, `needs-info`, 
 ### Domain docs
 
 Single-context layout — ADRs in `decisions/` at the repo root, plus a
-root `CONTEXT.md` added lazily if and when a cross-cutting term needs
-one. See `agents/domain.md`, which says to proceed silently when either
+root `CONTEXT.md` glossary of the terms shared across checks. See
+`agents/domain.md`, which says to proceed silently when either
 is absent rather than create it upfront. `decisions/`, not the
 `domain-modeling` skill's own `docs/adr/` default: `docs/` here holds
 user-facing pages only, per `decisions/0004-docs-is-the-user-facing-tree.md`,
