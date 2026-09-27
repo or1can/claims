@@ -11,6 +11,19 @@ reached you, not just that one was pushed upstream.
 
 ## [Unreleased]
 
+## [0.13.0] - 2026-09-26
+
+- Changed: `check-links` now checks every relative link, not only links
+  to `.md` pages. A broken link to a source file, an image or a directory
+  is a gate finding. An anchor on a non-Markdown target (`app.py#L10`) is
+  ignored, and a directory passes when git tracks a file under it.
+- Changed: a link target must now be tracked by git, including a `.md`
+  page, so a link to an untracked or git-ignored file now gates. If you
+  link to a file you keep out of git on purpose, list it under the new
+  `[check-links] known_untracked` key.
+- Changed: `check-links` no longer reads links inside fenced code blocks
+  or inline code spans.
+
 ## [0.12.9] - 2026-09-26
 
 - Fixed: `check-file-refs`' `known_untracked` now also exempts an

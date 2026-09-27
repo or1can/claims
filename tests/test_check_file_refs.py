@@ -312,7 +312,7 @@ class CheckFileRefsTests(RegistryClearingTestCase):
         # Not `../`-prefixed itself (`_repo_relative` already filters
         # that), but its own embedded `..` walks the resolved path outside
         # the repo once joined against `repo_root` directly — confined via
-        # `is_relative_to`, the same guard `check_links._target_slugs`
+        # `is_relative_to`, the same guard `check_links._target`
         # uses, not just a lexical `..` check.
         with Repo() as repo:
             outside = repo.root.parent / "claims-test-outside-secret.json"

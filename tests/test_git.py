@@ -23,6 +23,7 @@ from claims.git import (
     DiffHunkStart,
     DiffLine,
     added_lines_by_file,
+    exists_at,
     is_file_at,
     iter_diff,
     tracked_files,
@@ -313,6 +314,33 @@ class IsFileAtTests(unittest.TestCase):
             repo.commit()
 
             self.assertFalse(is_file_at(repo.root, self._head(repo), "docs"))
+
+
+class ExistsAtTests(unittest.TestCase):
+    """`exists_at`: a file *or* a directory in the commit's tree (#91)."""
+
+    _head = IsFileAtTests._head
+
+    def test_a_file_exists(self) -> None:
+        with Repo() as repo:
+            repo.write("docs/page.md", "text\n")
+            repo.commit()
+
+            self.assertTrue(exists_at(repo.root, self._head(repo), "docs/page.md"))
+
+    def test_a_directory_exists(self) -> None:
+        with Repo() as repo:
+            repo.write("docs/page.md", "text\n")
+            repo.commit()
+
+            self.assertTrue(exists_at(repo.root, self._head(repo), "docs"))
+
+    def test_an_absent_path_does_not_exist(self) -> None:
+        with Repo() as repo:
+            repo.write("docs/page.md", "text\n")
+            repo.commit()
+
+            self.assertFalse(exists_at(repo.root, self._head(repo), "scripts"))
 
 
 if __name__ == "__main__":
