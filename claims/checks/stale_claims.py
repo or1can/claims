@@ -40,7 +40,14 @@ behaviour worth keeping exactly — an optional trailing extension is stripped
 before the stem lookup, so `` `docker.rs` `` and `` `docker` `` name the same
 subject — generalised past `.rs` to any extension, so this stays useful
 outside a Rust-only repo. A stem shared by more than one file names no
-single subject and is dropped rather than guessed at.
+single subject and is dropped rather than guessed at. A written extension
+must then equal the indexed file's own suffix (#102): the original only ever
+saw `.rs`, but here `` `hook.json` `` with only `hook.py` tracked used to
+resolve to that file, the extension serving as nothing more than the flag
+that lets a qualified name bypass `module_reference_scope`. A name with the
+wrong extension now names nothing, since the author meant a file of another
+type, and a bare name still resolves by stem alone. The comparison is
+case-sensitive, as `path_matches` is, because tracked paths are.
 
 `PATH_RE` and its helpers come from `check_file_refs` (#87) so that both
 checks agree on which prose paths are repo-relative. This check had its
@@ -191,7 +198,8 @@ def check(
             subjects |= {
                 modules[name]
                 for name, ext in MODULE_RE.findall(body)
-                if name in modules and (ext or bare_in_scope)
+                if name in modules
+                and (Path(modules[name]).suffix == ext if ext else bare_in_scope)
             }
             if not subjects:
                 continue

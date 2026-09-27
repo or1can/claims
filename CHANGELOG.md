@@ -11,6 +11,15 @@ reached you, not just that one was pushed upstream.
 
 ## [Unreleased]
 
+## [0.13.2] - 2026-09-27
+
+- Fixed: in `stale-claims`, a backticked name with an extension now names
+  a file only when the extension matches that file's own, letter case
+  included. Before, `` `hook.json` `` resolved to `hook.py` whenever that
+  was the only file with the stem `hook`, and did so even in a file
+  outside `module_reference_scope`. Expect fewer sections ranked where
+  prose cites a config or data file whose stem a source file shares.
+
 ## [0.13.1] - 2026-09-27
 
 - Fixed: `stale-claims` now counts a path starting with `.`, such as

@@ -294,6 +294,40 @@ class StaleClaimsTests(RegistryClearingTestCase):
         self.assertEqual(findings[0].citation, "doc.md:1")
         self.assertIn("subject.py", findings[0].message)
 
+    def test_a_backticked_name_with_a_different_extension_names_no_subject(self) -> None:
+        # `` `hook.json` `` with only `hook.py` tracked: the stem matches but
+        # the extension does not, so the mention names nothing rather than
+        # guessing at a file of another type (#102).
+        with Repo() as repo:
+            findings = self._findings_for_churned(
+                repo, "src/hook.py", "## hook\nSee `hook.json` for details.\n"
+            )
+        self.assertEqual(findings, [])
+
+    def test_a_backticked_extension_match_is_case_sensitive(self) -> None:
+        # Tracked paths are case-sensitive (`path_matches` uses
+        # `fnmatchcase`), so the extension comparison is too.
+        with Repo() as repo:
+            findings = self._findings_for_churned(
+                repo, "src/hook.py", "## hook\nSee `hook.PY` for details.\n"
+            )
+        self.assertEqual(findings, [])
+
+    def test_a_mismatched_extension_does_not_bypass_module_reference_scope(
+        self,
+    ) -> None:
+        with Repo() as repo:
+            repo.write("src/hook.py", "v0")
+            repo.write("docs/other.md", "## out-of-scope\nSee `hook.json` for details.\n")
+            repo.commit(BASE)
+            repo.write("src/hook.py", "v1")
+            repo.commit(BASE + 100)
+            findings = self._findings_with_toml(
+                repo.root,
+                '[stale-claims]\nmodule_reference_scope = ["decisions/*.md"]\n',
+            )
+        self.assertEqual(findings, [])
+
     def test_a_bare_backtick_name_names_its_subject_anywhere_by_default(self) -> None:
         with Repo() as repo:
             repo.write("doc.md", "## stale\nSee `subject` for details.\n")
