@@ -22,7 +22,12 @@ one sentence, and the heading is what the finding names.
 
 A **subject** is a tracked file the section names, in one of two shapes.
 An explicit relative path, a directory and a file name with an
-extension, counts when a tracked file has exactly that path. A
+extension, counts when a tracked file has exactly that path, read from
+the repository root or, failing that, from the directory of the file
+that cites it: `.github/workflows/ci.yml` names that file, and so does
+`./.github/workflows/ci.yml`. A path starting with `../` is read from
+the citing file's directory only. A path starting with `/` or `~/` names
+no subject, because it points outside the repository. A
 backticked bare name, with or without an extension, counts when exactly
 one tracked file outside `exclude` has that stem: `cache.py` and `cache`
 both name the one file whose name without its extension is `cache`. A

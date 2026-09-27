@@ -19,7 +19,7 @@ takes and what it misses; this docstring is why the code is shaped the
 way it is.
 
 Its own check because `stale-claims` already scans prose for path-shaped
-text (its own `PATH_RE`) but only *keeps* a match that resolves to a
+text (this module's `PATH_RE`) but only *keeps* a match that resolves to a
 tracked file — a match that doesn't resolve is silently dropped, never
 reported anywhere — and `check-links` only validates real Markdown link
 syntax (`[text](path)`); a bare, unmarked prose mention of a path is
@@ -27,11 +27,11 @@ outside its regex entirely. Nothing else reports "this prose names a file
 that isn't there" for that bare case.
 
 Gate, matching `check-links`' own "does this reference resolve" precedent
-— safe here specifically because the extension check is tightened, unlike
-`stale-claims`' own untightened pattern. `stale_claims.PATH_RE` accepts
-any alphanumeric run as an "extension" (`\\.[A-Za-z0-9]+`), which is
-harmless for `stale-claims` (a false match just fails to resolve and
-silently drops out of its ranking) but would not be harmless for a check
+— safe here specifically because the extension check is tightened, which
+`stale-claims` does not do. `PATH_RE` alone accepts any alphanumeric run
+as an "extension" (`\\.[A-Za-z0-9]+`), which is harmless for
+`stale-claims` (a false match just fails to resolve and silently drops
+out of its ranking) but would not be harmless for a check
 whose entire job is "reports when a match doesn't resolve": confirmed
 empirically that `api/v2.0` and `getting-started/v1.2` both match that
 pattern, a trailing `.0`/`.2` satisfying it same as a real extension
@@ -137,8 +137,8 @@ means host-absolute" from "this leading `/` means repo-root," and #38's
 own motivating reports were all the host-absolute shape, so that's the
 interpretation this check makes; `check-links` makes the same one for
 real link syntax (#88).
-`stale_claims.PATH_RE` shares the same underlying blind spot in its own
-copy — tracked as #87, not fixed here.
+`stale-claims` imports `PATH_RE`, `_host_relative`, `_repo_relative` and
+`_citing_relative` from here (#87), so it shares that same blind spot.
 
 The `<!-- example -->` marker (ticket #39) is matched case-insensitively
 and across a run of closing backticks between mention and marker (covers
@@ -200,18 +200,16 @@ from ..runner import Finding, register_check
 
 NAME = "check-file-refs"
 
-# Same shape as `stale_claims.PATH_RE`, with one fix: a leading `\b` word
+# Shared with `stale-claims`, which imports it (#87). A leading `\b` word
 # boundary never matches between two non-word characters, so it silently
 # drops the leading dot of a real hidden-directory path (a space then
 # `.claude-plugin/plugin.json` — `\b` can't fire before the `.`, only
 # before the `c` after it — reporting `claude-plugin/plugin.json` instead
-# of the real path, which then never resolves). `stale-claims`' own copy
-# has the same defect (noted in `TODO.md`) but it's harmless there — a
-# wrong match just fails to resolve and drops out of its ranking, not true
-# here. Replacing the leading `\b` with a negative lookbehind for "already
-# inside a longer run of path-shaped characters" fixes it: it matches
-# equally well before a word character or a literal leading dot, as long
-# as neither is itself preceded by another path character.
+# of the real path, which then never resolves). Replacing the leading
+# `\b` with a negative lookbehind for "already inside a longer run of
+# path-shaped characters" fixes it: it matches equally well before a word
+# character or a literal leading dot, as long as neither is itself
+# preceded by another path character.
 #
 # That same lookbehind also now captures a leading `./`/`../` whole
 # (rather than `\b` incidentally skipping past it to start the match at

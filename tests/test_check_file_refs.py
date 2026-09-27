@@ -129,7 +129,7 @@ class CheckFileRefsTests(RegistryClearingTestCase):
         self.assertIn("sub/../../../../../etc/hosts.txt", findings[0].message)
 
     def test_a_version_number_lookalike_is_not_a_candidate(self) -> None:
-        # `api/v2.0` matches stale-claims' own untightened PATH_RE (any
+        # `api/v2.0` matches the untightened PATH_RE on its own (any
         # alphanumeric run counts as an "extension" there) — the whole
         # point of this check's own recognized-extension set is that
         # `.0` isn't one, so this is never even a candidate.

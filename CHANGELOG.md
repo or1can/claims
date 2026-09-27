@@ -11,6 +11,16 @@ reached you, not just that one was pushed upstream.
 
 ## [Unreleased]
 
+## [0.13.1] - 2026-09-27
+
+- Fixed: `stale-claims` now counts a path starting with `.`, such as
+  `.github/workflows/ci.yml`, as a subject. Before, it never matched.
+- Fixed: `stale-claims` no longer matches a path starting with `~/` or
+  `/` to a file in the repository. A path that does not resolve from the
+  repository root is now tried from the citing file's directory, and a
+  path starting with `../` is read from there only. Expect more sections
+  ranked, from relative links between pages.
+
 ## [0.13.0] - 2026-09-26
 
 - Changed: `check-links` now checks every relative link, not only links
