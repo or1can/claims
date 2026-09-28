@@ -27,6 +27,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
+from claims.checks import check_file_refs, check_links
 from claims.hook import main
 from claims.runner import Finding, clear_registry, register_check
 
@@ -432,6 +433,40 @@ class HookTests(RegistryClearingTestCase):
                 self.assertEqual(
                     output["hookSpecificOutput"]["permissionDecision"], "deny"
                 )
+
+    def _decide_on_removal(self, line: str) -> dict:
+        # #116, end to end: the commit recording a removal in a `historical`
+        # file is the one making it, so the line is uncommitted when the
+        # hook runs and has to be admitted on `HEAD`'s tree.
+        clear_registry()
+        register_check(check_file_refs.NAME, check_file_refs.check)
+        register_check(check_links.NAME, check_links.check)
+        with Repo() as repo:
+            repo.write("tools/a.py", "x = 1\n")
+            repo.write("CHANGELOG.md", "# Changelog\n")
+            repo.write(
+                "claims.toml",
+                '[check-file-refs]\nhistorical = ["CHANGELOG.md"]\n'
+                '[check-links]\nhistorical = ["CHANGELOG.md"]\n',
+            )
+            repo.commit()
+            repo.rm("tools/a.py")
+            repo.write("CHANGELOG.md", f"# Changelog\n{line}\n")
+            return self._run_main(str(repo.root))
+
+    def test_recording_a_removal_in_the_commit_that_makes_it_is_allowed(self) -> None:
+        for line in ("- Delete `tools/a.py`.", "- Delete [a](tools/a.py)."):
+            with self.subTest(line=line):
+                self.assertEqual(self._decide_on_removal(line), {})
+
+    def test_a_misspelled_removal_is_still_denied(self) -> None:
+        for line in ("- Delete `tools/b.py`.", "- Delete [a](tools/b.py)."):
+            with self.subTest(line=line):
+                output = self._decide_on_removal(line)
+
+                hook_output = output["hookSpecificOutput"]
+                self.assertEqual(hook_output["permissionDecision"], "deny")
+                self.assertIn("nor at HEAD", hook_output["permissionDecisionReason"])
 
 
 if __name__ == "__main__":

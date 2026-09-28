@@ -926,6 +926,7 @@ class HistoricalFileTests(RegistryClearingTestCase):
             repo.write("CHANGELOG.md", "- See `docs/old.md`.\n")
             repo.commit()
             (repo.root / "docs" / "old.md").unlink()
+            repo.commit()
             repo.write("CHANGELOG.md", "- See `docs/old.md` for details.\n")
             repo.commit()
             self._write_untracked_config(repo)
@@ -953,6 +954,98 @@ class HistoricalFileTests(RegistryClearingTestCase):
             findings = self._findings(repo.root)
 
         self.assertEqual(findings, [])
+
+    def test_a_line_recording_a_removal_in_the_removing_commit_passes(self) -> None:
+        # #116: the line is written in the commit that deletes the file, so
+        # the path is gone there too; it held in the tree just before.
+        with Repo() as repo:
+            repo.write("tools/a.py", "x = 1\n")
+            repo.write("CHANGELOG.md", "# Changelog\n")
+            repo.commit()
+            (repo.root / "tools" / "a.py").unlink()
+            repo.write("CHANGELOG.md", "# Changelog\n- Delete `tools/a.py`.\n")
+            repo.commit()
+            self._write_untracked_config(repo)
+
+            findings = self._findings(repo.root)
+
+        self.assertEqual(findings, [])
+
+    def test_a_misspelled_removal_in_the_removing_commit_still_gates(self) -> None:
+        with Repo() as repo:
+            repo.write("tools/a.py", "x = 1\n")
+            repo.write("CHANGELOG.md", "# Changelog\n")
+            repo.commit()
+            (repo.root / "tools" / "a.py").unlink()
+            repo.write("CHANGELOG.md", "# Changelog\n- Delete `tools/b.py`.\n")
+            repo.commit()
+            commit = repo.short_head()
+            self._write_untracked_config(repo)
+
+            findings = self._findings(repo.root)
+
+        self.assertEqual(len(findings), 1)
+        self.assertEqual(findings[0].citation, "CHANGELOG.md:2")
+        self.assertTrue(findings[0].gate)
+        self.assertIn(
+            f"(not in the working tree, nor at {commit} where this line was "
+            "written or just before it)",
+            findings[0].message,
+        )
+
+    def test_an_uncommitted_line_recording_a_removal_passes_at_head(self) -> None:
+        with Repo() as repo:
+            repo.write("tools/a.py", "x = 1\n")
+            repo.write("CHANGELOG.md", "# Changelog\n")
+            repo.commit()
+            repo.rm("tools/a.py")
+            repo.write("CHANGELOG.md", "# Changelog\n- Delete `tools/a.py`.\n")
+            self._write_untracked_config(repo)
+
+            findings = self._findings(repo.root)
+
+        self.assertEqual(findings, [])
+
+    def test_a_misspelled_uncommitted_removal_still_gates_naming_head(self) -> None:
+        with Repo() as repo:
+            repo.write("tools/a.py", "x = 1\n")
+            repo.write("CHANGELOG.md", "# Changelog\n")
+            repo.commit()
+            repo.rm("tools/a.py")
+            repo.write("CHANGELOG.md", "# Changelog\n- Delete `tools/b.py`.\n")
+            self._write_untracked_config(repo)
+
+            findings = self._findings(repo.root)
+
+        self.assertEqual(len(findings), 1)
+        self.assertEqual(findings[0].citation, "CHANGELOG.md:2")
+        self.assertIn("(not in the working tree, nor at HEAD)", findings[0].message)
+
+    def test_an_uncommitted_line_with_no_head_yet_still_gates(self) -> None:
+        with Repo() as repo:
+            repo.write("CHANGELOG.md", "- See `docs/nope.md`.\n")
+            self._write_untracked_config(repo)
+
+            findings = self._findings(repo.root)
+
+        self.assertEqual(len(findings), 1)
+        self.assertEqual(findings[0].citation, "CHANGELOG.md:1")
+        self.assertNotIn("nor at", findings[0].message)
+
+    def test_a_failing_line_in_a_root_commit_names_only_that_commit(self) -> None:
+        with Repo() as repo:
+            repo.write("CHANGELOG.md", "- See `docs/nope.md`.\n")
+            repo.commit()
+            commit = repo.short_head()
+            self._write_untracked_config(repo)
+
+            findings = self._findings(repo.root)
+
+        self.assertEqual(len(findings), 1)
+        self.assertIn(
+            f"(not in the working tree, nor at {commit} where this line was written)",
+            findings[0].message,
+        )
 
     def test_a_line_older_than_the_commit_adopting_the_plugin_is_skipped(self) -> None:
         with Repo() as repo:

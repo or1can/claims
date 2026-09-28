@@ -176,8 +176,9 @@ produces no finding of either kind — not dangling, just never looked at.
 `historical` (#57) is `check-links`' own key on ADR 0002's own reasoning:
 a bare path in an append-only record is a claim about the tree as it was
 when its line was written, so a candidate that fails against the working
-tree is re-tested at the commit `git blame` attributes the line to, via
-the same `claims.historical.HistoricalResolver`. Only the at-commit test
+tree is re-tested at the commit `git blame` attributes the line to, and
+the tree just before it (#116), via the same
+`claims.historical.HistoricalResolver`. Only the at-commit test
 differs — whether the path was a file in that commit's tree
 (`git.is_file_at`), not whether a heading slug was in its blob — and it
 tries both resolution bases the working tree does, so a citing-relative
@@ -401,7 +402,7 @@ def check(repo_root: Path, diff_range: str, config: Mapping[str, object]) -> lis
                     if verdict is True:
                         continue
                     if isinstance(verdict, str):
-                        where = f", nor at {verdict[:7]} where this line was written"
+                        where = f", nor at {verdict}"
                 findings.append(_finding(rel, line_no, raw, where))
             for marker in EXAMPLE_MARKER_RE.finditer(line):
                 if marker.start() not in consumed_marker_starts:

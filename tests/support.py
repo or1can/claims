@@ -104,6 +104,21 @@ class Repo:
         path.write_text(text, encoding="utf-8")
         subprocess.run(["git", "-C", str(self.root), "add", name], check=True)
 
+    def rm(self, name: str) -> None:
+        """Deletes a tracked file and stages the deletion, uncommitted."""
+
+        subprocess.run(["git", "-C", str(self.root), "rm", "-q", name], check=True)
+
+    def short_head(self) -> str:
+        """`HEAD`'s seven-character abbreviation, as findings print it."""
+
+        return subprocess.run(
+            ["git", "-C", str(self.root), "rev-parse", "--short=7", "HEAD"],
+            capture_output=True,
+            text=True,
+            check=True,
+        ).stdout.strip()
+
     def commit(self, when: int | None = None) -> None:
         subprocess.run(["git", "-C", str(self.root), "add", "-A"], check=True)
         env = None

@@ -144,21 +144,25 @@ historical = ["CHANGELOG.md", "decisions/*.md"]
 
 A `historical` file's mentions get one more chance. A mention that fails
 against the working tree is looked up again in the tree at the commit
-that wrote its line, as `git blame` attributes it, and passes if a file
-was there, taken from either the repository root or the citing file's
-directory, as in the working tree. A shipped entry that named a file
-before it moved stays as written, and the move does not have to leave
-the old path behind. A mention found in neither place is still a
-finding, and its message names both: not in the working tree, nor at
-the commit where the line was written, given by its short hash.
+that wrote its line, as `git blame` attributes it, and in the tree just
+before that commit, and passes if a file was in either, taken from
+either the repository root or the citing file's directory, as in the
+working tree. A shipped entry that named a file before it moved stays
+as written, and the move does not have to leave the old path behind. A
+line recording a removal can land in the same commit as the removal,
+since the file was there just before it. A mention found nowhere is
+still a finding, and its message names where it looked: not in the
+working tree, nor at the commit where the line was written or just
+before it, given by its short hash.
 `known_untracked` plays no part in that second lookup, since a file never
 added to git is in no commit's tree.
 
 The same rule, read consistently, settles three edge cases:
 
-- An uncommitted line is checked against the working tree only. A
-  changelog's unreleased section is being written now, and is gated like
-  any other file.
+- An uncommitted line is checked against the working tree, and failing
+  that against `HEAD`, the tree just before it. A changelog's unreleased
+  section is being written now, and is gated on every mention found in
+  neither; a finding there names `HEAD`.
 - A line a later commit touched belongs to that commit, and the mention
   has to have resolved there. Retargeting an old path, if your rules
   allow it, is checked against the tree it was retargeted in.

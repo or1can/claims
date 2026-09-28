@@ -10,6 +10,14 @@ below was always about a reference, not a link; it read as
 scope when it was written. The amendment restates it that way, and adds
 the section on which checks it reaches.
 
+Amended by #116, which refines what "the tree as it was when the line was
+written" covers: the tree just before that commit as well as the tree at
+it. A line recording a removal is written in the commit that makes the
+removal, so the path it names is already gone at that commit, and
+testing only there gated it forever — including, through the uncommitted
+case, in the very commit recording it. The Decision, the uncommitted-line
+detail and the example messages are revised to match.
+
 ## Context
 
 `check-links` is a gate: a commit is refused while any internal Markdown
@@ -41,30 +49,38 @@ gate finding had they not been retargeted.
 ## Decision
 
 A project may list its append-only records under a check's `historical`
-key — `[check-links] historical` for links, `[check-file-refs]
-historical` for bare path mentions. For a reference in a matching file
-that fails against the working tree, the check re-resolves it against
-the tree at the commit `git blame` attributes the line to, and passes it
-if it held there. What "held" means is the check's own: for a link, the
-target file existed with the anchored heading, if any; for a bare path,
-a file existed at that path, taken either from the repository root or
-from the citing file's directory, the same two bases the working-tree
-test accepts.
+key — `[check-links] historical` for links, `[check-file-refs] historical`
+for bare path mentions. For a reference in a matching file that fails
+against the working tree, the check re-resolves it against the tree at the
+commit `git blame` attributes the line to, and against the tree just
+before that commit — each of its parents — and passes it if it held at any
+of them. What "held" means is the check's own: for a link, the target file
+existed with the anchored heading, if any; for a bare path, a file existed
+at that path, taken either from the repository root or from the citing
+file's directory, the same two bases the working-tree test accepts.
 
 The reasoning: a reference in a record is a claim about the tree *as it
 was when the line was written*, and a gate's job is to admit the commit
 being made now. Holding a five-release-old entry to today's tree tests a
 claim nobody is making. Holding it to its own commit tests the claim its
-author made.
+author made. "When the line was written" spans both sides of that commit:
+a line recording a removal ("Delete `tools/x.py`<!-- example -->") is
+naturally written in the commit that makes it, where the path is already
+gone, and its author was describing the tree they were changing. A root
+commit has no tree before it, so only its own is tested.
 
 Three details follow from the same reasoning rather than being separate
 choices:
 
-- **An uncommitted line resolves against the working tree.** `git blame`
-  reports it with the all-zero SHA (or refuses to blame a file not yet in
-  `HEAD`); it is being written now, so it is gated exactly as any other
-  file. This is what keeps a changelog's Unreleased section fully checked
-  while its shipped sections are not re-litigated.
+- **An uncommitted line resolves against the working tree, or failing
+  that against `HEAD`.** `git blame` reports it with the all-zero SHA (or
+  refuses to blame a file not yet in `HEAD`); it is being written now, so
+  the commit it will land in is the working tree and the tree just before
+  that is `HEAD`. A repository with no `HEAD` yet has nothing before it,
+  and the line is gated exactly as any other file. This is what keeps a
+  changelog's Unreleased section checked — a reference holding in
+  neither tree, a typo, still gates — while the commit recording a
+  removal is admitted and its shipped sections are not re-litigated.
 - **A line a later commit touched must hold as of that commit.** Blame
   re-attributes it, so the gate re-tests it — which makes a deliberate,
   pointer-only retarget of a historical line (should a project ever decide
@@ -160,19 +176,25 @@ own page and code:
 - A finding on a historical line now says where it was tested:
 
   ```
-  broken link: docs/x.md (not in the working tree, nor at abc1234 where this line was written)
+  broken link: docs/x.md (not in the working tree, nor at abc1234 where this line was written or just before it)
   ```
 
   and `check-file-refs` the same way after its own message:
 
   ```
-  `docs/x.md` does not resolve to a tracked file (not in the working tree, nor at abc1234 where this line was written)
+  `docs/x.md` does not resolve to a tracked file (not in the working tree, nor at abc1234 where this line was written or just before it)
   ```
+
+  A root commit drops "or just before it", having no tree before it to
+  test; an uncommitted line names the one tree it was tested at, `(not
+  in the working tree, nor at HEAD)`.
 - A check with the key shells out to `git blame`, `git cat-file`, `git
-  log` and `git merge-base` — only for a `historical` file with a failing
-  reference, and cached per file, per commit, and per (commit, path)
-  within one run. `check-file-refs` asks `git cat-file` for the object's
-  type rather than its content, since existence is all it needs.
+  log`, `git merge-base` and `git rev-parse` — only for a `historical`
+  file with a failing reference, and cached per file, per commit, and per
+  (commit, path) within one run. A commit's parents are looked up only
+  when the reference failed at the commit itself. `check-file-refs` asks
+  `git cat-file` for the object's type rather than its content, since
+  existence is all it needs.
 - `check-file-refs`' `known_untracked` is not consulted at a commit: a
   deliberately untracked file was never in any commit's tree, so the key
   has no commit-time meaning.

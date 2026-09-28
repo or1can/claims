@@ -657,6 +657,7 @@ class HistoricalFileTests(RegistryClearingTestCase):
             repo.write("CHANGELOG.md", "- See [old](docs/OLD.md).\n")
             repo.commit()
             (repo.root / "docs" / "OLD.md").unlink()
+            repo.commit()
             repo.write("CHANGELOG.md", "- See [old page](docs/OLD.md).\n")
             repo.commit()
             self._write_untracked_config(repo)
@@ -665,6 +666,102 @@ class HistoricalFileTests(RegistryClearingTestCase):
 
         self.assertEqual(len(findings), 1)
         self.assertEqual(findings[0].citation, "CHANGELOG.md:1")
+
+    def test_a_line_recording_a_removal_in_the_removing_commit_passes(self) -> None:
+        # #116: the line is written in the commit that deletes the page, so
+        # the link is broken there too; it held in the tree just before.
+        with Repo() as repo:
+            repo.write("docs/OLD.md", "# Old Page\n")
+            repo.write("CHANGELOG.md", "# Changelog\n")
+            repo.commit()
+            (repo.root / "docs" / "OLD.md").unlink()
+            repo.write(
+                "CHANGELOG.md", "# Changelog\n- Delete [old](docs/OLD.md#old-page).\n"
+            )
+            repo.commit()
+            self._write_untracked_config(repo)
+
+            findings = self._findings(repo.root)
+
+        self.assertEqual(findings, [])
+
+    def test_a_misspelled_removal_in_the_removing_commit_still_gates(self) -> None:
+        with Repo() as repo:
+            repo.write("docs/OLD.md", "# Old Page\n")
+            repo.write("CHANGELOG.md", "# Changelog\n")
+            repo.commit()
+            (repo.root / "docs" / "OLD.md").unlink()
+            repo.write("CHANGELOG.md", "# Changelog\n- Delete [old](docs/OLDE.md).\n")
+            repo.commit()
+            commit = repo.short_head()
+            self._write_untracked_config(repo)
+
+            findings = self._findings(repo.root)
+
+        self.assertEqual(len(findings), 1)
+        self.assertEqual(findings[0].citation, "CHANGELOG.md:2")
+        self.assertTrue(findings[0].gate)
+        self.assertIn(
+            f"(not in the working tree, nor at {commit} where this line was "
+            "written or just before it)",
+            findings[0].message,
+        )
+
+    def test_an_uncommitted_line_recording_a_removal_passes_at_head(self) -> None:
+        with Repo() as repo:
+            repo.write("docs/OLD.md", "# Old Page\n")
+            repo.write("CHANGELOG.md", "# Changelog\n")
+            repo.commit()
+            repo.rm("docs/OLD.md")
+            repo.write(
+                "CHANGELOG.md", "# Changelog\n- Delete [old](docs/OLD.md#old-page).\n"
+            )
+            self._write_untracked_config(repo)
+
+            findings = self._findings(repo.root)
+
+        self.assertEqual(findings, [])
+
+    def test_a_misspelled_uncommitted_removal_still_gates_naming_head(self) -> None:
+        with Repo() as repo:
+            repo.write("docs/OLD.md", "# Old Page\n")
+            repo.write("CHANGELOG.md", "# Changelog\n")
+            repo.commit()
+            repo.rm("docs/OLD.md")
+            repo.write("CHANGELOG.md", "# Changelog\n- Delete [old](docs/OLDE.md).\n")
+            self._write_untracked_config(repo)
+
+            findings = self._findings(repo.root)
+
+        self.assertEqual(len(findings), 1)
+        self.assertEqual(findings[0].citation, "CHANGELOG.md:2")
+        self.assertIn("(not in the working tree, nor at HEAD)", findings[0].message)
+
+    def test_an_uncommitted_line_with_no_head_yet_still_gates(self) -> None:
+        with Repo() as repo:
+            repo.write("CHANGELOG.md", "- See [gone](docs/NOPE.md).\n")
+            self._write_untracked_config(repo)
+
+            findings = self._findings(repo.root)
+
+        self.assertEqual(len(findings), 1)
+        self.assertEqual(findings[0].citation, "CHANGELOG.md:1")
+        self.assertNotIn("nor at", findings[0].message)
+
+    def test_a_failing_line_in_a_root_commit_names_only_that_commit(self) -> None:
+        with Repo() as repo:
+            repo.write("CHANGELOG.md", "- See [gone](docs/NOPE.md).\n")
+            repo.commit()
+            commit = repo.short_head()
+            self._write_untracked_config(repo)
+
+            findings = self._findings(repo.root)
+
+        self.assertEqual(len(findings), 1)
+        self.assertIn(
+            f"(not in the working tree, nor at {commit} where this line was written)",
+            findings[0].message,
+        )
 
     def test_a_line_older_than_the_commit_adopting_the_plugin_is_skipped(self) -> None:
         # Never gated when written, so it may have been broken then and can't

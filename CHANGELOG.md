@@ -11,6 +11,16 @@ reached you, not just that one was pushed upstream.
 
 ## [Unreleased]
 
+## [0.13.5] - 2026-09-28
+
+- Fixed: in a `historical` file, a line recording a removal no longer
+  gates in the commit that makes the removal. `check-links` and
+  `check-file-refs` now also accept a reference that held in the tree
+  just before the line was written — the blamed commit's parent, or
+  `HEAD` for a line not yet committed — and a finding says so: `(not in
+  the working tree, nor at abc1234 where this line was written or just
+  before it)`, or `(... nor at HEAD)`.
+
 ## [0.13.4] - 2026-09-28
 
 - Changed: `stale-claims` scores a link to a heading, `page.md#anchor`

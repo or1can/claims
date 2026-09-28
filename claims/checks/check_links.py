@@ -71,17 +71,17 @@ link was a true claim when written, and the record's job is to stay what
 it was — so a page rename elsewhere in the tree shouldn't turn every old
 entry naming it into a gate finding nothing is allowed to fix. Hence a
 link that fails against the working tree is re-resolved against the tree
-at the commit `git blame` attributes its line to, by the
-`claims.historical` resolver `check-file-refs` shares (#57). A `.md`
-target is read from that commit's blob for its headings; any other held
-if that commit's tree had a file or directory at the path (#91).
-`known_untracked` isn't consulted there, since no commit's tree ever
-held a deliberately untracked file. See ADR 0002 for the reasoning and
-the alternatives considered. The cutoff at the commit that
-first added `claims.toml` is deliberate: a line older than that was
-written before this plugin gated anything, may have been broken when
-written, and can't be fixed under the same rule now; no tracked
-`claims.toml` means no cutoff, and every line is checked.
+at the commit `git blame` attributes its line to, and the tree just before
+it (#116), by the `claims.historical` resolver `check-file-refs` shares
+(#57). A `.md` target is read from that commit's blob for its headings;
+any other held if that commit's tree had a file or directory at the path
+(#91). `known_untracked` isn't consulted there, since no commit's tree
+ever held a deliberately untracked file. See ADR 0002 for the reasoning
+and the alternatives considered. The cutoff at the commit that first added
+`claims.toml` is deliberate: a line older than that was written before
+this plugin gated anything, may have been broken when written, and can't
+be fixed under the same rule now; no tracked `claims.toml` means no
+cutoff, and every line is checked.
 """
 
 from __future__ import annotations
@@ -270,7 +270,7 @@ def check(repo_root: Path, diff_range: str, config: Mapping[str, object]) -> lis
                     if verdict is True:
                         continue
                     if isinstance(verdict, str):
-                        where = f", nor at {verdict[:7]} where this line was written"
+                        where = f", nor at {verdict}"
                 if slugs is None:
                     message = f"broken link: {target}"
                     if where:
