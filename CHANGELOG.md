@@ -11,6 +11,12 @@ reached you, not just that one was pushed upstream.
 
 ## [Unreleased]
 
+## [0.13.3] - 2026-09-28
+
+- Changed: internal only — `check-file-refs` and `stale-claims` now share
+  their path parsing through a public module instead of one check
+  importing the other's private helpers. No finding changes.
+
 ## [0.13.2] - 2026-09-27
 
 - Fixed: in `stale-claims`, a backticked name with an extension now names

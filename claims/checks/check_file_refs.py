@@ -19,7 +19,7 @@ takes and what it misses; this docstring is why the code is shaped the
 way it is.
 
 Its own check because `stale-claims` already scans prose for path-shaped
-text (this module's `PATH_RE`) but only *keeps* a match that resolves to a
+text (`claims.paths`' `PATH_RE`) but only *keeps* a match that resolves to a
 tracked file — a match that doesn't resolve is silently dropped, never
 reported anywhere — and `check-links` only validates real Markdown link
 syntax (`[text](path)`); a bare, unmarked prose mention of a path is
@@ -43,9 +43,9 @@ diff-scoped — matching `check-links`/`stale-claims`/`executable-claims`'s
 "catches a claim that's false right now" precedent, not
 `claim-words`/`restatement`'s diff-scoped one.
 
-The citing-directory fallback (`_citing_relative`, ticket #32) uses the
-same `dirname`/`join`/`normpath` approach `check_links._resolve` already
-uses for a real Markdown link's own destination, so a per-module or
+The citing-directory fallback (`claims.paths.citing_relative`, ticket
+#32) uses the same `dirname`/`join`/`normpath` approach
+`check_links._resolve` already uses for a real Markdown link's own destination, so a per-module or
 per-skill `references/*.md` layout, cited from its own sibling doc as a
 bare `references/foo.md`, resolves even though it was never a real path
 from the repo root. This does trade away some precision for recall
@@ -54,8 +54,8 @@ repo-root-relative reference now resolves silently instead of being
 flagged, if a same-named file happens to also sit somewhere under the
 citing file's own directory — accepted as the same "a missed claim stays
 invisible forever" tradeoff, not an oversight. A candidate with a leading
-`../` never reaches this fallback at all — `_repo_relative` already ruled
-it out as not a candidate, unchanged by #32.
+`../` never reaches this fallback at all — this check skips a leading
+`../` as not a candidate, unchanged by #32.
 
 `known_untracked` (ticket #33) exists because a candidate that's real on
 disk but deliberately never `git add`ed — a project's own gitignored,
@@ -66,7 +66,7 @@ to resolve to a real file *inside the repo* (`Path.resolve()` confined
 via `is_relative_to`, the same guard `check_links._target` already
 uses for the identical reason: a lexical check alone would miss a
 symlink, and a candidate's own embedded `..` isn't rejected the way a
-*leading* `../` is by `_repo_relative`), so a genuine typo under an
+*leading* `../` is by this check's own skip), so a genuine typo under an
 exempted pattern is still caught, and a `known_untracked` pattern can't
 be walked outside the repo via `../` or followed outside it via a
 symlink. A real symlink pointing outside the repo (a
@@ -112,14 +112,15 @@ being skipped. Not solved here: recognizing a bare domain reliably
 without a real URL grammar risks its own false-positive/negative
 tradeoffs of a different kind, disproportionate for a shape rare enough
 in practice. (A *protocol-relative* URL, `//cdn.example.com/x.js`, isn't
-part of this gap — `_host_relative` treats its leading `//` the same as
-any other unconsumed `/`, so it's skipped as not a candidate rather than
+part of this gap — `claims.paths.host_relative` treats its leading `//`
+the same as any other unconsumed `/`, so it's skipped as not a candidate rather than
 becoming a false gate finding.)
 
-`_host_relative` (ticket #38) checks for an unconsumed leading `/` at the
-call site rather than inside `_repo_relative` because `/` isn't in
-`PATH_RE`'s own character class, so a match starts right after it with no
-trace of it left in the captured text, and `_repo_relative` only ever
+`claims.paths.host_relative` (ticket #38) checks for an unconsumed
+leading `/` at the call site rather than inside
+`claims.paths.repo_relative` because `/` isn't in `PATH_RE`'s own
+character class, so a match starts right after it with no trace of it
+left in the captured text, and `repo_relative` only ever
 sees the stripped candidate string, not the source line or the match's
 own position. This is what makes a host-absolute path
 (`/etc/docker/daemon.json`) and a home-directory shorthand
@@ -127,7 +128,7 @@ own position. This is what makes a host-absolute path
 either way; it's the `/` right after it doing the work here) both resolve
 correctly as "not a repo-relative claim at all," the same "recognized as
 clearly-not-a-candidate, skipped rather than resolved against the wrong
-base" treatment `_repo_relative`'s own leading `../` handling already
+base" treatment this check's own leading `../` skip already
 gets. **Known, deliberate gap this also creates:** a genuinely broken
 *repo-root-anchored* mention written Markdown-link-style
 (`/agents/nonexistent.md`, the leading-`/` convention GitHub renders as
@@ -137,8 +138,8 @@ means host-absolute" from "this leading `/` means repo-root," and #38's
 own motivating reports were all the host-absolute shape, so that's the
 interpretation this check makes; `check-links` makes the same one for
 real link syntax (#88).
-`stale-claims` imports `PATH_RE`, `_host_relative`, `_repo_relative` and
-`_citing_relative` from here (#87), so it shares that same blind spot.
+Both checks read paths through `claims.paths` (#87, #108), so
+`stale-claims` shares that same blind spot.
 
 The `<!-- example -->` marker (ticket #39) is matched case-insensitively
 and across a run of closing backticks between mention and marker (covers
@@ -190,34 +191,15 @@ from __future__ import annotations
 import re
 from collections.abc import Mapping, Sequence
 from pathlib import Path
-from posixpath import dirname, join, normpath
 
 from ..config import exclude_patterns, path_matches, string_list_config
 from ..git import is_file_at, tracked_files
 from ..historical import HistoricalResolver
 from ..markdown import fence_state
+from ..paths import PATH_RE, citing_relative, host_relative, repo_relative
 from ..runner import Finding, register_check
 
 NAME = "check-file-refs"
-
-# Shared with `stale-claims`, which imports it (#87). A leading `\b` word
-# boundary never matches between two non-word characters, so it silently
-# drops the leading dot of a real hidden-directory path (a space then
-# `.claude-plugin/plugin.json` — `\b` can't fire before the `.`, only
-# before the `c` after it — reporting `claude-plugin/plugin.json` instead
-# of the real path, which then never resolves). Replacing the leading
-# `\b` with a negative lookbehind for "already inside a longer run of
-# path-shaped characters" fixes it: it matches equally well before a word
-# character or a literal leading dot, as long as neither is itself
-# preceded by another path character.
-#
-# That same lookbehind also now captures a leading `./`/`../` whole
-# (rather than `\b` incidentally skipping past it to start the match at
-# the first real path segment) — `_repo_relative` below is what turns a
-# captured `./x` back into the bare `x` a real check-out's `tracked_set`
-# actually contains, and drops a `../x` match entirely rather than
-# resolve it wrong.
-PATH_RE = re.compile(r"(?<![\w.-])(?:[\w.-]+/)+[\w.-]+\.[A-Za-z0-9]+\b")
 
 # A destination inside real Markdown link syntax — reused only to find
 # spans to *exclude* from this check's own detection, not to validate
@@ -299,75 +281,6 @@ def _excluded_spans(line: str) -> list[tuple[int, int]]:
 
 def _excluded(start: int, spans: Sequence[tuple[int, int]]) -> bool:
     return any(span_start <= start < span_end for span_start, span_end in spans)
-
-
-def _host_relative(line: str, start: int) -> bool:
-    """Whether `line[start:]`'s own match was immediately preceded by an
-    unconsumed `/` — `/` isn't in `PATH_RE`'s own character class, so a
-    match starts right after it with no trace of it left in the captured
-    text. Catches a host-absolute path (`/etc/docker/daemon.json`) and,
-    since `~` itself never survives into a match either way, a bare
-    `~/`-prefixed home-directory shorthand too (`~/.docker/config.json` —
-    the character actually inspected here is the `/` right after the
-    `~`, not the `~` itself; deliberately not extended to also check for a
-    bare `~` immediately before the match, which would additionally catch
-    the rarer `~username/` shell convention at the cost of also matching
-    the second `~` of Markdown strikethrough, `~~docs/removed.md~~`, and
-    wrongly skipping it).
-
-    Neither shape is ever a repo-relative candidate, exactly like a
-    leading `../` (ticket #38): unlike `../`, which `_repo_relative`
-    already rejects because those two characters survive as part of the
-    match itself, an unconsumed `/` is invisible to it by the time it
-    receives the plain candidate string — so this has to be checked here,
-    against the source line, at the one point that still has both `line`
-    and the match's own start position in scope.
-    """
-
-    return start > 0 and line[start - 1] == "/"
-
-
-def _repo_relative(candidate: str) -> str | None:
-    """`candidate`, as written in prose, resolved to the repo-root-relative
-    form `tracked_set` actually contains — or `None` if it can't be,
-    without guessing.
-
-    A leading `./` unambiguously means "from here" the same way it does
-    in a shell command; stripped, since `tracked_set` never contains an
-    entry with a `./` prefix of its own. A leading `../` is left alone —
-    treated as not a candidate at all, never even reaching `check()`'s own
-    citing-relative fallback below (`_citing_relative`, ticket #32) —
-    deliberately, not because that fallback couldn't resolve it: extending
-    `../` handling into that fallback was explicitly out of #32's own
-    scope (a `../`-prefixed mention is common enough, and its correct
-    resolution unambiguous enough, that it deserves its own dedicated
-    pass rather than folding in here as a side effect).
-    """
-
-    if candidate.startswith("../"):
-        return None
-    if candidate.startswith("./"):
-        return candidate[2:]
-    return candidate
-
-
-def _citing_relative(citing: str, candidate: str) -> str:
-    """`candidate` resolved against `citing`'s own directory, as a
-    repo-relative POSIX path — the same lexical join/normalize
-    `check_links._resolve` already does for a real Markdown link's
-    destination, applied here as a second try once `candidate` has
-    already failed to resolve as repo-root-relative (ticket #32).
-
-    Purely lexical, same as its model — may land outside the repo (e.g. a
-    non-`../`-prefixed candidate whose own embedded `..` segments walk
-    past the root once joined). Against `tracked_set` an out-of-repo
-    result is just another string that isn't in the set; the one place it
-    touches disk, `check()`'s `known_untracked` test (#89), puts it through
-    the same real-path confinement `check_links._target` uses, so it
-    isn't a path traversal risk there either.
-    """
-
-    return normpath(join(dirname(citing), candidate))
 
 
 def _finding(rel: str, line_no: int, candidate: str, where: str = "") -> Finding:
@@ -463,16 +376,19 @@ def check(repo_root: Path, diff_range: str, config: Mapping[str, object]) -> lis
                     continue
                 if _excluded(match.start(), excluded):
                     continue
-                if _host_relative(line, match.start()):
+                if host_relative(line, match.start()):
                     continue
-                candidate = _repo_relative(raw)
-                if candidate is None:
+                # Left for its own dedicated pass, out of #32's scope: a
+                # `../` mention is common enough, and its resolution
+                # unambiguous enough, not to fold in as a side effect.
+                if raw.startswith("../"):
                     continue
+                candidate = repo_relative(raw)
                 marker = _marker_after(line, match.end())
                 if marker is not None:
                     consumed_marker_starts.add(marker.start())
                     continue
-                paths = (candidate, _citing_relative(rel, candidate))
+                paths = (candidate, citing_relative(rel, candidate))
                 if any(path in tracked_set for path in paths):
                     continue
                 if any(untracked_on_disk(path) for path in paths):
