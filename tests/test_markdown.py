@@ -25,7 +25,7 @@ from __future__ import annotations
 
 import unittest
 
-from claims.markdown import CODE_SPAN_RE, mask_code_spans
+from claims.markdown import CODE_SPAN_RE, mask_code_spans, section_range
 
 
 class MaskCodeSpansTests(unittest.TestCase):
@@ -55,6 +55,47 @@ class MaskCodeSpansTests(unittest.TestCase):
         # One backtick opens no span in CommonMark either; there is nothing
         # to write over, and the text is returned as it came.
         self.assertEqual(mask_code_spans("A stray ` and 1.2.3"), "A stray ` and 1.2.3")
+
+
+PAGE = """# Page
+intro
+## A
+a
+## B
+b
+### B1
+b1
+## C
+c
+"""
+
+
+class SectionRangeTests(unittest.TestCase):
+    def test_a_section_ends_before_the_next_heading_of_its_own_level(self) -> None:
+        self.assertEqual(section_range("## A\na\n## C\nc\n", "a"), (1, 2))
+
+    def test_a_subsection_belongs_to_its_parent_section(self) -> None:
+        self.assertEqual(section_range(PAGE, "b"), (5, 8))
+
+    def test_a_subsection_is_a_section_of_its_own(self) -> None:
+        self.assertEqual(section_range(PAGE, "b1"), (7, 8))
+
+    def test_a_higher_level_heading_ends_a_section(self) -> None:
+        self.assertEqual(section_range("### A\na\n# Top\n", "a"), (1, 2))
+
+    def test_the_last_section_runs_to_the_end_of_the_file(self) -> None:
+        self.assertEqual(section_range(PAGE, "c"), (9, 10))
+
+    def test_an_anchor_naming_no_heading_has_no_section(self) -> None:
+        self.assertIsNone(section_range(PAGE, "nope"))
+
+    def test_a_heading_with_regex_metacharacters_slugs_like_check_links(self) -> None:
+        self.assertEqual(section_range("## Why (a+b)?\nx\n## Next\n", "why-ab"), (1, 2))
+
+    def test_a_hash_line_inside_a_fence_is_neither_a_heading_nor_a_boundary(self) -> None:
+        text = "## A\n```sh\n# comment\n```\nafter\n## B\n"
+        self.assertEqual(section_range(text, "a"), (1, 5))
+        self.assertIsNone(section_range(text, "comment"))
 
 
 if __name__ == "__main__":

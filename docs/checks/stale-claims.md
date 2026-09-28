@@ -56,12 +56,30 @@ changed first, each with its commit count and its share of history.
 Sections are reported in descending score, and a section none of whose
 subjects has changed since its last touch is not reported.
 
+A path to a Markdown file followed directly by `#` and an anchor, in a
+link such as `[text](page.md#anchor)` or bare in prose, names one
+section of that file rather than the whole of it, when the anchor is the
+slug of one of its headings. That section runs from the heading to the
+next heading of the same or a higher level, so its subsections belong to
+it, and its history is only the commits that touched the lines it spans
+in the latest commit. An anchor that matches no heading, or one on a file that is not
+Markdown, names the whole file. The finding names such a subject with
+its anchor, and a section linking the same file with and without an
+anchor, or with two anchors, keeps each as its own subject.
+
 A section and its subject changed in the same commit score zero for that
 subject, because the commit that touched both is the section's own last
 touch and not a change after it. Two separate commits that share a
 committer timestamp to the second fall into the same gap. A rewrite of a
 claim to match a change to its subject, landed together, is therefore
 invisible here, and nothing else in the check compensates for it.
+
+A subject scoped to one section does not see a change beside it. An edit
+to the paragraph just above the linked heading is not counted, even when
+it changes what the linked section means. A renamed heading is not lost
+the same way: the anchor then names no heading, `check-links` reports the
+link as broken, and fixing that link brings a reader back to the section
+that holds it.
 
 The check is whole-tree, over every tracked `.md` file on every run, and
 runs no command. A file named `CHANGELOG.md`, in any letter case and

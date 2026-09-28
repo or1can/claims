@@ -441,6 +441,93 @@ class StaleClaimsTests(RegistryClearingTestCase):
         self.assertEqual(len(findings), 1)
         self.assertIn("bar.py", findings[0].message)
 
+    OTHER = "# Other\n## a\na v0\n## b\nb v0\n### b1\nb1 v0\n## c\nc v0\n"
+
+    def _findings_after_editing_other(self, doc: str, line: str) -> list[Finding]:
+        """`guide.md` holds `doc`; `ref/other.md` is then edited on `line` alone."""
+
+        with Repo() as repo:
+            repo.write("guide.md", doc)
+            repo.write("ref/other.md", self.OTHER)
+            repo.commit(BASE)
+            repo.write("ref/other.md", self.OTHER.replace(line, line.replace("v0", "v1")))
+            repo.commit(BASE + 100)
+            return self._findings(repo.root)
+
+    def test_an_anchored_link_ignores_edits_outside_its_section(self) -> None:
+        doc = "## see\nSee [b](ref/other.md#b).\n"
+        for line in ("a v0", "c v0"):
+            with self.subTest(line=line):
+                self.assertEqual(self._findings_after_editing_other(doc, line), [])
+
+    def test_an_anchored_link_counts_edits_inside_its_section(self) -> None:
+        doc = "## see\nSee [b](ref/other.md#b).\n"
+        for line in ("b v0", "b1 v0"):
+            with self.subTest(line=line):
+                findings = self._findings_after_editing_other(doc, line)
+                self.assertEqual(len(findings), 1)
+                self.assertIn("other.md#b 1 commit", findings[0].message)
+
+    def test_an_unanchored_link_still_counts_every_edit_to_the_file(self) -> None:
+        findings = self._findings_after_editing_other("## see\nSee [o](ref/other.md).\n", "a v0")
+        self.assertEqual(len(findings), 1)
+
+    def test_an_anchor_naming_no_heading_falls_back_to_the_whole_file(self) -> None:
+        findings = self._findings_after_editing_other(
+            "## see\nSee [o](ref/other.md#nope).\n", "a v0"
+        )
+        self.assertEqual(len(findings), 1)
+        self.assertIn("other.md 1 commit", findings[0].message)
+
+    def test_a_bare_prose_anchor_is_scoped_like_a_link(self) -> None:
+        doc = "## see\nSee ref/other.md#b.\n"
+        self.assertEqual(self._findings_after_editing_other(doc, "a v0"), [])
+        self.assertEqual(len(self._findings_after_editing_other(doc, "b v0")), 1)
+
+    def test_an_anchor_on_a_non_markdown_path_falls_back_to_the_whole_file(self) -> None:
+        with Repo() as repo:
+            findings = self._findings_for_churned(
+                repo, "foo/bar.py", "## line\nSee foo/bar.py#L10 for details.\n"
+            )
+        self.assertEqual(len(findings), 1)
+        self.assertIn("bar.py 1 commit", findings[0].message)
+
+    def test_a_heading_with_regex_metacharacters_scopes_its_section(self) -> None:
+        other = "# Other\n## Why (a+b)?\nwhy v0\n## c\nc v0\n"
+        doc = "## see\nSee [w](ref/other.md#why-ab).\n"
+        for line, expected in (("c v0", 0), ("why v0", 1)):
+            with self.subTest(line=line), Repo() as repo:
+                repo.write("guide.md", doc)
+                repo.write("ref/other.md", other)
+                repo.commit(BASE)
+                repo.write("ref/other.md", other.replace(line, line.replace("v0", "v1")))
+                repo.commit(BASE + 100)
+                self.assertEqual(len(self._findings(repo.root)), expected)
+
+    def test_an_uncommitted_edit_to_the_linked_file_does_not_shift_its_section(
+        self,
+    ) -> None:
+        # The commit hook runs with the linked page itself possibly dirty;
+        # history is committed, so the section is found where HEAD has it.
+        with Repo() as repo:
+            repo.write("guide.md", "## see\nSee [b](ref/other.md#b).\n")
+            repo.write("ref/other.md", self.OTHER)
+            repo.commit(BASE)
+            repo.write("ref/other.md", self.OTHER.replace("b v0", "b v1"))
+            repo.commit(BASE + 100)
+            repo.write("ref/other.md", "pad\n" * 20 + self.OTHER.replace("b v0", "b v1"))
+            findings = self._findings(repo.root)
+        self.assertEqual(len(findings), 1)
+        self.assertIn("other.md#b 1 commit", findings[0].message)
+
+    def test_the_same_file_linked_with_and_without_an_anchor_keeps_both(self) -> None:
+        findings = self._findings_after_editing_other(
+            "## see\nSee [o](ref/other.md) and [b](ref/other.md#b).\n", "b v0"
+        )
+        self.assertEqual(len(findings), 1)
+        self.assertIn("other.md 1 commit", findings[0].message)
+        self.assertIn("other.md#b 1 commit", findings[0].message)
+
 
 class StaleClaimsCliTests(RegistryClearingTestCase):
     def setUp(self) -> None:

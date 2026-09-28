@@ -32,6 +32,14 @@ fourth copy of this one (ticket #52).
 check asks whether something **is** backticked; `temporal-words` is the
 first to need the opposite polarity — a match inside an inline code span
 is example syntax, not prose making a claim.
+
+`slug` and `slugs_of` are the heading-slug rule `check-links` ported from
+Project B's `scripts/slugs.sh`, moved here once `stale-claims` needed to
+resolve the same anchors to a heading (#110): two copies of a slug rule
+would let the checks disagree about which heading an anchor names.
+`section_range` has only that one caller; it lives here beside the slug
+rule it is built on rather than in `stale-claims`, which would otherwise
+reach back in here for `slug` and `HEADING_RE` to answer one question.
 """
 
 from __future__ import annotations
@@ -53,6 +61,9 @@ SENTENCE_RE = re.compile(r"\S.*?[.!?][*_'\")\]]*(?=\s|$)|\S.+$", re.DOTALL)
 ITALIC_RE = re.compile(r"^(\*|_)(?!\1).+\1$", re.DOTALL)
 
 RETIRED_LEAD_IN = "previously said:"
+
+HEADING_RE = re.compile(r"^(#{1,6}) (.*)$")
+SLUG_STRIP_RE = re.compile(r"[^a-z0-9 _-]")
 
 # What `mask_code_spans` writes over a span's own content. Not a word
 # character, so a word boundary still holds either side of the span, and
@@ -94,6 +105,39 @@ def fence_state(lines: Sequence[str]) -> list[bool]:
             continue
         in_fence.append(open_fence is not None)
     return in_fence
+
+
+def slug(heading: str) -> str:
+    return SLUG_STRIP_RE.sub("", heading.lower()).replace(" ", "-")
+
+
+def slugs_of(text: str) -> set[str]:
+    return {slug(m.group(2)) for line in text.splitlines() if (m := HEADING_RE.match(line))}
+
+
+def section_range(text: str, anchor: str) -> tuple[int, int] | None:
+    """The 1-based, inclusive line range of the section `anchor` names in
+    `text`, or `None` when no heading has that slug.
+
+    The section runs from the first heading whose `slug` is `anchor` to
+    the line before the next heading of the same or a higher level, so a
+    subsection belongs to it, as an anchor does in mdBook and on GitHub.
+    Unlike `slugs_of`, a line inside a fence is no heading here: a `#
+    comment` in a shell block would otherwise end the section early.
+    """
+
+    lines = text.splitlines()
+    in_fence = fence_state(lines)
+    headings = [
+        (i, len(m.group(1)), m.group(2))
+        for i, line in enumerate(lines)
+        if not in_fence[i] and (m := HEADING_RE.match(line))
+    ]
+    for n, (start, level, heading) in enumerate(headings):
+        if slug(heading) == anchor:
+            end = next((i for i, lv, _ in headings[n + 1 :] if lv <= level), len(lines))
+            return start + 1, end
+    return None
 
 
 def mask_code_spans(text: str) -> str:

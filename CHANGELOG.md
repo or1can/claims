@@ -11,6 +11,14 @@ reached you, not just that one was pushed upstream.
 
 ## [Unreleased]
 
+## [0.13.4] - 2026-09-28
+
+- Changed: `stale-claims` scores a link to a heading, `page.md#anchor`
+  (or the same path and anchor bare in prose), against the commits that
+  touched that section only, not the whole page. A page linking one
+  heading of a busy page no longer ranks as stale because some other
+  part of it changed; the finding names the subject as `page.md#anchor`.
+
 ## [0.13.3] - 2026-09-28
 
 - Changed: internal only — `check-file-refs` and `stale-claims` now share

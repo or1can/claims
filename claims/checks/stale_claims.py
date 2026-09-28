@@ -86,6 +86,22 @@ drops `` `claims.toml` ``, since a root-level file has no directory to
 give an explicit-path match; a section about the config format is not
 made stale by a project tuning its own config, which is all that file's
 history records.
+
+A `page.md#anchor` subject is scored against that section's history
+alone (#110): whole-file history made every page linking one heading of
+a busy page look stale. The anchor is read as whatever follows the
+`PATH_RE` match, so the link and bare-prose forms agree, and is resolved
+by `claims.markdown`'s slug rule, the one `check-links` gates anchors
+with, so the two agree on which heading it names. One difference: a
+heading-shaped line inside a fence is no heading here, since a shell
+`# comment` would otherwise end a section early, so an anchor only such
+a line matches falls back to the whole file.
+History is `git log -L` over the section's numeric line range at HEAD,
+not a `/regex/`, which a heading's own metacharacters would break. An
+anchor naming no heading falls back to the whole file, since
+`check-links` already reports it. The accepted cost is recall: an edit
+just outside the section goes uncounted; the page states it beside the
+same-commit blind spot.
 """
 
 from __future__ import annotations
@@ -98,7 +114,8 @@ from pathlib import Path
 from typing import NamedTuple
 
 from ..config import CONFIG_FILENAME, exclude_patterns, path_matches, string_list_config
-from ..git import tracked_files
+from ..git import blob_text, tracked_files
+from ..markdown import section_range
 from ..paths import PATH_RE, citing_relative, host_relative, repo_relative
 from ..runner import Finding, register_check
 
@@ -113,6 +130,7 @@ class _Candidate(NamedTuple):
 
 MODULE_RE = re.compile(r"`([A-Za-z_][A-Za-z0-9_-]*)(\.[A-Za-z0-9]+)?`")
 HEADING_RE = re.compile(r"^(#{1,6})\s+(.*)")
+ANCHOR_RE = re.compile(r"#([\w-]+)")
 
 
 def _in_module_scope(rel: str, config: Mapping[str, object]) -> bool:
@@ -165,14 +183,27 @@ def check(
         and not path_matches(rel, exclude)
     )
 
-    history: dict[str, list[int]] = {}
+    sections: dict[tuple[str, str], tuple[int, int] | None] = {}
 
-    def commits(path: str) -> list[int]:
-        if path not in history:
-            history[path] = sorted(
-                int(t) for t in _git(repo_root, "log", "--format=%ct", "--", path).split()
+    def section(path: str, anchor: str) -> tuple[int, int] | None:
+        # Read at HEAD, not from the working tree: `git log -L` resolves
+        # the range against HEAD, and the commit hook runs while the linked
+        # page itself may carry uncommitted edits that shift its lines.
+        if (path, anchor) not in sections:
+            text = blob_text(repo_root, "HEAD", path)
+            sections[path, anchor] = None if text is None else section_range(text, anchor)
+        return sections[path, anchor]
+
+    history: dict[tuple[str, str], list[int]] = {}
+
+    def commits(path: str, anchor: str) -> list[int]:
+        if (path, anchor) not in history:
+            span = section(path, anchor) if anchor else None
+            scope = ("-s", "-L", f"{span[0]},{span[1]}:{path}") if span else ("--", path)
+            history[path, anchor] = sorted(
+                int(t) for t in _git(repo_root, "log", "--format=%ct", *scope).split()
             )
-        return history[path]
+        return history[path, anchor]
 
     ranked: list[_Candidate] = []
     for rel in docs:
@@ -184,7 +215,9 @@ def check(
         for start, end in zip(starts, starts[1:] + [len(lines)]):
             matched = HEADING_RE.match(lines[start])
             body = "\n".join(lines[start:end])
-            subjects: set[str] = set()
+            # (path, anchor): anchor is "" unless it names a heading in a
+            # tracked `.md` path, so an unscoped subject is one key per file.
+            subjects: set[tuple[str, str]] = set()
             for match in PATH_RE.finditer(body):
                 if host_relative(body, match.start()):
                     continue
@@ -192,9 +225,15 @@ def check(
                 paths = (citing_relative(rel, raw),)
                 if not raw.startswith("../"):
                     paths = (repo_relative(raw),) + paths
-                subjects |= {path for path in paths if path in tracked_set}
+                anchored = ANCHOR_RE.match(body, match.end())
+                anchor = anchored.group(1) if anchored else ""
+                subjects |= {
+                    (path, anchor if anchor and path.endswith(".md") and section(path, anchor) else "")
+                    for path in paths
+                    if path in tracked_set
+                }
             subjects |= {
-                modules[name]
+                (modules[name], "")
                 for name, ext in MODULE_RE.findall(body)
                 if name in modules
                 and (Path(modules[name]).suffix == ext if ext else bare_in_scope)
@@ -214,9 +253,9 @@ def check(
                 continue
             touched = max(stamps)
 
-            moved: dict[str, tuple[int, float]] = {}
+            moved: dict[tuple[str, str], tuple[int, float]] = {}
             for subject in sorted(subjects):
-                times = commits(subject)
+                times = commits(*subject)
                 if not times:
                     continue
                 # Strictly-after: a commit that also touched the claim (same
@@ -232,8 +271,8 @@ def check(
             score = max(fraction for _, fraction in moved.values())
             label = matched.group(2).strip() if matched else rel
             detail = ", ".join(
-                f"{Path(p).name} {n} commit{'s' if n != 1 else ''} ({f:.0%} of its history)"
-                for p, (n, f) in sorted(moved.items(), key=lambda kv: -kv[1][1])[:3]
+                f"{Path(p).name}{'#' + a if a else ''} {n} commit{'s' if n != 1 else ''} ({f:.0%} of its history)"
+                for (p, a), (n, f) in sorted(moved.items(), key=lambda kv: -kv[1][1])[:3]
             )
             message = f"'{label}' names code {score:.0%} changed since last touched — {detail}"
             ranked.append(_Candidate(score, rel, start + 1, message))
