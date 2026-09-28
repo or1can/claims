@@ -94,7 +94,7 @@ from posixpath import dirname, join, normpath
 from ..config import exclude_patterns, path_matches, string_list_config
 from ..git import blob_text, exists_at, tracked_files
 from ..historical import HistoricalResolver
-from ..markdown import fence_state, mask_code_spans
+from ..markdown import fence_state, mask_code_spans, slugs_of
 from ..runner import Finding, register_check
 
 NAME = "check-links"
@@ -105,8 +105,6 @@ NAME = "check-links"
 # assumption the source tool's line-based scan makes.
 LINK_RE = re.compile(r"\]\(([^)]*)\)")
 SCHEME_RE = re.compile(r"^[A-Za-z][A-Za-z0-9+.-]*:")
-HEADING_RE = re.compile(r"^#{1,6} (.*)$")
-SLUG_STRIP_RE = re.compile(r"[^a-z0-9 _-]")
 
 
 def _read(path: Path) -> str | None:
@@ -122,14 +120,6 @@ def _read(path: Path) -> str | None:
         return path.read_text(encoding="utf-8", errors="replace")
     except OSError:
         return None
-
-
-def _slug(heading: str) -> str:
-    return SLUG_STRIP_RE.sub("", heading.lower()).replace(" ", "-")
-
-
-def _slugs_of(text: str) -> set[str]:
-    return {_slug(m.group(1)) for line in text.splitlines() if (m := HEADING_RE.match(line))}
 
 
 def _resolve(citing: str, path: str) -> str:
@@ -201,7 +191,7 @@ def _target(
         text = real.read_text(encoding="utf-8", errors="replace")
     except OSError:
         return None
-    return _slugs_of(text)
+    return slugs_of(text)
 
 
 def _holds(slugs: set[str] | None, resolved: str, anchor: str) -> bool:
@@ -240,7 +230,7 @@ def check(repo_root: Path, diff_range: str, config: Mapping[str, object]) -> lis
         if key not in slugs_at:
             if resolved.endswith(".md"):
                 text = blob_text(repo_root, commit, resolved)
-                slugs_at[key] = None if text is None else _slugs_of(text)
+                slugs_at[key] = None if text is None else slugs_of(text)
             else:
                 slugs_at[key] = set() if exists_at(repo_root, commit, resolved) else None
         return _holds(slugs_at[key], resolved, anchor)
