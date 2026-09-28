@@ -270,3 +270,27 @@ def is_ancestor(repo_root: Path, ancestor: str, descendant: str) -> bool:
         capture_output=True,
     )
     return result.returncode == 0
+
+
+def parent_commits(repo_root: Path, commit: str) -> list[str]:
+    """`commit`'s parents — none for a root commit, two or more for a merge."""
+
+    result = subprocess.run(
+        ["git", "-C", str(repo_root), "rev-parse", f"{commit}^@"],
+        capture_output=True,
+        text=True,
+        errors="replace",
+    )
+    return result.stdout.split() if result.returncode == 0 else []
+
+
+def head_commit(repo_root: Path) -> str | None:
+    """The commit `HEAD` names, or `None` in a repository with none yet."""
+
+    result = subprocess.run(
+        ["git", "-C", str(repo_root), "rev-parse", "--verify", "-q", "HEAD"],
+        capture_output=True,
+        text=True,
+        errors="replace",
+    )
+    return result.stdout.strip() if result.returncode == 0 else None

@@ -115,22 +115,26 @@ historical = ["CHANGELOG.md", "RELEASES.md", "decisions/*.md"]
 
 A `historical` file's links get one more chance. A link that fails against
 the working tree is re-resolved against the tree at the commit that wrote
-its line, as `git blame` attributes it, and passes if it held there: for a
-Markdown page, that the page and its heading were in that commit's tree;
-for anything else, that a file or directory was at that path.
-`known_untracked` plays no part in that second lookup, since a file never
-added to git is in no commit's tree. The record's shipped entries stay
-what they were without leaving a stub heading behind at every old
-destination. A link that held nowhere is still a finding, and its message
-says both where it was tested: not in the working tree, nor at the commit
-where the line was written, named by its short hash.
+its line, as `git blame` attributes it, and against the tree just before
+that commit, and passes if it held in either: for a Markdown page, that
+the page and its heading were in that tree; for anything else, that a
+file or directory was at that path. The tree just before is what lets a
+line recording a removal land in the same commit as the removal, where
+the page it names is already gone. `known_untracked` plays no part in
+that second lookup, since a file never added to git is in no commit's
+tree. The record's shipped entries stay what they were without leaving a
+stub heading behind at every old destination. A link that held nowhere
+is still a finding, and its message says where it was tested: not in the
+working tree, nor at the commit where the line was written or just
+before it, named by its short hash.
 
 Three consequences follow, and all three are the same rule read
 consistently rather than special cases:
 
 - An uncommitted line resolves against the working tree like any other
-  file. A changelog's unreleased section, being written now, stays fully
-  gated.
+  file, and failing that against `HEAD`, the tree just before it. A
+  changelog's unreleased section, being written now, stays gated on
+  every link that holds in neither, and a finding there names `HEAD`.
 - A line a later commit touched is attributed to that commit and must
   hold as of it. Deliberately retargeting an old link, should your rules
   allow one, is checked against the tree it was retargeted in.
