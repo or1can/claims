@@ -37,6 +37,9 @@ is example syntax, not prose making a claim.
 Project B's `scripts/slugs.sh`, moved here once `stale-claims` needed to
 resolve the same anchors to a heading (#110): two copies of a slug rule
 would let the checks disagree about which heading an anchor names.
+`section_range` has only that one caller; it lives here beside the slug
+rule it is built on rather than in `stale-claims`, which would otherwise
+reach back in here for `slug` and `HEADING_RE` to answer one question.
 """
 
 from __future__ import annotations
@@ -110,6 +113,31 @@ def slug(heading: str) -> str:
 
 def slugs_of(text: str) -> set[str]:
     return {slug(m.group(2)) for line in text.splitlines() if (m := HEADING_RE.match(line))}
+
+
+def section_range(text: str, anchor: str) -> tuple[int, int] | None:
+    """The 1-based, inclusive line range of the section `anchor` names in
+    `text`, or `None` when no heading has that slug.
+
+    The section runs from the first heading whose `slug` is `anchor` to
+    the line before the next heading of the same or a higher level, so a
+    subsection belongs to it, as an anchor does in mdBook and on GitHub.
+    Unlike `slugs_of`, a line inside a fence is no heading here: a `#
+    comment` in a shell block would otherwise end the section early.
+    """
+
+    lines = text.splitlines()
+    in_fence = fence_state(lines)
+    headings = [
+        (i, len(m.group(1)), m.group(2))
+        for i, line in enumerate(lines)
+        if not in_fence[i] and (m := HEADING_RE.match(line))
+    ]
+    for n, (start, level, heading) in enumerate(headings):
+        if slug(heading) == anchor:
+            end = next((i for i, lv, _ in headings[n + 1 :] if lv <= level), len(lines))
+            return start + 1, end
+    return None
 
 
 def mask_code_spans(text: str) -> str:
