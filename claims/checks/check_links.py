@@ -47,7 +47,7 @@ A destination starting with `~` or `/` (ticket #88) is skipped too: a
 home-directory or host-absolute path was never relative to the citing
 file, so joining it to that file's directory could only ever report it as
 an ordinary broken link, for the wrong reason. The shapes
-`check_file_refs._host_relative` skips, plus any leading `~`
+`claims.paths.host_relative` skips, plus any leading `~`
 (`~user/x.md`): that helper stops short of a bare `~` only to spare
 Markdown strikethrough, which can't occur inside a link destination.
 **Known, deliberate gap:** GitHub

@@ -49,18 +49,19 @@ wrong extension now names nothing, since the author meant a file of another
 type, and a bare name still resolves by stem alone. The comparison is
 case-sensitive, as `path_matches` is, because tracked paths are.
 
-`PATH_RE` and its helpers come from `check_file_refs` (#87) so that both
-checks agree on which prose paths are repo-relative. This check had its
-own copy of the pattern, anchored with a leading `\b`, which never
+`PATH_RE` and its helpers come from `claims.paths` (#87, #108) so that
+both checks agree on which prose paths are repo-relative. This check had
+its own copy of the pattern, anchored with a leading `\b`, which never
 matched before a leading `.`: a cited `.github/workflows/ci.yml` was read
 as `github/workflows/ci.yml` and never resolved, and a `~/` or `/` path
 lost that prefix and was read as repo-relative. As in `check-file-refs`,
 a path is tried from the repository root and then from the citing file's
 directory. The one difference: a `../` path, which that check skips, is
-tried here from the citing file's directory alone. The old `\b` skipped
-the `../`, which let ADR links from `docs/` resolve by accident, and
-dropping `../` outright would lose those subjects. A missed subject is
-invisible, where a wrong one only fails to resolve.
+tried here from the citing file's directory alone — a rule this check
+states in its own loop, since `claims.paths` makes no `../` decision.
+The old `\b` skipped the `../`, which let ADR links from `docs/` resolve
+by accident, and dropping `../` outright would lose those subjects. A
+missed subject is invisible, where a wrong one only fails to resolve.
 
 A *bare* citation (`` `cache` ``, no extension) is ambiguous in a way the
 qualified and path forms are not — it's also ordinary English or a
@@ -98,8 +99,8 @@ from typing import NamedTuple
 
 from ..config import CONFIG_FILENAME, exclude_patterns, path_matches, string_list_config
 from ..git import tracked_files
+from ..paths import PATH_RE, citing_relative, host_relative, repo_relative
 from ..runner import Finding, register_check
-from .check_file_refs import PATH_RE, _citing_relative, _host_relative, _repo_relative
 
 NAME = "stale-claims"
 
@@ -185,16 +186,13 @@ def check(
             body = "\n".join(lines[start:end])
             subjects: set[str] = set()
             for match in PATH_RE.finditer(body):
-                if _host_relative(body, match.start()):
+                if host_relative(body, match.start()):
                     continue
                 raw = match.group(0)
-                root = _repo_relative(raw)
-                paths = (root,) if root is not None else ()
-                subjects |= {
-                    path
-                    for path in paths + (_citing_relative(rel, raw),)
-                    if path in tracked_set
-                }
+                paths = (citing_relative(rel, raw),)
+                if not raw.startswith("../"):
+                    paths = (repo_relative(raw),) + paths
+                subjects |= {path for path in paths if path in tracked_set}
             subjects |= {
                 modules[name]
                 for name, ext in MODULE_RE.findall(body)
