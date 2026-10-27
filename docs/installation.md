@@ -133,6 +133,13 @@ Python 3.11 or later. Its command is `claims-pre-commit`, which takes no
 arguments and runs in the repository git calls it from. Each release is
 tagged `v<version>` in this repository, and every setup below pins one.
 
+pre-commit and `uvx` each run the hook in an environment of their own,
+put first on `PATH`, and a command granted in `claims.local.toml` runs
+with that `PATH` too. `python3` in a granted command is then the hook's
+own Python, without the project's dependencies, so a claim about a Python
+command's output can fail under the git hook where it passes through the
+plugin's hook or the command line.
+
 ### pre-commit
 
 With [pre-commit](https://pre-commit.com), add the hook to the project's
