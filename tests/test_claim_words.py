@@ -176,6 +176,41 @@ class ClaimWordsTests(RegistryClearingTestCase):
 
         self.assertEqual(findings, [])
 
+    def test_a_sentence_inside_a_fenced_code_block_is_not_read(self) -> None:
+        with Repo() as repo:
+            repo.write("record.md", "# record\n\nseed\n")
+            repo.commit()
+            repo.write(
+                "record.md",
+                "# record\n\n"
+                "```text\n"
+                "Every host in the fleet reports up.\n"
+                "```\n",
+            )
+
+            findings = self._findings(repo.root, ["record.md"])
+
+        self.assertEqual(findings, [])
+
+    def test_a_sentence_after_a_fence_keeps_its_own_line_number(self) -> None:
+        with Repo() as repo:
+            repo.write("record.md", "# record\n\nseed\n")
+            repo.commit()
+            repo.write(
+                "record.md",
+                "# record\n\n"
+                "```text\n"
+                "Every host in the fleet reports up.\n"
+                "```\n"
+                "Every host in the fleet reports up.\n",
+            )
+
+            findings = self._findings(repo.root, ["record.md"])
+
+        self.assertEqual(len(findings), 1)
+        self.assertEqual(findings[0].citation, "record.md:6")
+        self.assertEqual(findings[0].mode, MODE_TOTALISING)
+
     def test_no_files_configured_returns_no_findings(self) -> None:
         with Repo() as repo:
             repo.write("record.md", "seed\n")

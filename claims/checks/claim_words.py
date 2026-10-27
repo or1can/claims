@@ -60,7 +60,13 @@ from pathlib import Path
 
 from ..config import path_matches, string_list_config
 from ..git import added_lines_by_file
-from ..markdown import CODE_SPAN_RE, ITALIC_RE, RETIRED_LEAD_IN, sentences_from
+from ..markdown import (
+    CODE_SPAN_RE,
+    ITALIC_RE,
+    RETIRED_LEAD_IN,
+    prose_lines,
+    sentences_from,
+)
 from ..runner import Finding, register_check
 
 NAME = "claim-words"
@@ -192,7 +198,7 @@ def check(
         lines = text.splitlines()
         zero_based_added = {n - 1 for n in added_line_numbers}
 
-        for sentence, start, end in sentences_from(text):
+        for sentence, start, end in sentences_from(prose_lines(lines)):
             if zero_based_added.isdisjoint(range(start, end + 1)):
                 continue
             if _is_retired_quote(sentence, lines, start, end):
