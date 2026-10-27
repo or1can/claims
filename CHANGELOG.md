@@ -11,6 +11,13 @@ reached you, not just that one was pushed upstream.
 
 ## [Unreleased]
 
+## [0.13.6] - 2026-10-27
+
+- Fixed: `claim-words` no longer reads sentences inside a fenced code
+  block. Captured output or an example in a designated file was reported
+  like prose, with findings no rewording could clear. `temporal-words`
+  and the other prose checks already skipped fenced blocks.
+
 ## [0.13.5] - 2026-09-28
 
 - Fixed: in a `historical` file, a line recording a removal no longer

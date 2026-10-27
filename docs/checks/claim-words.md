@@ -21,8 +21,9 @@ not designated, are never read, however they are shaped.
 
 A **sentence** is found by joining a paragraph's lines and splitting at
 a full stop, question mark or exclamation mark, so a sentence wrapped
-across lines is read whole and reported at its first line. Fenced code
-blocks are not set aside: a sentence inside one is read like any other.
+across lines is read whole and reported at its first line. A fenced
+code block is set aside first: it holds code, captured output or an
+example, not a claim, and a sentence never runs through one.
 
 Three **modes** classify a sentence, and a sentence matching more than
 one is reported once per mode:
