@@ -64,15 +64,16 @@ Four invocation surfaces, same underlying checks:
   command a claim implies) and returns a verdict with cited evidence —
   never by pattern-matching the claim's own wording. Advisory only: like
   every check it feeds, it never blocks a commit.
-- **Outside Claude Code entirely, as a plain git pre-commit hook or a CI
-  step.** `claims.cli` is the same `run()` seam the automatic hook itself
-  calls, with the same exit code a shell script or CI job already expects
-  — see [`docs/installation.md`](docs/installation.md)'s "Using it outside
-  Claude Code" section for the setup (it needs a checkout of this repo,
-  not a pip install) and what's different without an LLM present:
-  `judgment-agent`'s own candidates are still computed and reported, but
-  never resolved into a verdict, and the skill's on-demand config review
-  doesn't run at all.
+- **Outside Claude Code entirely, as a git pre-commit hook or a CI
+  step.** The `claims-pre-commit` command makes the same per-repository
+  decision as the automatic hook, for pre-commit.com, lefthook, husky or
+  a plain `.git/hooks` script, and `claims.cli` is the same `run()` seam
+  with the exit code a CI job already expects — see
+  [`docs/installation.md`](docs/installation.md)'s "As a git `pre-commit`
+  hook" and "The command line" sections for the setup and what's different
+  without an LLM present: `judgment-agent`'s own candidates are still
+  computed and reported, but never resolved into a verdict, and the
+  skill's on-demand config review doesn't run at all.
 
 ## What it isn't
 
@@ -91,9 +92,8 @@ automatic hook gates only a repository with a `claims.toml` at its root —
 an empty one opts in — and can be disabled per project without uninstalling, via
 `[hook]\nenabled = false` in that project's `claims.toml`. See
 [`docs/installation.md`](docs/installation.md) for the actual commands —
-including "Using it outside Claude Code", the setup for running the same
-checks as a plain pre-commit hook or CI step (a repo checkout, not a plugin
-install or a pip install).
+including the setup for running the same checks as a git pre-commit hook
+(pre-commit.com, or `uvx` from a release tag) or a CI step.
 See [`CHANGELOG.md`](CHANGELOG.md) for what changed in a given version,
 after a `claude plugin update`.
 

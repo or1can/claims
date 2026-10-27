@@ -26,6 +26,7 @@ import json
 import re
 import shutil
 import subprocess
+import tomllib
 import unittest
 from pathlib import Path
 
@@ -127,6 +128,13 @@ class PluginManifestTests(unittest.TestCase):
         listed = marketplace["plugins"][0]
         self.assertEqual(listed["name"], plugin["name"])
         self.assertEqual(listed["source"], "./")
+
+    def test_pyproject_version_matches_the_plugin_version(self) -> None:
+        # One release, two version strings (AGENTS.md, "Versioning").
+        with (REPO_ROOT / "pyproject.toml").open("rb") as f:
+            pyproject = tomllib.load(f)
+        plugin = _load(".claude-plugin/plugin.json")
+        self.assertEqual(pyproject["project"]["version"], plugin["version"])
 
 
 if __name__ == "__main__":

@@ -135,6 +135,15 @@ tickets 19–36 before this was written; `epr-wrench`'s own install was
 still running pre-ticket-27 code as a result. A patch-level bump
 (`0.1.0` → `0.1.1`) is enough for an ordinary fix; use judgement for
 anything that changes a consuming project's own required setup.
+`pyproject.toml`'s `version` moves with it, in the same commit, since
+both name the one release: `tests/test_plugin_manifest.py` pins them
+equal.
+
+Tag each version bump `v<version>` once it is merged to `main` (`git tag
+v<version> <merge commit> && git push origin v<version>`). A consuming
+project's `.pre-commit-config.yaml` `rev:` and its `uvx --from
+git+https://github.com/or1can/claims@<tag>` both pin a tag, so a release
+with no tag is one neither can reach.
 
 Add a matching entry to `CHANGELOG.md` in the same commit — a version
 bump with no changelog entry gives a consumer reading it after `claude
