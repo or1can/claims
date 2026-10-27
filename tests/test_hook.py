@@ -240,7 +240,10 @@ class HookTests(RegistryClearingTestCase):
         self.assertIn("a.md:1", hook_output["permissionDecisionReason"])
         self.assertIn("bad", hook_output["permissionDecisionReason"])
 
-    def test_advisory_only_findings_allow_and_attach_additional_context(self) -> None:
+    def test_advisory_only_findings_attach_context_without_a_decision(self) -> None:
+        # No `permissionDecision`: `allow` would skip the user's own
+        # permission prompt for the command, and the hook only means to
+        # add context to it.
         register_check(
             "advisory-check",
             lambda repo_root, diff_range, config: [
@@ -251,7 +254,7 @@ class HookTests(RegistryClearingTestCase):
             output = self._run_main(repo_root)
 
         hook_output = output["hookSpecificOutput"]
-        self.assertEqual(hook_output["permissionDecision"], "allow")
+        self.assertNotIn("permissionDecision", hook_output)
         self.assertIn("a.md:1", hook_output["additionalContext"])
         self.assertIn("fyi", hook_output["additionalContext"])
 
