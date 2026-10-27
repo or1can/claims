@@ -88,7 +88,7 @@ does with each construct, not one blanket "ignore anything quoted" rule:
 
 - An operator/pipe token is only real when the shell would treat it as
   one — `shlex`, in punctuation-aware mode (a stronger setting than
-  `claims/hook.py`'s own `_is_git_commit` uses, which needs only
+  `claims/hook.py`'s own `_commit_dirs` uses, which needs only
   whitespace/quote-aware splitting, not operator boundaries), tokenizes
   the command respecting quotes first, so a `;` sitting inside a quoted
   Python one-liner's own source, or a pipe inside a quoted regex
@@ -105,7 +105,7 @@ does with each construct, not one blanket "ignore anything quoted" rule:
   escaped ordinary character (`` \\grep ``, a common way to bypass a shell
   alias of the same name) keeps its own identity, or `grep` piped through
   that way would silently stop matching `TEXT_PROCESSING_TOOLS`. Unlike
-  `claims/hook.py`'s `_is_git_commit` — where "can't parse it" safely
+  `claims/hook.py`'s `_commit_dirs` — where "can't parse it" safely
   means "assume the risky case, keep gating" — unparseable input here
   (unbalanced quotes) is itself the rejection reason: this check's whole
   job is deciding whether a command is safe to run, so failing open on

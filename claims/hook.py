@@ -20,14 +20,14 @@ hooks, "Bash if matching") runs the hook anyway on *any* command containing
 a `$()`/backtick/`$VAR` substitution once the pattern names more than the
 bare command name, defeating a `commit`-specific pattern for exactly the
 agent-authored commands (heredocs, command substitutions) this hook most
-needs to filter correctly. `_is_git_commit` below does the fine-grained
+needs to filter correctly. `_commit_dirs` below does the fine-grained
 "is it specifically a commit" narrowing in Python instead, over whatever
 `tool_input.command` the manifest already let through. `if` holds one
 rule only, so the manifest repeats the same handler once per command
-name `_is_git_commit` looks inside — `bash`, `sh`, `zsh` and `eval`
+name `_commit_dirs` looks inside — `bash`, `sh`, `zsh` and `eval`
 besides `git` (ticket #85) — or `bash -c "git commit"` would never reach
 it. Each rule names the bare command, so `/bin/zsh -c`, which
-`_is_git_commit` itself handles, never reaches it; and a command
+`_commit_dirs` itself handles, never reaches it; and a command
 matching two of them (`bash x.sh && git commit`) runs the hook twice,
 each running every check and reaching the same decision.
 
@@ -36,6 +36,15 @@ JSON to stdout: `permissionDecision: deny` with a human-readable reason on a
 gate finding, `additionalContext` for advisory-only findings, or `{}` when
 the command isn't a `git commit`, the hook is disabled, or there is nothing
 to report. See code.claude.com/docs/en/hooks for the contract this speaks.
+
+The plugin's hook follows the session, not the repository being committed
+to, so a repository opts in by having a root `claims.toml` (ticket #118,
+`decisions/0006-claims-toml-opts-in-to-the-commit-hook.md`): a commit
+anywhere else gets `{}` with no check run. Each commit is decided in the
+repository it targets — `cwd` with that `git`'s own `-C` paths applied,
+resolved to its top level — so a session sitting in a subdirectory, or
+committing elsewhere through `git -C`, is decided against the right root
+`claims.toml` and tree.
 
 Besides the plugin-wide `[hook] enabled = false`, a single check can be
 silenced from this decision alone via its own `enabled = false`
@@ -61,7 +70,8 @@ from pathlib import Path
 from typing import TextIO
 
 from . import checks  # noqa: F401
-from .config import ConfigError, load_config
+from .config import ConfigError, has_config, load_config
+from .git import toplevel
 from .runner import Finding, run
 
 HOOK_EVENT_NAME = "PreToolUse"
@@ -95,9 +105,12 @@ _SHELLS = {"bash", "sh", "zsh"}
 _VALUE_TAKING_SHELL_OPTIONS = {"-o", "+o", "-O", "+O"}
 
 
-def _git_subcommand(tokens: list[str], git_index: int) -> str | None:
+def _git_subcommand(
+    tokens: list[str], git_index: int
+) -> tuple[str | None, list[str]]:
     """The subcommand the `git` token at `tokens[git_index]` runs, or
-    `None` if nothing follows it.
+    `None` if nothing follows it, and the `-C` paths given before it, in
+    order.
 
     Skips global options right after `git` — including one extra token
     for a value-taking option's own value — so `commit` in subcommand
@@ -108,12 +121,15 @@ def _git_subcommand(tokens: list[str], git_index: int) -> str | None:
     """
 
     i = git_index + 1
+    chdirs: list[str] = []
     while i < len(tokens) and tokens[i].startswith("-"):
         option = tokens[i]
         i += 1
         if option in _VALUE_TAKING_GIT_OPTIONS and "=" not in option:
+            if option == "-C" and i < len(tokens):
+                chdirs.append(tokens[i])
             i += 1
-    return tokens[i] if i < len(tokens) else None
+    return (tokens[i] if i < len(tokens) else None), chdirs
 
 
 def _shell_script(tokens: list[str], shell_index: int) -> str | None:
@@ -134,12 +150,12 @@ def _shell_script(tokens: list[str], shell_index: int) -> str | None:
     return tokens[i] if has_c and i < len(tokens) else None
 
 
-def _git_alias(repo_root: Path, name: str) -> str | None:
-    """`alias.<name>`'s value as `repo_root`'s git config resolves it, or
+def _git_alias(directory: Path, name: str) -> str | None:
+    """`alias.<name>`'s value as git config resolves it in `directory`, or
     `None` if it has none."""
 
     result = subprocess.run(
-        ["git", "-C", str(repo_root), "config", "--get", f"alias.{name}"],
+        ["git", "-C", str(directory), "config", "--get", f"alias.{name}"],
         capture_output=True,
         text=True,
         errors="replace",
@@ -157,11 +173,13 @@ def _is_git_builtin(name: str) -> bool:
     return name in result.stdout.split()
 
 
-def _runs_commit(
-    tokens: list[str], git_index: int, repo_root: Path, seen: frozenset[str]
-) -> bool:
-    """Whether the `git` at `tokens[git_index]` runs `commit`, directly or
-    through an alias.
+def _git_commit_dirs(
+    tokens: list[str], git_index: int, cwd: Path, seen: frozenset[str]
+) -> list[Path]:
+    """The directory each `commit` the `git` at `tokens[git_index]` runs
+    is made from, directly or through an alias: `cwd` with its `-C` paths
+    applied in order, a relative one resolving against the directory so
+    far, as git does.
 
     An alias is searched as the command it expands to — `git <expansion>`,
     or a `!` alias's shell command as-is — so an alias of an alias
@@ -172,22 +190,27 @@ def _runs_commit(
     found, so a plain `git status` costs one `git config` call, not two.
     """
 
-    subcommand = _git_subcommand(tokens, git_index)
+    subcommand, chdirs = _git_subcommand(tokens, git_index)
+    directory = cwd.joinpath(*chdirs)
     if subcommand == "commit":
-        return True
+        return [directory]
     if subcommand is None or subcommand in seen:
-        return False
-    expansion = _git_alias(repo_root, subcommand)
+        return []
+    expansion = _git_alias(directory, subcommand)
     if expansion is None or _is_git_builtin(subcommand):
-        return False
-    inner = expansion[1:] if expansion.startswith("!") else f"git {expansion}"
-    return _is_git_commit(inner, repo_root, seen | {subcommand})
+        return []
+    if expansion.startswith("!"):
+        # Git runs a shell alias from the work tree's top level.
+        shell_cwd = toplevel(directory) or directory
+        return _commit_dirs(expansion[1:], shell_cwd, seen | {subcommand})
+    return _commit_dirs(f"git {expansion}", directory, seen | {subcommand})
 
 
-def _is_git_commit(
-    command: object, repo_root: Path, seen: frozenset[str] = frozenset()
-) -> bool:
-    """Whether `command`, tokenized, runs `git commit` anywhere in it.
+def _commit_dirs(
+    command: object, cwd: Path, seen: frozenset[str] = frozenset()
+) -> list[Path]:
+    """The directory each `git commit` in `command`, tokenized, is made
+    from — empty when it runs none.
 
     Checks every `git` token in the whole tokenized command, not just one
     scoped to a shell-operator-bounded segment: `shlex` gives no reliable
@@ -215,7 +238,7 @@ def _is_git_commit(
     A commit one level removed is searched for too, with these same
     rules (ticket #85): the script a `bash`/`sh`/`zsh` runs via `-c`
     (`_shell_script`), everything after an `eval`, and a git alias
-    (`_runs_commit`) — including a `!` shell alias, whose command is
+    (`_git_commit_dirs`) — including a `!` shell alias, whose command is
     searched like any other rather than left as a gap, since `!git add -A
     && git commit` is exactly the shape a commit-wrapping alias takes.
 
@@ -229,35 +252,37 @@ def _is_git_commit(
     contains one (`git commit -m "a|b"`) — the same class of parsing
     hazard this file's diff-parsing sibling module (`claims/git.py`)
     exists to avoid, not worth reintroducing for a rare, unidiomatic
-    input shape. Aliases are looked up in `repo_root`'s own config only,
-    so one defined inline (`git -c alias.ci=commit ci`) or only in the
-    config of another repository named by `-C` is missed; so is a script
-    run by any other shell (`dash -c`, `ssh host "git commit"`), or a
-    `-c` script behind a value-taking long option (`bash --rcfile f -c`).
+    input shape. Aliases are looked up in the config git reads from the
+    `git`'s own directory, so one defined inline (`git -c alias.ci=commit
+    ci`) is missed; so is a script run by any other shell (`dash -c`, `ssh
+    host "git commit"`), or a `-c` script behind a value-taking long
+    option (`bash --rcfile f -c`).
+
+    The directory follows `-C` only. A `cd` earlier in the command, or
+    `--git-dir`/`--work-tree`, isn't followed, so such a commit is decided
+    in `cwd`'s repository instead of the one it lands in.
     """
 
     if not isinstance(command, str):
-        return False
+        return []
     try:
         tokens = shlex.split(command)
     except ValueError:
-        return False
+        return []
 
+    dirs: list[Path] = []
     for i, token in enumerate(tokens):
         if token == "git":
-            commits = _runs_commit(tokens, i, repo_root, seen)
+            dirs.extend(_git_commit_dirs(tokens, i, cwd, seen))
         elif Path(token).name in _SHELLS:
             script = _shell_script(tokens, i)
-            commits = script is not None and _is_git_commit(script, repo_root, seen)
+            if script is not None:
+                dirs.extend(_commit_dirs(script, cwd, seen))
         elif token == "eval":
             # `eval` joins its arguments with spaces and parses the result
             # as shell — exactly this re-join and re-tokenize.
-            commits = _is_git_commit(" ".join(tokens[i + 1 :]), repo_root, seen)
-        else:
-            commits = False
-        if commits:
-            return True
-    return False
+            dirs.extend(_commit_dirs(" ".join(tokens[i + 1 :]), cwd, seen))
+    return dirs
 
 
 def _summarize(findings: tuple[Finding, ...]) -> str:
@@ -327,15 +352,46 @@ def _deny(reason: str) -> dict[str, object]:
     }
 
 
-def decide(repo_root: Path, command: str) -> dict[str, object]:
-    """The hook-output JSON for `command` about to run in `repo_root`.
+def _allow(context: str) -> dict[str, object]:
+    return {
+        "hookSpecificOutput": {
+            "hookEventName": HOOK_EVENT_NAME,
+            "permissionDecision": "allow",
+            "additionalContext": context,
+        }
+    }
+
+
+def decide(cwd: Path, command: str) -> dict[str, object]:
+    """The hook-output JSON for `command` about to run in `cwd`.
 
     `{}` immediately — before even `load_config` — when `command` isn't a
     `git commit`: the manifest's `matcher` catches every `Bash` call, not
-    just commits, so this is the actual gate.
+    just commits, so this is the actual gate. Otherwise each repository
+    the command commits to is decided on its own (`_decide_repo`); the
+    command is denied if any one of them denies it, and advisory findings
+    from all of them are joined.
     """
 
-    if not _is_git_commit(command, repo_root):
+    roots = dict.fromkeys(filter(None, map(toplevel, _commit_dirs(command, cwd))))
+    contexts: list[str] = []
+    for root in roots:
+        output = _decide_repo(root)
+        hook_output = output.get("hookSpecificOutput")
+        if not isinstance(hook_output, dict):
+            continue
+        if hook_output["permissionDecision"] == "deny":
+            return output
+        contexts.append(hook_output["additionalContext"])
+    return _allow("\n".join(contexts)) if contexts else {}
+
+
+def _decide_repo(repo_root: Path) -> dict[str, object]:
+    """The hook-output JSON for a commit to the repository at `repo_root`:
+    `{}` with no check run unless it has opted in with a root
+    `claims.toml`."""
+
+    if not has_config(repo_root):
         return {}
 
     try:
@@ -361,13 +417,7 @@ def decide(repo_root: Path, command: str) -> dict[str, object]:
         return _deny(_summarize(findings))
 
     if findings:
-        return {
-            "hookSpecificOutput": {
-                "hookEventName": HOOK_EVENT_NAME,
-                "permissionDecision": "allow",
-                "additionalContext": _summarize(findings),
-            }
-        }
+        return _allow(_summarize(findings))
 
     return {}
 
@@ -375,12 +425,12 @@ def decide(repo_root: Path, command: str) -> dict[str, object]:
 def main(stdin: TextIO = sys.stdin, stdout: TextIO = sys.stdout) -> int:
     try:
         payload = json.load(stdin)
-        repo_root = Path(payload["cwd"])
+        cwd = Path(payload["cwd"])
         command = payload.get("tool_input", {}).get("command", "")
     except (json.JSONDecodeError, KeyError, AttributeError, TypeError) as e:
         json.dump(_deny(f"malformed PreToolUse payload: {e!r}"), stdout)
         return 0
-    json.dump(decide(repo_root, command), stdout)
+    json.dump(decide(cwd, command), stdout)
     return 0
 
 

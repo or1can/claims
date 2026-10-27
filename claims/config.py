@@ -53,6 +53,17 @@ def load_config(repo_root: Path) -> dict[str, dict[str, object]]:
     return _load_toml(repo_root / CONFIG_FILENAME)
 
 
+def has_config(repo_root: Path) -> bool:
+    """Whether `repo_root` has a `claims.toml` at all, empty or not — the
+    commit hook's opt-in (`decisions/0006-claims-toml-opts-in-to-the-commit-hook.md`).
+    Asked apart from `load_config`, whose `{}` for a missing file is
+    indistinguishable from an empty one and is what lets the CLI run
+    anywhere on defaults.
+    """
+
+    return (repo_root / CONFIG_FILENAME).is_file()
+
+
 def load_local_config(repo_root: Path) -> dict[str, dict[str, object]]:
     """`claims.local.toml`'s own tables — same shape and error handling as
     `load_config`, just a different, git-ignored file. `{}` when the file

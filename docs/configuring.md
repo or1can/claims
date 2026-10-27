@@ -6,9 +6,15 @@ with its shape and default. This page is everything else.
 
 ## Two files
 
-`claims.toml`, at the repository root, is optional and committed. No file
-at all means every check runs with its own defaults. Where present, each
-top-level table is one check's own section, named for the check:
+`claims.toml`, at the repository root, is committed, and its presence is
+what opts a repository in to the commit hook. Without it the hook does
+nothing: no check runs and a commit goes through unremarked. An empty file
+opts in with every check on its own defaults. The `check-claims` skill and
+the CLI are asked for explicitly, so they run anywhere, a missing file
+meaning every check on its defaults; see
+[ADR 0006](../decisions/0006-claims-toml-opts-in-to-the-commit-hook.md)
+for why only the hook asks. Each top-level table is one check's own
+section, named for the check:
 
 ```toml
 [check-links]

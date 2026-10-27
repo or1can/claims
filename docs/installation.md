@@ -23,6 +23,16 @@ install gives the project the `check-claims` skill, the `PreToolUse` hook
 that gates `git commit`, and the `judgment-agent` subagent the skill
 invokes.
 
+The hook gates a commit only in a repository with a `claims.toml` at its
+root, and an empty one is enough. Create it to turn the gate on:
+
+```sh
+touch claims.toml
+```
+
+Without it the hook does nothing, so a session that moves on to another
+repository does not start gating that repository's commits.
+
 `--scope project` writes both declarations into the project's own
 `.claude/settings.json`, so the dependency is explicit and travels with the
 repository, and a second developer cloning it is offered the same install.
@@ -123,8 +133,10 @@ failure(s)`, and exits with:
   reported as a failure and not as a clean pass;
 - `2` when `claims.toml` exists and does not parse.
 
-The commit hook and the CLI differ in a single respect. The hook honours
-the switches that take a check, or the gate as a whole, out of the
+The commit hook and the CLI differ in two respects. The hook runs only in
+a repository with a root `claims.toml`, and the CLI runs anywhere, with
+every check on its defaults where the file is missing. The hook also
+honours the switches that take a check, or the gate as a whole, out of the
 commit-time decision, and the CLI ignores both, so a check silenced at
 commit time is still reported here. Those switches are on
 [Configuring `claims`](configuring.md).
@@ -174,10 +186,12 @@ half sets up does not happen here:
 
 ## `claims.toml`
 
-Optional, at the consuming project's repository root. No file at all means
-each check runs with its own defaults, so there is nothing to configure to
-get started. Where present, each top-level table is a single check's own
-configuration section, named for the check.
+At the consuming project's repository root, and required for the commit
+hook: without it the hook runs no check. An empty file opts in with each
+check on its own defaults, so there is nothing more to configure to get
+started. The `check-claims` skill and the CLI run with or without it. Each
+top-level table is a single check's own configuration section, named for
+the check.
 
 A check's own keys are documented with that check. The settings no single
 check owns, switching the commit gate off, silencing a check at commit

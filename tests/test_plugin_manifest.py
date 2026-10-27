@@ -78,9 +78,9 @@ class PluginManifestTests(unittest.TestCase):
         # defeats a commit-specific pattern for exactly the agent-
         # authored commands (heredocs, command substitutions) this hook
         # most needs to filter correctly. `claims.hook`'s own
-        # `_is_git_commit` (see tests/test_hook.py) does the fine-grained
+        # `_commit_dirs` (see tests/test_hook.py) does the fine-grained
         # "is it specifically a commit" narrowing in Python instead.
-        # `if` holds one rule only, so each command name `_is_git_commit`
+        # `if` holds one rule only, so each command name `_commit_dirs`
         # looks inside (ticket #85) gets its own copy of the handler —
         # without one, `bash -c "git commit"` never reaches the hook.
         manifest = _load(".claude-plugin/plugin.json")
