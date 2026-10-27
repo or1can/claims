@@ -105,11 +105,11 @@ does with each construct, not one blanket "ignore anything quoted" rule:
   escaped ordinary character (`` \\grep ``, a common way to bypass a shell
   alias of the same name) keeps its own identity, or `grep` piped through
   that way would silently stop matching `TEXT_PROCESSING_TOOLS`. Unlike
-  `claims/hook.py`'s `_commit_dirs` — where "can't parse it" safely
-  means "assume the risky case, keep gating" — unparseable input here
-  (unbalanced quotes) is itself the rejection reason: this check's whole
-  job is deciding whether a command is safe to run, so failing open on
-  "couldn't tell" would be backwards.
+  `claims/hook.py`'s `_commit_dirs` — which reads a command it can't
+  tokenize as not a commit, having no tokens to search — unparseable
+  input here (unbalanced quotes) is itself the rejection reason: this
+  check's whole job is deciding whether a command is safe to run, so
+  failing open on "couldn't tell" would be backwards.
 - A command substitution is checked differently, because quoting doesn't
   neutralize it the same way: single quotes fully suppress `` ` ``/`$(`,
   but *double* quotes don't — `` echo "$(cat secrets)" `` still expands.
