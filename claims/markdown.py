@@ -33,6 +33,10 @@ check asks whether something **is** backticked; `temporal-words` is the
 first to need the opposite polarity — a match inside an inline code span
 is example syntax, not prose making a claim.
 
+`prose_lines` is `fence_state` applied for a check that reads whole
+sentences: `temporal-words` held it privately until `claim-words` needed
+the same treatment of fenced blocks.
+
 `slug` and `slugs_of` are the heading-slug rule `check-links` ported from
 Project B's `scripts/slugs.sh`, moved here once `stale-claims` needed to
 resolve the same anchors to a heading (#110): two copies of a slug rule
@@ -105,6 +109,18 @@ def fence_state(lines: Sequence[str]) -> list[bool]:
             continue
         in_fence.append(open_fence is not None)
     return in_fence
+
+
+def prose_lines(lines: Sequence[str]) -> str:
+    """`lines` with every fenced line blanked, rejoined.
+
+    Blanking rather than dropping keeps each surviving sentence's line
+    numbers the file's own, and makes a fenced block a paragraph break —
+    a sentence never runs through one.
+    """
+
+    in_fence = fence_state(lines)
+    return "\n".join("" if fenced else line for line, fenced in zip(lines, in_fence))
 
 
 def slug(heading: str) -> str:

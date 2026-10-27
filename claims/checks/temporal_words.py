@@ -78,7 +78,7 @@ out before matching rather than searched — `claims.markdown`'s
 from __future__ import annotations
 
 import re
-from collections.abc import Mapping, Sequence
+from collections.abc import Mapping
 from pathlib import Path
 
 from ..config import path_matches, string_list_config
@@ -87,8 +87,8 @@ from ..markdown import (
     CODE_SPAN_RE,
     ITALIC_RE,
     RETIRED_LEAD_IN,
-    fence_state,
     mask_code_spans,
+    prose_lines,
     sentences_from,
 )
 from ..runner import Finding, register_check
@@ -159,18 +159,6 @@ def _classify(sentence: str) -> list[str]:
     return modes
 
 
-def _prose_lines(lines: Sequence[str]) -> str:
-    """`lines` with every fenced line blanked, rejoined.
-
-    Blanking rather than dropping keeps each surviving sentence's line
-    numbers the file's own, and makes a fenced block a paragraph break —
-    a sentence never runs through one.
-    """
-
-    in_fence = fence_state(lines)
-    return "\n".join("" if fenced else line for line, fenced in zip(lines, in_fence))
-
-
 def check(
     repo_root: Path, diff_range: str, config: Mapping[str, object]
 ) -> list[Finding]:
@@ -190,7 +178,7 @@ def check(
             continue
         zero_based_added = {n - 1 for n in added_line_numbers}
 
-        for sentence, start, end in sentences_from(_prose_lines(text.splitlines())):
+        for sentence, start, end in sentences_from(prose_lines(text.splitlines())):
             if zero_based_added.isdisjoint(range(start, end + 1)):
                 continue
             if _is_retired_quote(sentence):
