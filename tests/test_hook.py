@@ -23,8 +23,11 @@ from __future__ import annotations
 
 import io
 import json
+import os
 import tempfile
 import unittest
+from collections.abc import Iterator
+from contextlib import contextmanager
 from pathlib import Path
 
 from claims.checks import check_file_refs, check_links
@@ -40,6 +43,29 @@ PRE_TOOL_USE_PAYLOAD = {
     "tool_name": "Bash",
     "tool_input": {"command": "git commit -m test"},
 }
+
+
+@contextmanager
+def _opted_in_repo() -> Iterator[str]:
+    """A git repository with an empty root `claims.toml`: opted in to the
+    commit hook, every check on its defaults."""
+
+    with Repo() as repo:
+        (repo.root / "claims.toml").write_text("")
+        yield str(repo.root)
+
+
+def _register_gate_where(marker: str) -> None:
+    """A check gating only a repository whose root holds `marker`."""
+
+    register_check(
+        "marked-gate",
+        lambda repo_root, diff_range, config: [
+            Finding(file="a.md", line=1, message="bad", mode="marked-gate", gate=True)
+        ]
+        if (repo_root / marker).exists()
+        else [],
+    )
 
 
 class HookTests(RegistryClearingTestCase):
@@ -64,7 +90,7 @@ class HookTests(RegistryClearingTestCase):
         return bool(ran)
 
     def test_a_non_git_commit_bash_command_never_runs_the_checks(self) -> None:
-        with tempfile.TemporaryDirectory() as repo_root:
+        with _opted_in_repo() as repo_root:
             self.assertFalse(self._ran_checks(repo_root, "echo hello"))
 
     def test_commands_that_are_not_a_git_commit_despite_looking_close(self) -> None:
@@ -83,7 +109,7 @@ class HookTests(RegistryClearingTestCase):
         ]
         for command in not_commits:
             with self.subTest(command=command):
-                with tempfile.TemporaryDirectory() as repo_root:
+                with _opted_in_repo() as repo_root:
                     self.assertFalse(self._ran_checks(repo_root, command))
 
     def test_a_false_positive_this_deliberately_accepts(self) -> None:
@@ -98,11 +124,11 @@ class HookTests(RegistryClearingTestCase):
         false_positives = ["grep git commit test.txt", "history | grep git commit"]
         for command in false_positives:
             with self.subTest(command=command):
-                with tempfile.TemporaryDirectory() as repo_root:
+                with _opted_in_repo() as repo_root:
                     self.assertTrue(self._ran_checks(repo_root, command))
 
     def test_a_non_string_command_is_treated_as_not_a_commit(self) -> None:
-        with tempfile.TemporaryDirectory() as repo_root:
+        with _opted_in_repo() as repo_root:
             self.assertFalse(self._ran_checks(repo_root, 123))  # type: ignore[arg-type]
 
     def test_git_commit_variants_all_run_the_checks(self) -> None:
@@ -110,7 +136,7 @@ class HookTests(RegistryClearingTestCase):
             # A global option between `git` and `commit` (taking its own
             # value or not) must not be missed.
             'git add -A && git commit -m "message"',
-            'git -C /tmp commit -m "message"',
+            'git -C . commit -m "message"',
             'git -c user.name=x commit -m "message"',
             "git --no-pager commit --amend",
             "git --config-env foo.bar=SOME_VAR commit -m x",
@@ -122,7 +148,7 @@ class HookTests(RegistryClearingTestCase):
         ]
         for command in commits:
             with self.subTest(command=command):
-                with tempfile.TemporaryDirectory() as repo_root:
+                with _opted_in_repo() as repo_root:
                     self.assertTrue(self._ran_checks(repo_root, command))
 
     def _denied(self, repo_root: str, command: str) -> bool:
@@ -147,7 +173,7 @@ class HookTests(RegistryClearingTestCase):
         ]
         for command in commits:
             with self.subTest(command=command):
-                with tempfile.TemporaryDirectory() as repo_root:
+                with _opted_in_repo() as repo_root:
                     self.assertTrue(self._denied(repo_root, command))
 
     def test_a_nested_shell_that_does_not_commit_is_not_a_commit(self) -> None:
@@ -159,7 +185,7 @@ class HookTests(RegistryClearingTestCase):
         ]
         for command in not_commits:
             with self.subTest(command=command):
-                with tempfile.TemporaryDirectory() as repo_root:
+                with _opted_in_repo() as repo_root:
                     self.assertFalse(self._ran_checks(repo_root, command))
 
     def test_a_git_alias_resolving_to_commit_is_denied(self) -> None:
@@ -172,12 +198,24 @@ class HookTests(RegistryClearingTestCase):
         for name, (expansion, command) in aliases.items():
             with self.subTest(alias=name):
                 with Repo() as repo:
+                    (repo.root / "claims.toml").write_text("")
                     repo.config("alias.ci", "commit")
                     repo.config(f"alias.{name}", expansion)
                     self.assertTrue(self._denied(str(repo.root), command))
 
+    def test_a_shell_alias_runs_from_the_top_level_not_the_cwd(self) -> None:
+        # Git runs a `!` alias from the work tree's top level, so a `-C`
+        # inside it resolves against that, not the subdirectory it was
+        # invoked from.
+        with Repo() as repo:
+            (repo.root / "claims.toml").write_text("")
+            (repo.root / "sub").mkdir()
+            repo.config("alias.x", "!git -C sub commit")
+            self.assertTrue(self._denied(str(repo.root / "sub"), "git x -m y"))
+
     def test_a_git_alias_not_resolving_to_commit_is_not_a_commit(self) -> None:
         with Repo() as repo:
+            (repo.root / "claims.toml").write_text("")
             repo.config("alias.st", "status")
             # Git ignores an alias that shadows a built-in command.
             repo.config("alias.tag", "commit")
@@ -194,7 +232,7 @@ class HookTests(RegistryClearingTestCase):
                 Finding(file="a.md", line=1, message="bad", mode="failing-gate", gate=True)
             ],
         )
-        with tempfile.TemporaryDirectory() as repo_root:
+        with _opted_in_repo() as repo_root:
             output = self._run_main(repo_root)
 
         hook_output = output["hookSpecificOutput"]
@@ -209,7 +247,7 @@ class HookTests(RegistryClearingTestCase):
                 Finding(file="a.md", line=1, message="fyi", mode="advisory-check", gate=False)
             ],
         )
-        with tempfile.TemporaryDirectory() as repo_root:
+        with _opted_in_repo() as repo_root:
             output = self._run_main(repo_root)
 
         hook_output = output["hookSpecificOutput"]
@@ -224,7 +262,7 @@ class HookTests(RegistryClearingTestCase):
                 Finding(file="a.md", line=1, message="bad", mode="failing-gate", gate=True)
             ],
         )
-        with tempfile.TemporaryDirectory() as repo_root:
+        with _opted_in_repo() as repo_root:
             (Path(repo_root) / "claims.toml").write_text("[hook]\nenabled = false\n")
             output = self._run_main(repo_root)
 
@@ -237,7 +275,7 @@ class HookTests(RegistryClearingTestCase):
                 Finding(file="a.md", line=1, message="bad", mode="failing-gate", gate=True)
             ],
         )
-        with tempfile.TemporaryDirectory() as repo_root:
+        with _opted_in_repo() as repo_root:
             (Path(repo_root) / "claims.toml").write_text("[failing-gate]\nenabled = false\n")
             output = self._run_main(repo_root)
 
@@ -252,7 +290,7 @@ class HookTests(RegistryClearingTestCase):
                 Finding(file="a.md", line=1, message="fyi", mode="advisory-check", gate=False)
             ],
         )
-        with tempfile.TemporaryDirectory() as repo_root:
+        with _opted_in_repo() as repo_root:
             (Path(repo_root) / "claims.toml").write_text(
                 "[advisory-check]\nenabled = false\n"
             )
@@ -268,7 +306,7 @@ class HookTests(RegistryClearingTestCase):
             ],
         )
         register_check("clean-check", lambda repo_root, diff_range, config: [])
-        with tempfile.TemporaryDirectory() as repo_root:
+        with _opted_in_repo() as repo_root:
             (Path(repo_root) / "claims.toml").write_text("[clean-check]\nenabled = false\n")
             output = self._run_main(repo_root)
 
@@ -296,7 +334,7 @@ class HookTests(RegistryClearingTestCase):
                 )
             ],
         )
-        with tempfile.TemporaryDirectory() as repo_root:
+        with _opted_in_repo() as repo_root:
             (Path(repo_root) / "claims.toml").write_text(
                 "[multi-mode-check]\nenabled = false\n"
             )
@@ -314,7 +352,7 @@ class HookTests(RegistryClearingTestCase):
         # correct outcome, a loud gate finding via the ticket-#21 gate on
         # a top-level name naming no registered check.
         register_check("any-check", lambda repo_root, diff_range, config: [])
-        with tempfile.TemporaryDirectory() as repo_root:
+        with _opted_in_repo() as repo_root:
             (Path(repo_root) / "claims.toml").write_text("enabled = false\n")
             output = self._run_main(repo_root)
 
@@ -328,7 +366,7 @@ class HookTests(RegistryClearingTestCase):
         # unrecognized, or this becomes a self-silencing escape hatch from
         # the one whole-config safety net this plugin has.
         register_check("any-check", lambda repo_root, diff_range, config: [])
-        with tempfile.TemporaryDirectory() as repo_root:
+        with _opted_in_repo() as repo_root:
             (Path(repo_root) / "claims.toml").write_text(
                 "[config]\nenabled = false\n[not-a-real-check]\nx = 1\n"
             )
@@ -350,14 +388,14 @@ class HookTests(RegistryClearingTestCase):
                 Finding(file="a.md", line=1, message="bad", mode="check-something", gate=True)
             ],
         )
-        with tempfile.TemporaryDirectory() as repo_root:
+        with _opted_in_repo() as repo_root:
             (Path(repo_root) / "claims.toml").write_text("[check]\nenabled = false\n")
             output = self._run_main(repo_root)
 
         self.assertEqual(output["hookSpecificOutput"]["permissionDecision"], "deny")
 
     def test_zero_checks_registered_denies_never_a_silent_clean_pass(self) -> None:
-        with tempfile.TemporaryDirectory() as repo_root:
+        with _opted_in_repo() as repo_root:
             output = self._run_main(repo_root)
 
         hook_output = output["hookSpecificOutput"]
@@ -377,7 +415,7 @@ class HookTests(RegistryClearingTestCase):
                 Finding(file="b.md", line=2, message="fyi", mode="advisory-check", gate=False)
             ],
         )
-        with tempfile.TemporaryDirectory() as repo_root:
+        with _opted_in_repo() as repo_root:
             output = self._run_main(repo_root)
 
         reason = output["hookSpecificOutput"]["permissionDecisionReason"]
@@ -386,14 +424,14 @@ class HookTests(RegistryClearingTestCase):
 
     def test_no_findings_is_a_noop(self) -> None:
         register_check("clean-check", lambda repo_root, diff_range, config: [])
-        with tempfile.TemporaryDirectory() as repo_root:
+        with _opted_in_repo() as repo_root:
             output = self._run_main(repo_root)
 
         self.assertEqual(output, {})
 
     def test_malformed_config_denies_rather_than_crashing(self) -> None:
         register_check("any-check", lambda repo_root, diff_range, config: [])
-        with tempfile.TemporaryDirectory() as repo_root:
+        with _opted_in_repo() as repo_root:
             (Path(repo_root) / "claims.toml").write_text("not valid toml [[[")
             output = self._run_main(repo_root)
 
@@ -411,7 +449,7 @@ class HookTests(RegistryClearingTestCase):
         self.assertEqual(output["hookSpecificOutput"]["permissionDecision"], "deny")
 
     def test_a_null_tool_input_denies_rather_than_crashing(self) -> None:
-        with tempfile.TemporaryDirectory() as repo_root:
+        with _opted_in_repo() as repo_root:
             payload = {**PRE_TOOL_USE_PAYLOAD, "cwd": repo_root, "tool_input": None}
             stdin = io.StringIO(json.dumps(payload))
             stdout = io.StringIO()
@@ -433,6 +471,72 @@ class HookTests(RegistryClearingTestCase):
                 self.assertEqual(
                     output["hookSpecificOutput"]["permissionDecision"], "deny"
                 )
+
+    def _denied_by_marked_gate(self, cwd: str, command: str) -> bool:
+        clear_registry()
+        _register_gate_where("gate-me")
+        output = self._run_main(cwd, command=command)
+        return output.get("hookSpecificOutput", {}).get("permissionDecision") == "deny"
+
+    def test_a_repo_with_no_claims_toml_runs_no_check(self) -> None:
+        # #118: the plugin's hook follows the session, not the repository
+        # being committed to, so only a root `claims.toml` opts a
+        # repository in.
+        with Repo() as repo:
+            self.assertFalse(self._ran_checks(str(repo.root), "git commit -m x"))
+            self.assertEqual(self._run_main(str(repo.root)), {})
+
+    def test_a_directory_outside_any_git_repo_runs_no_check(self) -> None:
+        with tempfile.TemporaryDirectory() as cwd:
+            (Path(cwd) / "claims.toml").write_text("")
+            self.assertFalse(self._ran_checks(cwd, "git commit -m x"))
+
+    def test_a_subdirectory_cwd_reads_the_root_config_over_the_whole_repo(self) -> None:
+        seen: list[tuple[Path, object]] = []
+        register_check(
+            "spy-check",
+            lambda repo_root, diff_range, config: (seen.append((repo_root, config)), [])[1],
+        )
+        with Repo() as repo:
+            (repo.root / "claims.toml").write_text("[spy-check]\nx = 1\n")
+            (repo.root / "sub").mkdir()
+            self._run_main(str(repo.root / "sub"))
+
+            self.assertEqual(len(seen), 1)
+            self.assertEqual(seen[0][0].resolve(), repo.root.resolve())
+            self.assertEqual(seen[0][1], {"x": 1})
+
+    def test_git_dash_c_into_a_repo_that_has_not_opted_in_is_not_gated(self) -> None:
+        with Repo() as here, Repo() as other:
+            (here.root / "claims.toml").write_text("")
+            (here.root / "gate-me").write_text("")
+            (other.root / "gate-me").write_text("")
+            command = f"git -C {other.root} commit -m x"
+            self.assertFalse(self._denied_by_marked_gate(str(here.root), command))
+
+    def test_git_dash_c_into_an_opted_in_repo_is_gated(self) -> None:
+        with Repo() as here, Repo() as other:
+            (other.root / "claims.toml").write_text("")
+            (other.root / "gate-me").write_text("")
+            relative = os.path.relpath(other.root, here.root)
+            commands = [
+                f"git -C {other.root} commit -m x",
+                f"git -C {relative} commit -m x",
+                f"git -C {other.root.parent} -C {other.root.name} commit -m x",
+            ]
+            for command in commands:
+                with self.subTest(command=command):
+                    self.assertTrue(self._denied_by_marked_gate(str(here.root), command))
+
+    def test_one_command_committing_to_two_repos_is_denied_if_either_gates(self) -> None:
+        with Repo() as clean, Repo() as gated:
+            (clean.root / "claims.toml").write_text("")
+            (gated.root / "claims.toml").write_text("")
+            (gated.root / "gate-me").write_text("")
+            for cwd, other in ((clean.root, gated.root), (gated.root, clean.root)):
+                command = f"git commit -m x && git -C {other} commit -m y"
+                with self.subTest(cwd=cwd):
+                    self.assertTrue(self._denied_by_marked_gate(str(cwd), command))
 
     def _decide_on_removal(self, line: str) -> dict:
         # #116, end to end: the commit recording a removal in a `historical`

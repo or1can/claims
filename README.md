@@ -87,7 +87,8 @@ instead.
 Distributed as a direct git-URL Claude Code plugin — no marketplace listing
 — pinned at install rather than always-latest, so an unreviewed upstream
 change can't silently start gating a commit differently mid-project. The
-automatic hook can be disabled per project without uninstalling, via
+automatic hook gates only a repository with a `claims.toml` at its root —
+an empty one opts in — and can be disabled per project without uninstalling, via
 `[hook]\nenabled = false` in that project's `claims.toml`. See
 [`docs/installation.md`](docs/installation.md) for the actual commands —
 including "Using it outside Claude Code", the setup for running the same

@@ -294,3 +294,16 @@ def head_commit(repo_root: Path) -> str | None:
         errors="replace",
     )
     return result.stdout.strip() if result.returncode == 0 else None
+
+
+def toplevel(directory: Path) -> Path | None:
+    """The top level of the git work tree `directory` is in, or `None` if
+    it isn't in one."""
+
+    result = subprocess.run(
+        ["git", "-C", str(directory), "rev-parse", "--show-toplevel"],
+        capture_output=True,
+        text=True,
+        errors="replace",
+    )
+    return Path(result.stdout.strip()) if result.returncode == 0 else None

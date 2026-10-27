@@ -11,6 +11,16 @@ reached you, not just that one was pushed upstream.
 
 ## [Unreleased]
 
+## [0.14.0] - 2026-10-27
+
+- Changed: the commit hook runs only in a repository with a `claims.toml`
+  at its root, so a project without one must add one, an empty file is
+  enough, to keep its commits gated. The CLI and the `check-claims` skill
+  still run anywhere on defaults.
+- Fixed: a commit is decided in the repository it targets. A session in a
+  subdirectory reads the root `claims.toml` and checks the whole repository,
+  and `git -C <path> commit` is decided in `<path>`'s repository.
+
 ## [0.13.6] - 2026-10-27
 
 - Fixed: `claim-words` no longer reads sentences inside a fenced code

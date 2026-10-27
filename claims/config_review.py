@@ -29,12 +29,12 @@ step, not something this helper decides.
 
 from __future__ import annotations
 
-import subprocess
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from pathlib import Path
 
 from .config import path_matches, string_list_config
+from .git import toplevel as git_toplevel
 from .git import tracked_files
 
 # Every check's own glob-shaped config key, matched against the tracked
@@ -104,15 +104,6 @@ class ConfigValueMatch:
     error: str | None = None
 
 
-def _repo_toplevel(repo_root: Path) -> Path | None:
-    result = subprocess.run(
-        ["git", "-C", str(repo_root), "rev-parse", "--show-toplevel"],
-        capture_output=True,
-        text=True,
-    )
-    return Path(result.stdout.strip()) if result.returncode == 0 else None
-
-
 def _read_values(section: Mapping[str, object], key: str) -> tuple[list[str], str | None]:
     """`section[key]` as a list of strings, or `([], error)` if it can't
     be read as one — including a list whose own elements aren't all
@@ -155,7 +146,7 @@ def config_value_matches(
     against.
     """
 
-    toplevel = _repo_toplevel(repo_root)
+    toplevel = git_toplevel(repo_root)
     if toplevel is None or toplevel.resolve() != repo_root.resolve():
         raise ValueError(
             f"{repo_root} is not a git repository's own top level "
