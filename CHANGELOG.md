@@ -11,6 +11,13 @@ reached you, not just that one was pushed upstream.
 
 ## [Unreleased]
 
+## [0.14.1] - 2026-10-27
+
+- Fixed: a commit with only advisory findings no longer skips Claude
+  Code's permission prompt. The hook attaches the findings as context and
+  leaves the decision to your own permission rules, where it used to
+  answer `allow`.
+
 ## [0.14.0] - 2026-10-27
 
 - Changed: the commit hook runs only in a repository with a `claims.toml`

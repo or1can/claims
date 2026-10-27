@@ -352,11 +352,12 @@ def _deny(reason: str) -> dict[str, object]:
     }
 
 
-def _allow(context: str) -> dict[str, object]:
+def _advise(context: str) -> dict[str, object]:
+    # No `permissionDecision`: `allow` would skip the user's own permission
+    # prompt for the command, and an advisory finding only adds context.
     return {
         "hookSpecificOutput": {
             "hookEventName": HOOK_EVENT_NAME,
-            "permissionDecision": "allow",
             "additionalContext": context,
         }
     }
@@ -380,10 +381,10 @@ def decide(cwd: Path, command: str) -> dict[str, object]:
         hook_output = output.get("hookSpecificOutput")
         if not isinstance(hook_output, dict):
             continue
-        if hook_output["permissionDecision"] == "deny":
+        if hook_output.get("permissionDecision") == "deny":
             return output
         contexts.append(hook_output["additionalContext"])
-    return _allow("\n".join(contexts)) if contexts else {}
+    return _advise("\n".join(contexts)) if contexts else {}
 
 
 def _decide_repo(repo_root: Path) -> dict[str, object]:
@@ -417,7 +418,7 @@ def _decide_repo(repo_root: Path) -> dict[str, object]:
         return _deny(_summarize(findings))
 
     if findings:
-        return _allow(_summarize(findings))
+        return _advise(_summarize(findings))
 
     return {}
 
