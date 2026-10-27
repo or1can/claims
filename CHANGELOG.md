@@ -11,6 +11,16 @@ reached you, not just that one was pushed upstream.
 
 ## [Unreleased]
 
+## [0.15.0] - 2026-10-27
+
+- Added: `claims` runs as a git `pre-commit` hook, so a commit made
+  outside Claude Code is gated too. Use the `claims` hook id from
+  pre-commit.com, or run `claims-pre-commit` through `uvx` from lefthook,
+  husky or a plain `.git/hooks/pre-commit`; see `docs/installation.md`.
+  It makes the same decision as the plugin's hook, which is unchanged.
+- Added: releases are tagged `v<version>`, for a hook's `rev:` or `@<tag>`
+  to pin.
+
 ## [0.14.1] - 2026-10-27
 
 - Fixed: a commit with only advisory findings no longer skips Claude

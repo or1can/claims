@@ -36,8 +36,8 @@ see `AGENTS.md`'s Typechecking section.
   use Conventional Commits prefixes.
 - **Repo conventions in depth** live in `AGENTS.md` — the change-loop
   (specification → red → code → green → prose), surgical-changes and
-  constant-gardening principles, and the versioning policy for
-  `.claude-plugin/plugin.json`. Both human and AI contributors follow it.
+  constant-gardening principles, and the versioning and release-tagging
+  policy. Both human and AI contributors follow it.
 - **Checks**: each check's page under `docs/checks/` documents what it
   verifies and, as importantly, what it doesn't; its module docstring
   under `claims/checks/` holds the reasoning behind that shape — read

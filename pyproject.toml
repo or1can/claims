@@ -1,11 +1,20 @@
 [project]
 name = "claims"
-version = "0.1.0"
+version = "0.15.0"
+description = "Checks documentation and agent-instruction claims against the code they describe."
+license = "Apache-2.0"
 requires-python = ">=3.11"
 dependencies = []
 
-[tool.uv]
-package = false
+[project.urls]
+Homepage = "https://github.com/or1can/claims"
+
+[project.scripts]
+claims-pre-commit = "claims.pre_commit:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
 
 [dependency-groups]
 dev = ["pyright==1.1.414"]

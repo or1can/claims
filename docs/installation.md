@@ -110,14 +110,105 @@ Checking for updates for plugin "claims@claims" at user scope…
 Captured from the same throwaway project as the inventory above, both
 forms run after the project-scoped install.
 
-## Using it outside Claude Code
+## As a git `pre-commit` hook
 
-The automatic gate fires through Claude Code's own `PreToolUse` hook
-alone. A `git commit` run by a person in a plain terminal,
-or by a CI job, is not gated by it, and the plugin is not a push-time or
-CI check by itself. The same checks are also a plain command line,
-`python3 -m claims.cli`, which the hook and the on-demand skill both sit
-on top of, so it works as a git pre-commit hook or a CI step:
+The plugin's hook fires only on a commit Claude Code makes. A `git commit`
+run by a person in a terminal, or by any other tool, is gated by the git
+`pre-commit` hook instead, which runs the same per-repository decision:
+
+- no root `claims.toml`, or `[hook] enabled = false` in it: nothing runs,
+  and the commit goes ahead;
+- a check switched off with its own `enabled = false` is left out, as it
+  is from the plugin's hook;
+- a gate finding, a `claims.toml` that does not parse, or no check
+  registered at all: the findings or the reason are printed, and the
+  commit is blocked;
+- advisory findings only: they are printed, and the commit goes ahead.
+
+An error inside `claims` itself prints a warning and lets the commit go
+ahead, so a broken install does not block every commit.
+
+The hook is a Python package with no third-party dependency, and needs
+Python 3.11 or later. Its command is `claims-pre-commit`, which takes no
+arguments and runs in the repository git calls it from. Each release is
+tagged `v<version>` in this repository, and every setup below pins one.
+
+pre-commit and `uvx` each run the hook in an environment of their own,
+put first on `PATH`, and a command granted in `claims.local.toml` runs
+with that `PATH` too. `python3` in a granted command is then the hook's
+own Python, without the project's dependencies, so a claim about a Python
+command's output can fail under the git hook where it passes through the
+plugin's hook or the command line.
+
+### pre-commit
+
+With [pre-commit](https://pre-commit.com), add the hook to the project's
+`.pre-commit-config.yaml`:
+
+```yaml
+repos:
+  - repo: https://github.com/or1can/claims
+    rev: <tag>
+    hooks:
+      - id: claims
+```
+
+Then `pre-commit install`, as for any other hook. pre-commit builds its
+own environment for the hook, so nothing else needs installing.
+
+### lefthook, husky, or a plain git hook
+
+The other setups run the command through
+[`uvx`](https://docs.astral.sh/uv/guides/tools/), which fetches the tagged
+release into a cached environment of its own. With lefthook, in
+`lefthook.yml`:
+
+```yaml
+pre-commit:
+  commands:
+    claims:
+      run: uvx --from git+https://github.com/or1can/claims@<tag> claims-pre-commit
+```
+
+With husky, in `.husky/pre-commit`:
+
+```sh
+uvx --from git+https://github.com/or1can/claims@<tag> claims-pre-commit
+```
+
+As a plain git hook, in `.git/hooks/pre-commit`, made executable:
+
+```sh
+#!/bin/sh
+exec uvx --from git+https://github.com/or1can/claims@<tag> claims-pre-commit
+```
+
+`pip install git+https://github.com/or1can/claims@<tag>` installs the same
+`claims-pre-commit` command, for a setup that calls it from an existing
+environment instead.
+
+### Skipping the hook
+
+`git commit --no-verify` skips every git `pre-commit` hook, this one
+included. To stop Claude Code from using it, add a deny rule to the
+project's `.claude/settings.json`:
+
+```json
+{
+  "permissions": {
+    "deny": ["Bash(git commit *--no-verify*)"]
+  }
+}
+```
+
+The rule matches the flag anywhere after `git commit`. It does not match
+the short form `-n`, or a commit made any way other than a plain `git
+commit` command, so it stops the obvious route rather than every one.
+
+## The command line
+
+The same checks are also a plain command line, `python3 -m claims.cli`,
+for a CI step or a one-off run:
 
 ```sh
 python3 -m claims.cli --repo-root <path> --diff-range <range>
@@ -133,50 +224,39 @@ failure(s)`, and exits with:
   reported as a failure and not as a clean pass;
 - `2` when `claims.toml` exists and does not parse.
 
-The commit hook and the CLI differ in two respects. The hook runs only in
+The commit hooks and the CLI differ in two respects. The hooks run only in
 a repository with a root `claims.toml`, and the CLI runs anywhere, with
-every check on its defaults where the file is missing. The hook also
-honours the switches that take a check, or the gate as a whole, out of the
+every check on its defaults where the file is missing. The hooks also
+honour the switches that take a check, or the gate as a whole, out of the
 commit-time decision, and the CLI ignores both, so a check silenced at
 commit time is still reported here. Those switches are on
 [Configuring `claims`](configuring.md).
 
-`claims` is not pip-installable: it is a plain package with no build
-system, needing Python 3.11+ and no third-party package. Inside Claude Code
-it runs from the plugin cache, a per-user location the hook reaches
-through the `CLAUDE_PLUGIN_ROOT` variable Claude Code sets, and which does
-not exist on a CI runner. Outside Claude Code, get a checkout of this
-repository some other way, a pinned clone step in CI, a git submodule or a
-sibling checkout for a local pre-commit hook, and point `PYTHONPATH` at
-it:
-
-```sh
-# .git/hooks/pre-commit (executable)
-#!/bin/sh
-PYTHONPATH=/path/to/claims python3 -m claims.cli --repo-root .
-```
+The CLI runs from a checkout of this repository, pointed at with
+`PYTHONPATH`:
 
 ```yaml
 # a CI job step, e.g. GitHub Actions
 - uses: actions/checkout@v7
   with:
     repository: or1can/claims
-    ref: <pinned tag or commit>
+    ref: <tag>
     path: claims
 - run: PYTHONPATH=claims python3 -m claims.cli --repo-root .
 ```
 
-**What differs from the full Claude Code experience.** Each mechanical
-check runs as it does at commit time: the same gate and advisory split,
-the same exit code. What needs a model to interpret what the mechanical
-half sets up does not happen here:
+**What differs from the full Claude Code experience.** Outside Claude
+Code, through either the git hook or the CLI, each mechanical check runs
+as it does at commit time, with the same gate and advisory split. What
+needs a model to interpret what the mechanical half sets up does not
+happen here:
 
 - **`judgment-agent`'s candidates stay candidates.** The check computes
   which claims cite a subject the diff added or removed and reports each
   as an advisory finding. The verdict on each is a separate step, the
   `claims:judgment-agent` subagent, which the `check-claims` skill invokes
-  and the CLI does not. Run this way, the candidate lines are printed and
-  left, to read against the cited code yourself; see
+  and neither the git hook nor the CLI does. Run this way, the candidate
+  lines are printed and left, to read against the cited code yourself; see
   [judgment-agent](checks/judgment-agent.md).
 - **The skill's on-demand `claims.toml` review does not run.** Whether a
   project's own configuration is doing anything, a stale `exclude` glob
@@ -187,9 +267,9 @@ half sets up does not happen here:
 ## `claims.toml`
 
 At the consuming project's repository root, and required for the commit
-hook: without it the hook runs no check. An empty file opts in with each
-check on its own defaults, so there is nothing more to configure to get
-started. The `check-claims` skill and the CLI run with or without it. Each
+hooks: without it neither commit hook runs a check. An empty file opts in
+with each check on its own defaults, so there is nothing more to configure
+to get started. The `check-claims` skill and the CLI run with or without it. Each
 top-level table is a single check's own configuration section, named for
 the check.
 

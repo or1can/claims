@@ -38,10 +38,10 @@ each as a candidate for an agent to judge against the cited code.
 
 `claims` installs into a project as a Claude Code plugin: a hook that fires
 on `git commit`, and a skill that runs the same checks on demand mid-task.
-The checks are also a plain CLI, so the same run works as a git pre-commit
-hook or a CI step in a project that has never seen Claude Code.
+The same decision also runs as a git pre-commit hook, and the checks as a
+plain CLI for a CI step, in a project that has never seen Claude Code.
 
 ## Next
 
-[Installation](installation.md) has the commands, for a plugin install and
-for a standalone checkout alike.
+[Installation](installation.md) has the commands, for a plugin install, a git
+pre-commit hook and the CLI alike.
