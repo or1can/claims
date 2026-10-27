@@ -17,9 +17,10 @@ console command (#127): the same per-repository decision as the
 `PreToolUse` hook (`claims.gate`), for the repository git runs it in,
 reported through stderr and the exit code alone — `1` blocks the commit.
 
-An unexpected exception inside `claims` fails open, with a warning, rather
-than blocking: a broken install would otherwise block every commit in
-every repository using it, with `--no-verify` the only way past.
+An unexpected exception inside `claims`, an import error included, fails
+open, with a warning, rather than blocking: a broken install would
+otherwise block every commit in every repository using it, with
+`--no-verify` the only way past.
 """
 
 from __future__ import annotations
@@ -28,12 +29,14 @@ import sys
 from pathlib import Path
 from typing import TextIO
 
-from .gate import decide_repo
 
-
-def main(cwd: Path | None = None, stderr: TextIO = sys.stderr) -> int:
+def main(repo_root: Path | None = None, stderr: TextIO = sys.stderr) -> int:
     try:
-        decision = decide_repo(cwd or Path.cwd())
+        # Imported here, not at the top, so a check module that fails to
+        # import fails open too.
+        from .gate import decide_repo
+
+        decision = decide_repo(repo_root or Path.cwd())
     except Exception as e:
         print(f"claims: internal error, commit not checked: {e!r}", file=stderr)
         return 0

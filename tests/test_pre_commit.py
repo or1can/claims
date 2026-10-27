@@ -21,6 +21,7 @@ hook manager read from it (#127).
 from __future__ import annotations
 
 import io
+import sys
 import unittest
 from unittest import mock
 
@@ -108,6 +109,13 @@ class PreCommitTests(RegistryClearingTestCase):
             code, stderr = self._run(repo)
         self.assertEqual(code, 0)
         self.assertIn("boom", stderr)
+        self.assertIn("not checked", stderr)
+
+    def test_a_check_that_fails_to_import_fails_open_with_a_warning(self) -> None:
+        # A broken install most often fails at import, before any check runs.
+        with Repo() as repo, mock.patch.dict(sys.modules, {"claims.gate": None}):
+            code, stderr = self._run(repo)
+        self.assertEqual(code, 0)
         self.assertIn("not checked", stderr)
 
 

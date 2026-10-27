@@ -23,8 +23,8 @@ there is nothing to decide and no check runs.
 
 Besides `[hook] enabled = false`, which switches the whole decision off,
 a single check can be silenced from this decision alone via its own
-`enabled = false`
-(`_disabled_checks`, ticket #44) — e.g. `[stale-claims]\nenabled = false`.
+`enabled = false` (`_disabled_checks`, ticket #44) — e.g.
+`[stale-claims]\nenabled = false`.
 Both flags only ever affect this commit-time decision: `python3 -m
 claims.cli` and the `check-claims` skill both call `run()` directly and
 never read `[hook]` or a check's own `enabled` key at all, so a check
@@ -74,8 +74,8 @@ def _disabled_checks(
     guaranteed to even be a table (`config.py`'s own `_load_toml` return
     type is a lie past the top level — a bare `enabled = false` with no
     `[section]` at all is a real, unvalidated `bool`, not a `Mapping`,
-    and would otherwise crash this function, denying the hook process
-    itself and letting the commit land completely unchecked); and an
+    and would otherwise crash this function, letting the commit land
+    completely unchecked); and an
     unrecognized name here — `"config"`, the fixed `mode`
     `_unrecognized_table_findings` reports its own findings under, or any
     other typo — must never silence anything, since `[config] enabled =
@@ -103,7 +103,7 @@ def _finding_check(finding: Finding, names: frozenset[str]) -> str | None:
     `Finding`'s own contract guarantees. Checked here, not by adding a
     `check` field to `Finding` itself: that would need updating every
     existing test asserting a hand-built `Finding(...)` against a real
-    check's own output, for one hook-local filter.
+    check's own output, for one commit-time filter.
     """
 
     for name in names:
