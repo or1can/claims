@@ -71,10 +71,12 @@ class PluginManifestTests(unittest.TestCase):
         # Git decides when a commit happens, through its own `pre-commit`
         # hook (#128, `decisions/0007-git-decides-when-a-commit-happens.md`):
         # the plugin registers no `PreToolUse` hook, only the nudge that
-        # says when that git hook is missing.
+        # says when that git hook is missing. `UserPromptSubmit` stands in
+        # for `CwdChanged`, which Claude Code doesn't fire for a plugin
+        # (anthropics/claude-code#105625).
         manifest = _load(".claude-plugin/plugin.json")
         hooks = _load(manifest["hooks"])["hooks"]
-        self.assertEqual(set(hooks), {"SessionStart", "CwdChanged"})
+        self.assertEqual(set(hooks), {"SessionStart", "CwdChanged", "UserPromptSubmit"})
         for event, groups in hooks.items():
             with self.subTest(event=event):
                 [group] = groups

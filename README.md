@@ -55,7 +55,7 @@ Four invocation surfaces, same underlying checks:
   pre-commit.com, lefthook, husky or a plain `.git/hooks` script — see
   [`docs/installation.md`](docs/installation.md)'s "The git `pre-commit`
   hook". The plugin itself never blocks a commit: when a Claude Code
-  session starts in, or `cd`s into, a repository with a `claims.toml` but
+  session starts in, or moves into, a repository with a `claims.toml` but
   no hook installed, it says the gate isn't active.
 - **On demand, mid-task.** The `check-claims` skill runs the same checks
   outside of commit time — ask an agent to check claims, or invoke it

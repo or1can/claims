@@ -67,6 +67,16 @@ class NudgeTests(unittest.TestCase):
             (repo.root / "claims.toml").write_text("")
             self._assert_nudged_at_session_start(self._run(repo.root))
 
+    def test_the_nudge_names_the_repository(self) -> None:
+        # After a `cd` the agent can't otherwise tell which repository it
+        # is about.
+        with Repo() as repo:
+            (repo.root / "claims.toml").write_text("")
+            output = self._run(repo.root, event="UserPromptSubmit")
+            root = str(repo.root.resolve())
+        self.assertIn(root, output["hookSpecificOutput"]["additionalContext"])
+        self.assertIn(root, output["systemMessage"])
+
     def test_a_subdirectory_of_an_opted_in_repo_is_nudged(self) -> None:
         with Repo() as repo:
             (repo.root / "claims.toml").write_text("")
@@ -224,6 +234,40 @@ class NudgeTests(unittest.TestCase):
             self._run(first.root)
             output = self._run(second.root, event="CwdChanged")
         self.assertIn("not active", output["systemMessage"])
+
+    def test_a_prompt_in_an_opted_in_repo_tells_the_agent_and_the_user(self) -> None:
+        # Claude Code doesn't fire a plugin's `CwdChanged` hook
+        # (anthropics/claude-code#105625), so the next prompt is the first
+        # chance to see a `cd`.
+        with Repo() as repo:
+            (repo.root / "claims.toml").write_text("")
+            output = self._run(repo.root, event="UserPromptSubmit")
+        hook_output = output["hookSpecificOutput"]
+        self.assertEqual(hook_output["hookEventName"], "UserPromptSubmit")
+        self.assertIn("not active", hook_output["additionalContext"])
+        self.assertIn("not active", output["systemMessage"])
+
+    def test_a_prompt_after_session_start_in_the_same_repo_is_not_nudged(self) -> None:
+        with Repo() as repo:
+            (repo.root / "claims.toml").write_text("")
+            self._run(repo.root)
+            self.assertEqual(self._run(repo.root, event="UserPromptSubmit"), {})
+
+    def test_a_second_prompt_in_the_same_repo_is_not_nudged(self) -> None:
+        with Repo() as repo:
+            (repo.root / "claims.toml").write_text("")
+            self._run(repo.root, event="UserPromptSubmit")
+            self.assertEqual(self._run(repo.root, event="UserPromptSubmit"), {})
+            self.assertEqual(self._run(repo.root, event="CwdChanged"), {})
+
+    def test_a_prompt_after_a_cd_told_the_user_tells_only_the_agent(self) -> None:
+        # `CwdChanged` reaches the user alone; the agent still needs telling.
+        with Repo() as repo:
+            (repo.root / "claims.toml").write_text("")
+            self._run(repo.root, event="CwdChanged")
+            output = self._run(repo.root, event="UserPromptSubmit")
+        self.assertIn("not active", output["hookSpecificOutput"]["additionalContext"])
+        self.assertNotIn("systemMessage", output)
 
     def test_another_session_in_the_same_repo_is_nudged(self) -> None:
         with Repo() as repo:

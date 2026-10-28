@@ -19,8 +19,8 @@ reached you, not just that one was pushed upstream.
   CI are gated too, and `git -C` or `cd` before a commit no longer slips
   past.
 - Added: in a repository with a `claims.toml` but no hook that runs
-  `claims`, a Claude Code session says at start, and after a `cd` into
-  it, that the gate is not active.
+  `claims`, a Claude Code session says at start, and at the next prompt
+  after a `cd` into it, that the gate is not active.
 
 ## [0.15.0] - 2026-10-27
 

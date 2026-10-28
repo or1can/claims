@@ -37,8 +37,8 @@ Without it the hook does nothing, so a repository that has not adopted
 `claims` is not gated.
 
 When a Claude Code session starts in a repository with a root
-`claims.toml`, or changes directory into one, and no installed hook there
-runs `claims`, the plugin says so: the agent is told the gate is not
+`claims.toml`, or moves into one, and no installed hook there runs
+`claims`, the plugin says so: the agent is told the gate is not
 active, and a one-line message tells you the same. It counts the hook as
 installed when `claims` appears in a file in the repository's git hooks
 directory, `core.hooksPath` included, or when that directory holds a
@@ -46,10 +46,10 @@ directory, `core.hooksPath` included, or when that directory holds a
 lefthook's configuration under any of the names lefthook reads, or
 `.husky/pre-commit`. A configuration
 committed without `pre-commit install` or its equivalent having been run
-is not a hook, so a fresh clone is reminded. After a change of directory,
-only you are told, since Claude Code passes nothing on to the agent at
-that point, and each repository is mentioned once per session. A
-repository with `[hook] enabled = false` is not reminded. The reminder
+is not a hook, so a fresh clone is reminded. After a change of directory
+the reminder comes with your next prompt, and each repository is
+mentioned once per session after the session starts. A repository with
+`[hook] enabled = false` is not reminded. The reminder
 never blocks anything.
 
 `--scope project` writes both declarations into the project's own

@@ -31,18 +31,25 @@ Git decides when a commit happens. The commit gate is the git
 `pre-commit` hook, and the plugin registers no `PreToolUse` hook and
 parses no command.
 
-What the plugin does instead is say when the gate is missing. A
-`SessionStart` and a `CwdChanged` hook look at the repository the session
-is in. When it has a root `claims.toml` but nothing that looks like an
-installed hook running `claims`, they say that the gate is not active and
-where the installation docs are (`claims.nudge`). At session start both
-the agent and the user are told. After a change of directory only the
-user is: Claude Code reads a `CwdChanged` hook's `systemMessage` and
-discards any context meant for the agent.
+What the plugin does instead is say when the gate is missing. Its
+`SessionStart`, `CwdChanged` and `UserPromptSubmit` hooks look at the
+repository the session is in. When it has a root `claims.toml` but nothing
+that looks like an installed hook running `claims`, they say that the gate
+is not active and where the installation docs are (`claims.nudge`).
 
-A repository is nudged once per session on `CwdChanged`, but again on
-every `SessionStart`, since a resume, `/clear` or compaction starts the
-agent's context over and whatever it was told earlier is gone.
+At session start both the agent and the user are told, every time, since
+a resume, `/clear` or compaction starts the agent's context over and
+whatever it was told earlier is gone. After a change of directory
+`CwdChanged` would tell the user at once, but only the user: Claude Code
+reads a `CwdChanged` hook's `systemMessage` and discards any context meant
+for the agent. And Claude Code does not fire a plugin's `CwdChanged` hook
+at all unless a settings file registers one too
+(anthropics/claude-code#105625), so `UserPromptSubmit` stands in: at the
+next prompt it tells the agent, and the user if `CwdChanged` has not.
+Each of them is told about a repository once per session, outside
+`SessionStart`. Checking on every prompt costs about one Python start and
+one `git rev-parse`; a commit made in the same turn as the `cd` is not
+caught until the next prompt.
 
 The test for an installed hook is deliberately loose, `claims` anywhere
 in a file in the effective hooks directory, or in a hook manager's

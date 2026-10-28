@@ -11,6 +11,16 @@
         ]
       }
     ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "PYTHONPATH=\"${CLAUDE_PLUGIN_ROOT}\" python3 -m claims.nudge"
+          }
+        ]
+      }
+    ],
     "CwdChanged": [
       {
         "hooks": [
