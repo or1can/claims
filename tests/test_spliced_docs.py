@@ -531,6 +531,38 @@ class SplicedDocsTests(RegistryClearingTestCase):
         ]
         self.assertIn("Foo", _rust_bare_items(lines))
 
+    def test_a_rust_item_on_an_attribute_closing_line_does_not_pass_its_doc_on(
+        self,
+    ) -> None:
+        lines = [
+            "/// The config.",
+            "#[cfg_attr(feature = \"serde\",",
+            "           derive(Serialize))] pub struct Foo;",
+            "pub struct Bar;",
+        ]
+        self.assertIn("Bar", _rust_bare_items(lines))
+
+    def test_a_swift_declaration_on_an_attribute_closing_line_does_not_pass_its_doc_on(
+        self,
+    ) -> None:
+        lines = [
+            "/// Documented.",
+            "@available(iOS 13,",
+            "  *) func foo()",
+            "func bar()",
+        ]
+        self.assertIn((3, "bar", False), _swift_declarations(lines))
+
+    def test_an_unclosed_rust_attribute_does_not_swallow_a_doc_comment_below_it(
+        self,
+    ) -> None:
+        lines = [
+            "#[cfg(x = '[')]",
+            "/// The config.",
+            "pub struct Foo;",
+        ]
+        self.assertEqual(_rust_bare_items(lines), {})
+
 
 if __name__ == "__main__":
     unittest.main()

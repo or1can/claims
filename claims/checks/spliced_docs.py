@@ -160,8 +160,10 @@ def _attribute_lines(
     An attribute runs from a line `start_re` matches through the line where
     its first `opener` is closed again, however many lines that spans;
     whatever follows on that line, such as a signature's own `(`, is not
-    counted. A line `item_re` matches ends it unbalanced, so a miscounted
-    bracket cannot carry it over the items below.
+    counted. A closing line with code after the attribute holds an item,
+    so is not attribute. A line `item_re` or `DOC_RE` matches ends an
+    attribute unbalanced, so a miscounted bracket cannot carry it over the
+    items or doc comments below.
     """
 
     inside: set[int] = set()
@@ -170,20 +172,26 @@ def _attribute_lines(
         if not start_re.match(lines[i]):
             i += 1
             continue
-        inside.add(i)
+        first = i
         depth = 0
         while True:
-            for char in DOUBLE_QUOTED_RE.sub("", lines[i]):
+            code = DOUBLE_QUOTED_RE.sub("", lines[i])
+            rest = ""
+            for at, char in enumerate(code):
                 if char == opener:
                     depth += 1
                 elif char == closer:
                     depth -= 1
                     if depth == 0:
+                        rest = code[at + 1 :].strip()
                         break
+            if i == first or not rest or rest.startswith("//"):
+                inside.add(i)
             i += 1
-            if depth <= 0 or i == len(lines) or item_re.match(lines[i]):
+            if depth <= 0 or i == len(lines):
                 break
-            inside.add(i)
+            if item_re.match(lines[i]) or DOC_RE.match(lines[i]):
+                break
     return inside
 
 
