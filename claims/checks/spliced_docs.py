@@ -143,6 +143,58 @@ def _emit(
     return findings
 
 
+# Ignores only double-quoted strings, escapes included: a bracket inside a
+# char literal, raw string or string spanning lines still counts.
+DOUBLE_QUOTED_RE = re.compile(r'"(?:[^"\\]|\\.)*"')
+
+
+def _attribute_lines(
+    lines: list[str],
+    start_re: re.Pattern[str],
+    opener: str,
+    closer: str,
+    item_re: re.Pattern[str],
+) -> set[int]:
+    """Every index in `lines` that is part of an attribute.
+
+    An attribute runs from a line `start_re` matches through the line where
+    its first `opener` is closed again, however many lines that spans;
+    whatever follows on that line, such as a signature's own `(`, is not
+    counted. A closing line with code after the attribute holds an item,
+    so is not attribute. A line `item_re` or `DOC_RE` matches ends an
+    attribute unbalanced, so a miscounted bracket cannot carry it over the
+    items or doc comments below.
+    """
+
+    inside: set[int] = set()
+    i = 0
+    while i < len(lines):
+        if not start_re.match(lines[i]):
+            i += 1
+            continue
+        first = i
+        depth = 0
+        while True:
+            code = DOUBLE_QUOTED_RE.sub("", lines[i])
+            rest = ""
+            for at, char in enumerate(code):
+                if char == opener:
+                    depth += 1
+                elif char == closer:
+                    depth -= 1
+                    if depth == 0:
+                        rest = code[at + 1 :].strip()
+                        break
+            if i == first or not rest or rest.startswith("//"):
+                inside.add(i)
+            i += 1
+            if depth <= 0 or i == len(lines):
+                break
+            if item_re.match(lines[i]) or DOC_RE.match(lines[i]):
+                break
+    return inside
+
+
 # --- Rust -------------------------------------------------------------
 
 RUST_ATTR_RE = re.compile(r"^\s*#\[")
@@ -179,13 +231,14 @@ def _rust_bare_items(lines: list[str]) -> dict[str, set[str]]:
     """
 
     documented_at = {end for _, end in _rust_runs(lines)}
+    attributes = _attribute_lines(lines, RUST_ATTR_RE, "[", "]", RUST_ITEM_RE)
     documented_names = set()
     for i, line in enumerate(lines):
         matched = RUST_ITEM_RE.match(line)
         if not matched:
             continue
         attrs = i
-        while attrs > 0 and RUST_ATTR_RE.match(lines[attrs - 1]):
+        while attrs - 1 in attributes:
             attrs -= 1
         if attrs in documented_at or (attrs > 0 and DOC_RE.match(lines[attrs - 1])):
             documented_names.add(matched.group(2))
@@ -199,7 +252,7 @@ def _rust_bare_items(lines: list[str]) -> dict[str, set[str]]:
         if name in documented_names:
             continue
         attrs = i
-        while attrs > 0 and RUST_ATTR_RE.match(lines[attrs - 1]):
+        while attrs - 1 in attributes:
             attrs -= 1
         if attrs in documented_at or (attrs > 0 and DOC_RE.match(lines[attrs - 1])):
             continue
@@ -258,6 +311,9 @@ def _check_rust(repo_root: Path, enabled_modes: frozenset[str]) -> list[Finding]
 # --- Swift --------------------------------------------------------------
 
 SWIFT_ATTR_RE = re.compile(r"^\s*@")
+# Only an attribute with arguments, `@available(`, can span lines; a line
+# such as `@objc func foo(` opens a signature, not an attribute.
+SWIFT_ATTR_ARGS_RE = re.compile(r"^\s*@[A-Za-z_][A-Za-z_0-9]*\(")
 # Ported from Project B's `tools/claims.py::DECL_RE` — the one answer to "what
 # is a declaration" shared by that repo's own spliced-docs and check-citations
 # tools, kept as one regex there specifically to avoid two answers drifting.
@@ -284,11 +340,12 @@ def _swift_declarations(lines: list[str]):
 
     found = []
     documented = False
+    attributes = _attribute_lines(lines, SWIFT_ATTR_ARGS_RE, "(", ")", SWIFT_DECL_RE)
     for i, line in enumerate(lines):
         if DOC_RE.match(line):
             documented = True
             continue
-        if SWIFT_ATTR_RE.match(line) or not line.strip():
+        if SWIFT_ATTR_RE.match(line) or i in attributes or not line.strip():
             continue
         match = SWIFT_DECL_RE.match(line)
         if match:

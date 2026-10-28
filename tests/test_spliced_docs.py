@@ -15,7 +15,9 @@
 """Tests for the `spliced-docs` check: `claims.checks.spliced_docs`.
 
 Exercises the shared `run(repo_root, diff_range, config)` seam against a
-fixture git repo — see spec.md's Testing Decisions. Ported from `ratect`'s
+fixture git repo — see spec.md's Testing Decisions — and, for attributes
+spanning several lines, `_rust_bare_items` and `_swift_declarations`
+directly. Ported from `ratect`'s
 and Project B's own `tools/spliced-docs.py` (Rust, Swift; both Apache-2.0/
 relicensed prior art).
 """
@@ -27,11 +29,34 @@ import io
 import unittest
 from pathlib import Path
 
-from claims.checks.spliced_docs import MODE_UNDOCUMENTED, MODE_UNKNOWN, NAME, check
+from claims.checks.spliced_docs import (
+    MODE_UNDOCUMENTED,
+    MODE_UNKNOWN,
+    NAME,
+    _rust_bare_items,
+    _swift_declarations,
+    check,
+)
 from claims.cli import main
 from claims.runner import Finding, register_check, run
 
 from support import RegistryClearingTestCase, Repo
+
+# A documented item under a `#[derive]` and a multi-line `#[serde]`, with a
+# splice elsewhere naming it, so only a misread attribute would report it.
+RUST_MULTILINE_ATTR: str = (
+    "/// The parsed config.\n"
+    "#[derive(Debug, Deserialize)]\n"
+    "#[serde(\n"
+    "    rename_all = \"kebab-case\",\n"
+    "    deny_unknown_fields,\n"
+    ")]\n"
+    "pub struct Foo {}\n"
+    "\n"
+    "/// Loads `Foo` from disk.\n"
+    "/// Returns the parsed `Bar`.\n"
+    "fn load() -> Bar {}\n"
+)
 
 
 class SplicedDocsTests(RegistryClearingTestCase):
@@ -317,6 +342,226 @@ class SplicedDocsTests(RegistryClearingTestCase):
 
         self.assertTrue(findings)
         self.assertTrue(all(not f.gate for f in findings))
+
+
+    def test_a_rust_item_documented_above_a_multi_line_attribute_is_not_bare(
+        self,
+    ) -> None:
+        self.assertNotIn("Foo", _rust_bare_items(RUST_MULTILINE_ATTR.splitlines()))
+
+    def test_a_rust_item_documented_above_a_multi_line_attribute_is_not_flagged(
+        self,
+    ) -> None:
+        with Repo() as repo:
+            repo.write("src/lib.rs", RUST_MULTILINE_ATTR)
+            repo.commit()
+
+            findings = self._findings(repo.root)
+
+        self.assertEqual(findings, [])
+
+    def test_nested_brackets_in_a_multi_line_rust_attribute_are_balanced(
+        self,
+    ) -> None:
+        lines = [
+            "/// The parsed config.",
+            "#[cfg_attr(",
+            "    feature = \"x\",",
+            "    derive(Debug, Clone),",
+            "    doc(alias = [\"a\", \"b\"][0]),",
+            ")]",
+            "pub struct Foo {}",
+        ]
+        self.assertEqual(_rust_bare_items(lines), {})
+
+    def test_brackets_in_a_rust_attribute_string_do_not_unbalance_it(self) -> None:
+        # Counting the `[` in the string would hold the attribute open
+        # through the stray `]`, carrying `Foo`'s doc down to `Bar`.
+        lines = [
+            "/// The parsed config.",
+            "#[doc(alias = \"[\")]",
+            "pub struct Foo {}",
+            "",
+            "    a: u8,",
+            "]",
+            "pub struct Bar {}",
+        ]
+        self.assertEqual(set(_rust_bare_items(lines)), {"Bar"})
+
+    def test_an_undocumented_rust_item_with_a_multi_line_attribute_is_still_bare(
+        self,
+    ) -> None:
+        lines = [
+            "fn other() {}",
+            "#[serde(",
+            "    deny_unknown_fields,",
+            ")]",
+            "pub struct Foo {}",
+        ]
+        self.assertIn("Foo", _rust_bare_items(lines))
+
+    def test_a_rust_line_that_only_looks_like_an_attribute_tail_is_not_skipped(
+        self,
+    ) -> None:
+        lines = [
+            "/// Documents the array, not `Foo`.",
+            "const XS: [u8; 1] = [",
+            "    1,",
+            ")]",
+            "pub struct Foo {}",
+        ]
+        self.assertIn("Foo", _rust_bare_items(lines))
+
+    def test_a_swift_declaration_documented_above_a_multi_line_attribute_is_documented(
+        self,
+    ) -> None:
+        lines = [
+            "/// Documented.",
+            "@available(",
+            "    iOS 15,",
+            "    *",
+            ")",
+            "public func foo() {}",
+        ]
+        self.assertEqual(_swift_declarations(lines), [(5, "foo", True)])
+
+    def test_a_swift_declaration_documented_above_a_multi_line_attribute_is_not_flagged(
+        self,
+    ) -> None:
+        with Repo() as repo:
+            repo.write(
+                "Sources/Room.swift",
+                "/// Whether the room can be restored.\n"
+                "@available(\n"
+                "    iOS 15,\n"
+                "    *\n"
+                ")\n"
+                "func canRestoreInPlace() -> Bool { true }\n\n"
+                "/// Whether `canRestoreInPlace` allows an in-place restore.\n"
+                "/// Blocks the restore for `restoreBlocker`.\n"
+                "var restoreBlocker: Blocker? { nil }\n",
+            )
+            repo.commit()
+
+            findings = self._findings(repo.root)
+
+        self.assertEqual(findings, [])
+
+    def test_an_undocumented_swift_declaration_with_a_multi_line_attribute_is_not_documented(
+        self,
+    ) -> None:
+        lines = [
+            "func other() {}",
+            "@available(",
+            "    iOS 15,",
+            ")",
+            "public func foo() {}",
+        ]
+        self.assertIn((4, "foo", False), _swift_declarations(lines))
+
+    def test_a_swift_line_that_only_looks_like_an_attribute_tail_is_not_skipped(
+        self,
+    ) -> None:
+        lines = [
+            "/// Documents the call, not `foo`.",
+            "let x = f(",
+            "    1",
+            ")",
+            "public func foo() {}",
+        ]
+        self.assertIn((4, "foo", False), _swift_declarations(lines))
+    def test_an_unclosed_rust_attribute_does_not_hide_the_items_after_it(
+        self,
+    ) -> None:
+        # The `'['` char literal is counted, so the attribute never balances;
+        # it still ends at the next item rather than running to the end.
+        lines = [
+            "/// The parsed config.",
+            "#[doc(alias = '[')]",
+            "pub struct Foo {}",
+            "fn z() {}",
+            "pub struct Bar {}",
+        ]
+        self.assertEqual(set(_rust_bare_items(lines)), {"z", "Bar"})
+
+    def test_a_swift_declaration_after_a_multi_line_attributed_signature_is_not_documented(
+        self,
+    ) -> None:
+        lines = [
+            "/// Documents `foo`.",
+            "@objc func foo(",
+            "    a: Int",
+            ") {}",
+            "func bar() {}",
+        ]
+        self.assertIn((4, "bar", False), _swift_declarations(lines))
+
+    def test_an_unclosed_swift_attribute_does_not_hide_the_declarations_after_it(
+        self,
+    ) -> None:
+        lines = [
+            "/// Documented.",
+            "@available(",
+            "func a() {}",
+            "func b() {}",
+        ]
+        self.assertEqual(
+            _swift_declarations(lines), [(2, "a", True), (3, "b", False)]
+        )
+
+    def test_a_swift_attribute_ends_where_its_own_parentheses_close(self) -> None:
+        # The `(` opening `foo`'s signature is not the attribute's: the
+        # attribute closes at `)` after `fooWith:`, mid-line.
+        lines = [
+            "/// Documents `foo`.",
+            "@objc(fooWith:) func foo(",
+            "    a: Int",
+            ") {}",
+            "func bar() {}",
+        ]
+        self.assertIn((4, "bar", False), _swift_declarations(lines))
+
+    def test_a_rust_attribute_ends_where_its_own_brackets_close(self) -> None:
+        lines = [
+            "/// Documents the array, not `Foo`.",
+            "#[rustfmt::skip] const XS: [u8; 1] = [",
+            "    1,",
+            "];",
+            "pub struct Foo {}",
+        ]
+        self.assertIn("Foo", _rust_bare_items(lines))
+
+    def test_a_rust_item_on_an_attribute_closing_line_does_not_pass_its_doc_on(
+        self,
+    ) -> None:
+        lines = [
+            "/// The config.",
+            "#[cfg_attr(feature = \"serde\",",
+            "           derive(Serialize))] pub struct Foo;",
+            "pub struct Bar;",
+        ]
+        self.assertIn("Bar", _rust_bare_items(lines))
+
+    def test_a_swift_declaration_on_an_attribute_closing_line_does_not_pass_its_doc_on(
+        self,
+    ) -> None:
+        lines = [
+            "/// Documented.",
+            "@available(iOS 13,",
+            "  *) func foo()",
+            "func bar()",
+        ]
+        self.assertIn((3, "bar", False), _swift_declarations(lines))
+
+    def test_an_unclosed_rust_attribute_does_not_swallow_a_doc_comment_below_it(
+        self,
+    ) -> None:
+        lines = [
+            "#[cfg(x = '[')]",
+            "/// The config.",
+            "pub struct Foo;",
+        ]
+        self.assertEqual(_rust_bare_items(lines), {})
 
 
 if __name__ == "__main__":

@@ -11,6 +11,13 @@ reached you, not just that one was pushed upstream.
 
 ## [Unreleased]
 
+## [0.16.3] - 2026-10-28
+
+- Fixed: `spliced-docs` no longer treats a documented Rust or Swift item
+  as undocumented when an attribute spanning several lines, such as a
+  wrapped `#[serde(...)]` or `@available(...)`, sits between its doc
+  comment and the item.
+
 ## [0.16.2] - 2026-10-28
 
 - Changed: when the commit gate is not active, the agent is now also asked
