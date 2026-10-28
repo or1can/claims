@@ -11,6 +11,13 @@ reached you, not just that one was pushed upstream.
 
 ## [Unreleased]
 
+## [0.16.2] - 2026-10-28
+
+- Changed: when the commit gate is not active, the agent is now also asked
+  to tell you, with the installation link, so you hear it in hosts such as
+  Zed that don't show the hook's own message. In a terminal you may see
+  it twice.
+
 ## [0.16.1] - 2026-10-28
 
 - Fixed: through pre-commit, the `claims` hook shows its advisory findings
