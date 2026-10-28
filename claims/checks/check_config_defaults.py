@@ -156,7 +156,7 @@ def _targets(config: Mapping[str, object]) -> dict[str, tuple[str, int, int]]:
     config mistake regardless of whether this run's tracked tree cites it.
     """
 
-    # `enabled` is the hook's own per-check switch (see `hook.py`), shared
+    # `enabled` is the hook's own per-check switch (see `gate.py`), shared
     # by every check and documented as such — the one key of this section
     # that is not a setting name, so it is set aside rather than parsed as
     # a target and crashed on.

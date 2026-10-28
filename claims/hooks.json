@@ -1,34 +1,32 @@
 {
-  "description": "PreToolUse gate on git commit — runs the claims runner before a commit lands.",
+  "description": "Nudge when a repository opts in with claims.toml but has no git pre-commit hook that runs claims.",
   "hooks": {
-    "PreToolUse": [
+    "SessionStart": [
       {
-        "matcher": "Bash",
         "hooks": [
           {
             "type": "command",
-            "if": "Bash(git *)",
-            "command": "PYTHONPATH=\"${CLAUDE_PLUGIN_ROOT}\" python3 -m claims.hook"
-          },
+            "command": "PYTHONPATH=\"${CLAUDE_PLUGIN_ROOT}\" python3 -m claims.nudge"
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
           {
             "type": "command",
-            "if": "Bash(bash *)",
-            "command": "PYTHONPATH=\"${CLAUDE_PLUGIN_ROOT}\" python3 -m claims.hook"
-          },
+            "command": "PYTHONPATH=\"${CLAUDE_PLUGIN_ROOT}\" python3 -m claims.nudge"
+          }
+        ]
+      }
+    ],
+    "CwdChanged": [
+      {
+        "hooks": [
           {
             "type": "command",
-            "if": "Bash(sh *)",
-            "command": "PYTHONPATH=\"${CLAUDE_PLUGIN_ROOT}\" python3 -m claims.hook"
-          },
-          {
-            "type": "command",
-            "if": "Bash(zsh *)",
-            "command": "PYTHONPATH=\"${CLAUDE_PLUGIN_ROOT}\" python3 -m claims.hook"
-          },
-          {
-            "type": "command",
-            "if": "Bash(eval *)",
-            "command": "PYTHONPATH=\"${CLAUDE_PLUGIN_ROOT}\" python3 -m claims.hook"
+            "command": "PYTHONPATH=\"${CLAUDE_PLUGIN_ROOT}\" python3 -m claims.nudge"
           }
         ]
       }

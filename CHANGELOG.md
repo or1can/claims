@@ -11,6 +11,17 @@ reached you, not just that one was pushed upstream.
 
 ## [Unreleased]
 
+## [0.16.0] - 2026-10-28
+
+- Changed: the commit gate now needs a git `pre-commit` hook installed in
+  your repository; the plugin no longer gates commits itself. See [The git
+  `pre-commit` hook](docs/installation.md#the-git-pre-commit-hook). Commits made by hand or in
+  CI are gated too, and `git -C` or `cd` before a commit no longer slips
+  past.
+- Added: in a repository with a `claims.toml` but no hook that runs
+  `claims`, a Claude Code session says at start, and at the next prompt
+  after a `cd` into it, that the gate is not active.
+
 ## [0.15.0] - 2026-10-27
 
 - Added: `claims` runs as a git `pre-commit` hook, so a commit made

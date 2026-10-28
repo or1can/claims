@@ -60,4 +60,6 @@ the hook asks.
   until it adds one. This is a minor version bump, and the changelog
   entry says so first.
 - A commit run after a `cd`, or through `--git-dir`/`--work-tree`, is
-  still decided in `cwd`'s repository: only `-C` is followed.
+  still decided in `cwd`'s repository: only `-C` is followed. Superseded
+  by [ADR 0007](0007-git-decides-when-a-commit-happens.md): git runs the
+  hook in the repository it commits to.

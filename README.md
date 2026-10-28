@@ -49,9 +49,14 @@ check owns.
 
 Four invocation surfaces, same underlying checks:
 
-- **Automatically, on commit.** A `PreToolUse` hook fires on `git commit`
-  and runs every check above; a gate finding blocks the commit, an advisory
-  finding is reported alongside it.
+- **Automatically, on commit.** A git `pre-commit` hook runs every check
+  above on each commit, whoever makes it; a gate finding blocks the
+  commit, an advisory finding is reported alongside it. Installed with
+  pre-commit.com, lefthook, husky or a plain `.git/hooks` script — see
+  [`docs/installation.md`](docs/installation.md)'s "The git `pre-commit`
+  hook". The plugin itself never blocks a commit: when a Claude Code
+  session starts in, or moves into, a repository with a `claims.toml` but
+  no hook installed, it says the gate isn't active.
 - **On demand, mid-task.** The `check-claims` skill runs the same checks
   outside of commit time — ask an agent to check claims, or invoke it
   directly, and it reports every finding the same way the hook would. The
@@ -64,12 +69,10 @@ Four invocation surfaces, same underlying checks:
   command a claim implies) and returns a verdict with cited evidence —
   never by pattern-matching the claim's own wording. Advisory only: like
   every check it feeds, it never blocks a commit.
-- **Outside Claude Code entirely, as a git pre-commit hook or a CI
-  step.** The `claims-pre-commit` command makes the same per-repository
-  decision as the automatic hook, for pre-commit.com, lefthook, husky or
-  a plain `.git/hooks` script, and `claims.cli` is the same `run()` seam
-  with the exit code a CI job already expects — see
-  [`docs/installation.md`](docs/installation.md)'s "As a git `pre-commit`
+- **Outside Claude Code entirely, as the git hook or a CI step.** The
+  `pre-commit` hook needs no Claude Code session, and `claims.cli` is the
+  same `run()` seam with the exit code a CI job already expects — see
+  [`docs/installation.md`](docs/installation.md)'s "The git `pre-commit`
   hook" and "The command line" sections for the setup and what's different
   without an LLM present: `judgment-agent`'s own candidates are still
   computed and reported, but never resolved into a verdict, and the
@@ -79,21 +82,21 @@ Four invocation surfaces, same underlying checks:
 
 Not a paraphrase detector (`restatement` is verbatim-only by design), not a
 general prose linter, and not automatically a push-time or CI check — the
-automatic gate only fires through Claude Code's own hook. See "Using it"
-above to wire the same checks into a plain git pre-commit hook or a CI job
-instead.
+automatic gate is a git pre-commit hook, which a fresh clone has only once
+it's installed. See "Using it" above to wire the same checks into a CI job
+too.
 
 ## Installing
 
 Distributed as a direct git-URL Claude Code plugin — no marketplace listing
 — pinned at install rather than always-latest, so an unreviewed upstream
 change can't silently start gating a commit differently mid-project. The
-automatic hook gates only a repository with a `claims.toml` at its root —
-an empty one opts in — and can be disabled per project without uninstalling, via
-`[hook]\nenabled = false` in that project's `claims.toml`. See
-[`docs/installation.md`](docs/installation.md) for the actual commands —
-including the setup for running the same checks as a git pre-commit hook
-(pre-commit.com, or `uvx` from a release tag) or a CI step.
+commit gate is a git pre-commit hook, installed separately (pre-commit.com,
+or `uvx` from a release tag), and gates only a repository with a
+`claims.toml` at its root — an empty one opts in. It can be disabled per
+project without uninstalling, via `[hook]\nenabled = false` in that
+project's `claims.toml`. See [`docs/installation.md`](docs/installation.md)
+for the actual commands, including the setup for a CI step.
 See [`CHANGELOG.md`](CHANGELOG.md) for what changed in a given version,
 after a `claude plugin update`.
 

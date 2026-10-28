@@ -67,35 +67,23 @@ class PluginManifestTests(unittest.TestCase):
             self.assertIn("name:", text)
             self.assertIn("description:", text)
 
-    def test_hooks_file_registers_a_bash_matched_pretooluse_hook(self) -> None:
-        # Narrowing to a git commit specifically is split across two
-        # layers (ticket 37): `if` here does the coarse "some git command
-        # at all" filter using Claude Code's own Bash-command matching —
-        # deliberately the bare command name (`git *`), not `git commit
-        # *`, since Claude Code's own documented matching runs the hook
-        # anyway on any command containing a `$()`/backtick/`$var` once
-        # the pattern names more than the bare command name (see
-        # code.claude.com/docs/en/hooks, "Bash if matching"), which
-        # defeats a commit-specific pattern for exactly the agent-
-        # authored commands (heredocs, command substitutions) this hook
-        # most needs to filter correctly. `claims.hook`'s own
-        # `_commit_dirs` (see tests/test_hook.py) does the fine-grained
-        # "is it specifically a commit" narrowing in Python instead.
-        # `if` holds one rule only, so each command name `_commit_dirs`
-        # looks inside (ticket #85) gets its own copy of the handler —
-        # without one, `bash -c "git commit"` never reaches the hook.
+    def test_hooks_file_registers_only_the_nudge(self) -> None:
+        # Git decides when a commit happens, through its own `pre-commit`
+        # hook (#128, `decisions/0007-git-decides-when-a-commit-happens.md`):
+        # the plugin registers no `PreToolUse` hook, only the nudge that
+        # says when that git hook is missing. `UserPromptSubmit` stands in
+        # for `CwdChanged`, which Claude Code doesn't fire for a plugin
+        # (anthropics/claude-code#105625).
         manifest = _load(".claude-plugin/plugin.json")
-        hooks_file = _load(manifest["hooks"])
-        pre_tool_use = hooks_file["hooks"]["PreToolUse"][0]
-        self.assertEqual(pre_tool_use["matcher"], "Bash")
-        handlers = pre_tool_use["hooks"]
-        self.assertEqual(
-            [handler["if"] for handler in handlers],
-            ["Bash(git *)", "Bash(bash *)", "Bash(sh *)", "Bash(zsh *)", "Bash(eval *)"],
-        )
-        self.assertEqual(len({handler["command"] for handler in handlers}), 1)
-        self.assertIn("claims.hook", handlers[0]["command"])
-        self.assertIn("CLAUDE_PLUGIN_ROOT", handlers[0]["command"])
+        hooks = _load(manifest["hooks"])["hooks"]
+        self.assertEqual(set(hooks), {"SessionStart", "CwdChanged", "UserPromptSubmit"})
+        for event, groups in hooks.items():
+            with self.subTest(event=event):
+                [group] = groups
+                [handler] = group["hooks"]
+                self.assertEqual(handler["type"], "command")
+                self.assertIn("claims.nudge", handler["command"])
+                self.assertIn("CLAUDE_PLUGIN_ROOT", handler["command"])
 
     def test_claude_plugin_validate_passes_against_the_real_manifests(self) -> None:
         # Structural checks above can't catch what `claude plugin validate`

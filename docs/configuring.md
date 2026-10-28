@@ -41,17 +41,19 @@ section below is the whole of what it holds.
 
 ## Switching the commit hook off
 
-Installing the plugin gives a project both the on-demand `check-claims`
-skill and the automatic gate on `git commit`. To keep the skill and drop
-the gate, without uninstalling:
+The commit gate is the git `pre-commit` hook, alongside the on-demand
+`check-claims` skill. To keep the skill and drop the gate, without
+uninstalling the hook:
 
 ```toml
 [hook]
 enabled = false
 ```
 
-With that set, `git commit` is never gated by this plugin. The skill and
-the plain CLI are unaffected, and keep reporting every finding on demand.
+With that set, the hook runs no check and `git commit` is never gated,
+and the plugin no longer reminds you that the hook is missing. The skill
+and the plain CLI are unaffected, and keep reporting every finding on
+demand.
 
 ## Silencing one check at commit time
 
@@ -69,7 +71,7 @@ whether to let the commit through. A gate check silenced this way no
 longer blocks a commit, so silencing one is a decision to stop enforcing
 what it enforces, not a way to quieten it.
 
-Neither switch reads the other: the plugin-wide toggle and a check's own
+Neither switch reads the other: the whole-gate toggle and a check's own
 key are independent, and a project can set both.
 
 ## The unrecognized-table gate
@@ -85,8 +87,8 @@ keys configure nothing, which looks exactly like a working opt-out until
 the day the check it was meant to reach fires anyway. The gate is checked
 against the checks actually registered in the installed copy, so a section
 for a check that exists upstream but not in the installed version is
-reported the same way, and the fix there is updating the plugin rather than
-editing the table.
+reported the same way, and the fix there is moving the hook's pinned
+release forward rather than editing the table.
 
 The gate reads `claims.local.toml` too, and reports a mistyped table there
 against that file, with the same suggestion. Any registered check's name

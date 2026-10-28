@@ -87,11 +87,9 @@ Quoting is respected two different ways, matching what the shell itself
 does with each construct, not one blanket "ignore anything quoted" rule:
 
 - An operator/pipe token is only real when the shell would treat it as
-  one — `shlex`, in punctuation-aware mode (a stronger setting than
-  `claims/hook.py`'s own `_commit_dirs` uses, which needs only
-  whitespace/quote-aware splitting, not operator boundaries), tokenizes
-  the command respecting quotes first, so a `;` sitting inside a quoted
-  Python one-liner's own source, or a pipe inside a quoted regex
+  one — `shlex`, in punctuation-aware mode, tokenizes the command
+  respecting quotes first, so a `;` sitting inside a quoted Python
+  one-liner's own source, or a pipe inside a quoted regex
   alternation (`grep -E 'a|b'`), is part of one word token, never mistaken
   for a real chain or pipeline boundary. This also closes a quoted-name
   dodge naive splitting wouldn't: `` 'grep' ``/`` g'r'ep `` both still
@@ -104,11 +102,9 @@ does with each construct, not one blanket "ignore anything quoted" rule:
   character, so it can't still tokenize as a real operator — but an
   escaped ordinary character (`` \\grep ``, a common way to bypass a shell
   alias of the same name) keeps its own identity, or `grep` piped through
-  that way would silently stop matching `TEXT_PROCESSING_TOOLS`. Unlike
-  `claims/hook.py`'s `_commit_dirs` — which reads a command it can't
-  tokenize as not a commit, having no tokens to search — unparseable
-  input here (unbalanced quotes) is itself the rejection reason: this
-  check's whole job is deciding whether a command is safe to run, so
+  that way would silently stop matching `TEXT_PROCESSING_TOOLS`.
+  Unparseable input (unbalanced quotes) is itself the rejection reason:
+  this check's whole job is deciding whether a command is safe to run, so
   failing open on "couldn't tell" would be backwards.
 - A command substitution is checked differently, because quoting doesn't
   neutralize it the same way: single quotes fully suppress `` ` ``/`$(`,
@@ -138,7 +134,7 @@ dangerous — it doesn't mean anyone chose to run it. `claims.toml` itself
 can't be the trust boundary here: it's committed, so a branch a maintainer
 merely checks out (to review it, fix something unrelated, rebase) can carry
 both a planted `<!-- verify: -->` marker and the `permitted_prefixes` entry
-that would let it through, and the automatic `PreToolUse` hook would run it
+that would let it through, and the git `pre-commit` hook would run it
 on the maintainer's very next unrelated `git commit`. So before a command
 that clears both checks above ever runs, it's looked up by **exact,
 verbatim string** in `claims.local.toml`'s own `[executable-claims]`
@@ -153,7 +149,7 @@ doesn't just silently vanish from view; an undecided one — including one
 that has changed even slightly since it was last granted — is a gate
 finding naming the exact command and the exact TOML that would resolve it.
 
-This lives in `check()` itself, not the `PreToolUse` hook — the on-demand
+This lives in `check()` itself, not the commit hook — the on-demand
 skill and any CI invocation go through the same `check()`, so nothing can
 run a marker's command just by calling this check a different way. Grants
 are per-machine and match on the command's exact string, not a hash of the

@@ -58,8 +58,8 @@ adding a page means adding it there too.
    can include the configuration that brings its claim into scope. Where
    no example can
    produce the output —
-   [`docs/installation.md`](../docs/installation.md)'s plugin inventory
-   comes from installing into a disposable project — the provenance names
+   [`docs/installation.md`](../docs/installation.md)'s `claude plugin
+   update` failures come from installing into a disposable project — the provenance names
    what was actually done instead. That is the exception, not a second
    equal option.
 

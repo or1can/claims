@@ -1,13 +1,13 @@
 ---
 name: check-claims
-description: Runs every currently registered claims check against the calling project and reports every finding in one pass. Use whenever the user asks to check claims or verify documentation accuracy at any point mid-task — not only at commit time, which this plugin's PreToolUse hook already covers automatically.
+description: Runs every currently registered claims check against the calling project and reports every finding in one pass. Use whenever the user asks to check claims or verify documentation accuracy at any point mid-task — not only at commit time, which the git pre-commit hook covers once installed.
 ---
 
 # Check claims
 
 Runs the shared core runner (`claims.runner.run`) via its CLI adapter and
-reports the result. This is the on-demand counterpart to the plugin's
-automatic `git commit` hook — same runner, same checks, just invoked by
+reports the result. This is the on-demand counterpart to the automatic
+git `pre-commit` hook — same runner, same checks, just invoked by
 request instead of automatically.
 
 ## Running it
