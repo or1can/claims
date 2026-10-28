@@ -55,6 +55,12 @@ and the plugin no longer reminds you that the hook is missing. The skill
 and the plain CLI are unaffected, and keep reporting every finding on
 demand.
 
+`enabled` takes `true` or `false`, and leaving it out is `true`. Anything
+else, such as `"false"` or `0`, makes `claims.toml` invalid, as does a
+top-level `hook` that is not a table, such as `hook = false`: the hook
+blocks every commit with the reason until it is fixed, and the plugin
+keeps reminding you if the hook is missing.
+
 ## Silencing one check at commit time
 
 To keep the commit gate but take one check out of it, set `enabled =

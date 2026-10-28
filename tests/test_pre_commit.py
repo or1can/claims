@@ -172,6 +172,41 @@ class PreCommitTests(RegistryClearingTestCase):
         self.assertEqual(code, 1)
         self.assertIn("claims.toml is invalid", stderr)
 
+    def test_a_hook_that_is_not_a_table_blocks_naming_it(self) -> None:
+        # Each would otherwise crash the decision, which fails open
+        # (ticket #129).
+        _register("failing-gate", gate=False)
+        for text in (
+            "hook = 1\n",
+            "hook = true\n",
+            "hook = false\n",
+            'hook = "off"\n',
+        ):
+            with self.subTest(text=text), Repo() as repo:
+                code, stderr = self._run(repo, text)
+                self.assertEqual(code, 1)
+                self.assertIn("claims.toml is invalid: `[hook]` must be a table", stderr)
+
+    def test_a_hook_enabled_that_is_not_a_boolean_blocks_naming_it(self) -> None:
+        # `"false"` is truthy and `0` falsy: neither says on or off
+        # (ticket #129).
+        _register("failing-gate", gate=False)
+        for value in ('"false"', "0"):
+            with self.subTest(value=value), Repo() as repo:
+                code, stderr = self._run(repo, f"[hook]\nenabled = {value}\n")
+                self.assertEqual(code, 1)
+                self.assertIn(
+                    "claims.toml is invalid: `[hook] enabled` must be true or false",
+                    stderr,
+                )
+
+    def test_a_hook_table_without_enabled_still_gates(self) -> None:
+        _register("failing-gate", gate=True)
+        with Repo() as repo:
+            code, stderr = self._run(repo, "[hook]\n")
+        self.assertEqual(code, 1)
+        self.assertIn("bad", stderr)
+
     def test_zero_checks_registered_exits_1(self) -> None:
         with Repo() as repo:
             code, stderr = self._run(repo)

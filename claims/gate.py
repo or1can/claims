@@ -115,7 +115,9 @@ def decide_repo(repo_root: Path) -> Decision | None:
     """The decision for a commit to the repository at `repo_root`, or
     `None` when there is nothing to report: it hasn't opted in with a root
     `claims.toml`, has switched the hook off, or has no finding left once
-    disabled checks are filtered out."""
+    disabled checks are filtered out. A `claims.toml` that doesn't parse,
+    or whose `[hook]` isn't a table or whose `[hook] enabled` isn't a
+    boolean, blocks as invalid."""
 
     if not has_config(repo_root):
         return None
@@ -125,7 +127,18 @@ def decide_repo(repo_root: Path) -> Decision | None:
     except ConfigError as e:
         return Decision(block=True, message=f"claims.toml is invalid: {e}")
 
-    if not config.get("hook", {}).get("enabled", True):
+    hook = config.get("hook", {})
+    if not isinstance(hook, Mapping):
+        return Decision(
+            block=True, message="claims.toml is invalid: `[hook]` must be a table"
+        )
+    enabled = hook.get("enabled", True)
+    if not isinstance(enabled, bool):
+        return Decision(
+            block=True,
+            message="claims.toml is invalid: `[hook] enabled` must be true or false",
+        )
+    if not enabled:
         return None
 
     result = run(repo_root, "HEAD", config)
