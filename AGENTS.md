@@ -117,9 +117,12 @@ for — note that in `TODO.md` instead.
 on `PATH`. `PYRIGHT_PYTHON_IGNORE_WARNINGS=1` silences the pyright-python
 wrapper's own "a newer pyright exists on PyPI" nag, which would otherwise
 print to stdout and break this exact-match check the moment PyPI ships a
-release past the pin:
+release past the pin. `uv run -q` does the same for uv's own messages,
+such as its warning when a hook's environment sets a `VIRTUAL_ENV` that
+isn't this project's
+(`decisions/0008-a-command-names-its-own-environment.md`):
 
-<!-- verify: PYRIGHT_PYTHON_IGNORE_WARNINGS=1 uv run pyright claims tests -->
+<!-- verify: PYRIGHT_PYTHON_IGNORE_WARNINGS=1 uv run -q pyright claims tests -->
 ```
 0 errors, 0 warnings, 0 informations
 ```
