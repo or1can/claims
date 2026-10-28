@@ -43,7 +43,8 @@ active, and a one-line message tells you the same. It counts the hook as
 installed when `claims` appears in a file in the repository's git hooks
 directory, `core.hooksPath` included, or when that directory holds a
 `pre-commit` hook and `claims` appears in `.pre-commit-config.yaml`,
-`lefthook.yml`, `lefthook.yaml` or `.husky/pre-commit`. A configuration
+lefthook's configuration under any of the names lefthook reads, or
+`.husky/pre-commit`. A configuration
 committed without `pre-commit install` or its equivalent having been run
 is not a hook, so a fresh clone is reminded. After a change of directory,
 only you are told, since Claude Code passes nothing on to the agent at

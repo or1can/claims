@@ -112,6 +112,17 @@ class NudgeTests(unittest.TestCase):
                 (repo.root / name).write_text(text)
                 self._assert_nudged_at_session_start(self._run(repo.root))
 
+    def test_every_lefthook_config_name_is_read(self) -> None:
+        for name in (".lefthook.yml", ".config/lefthook.toml", "lefthook.jsonc"):
+            with self.subTest(name=name), Repo() as repo:
+                (repo.root / "claims.toml").write_text("")
+                (repo.root / name).parent.mkdir(parents=True, exist_ok=True)
+                (repo.root / name).write_text("claims-pre-commit\n")
+                (repo.root / ".git" / "hooks" / "pre-commit").write_text(
+                    "#!/bin/sh\nexec lefthook run pre-commit\n"
+                )
+                self.assertEqual(self._run(repo.root), {})
+
     def test_a_plain_hook_that_runs_claims_is_not_nudged(self) -> None:
         with Repo() as repo:
             (repo.root / "claims.toml").write_text("")
@@ -136,9 +147,26 @@ class NudgeTests(unittest.TestCase):
             self.assertEqual(self._run(repo.root), {})
 
     def test_a_repo_that_switched_the_gate_off_is_not_nudged(self) -> None:
+        for event in ("SessionStart", "CwdChanged"):
+            with self.subTest(event=event), Repo() as repo:
+                (repo.root / "claims.toml").write_text("[hook]\nenabled = false\n")
+                self.assertEqual(self._run(repo.root, event=event), {})
+
+    def test_a_claims_toml_that_cannot_say_the_gate_is_off_is_nudged(self) -> None:
+        # Neither is `[hook] enabled = false`, so neither switched the gate
+        # off on purpose.
+        for text in ("[hook\nenabled = false\n", "hook = false\n"):
+            with self.subTest(text=text), Repo() as repo:
+                (repo.root / "claims.toml").write_text(text)
+                self._assert_nudged_at_session_start(self._run(repo.root))
+
+    def test_a_cd_payload_without_new_cwd_is_judged_by_cwd(self) -> None:
         with Repo() as repo:
-            (repo.root / "claims.toml").write_text("[hook]\nenabled = false\n")
-            self.assertEqual(self._run(repo.root), {})
+            (repo.root / "claims.toml").write_text("")
+            payload = {"session_id": "s1", "cwd": str(repo.root), "hook_event_name": "CwdChanged"}
+            stdout = io.StringIO()
+            main(io.StringIO(json.dumps(payload)), stdout, self.state_dir)
+        self.assertIn("not active", json.loads(stdout.getvalue())["systemMessage"])
 
     def test_a_cd_is_judged_by_the_new_directory(self) -> None:
         with Repo() as before, Repo() as after:

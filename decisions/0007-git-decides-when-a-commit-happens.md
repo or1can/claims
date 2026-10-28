@@ -46,15 +46,16 @@ agent's context over and whatever it was told earlier is gone.
 
 The test for an installed hook is deliberately loose, `claims` anywhere
 in a file in the effective hooks directory, or in a hook manager's
-configuration (`.pre-commit-config.yaml`, `lefthook.yml`, `lefthook.yaml`,
-`.husky/pre-commit`) once that directory holds a `pre-commit` hook, so it
-recognises an install in whatever shape a hook manager writes it. The
-configuration alone is not enough: committed without the manager's
-install step, it is the fresh clone the nudge is for. A repository that
-switched the gate off with `[hook] enabled = false` is not nudged. A nudge in a repository whose hook does
-run `claims` would teach its readers to ignore the nudge everywhere,
-where a stray mention suppressing one leaves only the silence there was
-before. The nudge never blocks anything, and fails open.
+configuration (`.pre-commit-config.yaml`, lefthook's under any name it
+reads, `.husky/pre-commit`) once that directory holds a `pre-commit`
+hook, so it recognises an install in whatever shape a hook manager
+writes it. The configuration alone is not enough: committed without the
+manager's install step, it is the fresh clone the nudge is for. A
+repository that switched the gate off with `[hook] enabled = false` is
+not nudged. A nudge in a repository whose hook does run `claims` would
+teach its readers to ignore the nudge everywhere, where a stray mention
+suppressing one leaves only the silence there was before. The nudge
+never blocks anything, and fails open.
 
 ## Alternatives considered
 

@@ -14,8 +14,9 @@
 
 """`SessionStart` and `CwdChanged` hook: a nudge when the repository the
 session is in has opted in to the commit gate, with a root `claims.toml`
-that leaves `[hook] enabled` on, but has no git hook installed that runs
-it (#128). Git decides when a
+that doesn't read `[hook] enabled = false`, but has no git hook installed
+that runs it (#128). A `claims.toml` that doesn't parse is nudged too: it
+switched nothing off. Git decides when a
 commit happens, through that hook, not the plugin
 (`decisions/0007-git-decides-when-a-commit-happens.md`); the plugin only
 says when the hook is missing.
@@ -23,8 +24,8 @@ says when the hook is missing.
 "Installed" is a deliberately loose reading, erring toward silence:
 `claims` anywhere in a file in the effective hooks directory (`git
 rev-parse --git-path hooks`, which honours `core.hooksPath`), or in a hook
-manager's configuration — `.pre-commit-config.yaml`, `lefthook.yml`,
-`lefthook.yaml`, husky's `.husky/pre-commit` — once that hooks directory
+manager's configuration — `.pre-commit-config.yaml`, any of the names
+lefthook reads, husky's `.husky/pre-commit` — once that hooks directory
 holds a `pre-commit` hook at all. A manager installs a script of its own
 there that names the manager, not `claims`; a committed configuration
 with no hook installed is a fresh clone, which is gated by nothing. A
@@ -51,10 +52,11 @@ import json
 import subprocess
 import sys
 import tempfile
+from collections.abc import Mapping
 from pathlib import Path
 from typing import TextIO
 
-from .config import has_config, load_config
+from .config import ConfigError, has_config, load_config
 from .git import toplevel
 
 INSTALL_URL = "https://claims.apps.orican.eu/installation.html#the-git-pre-commit-hook"
@@ -70,9 +72,12 @@ SYSTEM_MESSAGE = f"claims commit gate not active: no git hook runs claims. See {
 
 _MANAGER_CONFIGS = (
     ".pre-commit-config.yaml",
-    "lefthook.yml",
-    "lefthook.yaml",
     ".husky/pre-commit",
+    *(
+        f"{stem}.{extension}"
+        for stem in ("lefthook", ".lefthook", ".config/lefthook")
+        for extension in ("yml", "yaml", "toml", "json", "jsonc")
+    ),
 )
 
 
@@ -84,6 +89,18 @@ def _hooks_dir(root: Path) -> Path:
         check=True,
     )
     return root / result.stdout.strip()
+
+
+def _switched_off(root: Path) -> bool:
+    """Whether `root`'s `claims.toml` reads `[hook] enabled = false`; not
+    when it doesn't parse, or `hook` isn't a table, since neither turned
+    the gate off on purpose."""
+
+    try:
+        hook = load_config(root).get("hook", {})
+    except ConfigError:
+        return False
+    return isinstance(hook, Mapping) and not hook.get("enabled", True)
 
 
 def _mentions_claims(path: Path) -> bool:
@@ -125,15 +142,14 @@ def decide(event: str, session_id: str, cwd: Path, state_dir: Path) -> dict[str,
     state = _state_file(state_dir, session_id)
     if event == "CwdChanged" and _nudged(state, root):
         return {}
-    if not load_config(root).get("hook", {}).get("enabled", True):
-        return {}
-    if _hook_installed(root):
+    if _switched_off(root) or _hook_installed(root):
         return {}
     if event == "SessionStart":
         # Recorded so a `cd` within this repository says nothing more, but
         # the agent is told whether or not the record can be written.
         with contextlib.suppress(OSError):
-            _record(state, root)
+            if not _nudged(state, root):
+                _record(state, root)
         return {
             "hookSpecificOutput": {"hookEventName": event, "additionalContext": CONTEXT},
             "systemMessage": SYSTEM_MESSAGE,
