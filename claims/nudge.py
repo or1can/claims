@@ -108,14 +108,14 @@ def _hooks_dir(root: Path) -> Path:
 
 def _switched_off(root: Path) -> bool:
     """Whether `root`'s `claims.toml` reads `[hook] enabled = false`; not
-    when it doesn't parse, or `hook` isn't a table, since neither turned
-    the gate off on purpose."""
+    when it doesn't parse, `hook` isn't a table, or `enabled` isn't a
+    boolean, since none turned the gate off on purpose."""
 
     try:
         hook = load_config(root).get("hook", {})
     except ConfigError:
         return False
-    return isinstance(hook, Mapping) and not hook.get("enabled", True)
+    return isinstance(hook, Mapping) and hook.get("enabled", True) is False
 
 
 def _mentions_claims(path: Path) -> bool:

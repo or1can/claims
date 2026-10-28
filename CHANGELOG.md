@@ -11,6 +11,14 @@ reached you, not just that one was pushed upstream.
 
 ## [Unreleased]
 
+## [0.16.4] - 2026-10-28
+
+- Fixed: a `claims.toml` whose `hook` is not a table, such as `hook =
+  false`, or whose `[hook] enabled` is not `true` or `false`, such as
+  `"false"` or `0`, now blocks the commit as invalid, naming `[hook]`.
+  Before, the first let the commit through unchecked, and `enabled =
+  "false"` left the gate on.
+
 ## [0.16.3] - 2026-10-28
 
 - Fixed: `spliced-docs` no longer treats a documented Rust or Swift item

@@ -179,9 +179,14 @@ class NudgeTests(unittest.TestCase):
                 self.assertEqual(self._run(repo.root, event=event), {})
 
     def test_a_claims_toml_that_cannot_say_the_gate_is_off_is_nudged(self) -> None:
-        # Neither is `[hook] enabled = false`, so neither switched the gate
-        # off on purpose.
-        for text in ("[hook\nenabled = false\n", "hook = false\n"):
+        # None is `[hook] enabled = false`, so none switched the gate off on
+        # purpose.
+        for text in (
+            "[hook\nenabled = false\n",
+            "hook = false\n",
+            '[hook]\nenabled = "false"\n',
+            "[hook]\nenabled = 0\n",
+        ):
             with self.subTest(text=text), Repo() as repo:
                 (repo.root / "claims.toml").write_text(text)
                 self._assert_nudged_at_session_start(self._run(repo.root))
