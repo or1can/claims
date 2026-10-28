@@ -59,6 +59,17 @@ inconclusive on every run, and the way to stop it re-asking is a
 `denied` entry, which keeps it visible as an advisory finding. Each
 distinct command runs once per invocation, however many claims name it.
 
+The script runs through its own shebang, with whatever `PATH` the check
+was started with. Through a git hook installed by pre-commit, or run
+through `uvx`, `#!/usr/bin/env python3` finds the hook's own Python,
+which has none of the project's dependencies, so a script that imports
+them exits non-zero and reads as inconclusive. A script that needs an
+environment names it in its shebang: `#!/usr/bin/env -S uv run -q python`
+for the project's own, or `#!/usr/bin/env -S uv run --script` with its
+dependencies declared inline. [ADR
+0008](../../decisions/0008-a-command-names-its-own-environment.md) records
+why `claims` does not adjust `PATH` itself.
+
 Verification is only as complete as the help text. A framework that
 truncates its help, or lists a flag only under a subcommand, leaves a
 real flag unfound through no fault of the claim, and `--help` is the only

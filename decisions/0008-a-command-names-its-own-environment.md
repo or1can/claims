@@ -2,7 +2,7 @@
 
 ## Status
 
-Accepted. Follows #128.
+Accepted. Issue #130; follows #128.
 
 ## Context
 
@@ -32,6 +32,11 @@ With `uv run`, `-q` is part of the convention. A hook environment can set
 `VIRTUAL_ENV`, and uv then warns on stderr that it is ignoring it in
 favour of the project's `.venv`. Stderr is compared with stdout, so the
 warning would read as drift.
+
+`check-cli-flags` builds its command itself, `./<script> --help`, so
+there the script's shebang is where the environment is named:
+`#!/usr/bin/env -S uv run -q python` for the project's own, or
+`#!/usr/bin/env -S uv run --script` with inline dependencies.
 
 This repository's own claim follows the rule, and so can run under any
 hook setup, pre-commit included.
