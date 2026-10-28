@@ -36,10 +36,11 @@ each as a candidate for an agent to judge against the cited code.
 
 ## Where it runs
 
-`claims` installs into a project as a Claude Code plugin: a hook that fires
-on `git commit`, and a skill that runs the same checks on demand mid-task.
-The same decision also runs as a git pre-commit hook, and the checks as a
-plain CLI for a CI step, in a project that has never seen Claude Code.
+`claims` gates commits as a git pre-commit hook, so a commit is checked
+whoever makes it. As a Claude Code plugin it adds a skill that runs the
+same checks on demand mid-task, and a reminder when a project that uses
+`claims` has no hook installed. The checks also run as a plain CLI for a
+CI step.
 
 ## Next
 

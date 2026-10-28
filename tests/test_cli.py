@@ -70,7 +70,7 @@ class CliTests(RegistryClearingTestCase):
 
     def test_a_per_check_enabled_false_has_no_effect_on_the_cli(self) -> None:
         # `[somecheck]\nenabled = false` (ticket #44) is hook-scoped by
-        # design — read only by `claims/hook.py`'s own commit-time
+        # design — read only by `claims/gate.py`'s own commit-time
         # decision, never by `run()` itself, so the CLI (and the
         # `check-claims` skill, which invokes this same entry point) must
         # keep showing a "disabled" check's findings exactly as if the key

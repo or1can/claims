@@ -12,10 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""The commit-time decision for one repository, shared by both commit
-hooks: the plugin's `PreToolUse` adapter (`claims.hook`) and the git
-`pre-commit` command (`claims.pre_commit`). Each turns a `Decision` into
-its own output format; neither decides anything itself.
+"""The commit-time decision for one repository, which the git
+`pre-commit` command (`claims.pre_commit`) turns into its exit code and
+stderr without deciding anything itself.
 
 A repository opts in with a root `claims.toml`
 (`decisions/0006-claims-toml-opts-in-to-the-commit-hook.md`): without one

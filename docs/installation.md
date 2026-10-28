@@ -19,19 +19,33 @@ claude plugin install claims@claims --scope project
 The first command registers this repository as a marketplace named
 `claims`, the name its own listing declares. The second installs the plugin
 that listing holds, also named `claims`, hence `claims@claims`. That single
-install gives the project the `check-claims` skill, the `PreToolUse` hook
-that gates `git commit`, and the `judgment-agent` subagent the skill
-invokes.
+install gives the project the `check-claims` skill, the `judgment-agent`
+subagent the skill invokes, and a reminder when the commit gate is not
+installed.
 
-The hook gates a commit only in a repository with a `claims.toml` at its
-root, and an empty one is enough. Create it to turn the gate on:
+The commit gate itself is a git `pre-commit` hook, installed separately as
+the [next section](#the-git-pre-commit-hook) describes, so it gates every
+commit, not only those Claude Code makes. It gates a commit only in a
+repository with a `claims.toml` at its root, and an empty one is enough.
+Create it to turn the gate on:
 
 ```sh
 touch claims.toml
 ```
 
-Without it the hook does nothing, so a session that moves on to another
-repository does not start gating that repository's commits.
+Without it the hook does nothing, so a repository that has not adopted
+`claims` is not gated.
+
+When a Claude Code session starts in a repository with a root
+`claims.toml`, or changes directory into one, and no installed hook there
+runs `claims`, the plugin says so: the agent is told the gate is not
+active, and a one-line message tells you the same. It counts the hook as
+installed when `claims` appears anywhere in `.pre-commit-config.yaml`,
+`lefthook.yml`, `lefthook.yaml`, or a file in the repository's git hooks
+directory, `core.hooksPath` included. After a change of directory, only
+you are told, since Claude Code passes nothing on to the agent at that
+point, and each repository is mentioned once per session. The reminder
+never blocks anything.
 
 `--scope project` writes both declarations into the project's own
 `.claude/settings.json`, so the dependency is explicit and travels with the
@@ -47,42 +61,10 @@ scope, replaces the source for each project on that machine. A checkout of
 this repository registered as a directory marketplace for its own
 development is the common way to hit that.
 
-Verify with:
-
-```sh
-claude plugin details claims@claims
-```
-
-```
-claims 0.13.2
-  Description: Checks documentation and agent-instruction claims against the code they describe.
-  Source: claims@claims
-
-Component inventory
-  Skills (1)  check-claims
-  Agents (0)
-  Hooks (1)  PreToolUse  (harness-only — no model context cost)
-  MCP servers (0)
-  LSP servers (0)
-
-Projected token cost
-  Always-on:   ~81 tok   added to every session
-
-Per-component (rounded)
-  component     always-on  on-invoke
-  check-claims        ~80      ~2.6k
-
-  On-invoke cost is paid each time a skill or agent fires.
-  Token counts are estimates and may differ from actual usage.
-```
-
-Captured from `claude plugin details claims@claims` in a throwaway
-project, as the next command after the install commands above.
-
-The inventory lists the skill and the hook, and counts no agent, though
-the plugin manifest declares one. The `judgment-agent` subagent loads all
-the same, as `claims:judgment-agent`, and the `check-claims` skill invokes
-it once per candidate.
+Verify with `claude plugin details claims@claims`, which lists the
+`check-claims` skill and the plugin's `SessionStart` and `CwdChanged`
+hooks. The `judgment-agent` subagent loads as `claims:judgment-agent`,
+and the `check-claims` skill invokes it once per candidate.
 
 **Pinned at install, explicit update.** The install records the commit it
 resolved, and the plugin keeps running that commit until the project
@@ -107,19 +89,19 @@ Checking for updates for plugin "claims@claims" at user scope…
 ✘ Failed to update plugin "claims@claims": Plugin "claims" is not installed at scope user
 ```
 
-Captured from the same throwaway project as the inventory above, both
-forms run after the project-scoped install.
+Captured from a throwaway project, both forms run after the
+project-scoped install.
 
-## As a git `pre-commit` hook
+## The git `pre-commit` hook
 
-The plugin's hook fires only on a commit Claude Code makes. A `git commit`
-run by a person in a terminal, or by any other tool, is gated by the git
-`pre-commit` hook instead, which runs the same per-repository decision:
+The commit gate is a git `pre-commit` hook, so git runs it on every
+commit to the repository, whether Claude Code, a person in a terminal or
+any other tool makes it, and in whichever repository the commit lands.
+For each commit:
 
 - no root `claims.toml`, or `[hook] enabled = false` in it: nothing runs,
   and the commit goes ahead;
-- a check switched off with its own `enabled = false` is left out, as it
-  is from the plugin's hook;
+- a check switched off with its own `enabled = false` is left out;
 - a gate finding, a `claims.toml` that does not parse, or no check
   registered at all: the findings or the reason are printed, and the
   commit is blocked;
@@ -138,7 +120,7 @@ put first on `PATH`, and a command granted in `claims.local.toml` runs
 with that `PATH` too. `python3` in a granted command is then the hook's
 own Python, without the project's dependencies, so a claim about a Python
 command's output can fail under the git hook where it passes through the
-plugin's hook or the command line.
+command line.
 
 ### pre-commit
 
@@ -224,10 +206,10 @@ failure(s)`, and exits with:
   reported as a failure and not as a clean pass;
 - `2` when `claims.toml` exists and does not parse.
 
-The commit hooks and the CLI differ in two respects. The hooks run only in
+The commit hook and the CLI differ in two respects. The hook runs only in
 a repository with a root `claims.toml`, and the CLI runs anywhere, with
-every check on its defaults where the file is missing. The hooks also
-honour the switches that take a check, or the gate as a whole, out of the
+every check on its defaults where the file is missing. The hook also
+honours the switches that take a check, or the gate as a whole, out of the
 commit-time decision, and the CLI ignores both, so a check silenced at
 commit time is still reported here. Those switches are on
 [Configuring `claims`](configuring.md).
@@ -267,7 +249,7 @@ happen here:
 ## `claims.toml`
 
 At the consuming project's repository root, and required for the commit
-hooks: without it neither commit hook runs a check. An empty file opts in
+hook: without it the hook runs no check. An empty file opts in
 with each check on its own defaults, so there is nothing more to configure
 to get started. The `check-claims` skill and the CLI run with or without it. Each
 top-level table is a single check's own configuration section, named for

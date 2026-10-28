@@ -16,8 +16,10 @@ the report stays private while a fix is prepared.
 
 ## Scope worth knowing about
 
-`claims` installs a `PreToolUse` hook that runs its full check suite
-against whatever repository it's installed into, and one of those checks
+`claims` installs as a git `pre-commit` hook that runs its full check suite
+against whatever repository it's installed into (its Claude Code plugin
+adds only a `SessionStart`/`CwdChanged` hook that reads, and never runs,
+a repository's hook configuration), and one of those checks
 (`executable-claims`) executes commands named in that repository's own
 `<!-- verify: -->` markers. As of `decisions/0001-executable-claims-deny-by-default.md`,
 a command only runs once it's been explicitly, locally granted in

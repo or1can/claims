@@ -13,9 +13,11 @@
 # limitations under the License.
 
 """Git `pre-commit` hook adapter, installed as the `claims-pre-commit`
-console command (#127): the same per-repository decision as the
-`PreToolUse` hook (`claims.gate`), for the repository git runs it in,
-reported through stderr and the exit code alone — `1` blocks the commit.
+console command (#127): the per-repository decision (`claims.gate`), for
+the repository git runs it in, reported through stderr and the exit code
+alone — `1` blocks the commit. Git decides when a commit happens
+(`decisions/0007-git-decides-when-a-commit-happens.md`); the plugin only
+nudges when this hook isn't installed (`claims.nudge`).
 
 An unexpected exception inside `claims`, an import error included, fails
 open, with a warning, rather than blocking: a broken install would

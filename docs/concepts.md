@@ -20,8 +20,8 @@ the plain CLI.
 ## Gate versus advisory
 
 A **gate** finding blocks the commit it is attached to. Through the hook,
-the `git commit` is denied, with every finding of the run as the reason;
-through the CLI, the run exits non-zero. A check is a gate when what it reports is a
+the `git commit` is stopped, with every finding of the run printed as the
+reason; through the CLI, the run exits non-zero. A check is a gate when what it reports is a
 claim it has actually disproved: a link with no target, a cited symbol the
 repository no longer declares, a bare path mention that resolves to no
 tracked file, a command whose real output no longer matches the block

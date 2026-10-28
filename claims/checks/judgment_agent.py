@@ -64,7 +64,7 @@ citing code, and every one of this consolidation's user stories about
 "architecture or intent" claims names documentation, not source comments.
 
 Each candidate's message carries the diff evidence rather than a bare
-citation because a `PreToolUse` hook runs before `git commit` completes,
+citation because the `pre-commit` hook runs before `git commit` completes,
 so the common case is an uncommitted working-tree change with no commit
 yet to name; that's reported as exactly that, never as an empty-looking
 omission.
