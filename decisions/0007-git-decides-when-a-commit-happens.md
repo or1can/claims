@@ -34,14 +34,23 @@ parses no command.
 What the plugin does instead is say when the gate is missing. A
 `SessionStart` and a `CwdChanged` hook look at the repository the session
 is in. When it has a root `claims.toml` but nothing that looks like an
-installed hook running `claims`, they tell the agent and the user that the
-gate is not active and where the installation docs are (`claims.nudge`).
-The test is deliberately loose, `claims` anywhere in
-`.pre-commit-config.yaml`, `lefthook.yml`, `lefthook.yaml` or a file in
-the effective hooks directory, because a nudge missed hides an ungated
-repository, where a nudge suppressed by a stray mention costs nothing
-worse than the old silence. The nudge never blocks anything, and fails
-open.
+installed hook running `claims`, they say that the gate is not active and
+where the installation docs are (`claims.nudge`). At session start both
+the agent and the user are told. After a change of directory only the
+user is: Claude Code reads a `CwdChanged` hook's `systemMessage` and
+discards any context meant for the agent.
+
+A repository is nudged once per session on `CwdChanged`, but again on
+every `SessionStart`, since a resume, `/clear` or compaction starts the
+agent's context over and whatever it was told earlier is gone.
+
+The test for an installed hook is deliberately loose, `claims` anywhere
+in `.pre-commit-config.yaml`, `lefthook.yml`, `lefthook.yaml` or a file in
+the effective hooks directory, so it recognises an install in whatever
+shape a hook manager writes it. A nudge in a repository whose hook does
+run `claims` would teach its readers to ignore the nudge everywhere,
+where a stray mention suppressing one leaves only the silence there was
+before. The nudge never blocks anything, and fails open.
 
 ## Alternatives considered
 

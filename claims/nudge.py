@@ -97,16 +97,23 @@ def _first_nudge(state_dir: Path, session_id: str, root: Path) -> bool:
 
 
 def decide(event: str, session_id: str, cwd: Path, state_dir: Path) -> dict[str, object]:
+    """The hook-output JSON for `event`, `SessionStart` or `CwdChanged`,
+    in `cwd`: the nudge, or `{}` when there is nothing to say."""
+
     root = toplevel(cwd)
     if root is None or not has_config(root) or _hook_installed(root):
         return {}
+    # Recorded on `SessionStart` too, so a `cd` within the repository it
+    # started in says nothing more.
     first = _first_nudge(state_dir, session_id, root)
     if event == "SessionStart":
         return {
             "hookSpecificOutput": {"hookEventName": event, "additionalContext": CONTEXT},
             "systemMessage": SYSTEM_MESSAGE,
         }
-    return {"systemMessage": SYSTEM_MESSAGE} if first else {}
+    if event == "CwdChanged" and first:
+        return {"systemMessage": SYSTEM_MESSAGE}
+    return {}
 
 
 def main(

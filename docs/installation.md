@@ -61,10 +61,9 @@ scope, replaces the source for each project on that machine. A checkout of
 this repository registered as a directory marketplace for its own
 development is the common way to hit that.
 
-Verify with `claude plugin details claims@claims`, which lists the
-`check-claims` skill and the plugin's `SessionStart` and `CwdChanged`
-hooks. The `judgment-agent` subagent loads as `claims:judgment-agent`,
-and the `check-claims` skill invokes it once per candidate.
+Verify with `claude plugin details claims@claims`. The `judgment-agent`
+subagent loads as `claims:judgment-agent`, and the `check-claims` skill
+invokes it once per candidate.
 
 **Pinned at install, explicit update.** The install records the commit it
 resolved, and the plugin keeps running that commit until the project

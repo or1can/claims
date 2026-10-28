@@ -14,8 +14,8 @@ reached you, not just that one was pushed upstream.
 ## [0.16.0] - 2026-10-28
 
 - Changed: the commit gate now needs a git `pre-commit` hook installed in
-  your repository; the plugin no longer gates commits itself. See "The git
-  `pre-commit` hook" in `docs/installation.md`. Commits made by hand or in
+  your repository; the plugin no longer gates commits itself. See [The git
+  `pre-commit` hook](docs/installation.md#the-git-pre-commit-hook). Commits made by hand or in
   CI are gated too, and `git -C` or `cd` before a commit no longer slips
   past.
 - Added: in a repository with a `claims.toml` but no hook that runs
