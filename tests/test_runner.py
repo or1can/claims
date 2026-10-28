@@ -248,6 +248,21 @@ class RunnerTests(RegistryClearingTestCase):
         self.assertEqual(result.findings[0].file, "claims.local.toml")
         self.assertNotIn("or [hook]", result.findings[0].message)
 
+    def test_a_local_nudge_table_is_not_flagged(self) -> None:
+        repo_root = self._local_config_repo("[nudge]\nenabled = false\n")
+
+        result = run(repo_root, "HEAD", {})
+
+        self.assertEqual(result.findings, ())
+
+    def test_a_nudge_table_in_claims_toml_is_flagged_since_the_opt_out_is_per_person(
+        self,
+    ) -> None:
+        result = run(Path("/repo"), "HEAD", {"nudge": {"enabled": False}})
+
+        self.assertEqual(len(result.findings), 1)
+        self.assertEqual(result.findings[0].file, "claims.toml")
+
     def test_an_unparseable_local_file_is_left_to_the_checks_that_read_it(self) -> None:
         register_check("check-a", lambda repo_root, diff_range, config: [])
         repo_root = self._local_config_repo("[not toml\n")

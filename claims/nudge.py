@@ -16,7 +16,9 @@
 the repository the session is in has opted in to the commit gate, with a root `claims.toml`
 that doesn't read `[hook] enabled = false`, but has no git hook installed
 that runs it (#128). A `claims.toml` that doesn't parse is nudged too: it
-switched nothing off. Git decides when a
+switched nothing off. One person can silence it for one clone with
+`[nudge] enabled = false` in the git-ignored `claims.local.toml` (#132).
+Git decides when a
 commit happens, through that hook, not the plugin
 (`decisions/0007-git-decides-when-a-commit-happens.md`); the plugin only
 says when the hook is missing.
@@ -42,8 +44,9 @@ only the user. `UserPromptSubmit` tells the agent, and the user if a `cd`
 hasn't already: Claude Code doesn't fire a plugin's `CwdChanged` hook at
 all (anthropics/claude-code#105625), so the next prompt is where a `cd` is
 first seen. Outside `SessionStart`, each is told about a repository once,
-and a repository found with its hook installed or switched off counts as
-told, so a prompt there costs no more than reading the record.
+and a repository found with its hook installed, switched off or opted out
+of counts as told, so a prompt there costs no more than reading the
+record.
 
 The record is a file per session under the system temporary directory.
 `SessionStart` nudges even when it can't be read or written; the other
@@ -64,7 +67,7 @@ from collections.abc import Mapping
 from pathlib import Path
 from typing import TextIO
 
-from .config import ConfigError, has_config, load_config
+from .config import ConfigError, has_config, load_config, load_local_config
 from .git import toplevel
 
 INSTALL_URL = "https://claims.apps.orican.eu/installation.html#the-git-pre-commit-hook"
@@ -116,6 +119,17 @@ def _switched_off(root: Path) -> bool:
     except ConfigError:
         return False
     return isinstance(hook, Mapping) and hook.get("enabled", True) is False
+
+
+def _opted_out(root: Path) -> bool:
+    """Whether `root`'s `claims.local.toml` reads `[nudge] enabled =
+    false`; read the same way as `_switched_off`."""
+
+    try:
+        nudge = load_local_config(root).get("nudge", {})
+    except ConfigError:
+        return False
+    return isinstance(nudge, Mapping) and nudge.get("enabled", True) is False
 
 
 def _mentions_claims(path: Path) -> bool:
@@ -172,7 +186,7 @@ def decide(event: str, session_id: str, cwd: Path, state_dir: Path) -> dict[str,
         return {}
     if not tell:
         return {}
-    quiet = _switched_off(root) or _hook_installed(root)
+    quiet = _switched_off(root) or _opted_out(root) or _hook_installed(root)
     # Recorded even when quiet, so the next prompt needn't look again.
     record += [f"{who} {root}" for who in sorted(tell - _told(record, root))]
     try:

@@ -51,8 +51,11 @@ committed without `pre-commit install` or its equivalent having been run
 is not a hook, so a fresh clone is reminded. After a change of directory
 the reminder comes with your next prompt, and each repository is
 mentioned once per session after the session starts. A repository with
-`[hook] enabled = false` is not reminded. The reminder
-never blocks anything.
+`[hook] enabled = false` is not reminded, and nor is a clone where
+you have chosen not to install the hook and said so in its
+`claims.local.toml`, as
+[Silencing the reminder in one clone](configuring.md#silencing-the-reminder-in-one-clone)
+describes. The reminder never blocks anything.
 
 `--scope project` writes both declarations into the project's own
 `.claude/settings.json`, so the dependency is explicit and travels with the

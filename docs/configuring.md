@@ -36,8 +36,10 @@ rather than by the check and so applies to every check alike — see
 
 `claims.local.toml`, beside it, is git-ignored and per-machine. It holds
 the one kind of setting that must never arrive by pull request: the grants
-that let a check execute a command. The [grant file](#the-grant-file)
-section below is the whole of what it holds.
+that let a check execute a command, described in [the grant
+file](#the-grant-file) section below. It also holds one per-person
+choice, [silencing the reminder in one
+clone](#silencing-the-reminder-in-one-clone).
 
 ## Switching the commit hook off
 
@@ -98,9 +100,12 @@ release forward rather than editing the table.
 
 The gate reads `claims.local.toml` too, and reports a mistyped table there
 against that file, with the same suggestion. Any registered check's name
-is accepted there, but `hook` is not: the commit hook reads its switch
-from `claims.toml` only. A `claims.local.toml` that does not parse is
-left to the checks that read it, which report it when they run.
+is accepted there, and so is `nudge`, but `hook` is not: the commit
+hook reads its switch from `claims.toml` only. `nudge` is accepted in
+`claims.local.toml` alone, and is a finding in `claims.toml`, since
+whether you are reminded is your choice, not the repository's. A
+`claims.local.toml` that does not parse is left to the checks that read
+it, which report it when they run.
 
 ## The fixed command blocklist
 
@@ -195,6 +200,43 @@ A granted command string stays granted while a script it invokes by path
 changes underneath it. That gap is accepted rather than closed; the
 reasoning, and the directions deliberately deferred, are in [ADR
 0001](../decisions/0001-executable-claims-deny-by-default.md).
+
+## Silencing the reminder in one clone
+
+The plugin reminds you when a repository with a `claims.toml` has no git
+hook that runs `claims`: at the start of every session, and at your next
+prompt after you move into one. In a clone where
+you have decided not to install the hook, such as one you only read, or
+one on a machine without `uvx`, put this in that clone's
+`claims.local.toml`:
+
+```toml
+[nudge]
+enabled = false
+```
+
+The plugin then says nothing about the missing hook in that clone. Other
+clones, yours or anyone else's, are reminded as before, and nothing else
+changes: the commit gate never reads `[nudge]`, so whether commits are
+checked is still decided by the git hook and `claims.toml` alone.
+
+Only `enabled = false` silences the reminder. Leaving `enabled` out, or
+setting it to `true`, keeps it; so does anything that is not a boolean,
+such as `"false"` or `0`, a top-level `nudge` that is not a table, or a
+`claims.local.toml` that does not parse.
+
+In someone else's repository, the `.gitignore` may not name
+`claims.local.toml`. Add it to `.git/info/exclude` instead, which git
+reads like a `.gitignore` but never commits:
+
+```sh
+echo claims.local.toml >> .git/info/exclude
+```
+
+That keeps the file out of `git status` and out of an accidental commit.
+A `claims.local.toml` that git does track is a gate finding, as the grant
+file section above describes, so a mistake is caught, but it should not be
+how you find out.
 
 ## Next
 

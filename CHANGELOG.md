@@ -11,6 +11,13 @@ reached you, not just that one was pushed upstream.
 
 ## [Unreleased]
 
+## [0.17.0] - 2026-10-28
+
+- Added: `[nudge] enabled = false` in a clone's git-ignored
+  `claims.local.toml` silences the plugin's reminder that no git hook runs
+  `claims` there, for that clone only. The commit gate never reads it; see
+  [Silencing the reminder in one clone](docs/configuring.md#silencing-the-reminder-in-one-clone).
+
 ## [0.16.4] - 2026-10-28
 
 - Fixed: a `claims.toml` whose `hook` is not a table, such as `hook =
