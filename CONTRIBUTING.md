@@ -17,6 +17,16 @@ python3 -m unittest discover -s tests -p 'test_*.py'   # tests (no pytest binary
 PYRIGHT_PYTHON_IGNORE_WARNINGS=1 uv run pyright claims tests  # typecheck
 ```
 
+This repository gates its own commits with `claims`, run from the
+checkout through [pre-commit](https://pre-commit.com)
+(`.pre-commit-config.yaml`). Install pre-commit once, then the hook once
+per clone:
+
+```bash
+uv tool install pre-commit --with pre-commit-uv
+pre-commit install
+```
+
 Before submitting, make sure both pass — CI enforces them. The typecheck
 must read exactly:
 

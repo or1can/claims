@@ -1,0 +1,17 @@
+# This repository's own commit gate. A `local` hook rather than this
+# repository's published `claims` hook (`.pre-commit-hooks.yaml`), so a
+# commit is checked by the checkout's own code, the code it changes,
+# rather than by the last release. `language: system` runs `python3` from
+# the committer's `PATH`, which needs nothing beyond the standard library.
+# `verbose` shows advisory findings, which pre-commit otherwise hides
+# whenever the hook passes.
+repos:
+  - repo: local
+    hooks:
+      - id: claims
+        name: claims
+        entry: python3 -m claims.pre_commit
+        language: system
+        pass_filenames: false
+        always_run: true
+        verbose: true
