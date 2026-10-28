@@ -69,8 +69,8 @@ exclude = ["examples/*", ".scratch/*"]
 # changelog held the second surviving copy of now falls under
 # `duplication_threshold` and gets reported where it lives. Over
 # `HEAD~15` that traded 31 suppressed findings for 3 new ones — two in
-# `.scratch/`, and one genuine duplicate in `claims/hook.py` the changelog
-# had been masking.
+# `.scratch/`, and one genuine duplicate the changelog had been masking in
+# `claims/hook.py`, since deleted.
 #
 # `.scratch/*` is excluded for the reason `stale-claims` gives above: the
 # archive is frozen, so a retracted line still asserted there will never
