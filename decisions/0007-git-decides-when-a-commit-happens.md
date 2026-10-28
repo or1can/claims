@@ -47,9 +47,12 @@ at all unless a settings file registers one too
 (anthropics/claude-code#105625), so `UserPromptSubmit` stands in: at the
 next prompt it tells the agent, and the user if `CwdChanged` has not.
 Each of them is told about a repository once per session, outside
-`SessionStart`. Checking on every prompt costs about one Python start and
-one `git rev-parse`; a commit made in the same turn as the `cd` is not
-caught until the next prompt.
+`SessionStart`, which also forgets what the agent was told about any other
+repository. A repository found with its hook installed, or the gate
+switched off, counts as told until the next `SessionStart`. So after the
+first prompt in a repository, a prompt costs one Python start, one `git
+rev-parse` and a read of the record. A commit made in the same turn as
+the `cd` lands unchecked; the nudge comes only with the next prompt.
 
 The test for an installed hook is deliberately loose, `claims` anywhere
 in a file in the effective hooks directory, or in a hook manager's

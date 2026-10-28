@@ -269,6 +269,32 @@ class NudgeTests(unittest.TestCase):
         self.assertIn("not active", output["hookSpecificOutput"]["additionalContext"])
         self.assertNotIn("systemMessage", output)
 
+    def test_a_session_start_resets_what_the_agent_was_told(self) -> None:
+        # A resume or compaction keeps the session id but wipes the agent's
+        # context, including what it heard about other repositories.
+        with Repo() as first, Repo() as second:
+            for repo in (first, second):
+                (repo.root / "claims.toml").write_text("")
+            self._run(first.root)
+            self._run(second.root, event="UserPromptSubmit")
+            self._run(second.root)
+            output = self._run(first.root, event="UserPromptSubmit")
+        self.assertIn("not active", output["hookSpecificOutput"]["additionalContext"])
+        self.assertNotIn("systemMessage", output)
+
+    def test_a_repo_with_its_hook_installed_is_not_checked_again_on_each_prompt(
+        self,
+    ) -> None:
+        # Found covered once, it stays covered until the next session start.
+        with Repo() as repo:
+            (repo.root / "claims.toml").write_text("")
+            hook = repo.root / ".git" / "hooks" / "pre-commit"
+            hook.write_text("#!/bin/sh\nexec claims-pre-commit\n")
+            self.assertEqual(self._run(repo.root, event="UserPromptSubmit"), {})
+            hook.unlink()
+            self.assertEqual(self._run(repo.root, event="UserPromptSubmit"), {})
+            self._assert_nudged_at_session_start(self._run(repo.root))
+
     def test_another_session_in_the_same_repo_is_nudged(self) -> None:
         with Repo() as repo:
             (repo.root / "claims.toml").write_text("")
@@ -301,12 +327,23 @@ class NudgeTests(unittest.TestCase):
     def test_an_unwritable_state_directory_still_nudges_at_session_start(
         self,
     ) -> None:
-        # Only `CwdChanged` needs the record of what was already said.
+        # Without the record, any other event would repeat itself on every
+        # prompt or `cd`, so only `SessionStart` speaks.
         with Repo() as repo:
             (repo.root / "claims.toml").write_text("")
             self.state_dir = repo.root / "claims.toml" / "not-a-directory"
             self._assert_nudged_at_session_start(self._run(repo.root))
             self.assertEqual(self._run(repo.root, event="CwdChanged"), {})
+            self.assertEqual(self._run(repo.root, event="UserPromptSubmit"), {})
+
+    def test_an_unreadable_state_file_still_nudges_at_session_start(self) -> None:
+        with Repo() as repo:
+            (repo.root / "claims.toml").write_text("")
+            self._run(repo.root, event="UserPromptSubmit")
+            [state] = self.state_dir.iterdir()
+            state.chmod(0)
+            self.addCleanup(state.chmod, 0o600)
+            self._assert_nudged_at_session_start(self._run(repo.root))
 
 
 if __name__ == "__main__":

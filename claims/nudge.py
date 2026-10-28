@@ -12,8 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""`SessionStart`, `CwdChanged` and `UserPromptSubmit` hook: a nudge when the repository the
-session is in has opted in to the commit gate, with a root `claims.toml`
+"""`SessionStart`, `CwdChanged` and `UserPromptSubmit` hook: a nudge when
+the repository the session is in has opted in to the commit gate, with a root `claims.toml`
 that doesn't read `[hook] enabled = false`, but has no git hook installed
 that runs it (#128). A `claims.toml` that doesn't parse is nudged too: it
 switched nothing off. Git decides when a
@@ -32,16 +32,20 @@ with no hook installed is a fresh clone, which is gated by nothing. A
 mention that runs nothing still counts.
 
 The agent is told through `additionalContext`, the user through a
-one-line `systemMessage`. `SessionStart` tells both, every time, since a
+one-line `systemMessage`. `SessionStart` tells both, every time, and
+forgets what the agent was told about any other repository, since a
 resume, `/clear` or compaction starts the agent's context over.
 `CwdChanged` reads `systemMessage` alone from a hook's output, so it tells
-only the user, once per repository root per session. `UserPromptSubmit`
-tells the agent, and the user if a `cd` hasn't already, once per
-repository root per session: Claude Code doesn't fire a plugin's
-`CwdChanged` hook at all (anthropics/claude-code#105625), so the next
-prompt is where a `cd` is first seen. Who has been told about which root
-is kept in a file per session under the system temporary directory;
-`SessionStart` nudges even when it can't be written.
+only the user. `UserPromptSubmit` tells the agent, and the user if a `cd`
+hasn't already: Claude Code doesn't fire a plugin's `CwdChanged` hook at
+all (anthropics/claude-code#105625), so the next prompt is where a `cd` is
+first seen. Outside `SessionStart`, each is told about a repository once,
+and a repository found with its hook installed or switched off counts as
+told, so a prompt there costs no more than reading the record.
+
+The record is a file per session under the system temporary directory.
+`SessionStart` nudges even when it can't be read or written; the other
+events say nothing, rather than repeat themselves on every prompt.
 
 Never blocks anything. Any error, a malformed payload included, outputs
 `{}`.
@@ -49,7 +53,6 @@ Never blocks anything. Any error, a malformed payload included, outputs
 
 from __future__ import annotations
 
-import contextlib
 import hashlib
 import json
 import subprocess
@@ -76,6 +79,7 @@ def _context(root: Path) -> str:
 
 def _system_message(root: Path) -> str:
     return f"claims commit gate not active in {root}: no git hook runs claims. See {INSTALL_URL}"
+
 
 _MANAGER_CONFIGS = (
     ".pre-commit-config.yaml",
@@ -130,18 +134,17 @@ def _state_file(state_dir: Path, session_id: str) -> Path:
     return state_dir / f"claims-nudge-{digest}"
 
 
-def _told(state: Path, root: Path) -> set[str]:
-    """Who, of `agent` and `user`, has been told about `root`."""
-
-    if not state.is_file():
-        return set()
-    lines = state.read_text().splitlines()
-    return {who for who in ("agent", "user") if f"{who} {root}" in lines}
+def _read(state: Path) -> list[str]:
+    try:
+        return state.read_text(errors="replace").splitlines()
+    except OSError:
+        return []
 
 
-def _record(state: Path, root: Path, told: set[str]) -> None:
-    with state.open("a") as f:
-        f.writelines(f"{who} {root}\n" for who in sorted(told))
+def _told(record: list[str], root: Path) -> set[str]:
+    """Who, of `agent` and `user`, `record` says has been told about `root`."""
+
+    return {who for who in ("agent", "user") if f"{who} {root}" in record}
 
 
 def decide(event: str, session_id: str, cwd: Path, state_dir: Path) -> dict[str, object]:
@@ -153,23 +156,30 @@ def decide(event: str, session_id: str, cwd: Path, state_dir: Path) -> dict[str,
     if root is None or not has_config(root):
         return {}
     state = _state_file(state_dir, session_id)
-    told = _told(state, root)
+    record = _read(state)
     if event == "SessionStart":
+        record = [line for line in record if not line.startswith("agent ")]
         tell = {"agent", "user"}
     elif event == "CwdChanged":
-        tell = {"user"} - told
-    elif event == "UserPromptSubmit" and "agent" not in told:
-        tell = {"agent", "user"} - told
+        tell = {"user"} - _told(record, root)
+    elif event == "UserPromptSubmit" and "agent" not in _told(record, root):
+        tell = {"agent", "user"} - _told(record, root)
     else:
         return {}
-    if not tell or _switched_off(root) or _hook_installed(root):
+    if not tell:
         return {}
-    if event == "SessionStart":
-        # The agent is told whether or not the record can be written.
-        with contextlib.suppress(OSError):
-            _record(state, root, tell - told)
-    else:
-        _record(state, root, tell)
+    quiet = _switched_off(root) or _hook_installed(root)
+    # Recorded even when quiet, so the next prompt needn't look again.
+    record += [f"{who} {root}" for who in sorted(tell - _told(record, root))]
+    try:
+        state.write_text("".join(f"{line}\n" for line in record))
+    except OSError:
+        # The agent is told at session start whether or not the record can
+        # be written.
+        if event != "SessionStart":
+            raise
+    if quiet:
+        return {}
     output: dict[str, object] = {}
     if "agent" in tell:
         output["hookSpecificOutput"] = {
