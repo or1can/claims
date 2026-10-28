@@ -147,10 +147,11 @@ tagged `v<version>` in this repository, and every setup below pins one.
 
 pre-commit and `uvx` each run the hook in an environment of their own,
 put first on `PATH`, and a command granted in `claims.local.toml` runs
-with that `PATH` too. `python3` in a granted command is then the hook's
-own Python, without the project's dependencies, so a claim about a Python
-command's output can fail under the git hook where it passes through the
-command line.
+exactly as written, with that `PATH`. A bare `python3` in a granted
+command is then the hook's own Python, without the project's
+dependencies. A command that needs the project's environment names it,
+as [executable-claims](checks/executable-claims.md#the-environment-a-command-runs-in)
+describes, and then runs the same under any hook and on the command line.
 
 ### pre-commit
 

@@ -79,6 +79,27 @@ above says why committed configuration cannot carry that choice, and [ADR
 0001](../../decisions/0001-executable-claims-deny-by-default.md) records
 what was considered and set aside.
 
+## The environment a command runs in
+
+A command runs exactly as written, with whatever `PATH` the run was
+started with. Through a git hook installed by pre-commit, or run through
+`uvx`, the first `python3` on that `PATH` is the hook's own, which has
+`claims` and nothing else. A command that needs the project's
+dependencies names the environment they live in:
+
+```sh
+uv run -q python scripts/report.py
+.venv/bin/python scripts/report.py
+poetry run python scripts/report.py
+```
+
+Then it runs against the dependencies the project declares, wherever the
+check runs. `-q` matters with `uv run`: a hook environment can set
+`VIRTUAL_ENV`, and uv then warns on stderr that it is ignoring it, and
+stderr is compared along with stdout. [ADR
+0008](../../decisions/0008-a-command-names-its-own-environment.md) records
+why `claims` does not adjust `PATH` itself.
+
 ## Why it exists
 
 A block showing a command's output is the most concrete claim
