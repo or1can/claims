@@ -509,6 +509,28 @@ class SplicedDocsTests(RegistryClearingTestCase):
             _swift_declarations(lines), [(2, "a", True), (3, "b", False)]
         )
 
+    def test_a_swift_attribute_ends_where_its_own_parentheses_close(self) -> None:
+        # The `(` opening `foo`'s signature is not the attribute's: the
+        # attribute closes at `)` after `fooWith:`, mid-line.
+        lines = [
+            "/// Documents `foo`.",
+            "@objc(fooWith:) func foo(",
+            "    a: Int",
+            ") {}",
+            "func bar() {}",
+        ]
+        self.assertIn((4, "bar", False), _swift_declarations(lines))
+
+    def test_a_rust_attribute_ends_where_its_own_brackets_close(self) -> None:
+        lines = [
+            "/// Documents the array, not `Foo`.",
+            "#[rustfmt::skip] const XS: [u8; 1] = [",
+            "    1,",
+            "];",
+            "pub struct Foo {}",
+        ]
+        self.assertIn("Foo", _rust_bare_items(lines))
+
 
 if __name__ == "__main__":
     unittest.main()

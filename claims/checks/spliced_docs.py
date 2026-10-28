@@ -158,9 +158,10 @@ def _attribute_lines(
     """Every index in `lines` that is part of an attribute.
 
     An attribute runs from a line `start_re` matches through the line where
-    its `opener`s and `closer`s balance, however many lines that spans. A
-    line `item_re` matches ends it unbalanced, so a miscounted bracket
-    cannot carry it over the items below.
+    its first `opener` is closed again, however many lines that spans;
+    whatever follows on that line, such as a signature's own `(`, is not
+    counted. A line `item_re` matches ends it unbalanced, so a miscounted
+    bracket cannot carry it over the items below.
     """
 
     inside: set[int] = set()
@@ -172,8 +173,13 @@ def _attribute_lines(
         inside.add(i)
         depth = 0
         while True:
-            code = DOUBLE_QUOTED_RE.sub("", lines[i])
-            depth += code.count(opener) - code.count(closer)
+            for char in DOUBLE_QUOTED_RE.sub("", lines[i]):
+                if char == opener:
+                    depth += 1
+                elif char == closer:
+                    depth -= 1
+                    if depth == 0:
+                        break
             i += 1
             if depth <= 0 or i == len(lines) or item_re.match(lines[i]):
                 break
