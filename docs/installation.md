@@ -66,35 +66,61 @@ scope, replaces the source for each project on that machine. A checkout of
 this repository registered as a directory marketplace for its own
 development is the common way to hit that.
 
-Verify with `claude plugin details claims@claims`. The `judgment-agent`
-subagent loads as `claims:judgment-agent`, and the `check-claims` skill
-invokes it once per candidate.
+Verify with:
+
+```sh
+claude plugin details claims@claims
+```
+
+```
+claims 0.16.0
+  Description: Checks documentation and agent-instruction claims against the code they describe.
+  Source: claims@claims
+
+Component inventory
+  Skills (1)  check-claims
+  Agents (0)
+  Hooks (3)  SessionStart, UserPromptSubmit, CwdChanged  (harness-only — no model context cost)
+  MCP servers (0)
+  LSP servers (0)
+
+Projected token cost
+  Always-on:   ~96 tok   added to every session
+
+Per-component (rounded)
+  component     always-on  on-invoke
+  check-claims       ~100      ~3.6k
+
+  On-invoke cost is paid each time a skill or agent fires.
+  Token counts are estimates and may differ from actual usage.
+```
+
+Captured from `claude plugin details claims@claims` in a throwaway
+project, as the next command after the install commands above.
+
+The three hooks are the reminder described above. The inventory counts no
+agent, though the plugin manifest declares one. The `judgment-agent`
+subagent loads all the same, as `claims:judgment-agent`, and the
+`check-claims` skill invokes it once per candidate.
 
 **Pinned at install, explicit update.** The install records the commit it
 resolved, and the plugin keeps running that commit until the project
 updates it. That is deliberate for a plugin that gates commits: an upstream
 change to this repository does not start deciding a project's commits
-differently until someone chose to pull it in. To update, name the plugin
-and the scope it was installed at, both:
+differently until someone chose to pull it in. To update:
 
 ```sh
 claude plugin update claims@claims --scope project
 ```
 
-The shorter forms fail against a project-scoped install, because `update`
-defaults to `user` scope:
-
 ```
-$ claude plugin update claims
-Checking for updates for plugin "claims" at user scope…
-✘ Failed to update plugin "claims": Plugin "claims" is not installed at scope user
-$ claude plugin update claims@claims
-Checking for updates for plugin "claims@claims" at user scope…
-✘ Failed to update plugin "claims@claims": Plugin "claims" is not installed at scope user
+Checking for updates for plugin "claims@claims" at project scope…
+✔ claims is already at the latest version (0.16.0).
 ```
 
-Captured from a throwaway project, both forms run after the
-project-scoped install.
+Captured from the same throwaway project, straight after the install, so
+there was nothing newer to fetch. The shorter `claude plugin update
+claims` finds the same project-scoped install.
 
 ## The git `pre-commit` hook
 
