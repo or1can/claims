@@ -102,6 +102,10 @@ def _crash_finding(name: str, exc: Exception) -> Finding:
 # silently doing nothing (ticket #21), not a second exception to add here.
 _KNOWN_NON_CHECK_TABLES = frozenset({"hook"})
 
+# `claims.local.toml`'s counterpart: `[nudge]`, one person's opt-out from
+# the missing-hook nudge in one clone (ticket #132) — see `claims.nudge`.
+_KNOWN_LOCAL_NON_CHECK_TABLES = frozenset({"nudge"})
+
 
 def _normalize_table_name(name: str) -> str:
     """`name` with underscores folded to the hyphens every registered check
@@ -136,7 +140,8 @@ def _unrecognized_table_findings(
     those are is recorded only inside their own bodies (their
     `local_grants` call), so a hardcoded subset here would drift the
     moment a check started or stopped reading grants. `[hook]` is not
-    accepted there — the hook reads `claims.toml` only.
+    accepted there — the hook reads `claims.toml` only — and `[nudge]`
+    is accepted there alone, since the nudge's opt-out is per person.
 
     Checked against the registry's *live* names, not a hardcoded list, so
     this never drifts out of sync with whatever checks actually exist —
@@ -199,7 +204,7 @@ def run(
         local_config = {}
     findings.extend(
         _unrecognized_table_findings(
-            local_config, registered, LOCAL_CONFIG_FILENAME, frozenset()
+            local_config, registered, LOCAL_CONFIG_FILENAME, _KNOWN_LOCAL_NON_CHECK_TABLES
         )
     )
     for name, check in _registry.items():

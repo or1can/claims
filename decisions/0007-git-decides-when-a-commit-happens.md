@@ -8,6 +8,10 @@ Amended by #135, since not every host shows the user a hook's
 `systemMessage`: the agent is now also asked to relay the nudge. See the
 paragraph under Decision that opens "The user's channel".
 
+Amended by #132: one person can also silence the nudge for one clone
+with `[nudge] enabled = false` in its git-ignored `claims.local.toml`,
+which counts as told like an installed hook or a switched-off gate.
+
 ## Context
 
 The plugin gated commits through a Claude Code `PreToolUse` hook on
@@ -52,8 +56,9 @@ at all unless a settings file registers one too
 next prompt it tells the agent, and the user if `CwdChanged` has not.
 Each of them is told about a repository once per session, outside
 `SessionStart`, which also forgets what the agent was told about any other
-repository. A repository found with its hook installed, or the gate
-switched off, counts as told until the next `SessionStart`. So after the
+repository. A repository found with its hook installed, the gate
+switched off, or the nudge opted out of in its `claims.local.toml`, counts
+as told until the next `SessionStart`. So after the
 first prompt in a repository, a prompt costs one Python start, one `git
 rev-parse` and a read of the record. A commit made in the same turn as
 the `cd` lands unchecked; the nudge comes only with the next prompt.

@@ -191,6 +191,42 @@ class NudgeTests(unittest.TestCase):
                 (repo.root / "claims.toml").write_text(text)
                 self._assert_nudged_at_session_start(self._run(repo.root))
 
+    def test_a_clone_that_opted_out_of_the_nudge_is_not_nudged(self) -> None:
+        for event in ("SessionStart", "CwdChanged", "UserPromptSubmit"):
+            with self.subTest(event=event), Repo() as repo:
+                (repo.root / "claims.toml").write_text("")
+                (repo.root / "claims.local.toml").write_text("[nudge]\nenabled = false\n")
+                self.assertEqual(self._run(repo.root, event=event), {})
+
+    def test_a_clone_that_did_not_opt_out_of_the_nudge_is_nudged(self) -> None:
+        for text in (None, "", "[executable-claims]\nallowed = []\n", "[nudge]\nenabled = true\n"):
+            for event in ("SessionStart", "CwdChanged", "UserPromptSubmit"):
+                with self.subTest(text=text, event=event), Repo() as repo:
+                    (repo.root / "claims.toml").write_text("")
+                    if text is not None:
+                        (repo.root / "claims.local.toml").write_text(text)
+                    self.assertIn("not active", self._run(repo.root, event=event)["systemMessage"])
+
+    def test_a_claims_local_toml_that_cannot_say_the_nudge_is_off_is_nudged(self) -> None:
+        # Only a deliberate `[nudge] enabled = false` silences it.
+        for text in (
+            "[nudge\nenabled = false\n",
+            "nudge = false\n",
+            '[nudge]\nenabled = "false"\n',
+            "[nudge]\nenabled = 0\n",
+        ):
+            with self.subTest(text=text), Repo() as repo:
+                (repo.root / "claims.toml").write_text("")
+                (repo.root / "claims.local.toml").write_text(text)
+                self._assert_nudged_at_session_start(self._run(repo.root))
+
+    def test_the_opt_out_is_read_from_claims_local_toml_only(self) -> None:
+        # Per person, not per repository: `[nudge]` in `claims.toml` is
+        # not the opt-out.
+        with Repo() as repo:
+            (repo.root / "claims.toml").write_text("[nudge]\nenabled = false\n")
+            self._assert_nudged_at_session_start(self._run(repo.root))
+
     def test_a_cd_payload_without_new_cwd_is_judged_by_cwd(self) -> None:
         with Repo() as repo:
             (repo.root / "claims.toml").write_text("")
