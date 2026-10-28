@@ -167,7 +167,9 @@ repos:
 ```
 
 Then `pre-commit install`, as for any other hook. pre-commit builds its
-own environment for the hook, so nothing else needs installing.
+own environment for the hook, so nothing else needs installing. The hook
+is verbose, so its advisory findings are shown on a commit it lets
+through; pre-commit hides a passing hook's output otherwise.
 
 ### lefthook, husky, or a plain git hook
 

@@ -1,7 +1,9 @@
 # The git `pre-commit` hook pre-commit.com installs from this repository:
 # `claims.pre_commit`, the per-repository commit gate (`claims.gate`). It
 # reads the whole working tree against `HEAD`, not the staged file list, so
-# it takes no filenames and runs on every commit.
+# it takes no filenames and runs on every commit. `verbose`, because
+# pre-commit hides a passing hook's output, and advisory findings only
+# ever come with a pass.
 - id: claims
   name: claims
   description: Check documentation and agent-instruction claims against the code they describe.
@@ -9,3 +11,4 @@
   language: python
   pass_filenames: false
   always_run: true
+  verbose: true

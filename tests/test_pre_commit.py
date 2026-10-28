@@ -23,6 +23,7 @@ from __future__ import annotations
 import io
 import sys
 import unittest
+from pathlib import Path
 from unittest import mock
 
 from claims.checks import check_file_refs, check_links
@@ -30,6 +31,8 @@ from claims.pre_commit import main
 from claims.runner import Finding, clear_registry, register_check
 
 from support import RegistryClearingTestCase, Repo
+
+REPO_ROOT = Path(__file__).resolve().parent.parent
 
 
 def _register(name: str, *, gate: bool) -> None:
@@ -214,6 +217,16 @@ class PreCommitTests(RegistryClearingTestCase):
             code, stderr = self._run(repo)
         self.assertEqual(code, 0)
         self.assertIn("not checked", stderr)
+
+
+class PublishedHookTests(unittest.TestCase):
+    def test_the_published_hook_shows_advisory_findings(self) -> None:
+        # pre-commit hides a passing hook's output, and advisory findings
+        # only ever come with a pass, so without `verbose` a project on
+        # pre-commit never sees them.
+        manifest = REPO_ROOT / ".pre-commit-hooks.yaml"
+        lines = manifest.read_text(encoding="utf-8").splitlines()
+        self.assertIn("  verbose: true", lines)
 
 
 if __name__ == "__main__":
