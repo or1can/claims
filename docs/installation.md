@@ -39,7 +39,9 @@ Without it the hook does nothing, so a repository that has not adopted
 When a Claude Code session starts in a repository with a root
 `claims.toml`, or moves into one, and no installed hook there runs
 `claims`, the plugin says so: the agent is told the gate is not
-active, and a one-line message tells you the same. It counts the hook as
+active, and a one-line message tells you the same. Not every host
+shows that message, Zed among them, so the agent is also asked to tell
+you once; in a terminal you may hear it twice. It counts the hook as
 installed when `claims` appears in a file in the repository's git hooks
 directory, `core.hooksPath` included, or when that directory holds a
 `pre-commit` hook and `claims` appears in `.pre-commit-config.yaml`,

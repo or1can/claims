@@ -27,7 +27,7 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
-from claims.nudge import main
+from claims.nudge import INSTALL_URL, main
 
 from support import Repo
 
@@ -76,6 +76,22 @@ class NudgeTests(unittest.TestCase):
             root = str(repo.root.resolve())
         self.assertIn(root, output["hookSpecificOutput"]["additionalContext"])
         self.assertIn(root, output["systemMessage"])
+
+    def test_the_agent_is_asked_to_tell_the_user_once(self) -> None:
+        # Not every host shows `systemMessage` (#135): an SDK host such as
+        # Zed drops it, so the agent relays the nudge, link included.
+        with Repo() as repo:
+            (repo.root / "claims.toml").write_text("")
+            for event in ("SessionStart", "UserPromptSubmit"):
+                output = self._run(repo.root, event=event, session_id=event)
+                context = output["hookSpecificOutput"]["additionalContext"]
+                self.assertIn("tell the user once", context)
+                self.assertIn(INSTALL_URL, context)
+                self.assertEqual(
+                    output["systemMessage"],
+                    f"claims commit gate not active in {repo.root.resolve()}: "
+                    f"no git hook runs claims. See {INSTALL_URL}",
+                )
 
     def test_a_subdirectory_of_an_opted_in_repo_is_nudged(self) -> None:
         with Repo() as repo:
@@ -266,7 +282,10 @@ class NudgeTests(unittest.TestCase):
             (repo.root / "claims.toml").write_text("")
             self._run(repo.root, event="CwdChanged")
             output = self._run(repo.root, event="UserPromptSubmit")
-        self.assertIn("not active", output["hookSpecificOutput"]["additionalContext"])
+        context = output["hookSpecificOutput"]["additionalContext"]
+        self.assertIn("not active", context)
+        # The `CwdChanged` message is the one an SDK host drops.
+        self.assertIn("tell the user once", context)
         self.assertNotIn("systemMessage", output)
 
     def test_a_session_start_resets_what_the_agent_was_told(self) -> None:

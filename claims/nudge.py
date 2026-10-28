@@ -32,7 +32,9 @@ with no hook installed is a fresh clone, which is gated by nothing. A
 mention that runs nothing still counts.
 
 The agent is told through `additionalContext`, the user through a
-one-line `systemMessage`. `SessionStart` tells both, every time, and
+one-line `systemMessage`. Not every host shows `systemMessage` (#135), so
+the agent is also asked to tell the user once; in a terminal the user may
+hear it twice. `SessionStart` tells both, every time, and
 forgets what the agent was told about any other repository, since a
 resume, `/clear` or compaction starts the agent's context over.
 `CwdChanged` reads `systemMessage` alone from a hook's output, so it tells
@@ -73,7 +75,9 @@ def _context(root: Path) -> str:
         f"The repository at {root} opts in to the claims commit gate with a "
         "root claims.toml, but no git hook that runs claims is installed, so "
         "the claims commit gate is not active there: its commits are not "
-        f"checked. Installation: {INSTALL_URL}"
+        "checked. Not every host shows the user the hook's own message, so "
+        "tell the user once, briefly, that the claims commit gate is not "
+        f"active in {root}, with the installation link: {INSTALL_URL}"
     )
 
 
