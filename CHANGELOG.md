@@ -11,6 +11,13 @@ reached you, not just that one was pushed upstream.
 
 ## [Unreleased]
 
+## [0.16.1] - 2026-10-28
+
+- Fixed: through pre-commit, the `claims` hook shows its advisory findings
+  on a commit it lets through. pre-commit hid them, since it only shows a
+  passing hook's output when the hook is verbose. Move `rev:` to
+  `v0.16.1` to get it.
+
 ## [0.16.0] - 2026-10-28
 
 - Changed: the commit gate now needs a git `pre-commit` hook installed in
