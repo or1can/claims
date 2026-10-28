@@ -45,9 +45,13 @@ every `SessionStart`, since a resume, `/clear` or compaction starts the
 agent's context over and whatever it was told earlier is gone.
 
 The test for an installed hook is deliberately loose, `claims` anywhere
-in `.pre-commit-config.yaml`, `lefthook.yml`, `lefthook.yaml` or a file in
-the effective hooks directory, so it recognises an install in whatever
-shape a hook manager writes it. A nudge in a repository whose hook does
+in a file in the effective hooks directory, or in a hook manager's
+configuration (`.pre-commit-config.yaml`, `lefthook.yml`, `lefthook.yaml`,
+`.husky/pre-commit`) once that directory holds a `pre-commit` hook, so it
+recognises an install in whatever shape a hook manager writes it. The
+configuration alone is not enough: committed without the manager's
+install step, it is the fresh clone the nudge is for. A repository that
+switched the gate off with `[hook] enabled = false` is not nudged. A nudge in a repository whose hook does
 run `claims` would teach its readers to ignore the nudge everywhere,
 where a stray mention suppressing one leaves only the silence there was
 before. The nudge never blocks anything, and fails open.

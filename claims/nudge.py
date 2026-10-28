@@ -13,16 +13,21 @@
 # limitations under the License.
 
 """`SessionStart` and `CwdChanged` hook: a nudge when the repository the
-session is in has opted in to the commit gate, with a root `claims.toml`,
-but has no git hook installed that runs it (#128). Git decides when a
+session is in has opted in to the commit gate, with a root `claims.toml`
+that leaves `[hook] enabled` on, but has no git hook installed that runs
+it (#128). Git decides when a
 commit happens, through that hook, not the plugin
 (`decisions/0007-git-decides-when-a-commit-happens.md`); the plugin only
 says when the hook is missing.
 
 "Installed" is a deliberately loose reading, erring toward silence:
-`claims` anywhere in `.pre-commit-config.yaml`, `lefthook.yml`,
-`lefthook.yaml` or a file in the effective hooks directory
-(`git rev-parse --git-path hooks`, which honours `core.hooksPath`). A
+`claims` anywhere in a file in the effective hooks directory (`git
+rev-parse --git-path hooks`, which honours `core.hooksPath`), or in a hook
+manager's configuration — `.pre-commit-config.yaml`, `lefthook.yml`,
+`lefthook.yaml`, husky's `.husky/pre-commit` — once that hooks directory
+holds a `pre-commit` hook at all. A manager installs a script of its own
+there that names the manager, not `claims`; a committed configuration
+with no hook installed is a fresh clone, which is gated by nothing. A
 mention that runs nothing still counts.
 
 `SessionStart` tells the agent through `additionalContext` and the user
@@ -31,7 +36,8 @@ alone from a hook's output, so after a `cd` only the user is told. A
 repository root is nudged once per session on `CwdChanged`; each
 `SessionStart` nudges again, since a resume, `/clear` or compaction
 starts the agent's context over. The roots already nudged are kept in a
-file per session under the system temporary directory.
+file per session under the system temporary directory, which only
+`CwdChanged` needs: `SessionStart` nudges even when it can't be written.
 
 Never blocks anything. Any error, a malformed payload included, outputs
 `{}`.
@@ -39,6 +45,7 @@ Never blocks anything. Any error, a malformed payload included, outputs
 
 from __future__ import annotations
 
+import contextlib
 import hashlib
 import json
 import subprocess
@@ -47,7 +54,7 @@ import tempfile
 from pathlib import Path
 from typing import TextIO
 
-from .config import has_config
+from .config import has_config, load_config
 from .git import toplevel
 
 INSTALL_URL = "https://claims.apps.orican.eu/installation.html#the-git-pre-commit-hook"
@@ -61,7 +68,12 @@ CONTEXT = (
 
 SYSTEM_MESSAGE = f"claims commit gate not active: no git hook runs claims. See {INSTALL_URL}"
 
-_HOOK_CONFIGS = (".pre-commit-config.yaml", "lefthook.yml", "lefthook.yaml")
+_MANAGER_CONFIGS = (
+    ".pre-commit-config.yaml",
+    "lefthook.yml",
+    "lefthook.yaml",
+    ".husky/pre-commit",
+)
 
 
 def _hooks_dir(root: Path) -> Path:
@@ -74,26 +86,33 @@ def _hooks_dir(root: Path) -> Path:
     return root / result.stdout.strip()
 
 
+def _mentions_claims(path: Path) -> bool:
+    return path.is_file() and b"claims" in path.read_bytes()
+
+
 def _hook_installed(root: Path) -> bool:
     hooks_dir = _hooks_dir(root)
-    candidates = [root / name for name in _HOOK_CONFIGS]
-    if hooks_dir.is_dir():
-        candidates.extend(hooks_dir.iterdir())
-    return any(path.is_file() and b"claims" in path.read_bytes() for path in candidates)
-
-
-def _first_nudge(state_dir: Path, session_id: str, root: Path) -> bool:
-    """Records `root` as nudged in `session_id`, and whether it wasn't
-    already."""
-
-    digest = hashlib.sha256(session_id.encode()).hexdigest()[:32]
-    state = state_dir / f"claims-nudge-{digest}"
-    nudged = state.read_text().splitlines() if state.is_file() else []
-    if str(root) in nudged:
+    if not hooks_dir.is_dir():
         return False
+    if any(map(_mentions_claims, hooks_dir.iterdir())):
+        return True
+    return (hooks_dir / "pre-commit").is_file() and any(
+        _mentions_claims(root / name) for name in _MANAGER_CONFIGS
+    )
+
+
+def _state_file(state_dir: Path, session_id: str) -> Path:
+    digest = hashlib.sha256(session_id.encode()).hexdigest()[:32]
+    return state_dir / f"claims-nudge-{digest}"
+
+
+def _nudged(state: Path, root: Path) -> bool:
+    return state.is_file() and str(root) in state.read_text().splitlines()
+
+
+def _record(state: Path, root: Path) -> None:
     with state.open("a") as f:
         f.write(f"{root}\n")
-    return True
 
 
 def decide(event: str, session_id: str, cwd: Path, state_dir: Path) -> dict[str, object]:
@@ -101,17 +120,26 @@ def decide(event: str, session_id: str, cwd: Path, state_dir: Path) -> dict[str,
     in `cwd`: the nudge, or `{}` when there is nothing to say."""
 
     root = toplevel(cwd)
-    if root is None or not has_config(root) or _hook_installed(root):
+    if root is None or not has_config(root):
         return {}
-    # Recorded on `SessionStart` too, so a `cd` within the repository it
-    # started in says nothing more.
-    first = _first_nudge(state_dir, session_id, root)
+    state = _state_file(state_dir, session_id)
+    if event == "CwdChanged" and _nudged(state, root):
+        return {}
+    if not load_config(root).get("hook", {}).get("enabled", True):
+        return {}
+    if _hook_installed(root):
+        return {}
     if event == "SessionStart":
+        # Recorded so a `cd` within this repository says nothing more, but
+        # the agent is told whether or not the record can be written.
+        with contextlib.suppress(OSError):
+            _record(state, root)
         return {
             "hookSpecificOutput": {"hookEventName": event, "additionalContext": CONTEXT},
             "systemMessage": SYSTEM_MESSAGE,
         }
-    if event == "CwdChanged" and first:
+    if event == "CwdChanged":
+        _record(state, root)
         return {"systemMessage": SYSTEM_MESSAGE}
     return {}
 
@@ -126,7 +154,7 @@ def main(
         output = decide(
             payload["hook_event_name"],
             payload["session_id"],
-            Path(payload["cwd"]),
+            Path(payload.get("new_cwd") or payload["cwd"]),
             state_dir or Path(tempfile.gettempdir()),
         )
     except Exception:

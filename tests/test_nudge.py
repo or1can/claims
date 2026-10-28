@@ -47,6 +47,8 @@ class NudgeTests(unittest.TestCase):
             "cwd": str(cwd),
             "hook_event_name": event,
         }
+        if event == "CwdChanged":
+            payload["new_cwd"] = str(cwd)
         stdout = io.StringIO()
         code = main(io.StringIO(json.dumps(payload)), stdout, self.state_dir)
         self.assertEqual(code, 0)
@@ -79,21 +81,78 @@ class NudgeTests(unittest.TestCase):
         self.assertNotIn("hookSpecificOutput", output)
         self.assertIn("not active", output["systemMessage"])
 
-    def test_an_installed_hook_that_runs_claims_is_not_nudged(self) -> None:
-        installs = {
-            ".pre-commit-config.yaml": (
-                "repos:\n  - repo: https://github.com/or1can/claims\n"
-                "    rev: v0.16.0\n    hooks:\n      - id: claims\n"
-            ),
-            "lefthook.yml": "pre-commit:\n  commands:\n    claims:\n      run: claims-pre-commit\n",
-            "lefthook.yaml": "pre-commit:\n  commands:\n    claims:\n      run: claims-pre-commit\n",
-            ".git/hooks/pre-commit": "#!/bin/sh\nexec claims-pre-commit\n",
-        }
-        for name, text in installs.items():
+    _MANAGER_CONFIGS = {
+        ".pre-commit-config.yaml": (
+            "repos:\n  - repo: https://github.com/or1can/claims\n"
+            "    rev: v0.16.0\n    hooks:\n      - id: claims\n"
+        ),
+        "lefthook.yml": "pre-commit:\n  commands:\n    claims:\n      run: claims-pre-commit\n",
+        "lefthook.yaml": "pre-commit:\n  commands:\n    claims:\n      run: claims-pre-commit\n",
+    }
+
+    def test_a_hook_manager_installed_with_claims_configured_is_not_nudged(
+        self,
+    ) -> None:
+        # The installed `pre-commit` script is the manager's own, and
+        # names the manager, not `claims`.
+        for name, text in self._MANAGER_CONFIGS.items():
             with self.subTest(name=name), Repo() as repo:
                 (repo.root / "claims.toml").write_text("")
                 (repo.root / name).write_text(text)
+                (repo.root / ".git" / "hooks" / "pre-commit").write_text(
+                    "#!/bin/sh\nexec manager run pre-commit\n"
+                )
                 self.assertEqual(self._run(repo.root), {})
+
+    def test_a_hook_manager_configured_but_never_installed_is_nudged(self) -> None:
+        # A fresh clone: the configuration is committed, the hook is not.
+        for name, text in self._MANAGER_CONFIGS.items():
+            with self.subTest(name=name), Repo() as repo:
+                (repo.root / "claims.toml").write_text("")
+                (repo.root / name).write_text(text)
+                self._assert_nudged_at_session_start(self._run(repo.root))
+
+    def test_a_plain_hook_that_runs_claims_is_not_nudged(self) -> None:
+        with Repo() as repo:
+            (repo.root / "claims.toml").write_text("")
+            (repo.root / ".git" / "hooks" / "pre-commit").write_text(
+                "#!/bin/sh\nexec claims-pre-commit\n"
+            )
+            self.assertEqual(self._run(repo.root), {})
+
+    def test_husky_with_claims_configured_is_not_nudged(self) -> None:
+        # husky points `core.hooksPath` at `.husky/_`, whose scripts are
+        # generic wrappers around the project's own `.husky/pre-commit`.
+        with Repo() as repo:
+            (repo.root / "claims.toml").write_text("")
+            (repo.root / ".husky" / "_").mkdir(parents=True)
+            (repo.root / ".husky" / "_" / "pre-commit").write_text(
+                '#!/usr/bin/env sh\n. "$(dirname "$0")/h"\n'
+            )
+            (repo.root / ".husky" / "pre-commit").write_text(
+                "uvx --from git+https://github.com/or1can/claims@v0.16.0 claims-pre-commit\n"
+            )
+            repo.config("core.hooksPath", ".husky/_")
+            self.assertEqual(self._run(repo.root), {})
+
+    def test_a_repo_that_switched_the_gate_off_is_not_nudged(self) -> None:
+        with Repo() as repo:
+            (repo.root / "claims.toml").write_text("[hook]\nenabled = false\n")
+            self.assertEqual(self._run(repo.root), {})
+
+    def test_a_cd_is_judged_by_the_new_directory(self) -> None:
+        with Repo() as before, Repo() as after:
+            (after.root / "claims.toml").write_text("")
+            payload = {
+                "session_id": "s1",
+                "cwd": str(before.root),
+                "hook_event_name": "CwdChanged",
+                "old_cwd": str(before.root),
+                "new_cwd": str(after.root),
+            }
+            stdout = io.StringIO()
+            main(io.StringIO(json.dumps(payload)), stdout, self.state_dir)
+        self.assertIn("not active", json.loads(stdout.getvalue())["systemMessage"])
 
     def test_a_hook_in_core_hooks_path_is_found(self) -> None:
         with Repo() as repo:
@@ -167,11 +226,15 @@ class NudgeTests(unittest.TestCase):
                 self.assertEqual(main(io.StringIO(raw), stdout, self.state_dir), 0)
                 self.assertEqual(json.loads(stdout.getvalue()), {})
 
-    def test_an_unwritable_state_directory_outputs_nothing(self) -> None:
+    def test_an_unwritable_state_directory_still_nudges_at_session_start(
+        self,
+    ) -> None:
+        # Only `CwdChanged` needs the record of what was already said.
         with Repo() as repo:
             (repo.root / "claims.toml").write_text("")
             self.state_dir = repo.root / "claims.toml" / "not-a-directory"
-            self.assertEqual(self._run(repo.root), {})
+            self._assert_nudged_at_session_start(self._run(repo.root))
+            self.assertEqual(self._run(repo.root, event="CwdChanged"), {})
 
 
 if __name__ == "__main__":
