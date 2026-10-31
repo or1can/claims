@@ -44,6 +44,15 @@ Words/lines the diff also *added* are subtracted before its removed lines
 are searched for, because reflowing a paragraph removes and re-adds most
 of it, and a thing still said is not a thing retracted.
 
+**A line the diff added is never a survivor.** Subtraction is per file,
+so text moved from one file to another counts as retracted from the
+first, and the sweep would otherwise find its new copy and report the
+move as a survivor of itself. Whoever wrote the line in this change meant
+it. A run with any word on an added line is skipped too, so moved text
+rewrapped onto an untouched line's tail is still the diff's own. The
+added lines are dropped before the duplication threshold counts files, so a moved copy neither pushes a real survivor over the threshold
+nor stands in for one.
+
 `extensions` is *added* to the default union of both source tools'
 original coverage rather than replacing it — e.g. `ratect` would add
 `.rs`, covered by neither source tool.
@@ -83,7 +92,7 @@ from pathlib import Path
 from typing import NamedTuple
 
 from ..config import exclude_patterns, numeric_config, path_matches, string_list_config
-from ..git import DiffLine, iter_diff, tracked_files
+from ..git import DiffLine, added_lines_by_file, iter_diff, tracked_files
 from ..runner import Finding, register_check
 
 NAME = "restatement"
@@ -341,11 +350,17 @@ def _survivors(
     tracked: list[str],
     wanted_ngrams: set[str],
     wanted_lines: set[str],
+    added: Mapping[str, set[int]],
 ) -> tuple[list[tuple[str, int, str]], list[tuple[str, int, str]]]:
     """`(ngram_hits, whole_line_hits)`, each `(file, line, text)`.
 
     One read and one normalization pass per tracked file, shared by both
     modes, rather than sweeping the whole scoped tree twice.
+
+    A line in `added` is never a hit, and neither is a run with any word
+    on one. Skipped while sweeping, not filtered afterwards, so a run
+    first met on an added line can still be found on a later untouched
+    one.
     """
 
     ngram_hits: list[tuple[str, int, str]] = []
@@ -356,6 +371,7 @@ def _survivors(
         except (OSError, UnicodeDecodeError):
             continue
         lines = _prose_lines(name, text.splitlines())
+        added_here = added.get(name, set())
         located = [
             (word, number)
             for number, line in enumerate(lines, start=1)
@@ -366,6 +382,8 @@ def _survivors(
             surviving: dict[str, int] = {}
             for i in range(0, len(located) - NGRAM_WORDS + 1):
                 window = located[i : i + NGRAM_WORDS]
+                if any(number in added_here for _, number in window):
+                    continue
                 surviving.setdefault(" ".join(word for word, _ in window), window[0][1])
 
             # Overlapping runs of one sentence all match; report each
@@ -380,7 +398,7 @@ def _survivors(
         if wanted_lines:
             for number, line in enumerate(lines, start=1):
                 normalised = " ".join(_normalise(line))
-                if normalised in wanted_lines:
+                if number not in added_here and normalised in wanted_lines:
                     whole_line_hits.append((name, number, normalised))
 
     return ngram_hits, whole_line_hits
@@ -430,7 +448,10 @@ def check(
         return []
 
     tracked = _tracked_scoped(repo_root, extensions, exclude)
-    ngram_hits, whole_line_hits = _survivors(repo_root, tracked, wanted_ngrams, wanted_lines)
+    added = added_lines_by_file(repo_root, diff_range)
+    ngram_hits, whole_line_hits = _survivors(
+        repo_root, tracked, wanted_ngrams, wanted_lines, added
+    )
     ngram_hits = _below_duplication_threshold(ngram_hits, threshold)
     whole_line_hits = _below_duplication_threshold(whole_line_hits, threshold)
 

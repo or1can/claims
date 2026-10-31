@@ -1,6 +1,6 @@
 [project]
 name = "claims"
-version = "0.17.2"
+version = "0.17.3"
 description = "Checks documentation and agent-instruction claims against the code they describe."
 license = "Apache-2.0"
 requires-python = ">=3.11"

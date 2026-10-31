@@ -11,6 +11,13 @@ reached you, not just that one was pushed upstream.
 
 ## [Unreleased]
 
+## [0.17.3] - 2026-10-31
+
+- Fixed: `restatement` never reports a line the diff itself added. Moving
+  a sentence from one file into another no longer reports the new copy
+  as a survivor of its own removal, and a moved copy no longer counts
+  toward `duplication_threshold`. See [what it checks](docs/checks/restatement.md#what-it-checks).
+
 ## [0.17.2] - 2026-10-31
 
 - Fixed: `restatement` reads only the comments in a `.py`, `.sh`, `.rs`

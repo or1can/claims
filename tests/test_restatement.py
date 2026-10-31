@@ -149,17 +149,94 @@ class RestatementTests(RegistryClearingTestCase):
             # must not cancel a.md's genuine retraction against c.md.
             repo.write("b.md", phrase)
 
-            # duplication_threshold isn't under test here — b.md's own
-            # survival alongside c.md would otherwise trip the default
-            # threshold of 1 and suppress the very finding this test checks.
-            findings = self._findings(
-                repo.root, config={"duplication_threshold": 10}
-            )
+            findings = self._findings(repo.root)
 
         self.assertTrue(
             any(f.citation == "c.md:1" for f in findings),
             f"c.md's surviving copy must still be flagged: {findings}",
         )
+
+    def test_text_moved_into_another_file_is_not_its_own_survivor(self) -> None:
+        """A line the diff added was meant by whoever wrote it, so a
+        sentence moved from one file into another is not reported at its
+        new copy, in either mode."""
+        sentence = "binding a proxy to zero dot zero dot zero dot zero exposes it to everything\n"
+        with Repo() as repo:
+            repo.write("a.md", "a heading\n" + sentence)
+            repo.commit()
+            repo.write("a.md", "a heading\n")
+            repo.write("b.md", "other content entirely\n" + sentence)
+
+            findings = self._findings(repo.root)
+
+        self.assertEqual(findings, [])
+
+    def test_an_untouched_copy_is_reported_when_another_copy_moved(self) -> None:
+        """The moved copy is dropped before the duplication count, so it
+        neither counts toward the threshold nor hides a real survivor."""
+        sentence = "binding a proxy to zero dot zero dot zero dot zero exposes it to everything\n"
+        with Repo() as repo:
+            repo.write("a.md", sentence)
+            repo.write("c.md", sentence)
+            repo.commit()
+            repo.write("a.md", "an entirely different sentence about something else\n")
+            repo.write("b.md", sentence)
+
+            findings = self._findings(repo.root)
+
+        self.assertEqual({f.citation for f in findings}, {"c.md:1"})
+        self.assertEqual({f.mode for f in findings}, {MODE_NGRAM, MODE_WHOLE_LINE})
+
+    def test_only_the_untouched_line_is_reported_in_a_file_the_diff_also_added_to(
+        self,
+    ) -> None:
+        """A survivor the diff didn't add is still one, even in a file the
+        diff changed."""
+        sentence = "binding a proxy to zero dot zero dot zero dot zero exposes it to everything\n"
+        with Repo() as repo:
+            repo.write("a.md", sentence)
+            repo.write("c.md", "a heading\n" + sentence)
+            repo.commit()
+            repo.write("a.md", "an entirely different sentence about something else\n")
+            repo.write("c.md", "a heading\n" + sentence + "a paragraph\n" + sentence)
+
+            findings = self._findings(repo.root)
+
+        self.assertEqual({f.citation for f in findings}, {"c.md:2"})
+        self.assertEqual({f.mode for f in findings}, {MODE_NGRAM, MODE_WHOLE_LINE})
+
+    def test_an_added_copy_ahead_of_an_untouched_one_does_not_hide_it(self) -> None:
+        """The n-gram sweep must not settle on a run's first occurrence in
+        a file when that occurrence is a line the diff added."""
+        with Repo() as repo:
+            repo.write("a.md", f"{PHRASE}\n")
+            repo.write("c.md", f"a heading\na paragraph\nas noted {PHRASE} indeed\n")
+            repo.commit()
+            repo.write("a.md", "unrelated wording entirely\n")
+            repo.write(
+                "c.md",
+                f"a heading\nso {PHRASE} too\nnew text\na paragraph\nas noted {PHRASE} indeed\n",
+            )
+
+            findings = self._findings(repo.root)
+
+        self.assertEqual([(f.citation, f.mode) for f in findings], [("c.md:5", MODE_NGRAM)])
+
+    def test_a_run_reaching_into_an_added_line_is_not_a_survivor(self) -> None:
+        """Moved text rewrapped so its first words land on an untouched
+        line is still text this diff wrote."""
+        with Repo() as repo:
+            repo.write("a.md", f"{PHRASE}\n")
+            repo.write("b.md", "intro the bridge interface\n")
+            repo.commit()
+            repo.write("a.md", "unrelated wording entirely\n")
+            repo.write(
+                "b.md", "intro the bridge interface\ndiffers for every network it creates today\n"
+            )
+
+            findings = self._findings(repo.root)
+
+        self.assertEqual(findings, [])
 
     def test_a_quotable_filenames_retraction_is_still_flagged(self) -> None:
         sentence = "binding a proxy to zero dot zero dot zero dot zero exposes it to everything\n"

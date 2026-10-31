@@ -94,6 +94,19 @@ the others, and every copy of it is suppressed. The count is taken over
 the files that still hold the text, so a line present in two survivors
 is over the default threshold whichever of them is read first.
 
+A line the diff itself **added** is never a survivor, in any file.
+Because the subtraction is per file, a sentence moved from one file to
+another counts as removed from the first, and its new copy would
+otherwise be reported as the survivor of its own removal; whoever wrote
+that line in this change meant it. A run of six words with any of them
+on an added line is set aside too, so moved text rewrapped to start at
+the end of an untouched line is still the diff's own. Added lines are set aside before the
+threshold counts files, so a moved copy neither pushes an untouched
+survivor over the threshold nor is reported in its place: a sentence
+moved from one page to another, with an untouched copy in a third, is
+reported at the third. A line the diff did not add is still a survivor,
+even in a file the diff otherwise changed.
+
 The check is diff-scoped: with nothing removed there is nothing to
 search for, and a survivor left behind by an earlier commit is not
 reported on a later one. The survivor sweep itself is whole-tree over
