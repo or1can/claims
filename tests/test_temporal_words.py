@@ -86,6 +86,17 @@ class TemporalWordsTests(RegistryClearingTestCase):
 
         self.assertEqual(modes, [])
 
+    def test_an_untouched_table_row_is_not_read_when_its_neighbour_changes(self) -> None:
+        table = "| Tool | Notes |\n| --- | --- |\n| claims | currently reads TOML |\n| other | {notes} |\n"
+        with Repo() as repo:
+            repo.write("reference.md", "# reference\n\n" + table.format(notes="reads JSON"))
+            repo.commit()
+            repo.write("reference.md", "# reference\n\n" + table.format(notes="reads YAML"))
+
+            modes = self._modes(repo.root, ["reference.md"])
+
+        self.assertEqual(modes, [])
+
     def test_a_glob_designates_a_whole_directory(self) -> None:
         with Repo() as repo:
             self._added(repo, "Released 1.2.3.\n", name="docs/guide.md")

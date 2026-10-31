@@ -18,14 +18,15 @@
 call them — `tests/test_check_file_refs.py` for nested and dangling
 fences, `tests/test_claim_words.py` for soft-wrapped sentences — and were
 moved here unchanged (ticket #52). What this file covers is
-`mask_code_spans`, which has no such caller behind it yet.
+`mask_code_spans`, which has no such caller behind it yet, and how
+`sentences_from` reads a table (#145).
 """
 
 from __future__ import annotations
 
 import unittest
 
-from claims.markdown import CODE_SPAN_RE, mask_code_spans, section_range
+from claims.markdown import CODE_SPAN_RE, Sentence, mask_code_spans, section_range, sentences_from
 
 
 class MaskCodeSpansTests(unittest.TestCase):
@@ -55,6 +56,62 @@ class MaskCodeSpansTests(unittest.TestCase):
         # One backtick opens no span in CommonMark either; there is nothing
         # to write over, and the text is returned as it came.
         self.assertEqual(mask_code_spans("A stray ` and 1.2.3"), "A stray ` and 1.2.3")
+
+
+class SentencesFromTableTests(unittest.TestCase):
+    def test_each_table_row_is_its_own_sentence_on_its_own_line(self) -> None:
+        text = (
+            "| # | Decision | Status |\n"
+            "| --- | --- | --- |\n"
+            "| 1 | Every binary shares one core | Accepted |\n"
+            "| 2 | Use toml | Accepted |\n"
+        )
+        self.assertEqual(
+            sentences_from(text),
+            [
+                Sentence("| # | Decision | Status |", 0, 0),
+                Sentence("| 1 | Every binary shares one core | Accepted |", 2, 2),
+                Sentence("| 2 | Use toml | Accepted |", 3, 3),
+            ],
+        )
+
+    def test_the_delimiter_row_yields_nothing(self) -> None:
+        self.assertEqual(
+            sentences_from("| a | b |\n|:--|--:|\n| c | d |\n"),
+            [Sentence("| a | b |", 0, 0), Sentence("| c | d |", 2, 2)],
+        )
+
+    def test_a_table_without_outer_pipes_is_recognised(self) -> None:
+        self.assertEqual(
+            sentences_from("a | b\n--- | ---\nc | d\ne | f\n"),
+            [Sentence("a | b", 0, 0), Sentence("c | d", 2, 2), Sentence("e | f", 3, 3)],
+        )
+
+    def test_pipes_with_no_delimiter_row_after_them_are_not_a_table(self) -> None:
+        self.assertEqual(
+            sentences_from("Run a | b\nand c | d.\n"),
+            [Sentence("Run a | b and c | d.", 0, 1)],
+        )
+
+    def test_a_table_directly_after_a_paragraph_line_does_not_join_it(self) -> None:
+        self.assertEqual(
+            sentences_from("The decisions are\n| a | b |\n| - | - |\n| c | d |\n"),
+            [
+                Sentence("The decisions are", 0, 0),
+                Sentence("| a | b |", 1, 1),
+                Sentence("| c | d |", 3, 3),
+            ],
+        )
+
+    def test_a_table_ends_at_a_line_that_is_not_a_row(self) -> None:
+        self.assertEqual(
+            sentences_from("| a | b |\n| - | - |\n| c | d |\nThen prose\nwraps.\n"),
+            [
+                Sentence("| a | b |", 0, 0),
+                Sentence("| c | d |", 2, 2),
+                Sentence("Then prose wraps.", 3, 4),
+            ],
+        )
 
 
 PAGE = """# Page

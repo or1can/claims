@@ -38,6 +38,16 @@ from claims.runner import Finding, register_check, run
 from support import RegistryClearingTestCase, Repo
 
 
+# The table #145 was reported with: an edit to one row reported the whole
+# table, under every mode any row's words matched.
+DECISIONS = (
+    "| # | Decision | Status |\n"
+    "| --- | --- | --- |\n"
+    "| 1 | {one} | Accepted |\n"
+    "| 2 | {two} | Accepted |\n"
+)
+
+
 class ClaimWordsTests(RegistryClearingTestCase):
     def setUp(self) -> None:
         super().setUp()
@@ -210,6 +220,32 @@ class ClaimWordsTests(RegistryClearingTestCase):
         self.assertEqual(len(findings), 1)
         self.assertEqual(findings[0].citation, "record.md:6")
         self.assertEqual(findings[0].mode, MODE_TOTALISING)
+
+    def test_an_untouched_table_row_is_not_reported_when_its_neighbour_changes(self) -> None:
+        with Repo() as repo:
+            repo.write("t.md", DECISIONS.format(one="Every binary shares one core", two="Use toml"))
+            repo.commit()
+            repo.write("t.md", DECISIONS.format(one="Every binary shares one core", two="Use yaml"))
+
+            findings = self._findings(repo.root, ["t.md"])
+
+        self.assertEqual(findings, [])
+
+    def test_an_edited_table_row_is_reported_alone_at_its_own_line(self) -> None:
+        with Repo() as repo:
+            repo.write("t.md", DECISIONS.format(one="Binaries share a core", two="Every file is toml"))
+            repo.commit()
+            repo.write("t.md", DECISIONS.format(one="Every binary shares one core", two="Every file is toml"))
+
+            findings = self._findings(repo.root, ["t.md"])
+
+        self.assertEqual(
+            sorted((f.citation, f.mode) for f in findings),
+            [("t.md:3", MODE_COUNTS), ("t.md:3", MODE_TOTALISING)],
+        )
+        for finding in findings:
+            self.assertIn("Every binary shares one core", finding.message)
+            self.assertNotIn("Decision", finding.message)
 
     def test_no_files_configured_returns_no_findings(self) -> None:
         with Repo() as repo:

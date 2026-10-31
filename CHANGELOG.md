@@ -11,6 +11,12 @@ reached you, not just that one was pushed upstream.
 
 ## [Unreleased]
 
+## [0.17.1] - 2026-10-31
+
+- Fixed: `claim-words` and `temporal-words` read each row of a Markdown
+  table as its own sentence. Before, the whole table was one sentence, so
+  editing one cell reported every row, under every mode any row matched.
+
 ## [0.17.0] - 2026-10-28
 
 - Added: `[nudge] enabled = false` in a clone's git-ignored

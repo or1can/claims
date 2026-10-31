@@ -22,10 +22,13 @@ not designated, are never read, however they are shaped.
 
 A **sentence** is found by joining a paragraph's lines and splitting at
 a full stop, question mark or exclamation mark, so a sentence wrapped
-across lines is read whole and reported at its first line. Two things
-are set aside before any of that. A fenced code block is skipped whole,
-delimiter lines included, so the block's own content never joins a
-sentence and never breaks one. Inside a sentence, an inline code span is
+across lines is read whole and reported at its first line. A table row
+is a paragraph of its own: a sentence never runs from one row into the
+next, or into the line before the table, so editing one row reports that
+row alone and quotes nothing else. The row of dashes under a table's
+header is never read. Two things are set aside before any of that. A
+fenced code block is skipped whole, delimiter lines included, so the
+block's own content never joins a sentence and never breaks one. Inside a sentence, an inline code span is
 masked: the backticks stay, the text between them is not matched
 against. `` `alpine:3.18.2` `` and `` `ref = "1.2.3"` `` are syntax a
 page is showing, not a claim it is making.

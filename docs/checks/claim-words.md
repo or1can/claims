@@ -21,9 +21,13 @@ not designated, are never read, however they are shaped.
 
 A **sentence** is found by joining a paragraph's lines and splitting at
 a full stop, question mark or exclamation mark, so a sentence wrapped
-across lines is read whole and reported at its first line. A fenced
-code block is set aside first: it holds code, captured output or an
-example, not a claim, and a sentence never runs through one.
+across lines is read whole and reported at its first line. A table row
+is a paragraph of its own: a sentence never runs from one row into the
+next, or into the line before the table, so editing one row reports that
+row alone and quotes nothing else. The row of dashes under a table's
+header is never read. A fenced code block is set aside first: it holds
+code, captured output or an example, not a claim, and a sentence never
+runs through one.
 
 Three **modes** classify a sentence, and a sentence matching more than
 one is reported once per mode:

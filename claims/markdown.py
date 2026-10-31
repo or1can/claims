@@ -62,6 +62,11 @@ CODE_SPAN_RE = re.compile(r"`([^`]+)`")
 # italics check never sees a whole-wrapped sentence.
 SENTENCE_RE = re.compile(r"\S.*?[.!?][*_'\")\]]*(?=\s|$)|\S.+$", re.DOTALL)
 
+# A table's delimiter row: cells of `-` with an optional `:` either side,
+# separated by `|`, the leading and trailing pipes optional but at least one
+# pipe present — a bare `---` is a thematic break or a setext underline.
+DELIMITER_ROW_RE = re.compile(r"^\s*(?=[^|]*\|)\|?\s*:?-+:?\s*(\|\s*:?-+:?\s*)*\|?\s*$")
+
 ITALIC_RE = re.compile(r"^(\*|_)(?!\1).+\1$", re.DOTALL)
 
 RETIRED_LEAD_IN = "previously said:"
@@ -175,27 +180,62 @@ class Sentence(NamedTuple):
     end: int  # 0-based, inclusive
 
 
+def _table_rows(lines: Sequence[str]) -> dict[int, bool]:
+    """Each line of a table in `lines`, mapped to whether it is the
+    table's delimiter row.
+
+    GitHub's definition: a header row immediately followed by a delimiter
+    row, then body rows up to a blank line or a line that isn't a row. A
+    table is recognised by its delimiter row, since a row's leading and
+    trailing pipes are optional; the header and every body row is any
+    line holding a `|`.
+    """
+
+    rows: dict[int, bool] = {}
+    i = 1
+    while i < len(lines):
+        if DELIMITER_ROW_RE.match(lines[i]) and "|" in lines[i - 1]:
+            rows[i - 1] = False
+            rows[i] = True
+            i += 1
+            while i < len(lines) and "|" in lines[i]:
+                rows[i] = False
+                i += 1
+        else:
+            i += 1
+    return rows
+
+
 def sentences_from(text: str) -> list[Sentence]:
     """Every sentence in `text`, with the line span it occupies.
 
     Paragraphs (blank-line separated) are joined before splitting into
-    sentences, so a sentence soft-wrapped across lines is read whole.
+    sentences, so a sentence soft-wrapped across lines is read whole. A
+    table row is a paragraph of its own, never joined to the rows or lines
+    beside it, and a table's delimiter row is read as a blank line (#145).
     """
 
     lines = text.splitlines()
-    results: list[Sentence] = []
+    table = _table_rows(lines)
+    paragraphs: list[tuple[int, int]] = []
     para_start = 0
     for i in range(len(lines) + 1):
         at_end = i == len(lines)
-        if at_end or not lines[i].strip():
+        if at_end or not lines[i].strip() or i in table:
             if i > para_start:
-                para_text = "\n".join(lines[para_start:i])
-                for match in SENTENCE_RE.finditer(para_text):
-                    before = para_text[: match.start()]
-                    start = para_start + before.count("\n")
-                    end = para_start + para_text[: match.end()].count("\n")
-                    sentence = " ".join(match.group(0).split())
-                    if sentence:
-                        results.append(Sentence(sentence, start, end))
+                paragraphs.append((para_start, i))
+            if not at_end and table.get(i) is False:
+                paragraphs.append((i, i + 1))
             para_start = i + 1
+
+    results: list[Sentence] = []
+    for para_start, para_end in paragraphs:
+        para_text = "\n".join(lines[para_start:para_end])
+        for match in SENTENCE_RE.finditer(para_text):
+            before = para_text[: match.start()]
+            start = para_start + before.count("\n")
+            end = para_start + para_text[: match.end()].count("\n")
+            sentence = " ".join(match.group(0).split())
+            if sentence:
+                results.append(Sentence(sentence, start, end))
     return results
