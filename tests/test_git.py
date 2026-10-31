@@ -140,6 +140,50 @@ class IterDiffTests(unittest.TestCase):
         self.assertEqual(len(file_diffs), 1)
         self.assertEqual(file_diffs[0].body[0], DiffHunkStart(new_start=3))
 
+    def test_whole_files_yields_every_unchanged_line_as_context(self) -> None:
+        with Repo() as repo:
+            repo.write("doc.md", "one\ntwo\nthree\nfour\n")
+            repo.commit()
+            repo.write("doc.md", "one\nTWO\nthree\nfour\n")
+
+            file_diffs = list(iter_diff(repo.root, "HEAD", whole_files=True))
+
+        self.assertEqual(len(file_diffs), 1)
+        self.assertEqual(
+            [item for item in file_diffs[0].body if isinstance(item, DiffLine)],
+            [
+                DiffLine(sign=" ", text="one"),
+                DiffLine(sign="-", text="two"),
+                DiffLine(sign="+", text="TWO"),
+                DiffLine(sign=" ", text="three"),
+                DiffLine(sign=" ", text="four"),
+            ],
+        )
+
+    def test_whole_files_reads_a_non_utf8_byte_without_raising(self) -> None:
+        with Repo() as repo:
+            (repo.root / "legacy.c").write_bytes(b"caf\xe9 unchanged\nold\n")
+            repo.commit()
+            (repo.root / "legacy.c").write_bytes(b"caf\xe9 unchanged\nnew\n")
+
+            file_diffs = list(iter_diff(repo.root, "HEAD", whole_files=True))
+
+        self.assertEqual(len(file_diffs), 1)
+        self.assertIn(DiffLine(sign="-", text="old"), file_diffs[0].body)
+
+    def test_a_line_break_git_does_not_split_on_stays_inside_its_line(self) -> None:
+        """A form feed is not a line break to git; split on it and the
+        rest of the line parses as diff syntax, here a fake file header."""
+        with Repo() as repo:
+            repo.write("doc.md", "intro\x0cdiff --git a/x b/x\nremoved\nend\n")
+            repo.commit()
+            repo.write("doc.md", "intro\x0cdiff --git a/x b/x\nend\n")
+
+            file_diffs = list(iter_diff(repo.root, "HEAD", whole_files=True))
+
+        self.assertEqual(len(file_diffs), 1)
+        self.assertIn(DiffLine(sign="-", text="removed"), file_diffs[0].body)
+
     def test_a_mode_only_change_has_no_paths_and_an_empty_body(self) -> None:
         # A mode-only change (`old mode`/`new mode`) has no `--- `/`+++ `
         # pair at all — same shape as a pure rename or a binary file, the
