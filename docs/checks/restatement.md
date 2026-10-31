@@ -21,6 +21,39 @@ a thing still said in the same file is not a thing retracted. The
 subtraction is per file, so an unrelated addition elsewhere in the diff
 cannot cancel a genuine retraction.
 
+In a source file only the **comment text** is read, on every side: the
+removed lines, the added lines subtracted from them, and the lines
+searched for survivors. Code contributes no words, so a line of code
+deleted from one file and still present in another is not a finding.
+Four extensions are read this way:
+
+- `.py`: `#` comments and docstrings. A docstring is a triple-quoted
+  string, `"""` or `'''` with an optional `r`, `u` or `b` prefix in
+  either case, whose opening quotes begin a line after indentation; a
+  string assigned or passed on the same line, `x = """...`, is code.
+- `.sh`: `#` comments.
+- `.rs` and `.swift`: every comment, `//`, `///`, `//!` and `/* */`, not
+  only doc comments. A block comment nested inside another is read to
+  the outer one's close.
+
+A comment that trails code on the same line counts, its comment part
+only. A `#`, `//` or `/*` opens a comment only at the start of a line or
+after whitespace, so `${x#y}`, `$#` and `http://` are code, and a
+shebang on the first line is not a comment. In a `.py` file a string on
+one line is code, so `"a # b"` holds no comment and `'"""'` opens no
+docstring; a docstring is not ended by an escaped `\"""`. In the other
+three, strings are not recognised, so a comment marker inside one,
+`"a // b"`, is read as the start of a comment. Each line is classified
+in the context of its whole file, the old version for a removed line and
+the new one for an added or surviving line, so a line deep inside a
+docstring or a block comment is comment text even when its opening is
+lines away. Every other extension in scope, `.md` and `.yml` included,
+is read whole, line by line.
+
+Comment text and prose are compared with each other in both directions:
+a sentence retracted from a Markdown page and still present in a
+docstring is found, and so is the reverse.
+
 Each line is reduced to its **words** before anything is compared: link
 syntax is replaced by its text, inline markup characters become spaces,
 letters are lowercased, and every other character becomes a space too.
@@ -38,7 +71,8 @@ that fired:
 - `restatement-whole-line` takes every removed line of at least ten
   words whose whole word sequence does not reappear in the file's added
   words, in order, across line breaks, and reports a line anywhere in
-  scope that reduces to exactly the same words.
+  scope that reduces to exactly the same words. In a source file the
+  line is its comment part alone, still of at least ten words.
 
 Six is the run length because eight missed a real restatement that
 differed from the retracted sentence by one word. Neither length is
@@ -144,7 +178,7 @@ duplication_threshold = 3
 | Key | Shape | Default | Reach for this when |
 | --- | --- | --- | --- |
 | `exclude` | list of glob strings; a bare string is a one-element list | `[]`: nothing excluded | A file is expected to keep retracted prose on purpose: a release history that still describes a shipped release as it shipped, or a directory of inputs written to be broken, like this site's own examples. An excluded file contributes no removed lines from its own diff, and is dropped from the survivor sweep entirely, so it neither counts toward another file's duplication nor is reported for it. |
-| `extensions` | list of dotted suffixes; a bare string is a one-element list | the built-in set alone: `.md`, `.swift`, `.py`, `.sh`, `.yml` | The project has prose or source in a language the built-in set does not cover, `.rs` for a Rust project, and wants its retractions and its survivors read too. Entries are added to the built-in set, never substituted for it. |
+| `extensions` | list of dotted suffixes; a bare string is a one-element list | the built-in set alone: `.md`, `.swift`, `.py`, `.sh`, `.yml` | The project has prose or source in a language the built-in set does not cover, `.rs` for a Rust project, and wants its retractions and its survivors read too. Entries are added to the built-in set, never substituted for it. `.py`, `.sh`, `.rs` and `.swift` are read as comment text only, as described above; any other extension, built-in or added, is read whole, code included. |
 | `duplication_threshold` | integer; a boolean or a non-integer is a configuration error | `1` | Text is duplicated on purpose across more files than the default tolerates, a shared licence header or a generated banner, and each copy is reported every time one of the others changes. `0` reports nothing at all, since every survivor is in at least one file; the lowest useful value is the default. |
 
 `enabled`, which takes this check out of the commit gate while leaving it

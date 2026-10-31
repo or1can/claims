@@ -48,6 +48,15 @@ of it, and a thing still said is not a thing retracted.
 original coverage rather than replacing it — e.g. `ratect` would add
 `.rs`, covered by neither source tool.
 
+**Source files contribute comments only.** Read whole-line, a source
+file's code is prose to this check, and a deleted line of code reported
+its identical twin elsewhere as a retraction: 769 of 1,055 findings over
+one `ratect` release were Rust code lines. `COMMENT_SYNTAX` is a table of
+plain rows rather than code per language, so a later config key could
+add one. The diff is taken with whole files as context because a line
+inside a block comment or docstring can only be classified from where
+its file opened that comment, which the hunk alone may not show.
+
 **Duplication threshold.** The default of **1** is chosen to land exactly
 on this check's own documented tolerance above: "twice on purpose" is 2
 total copies (the edited file plus one survivor), so threshold 1 keeps
@@ -71,6 +80,7 @@ from __future__ import annotations
 import re
 from collections.abc import Mapping, Sequence
 from pathlib import Path
+from typing import NamedTuple
 
 from ..config import exclude_patterns, numeric_config, path_matches, string_list_config
 from ..git import DiffLine, iter_diff, tracked_files
@@ -92,6 +102,125 @@ DEFAULT_EXTENSIONS = (".md", ".swift", ".py", ".sh", ".yml")
 LINK_RE = re.compile(r"\[([^\]]*)\]\([^)]*\)")
 MARKUP_RE = re.compile(r"[`*_~<>\[\]()#|]")
 NON_WORD_RE = re.compile(r"[^a-z0-9]+")
+
+
+class CommentSyntax(NamedTuple):
+    """How one source language marks prose. Plain data, so a later config
+    key could add a row of the same shape without code per language."""
+
+    line: tuple[str, ...]
+    block: tuple[str, str] | None
+    nested: bool
+    docstrings: bool
+
+
+C_LIKE = CommentSyntax(line=("//",), block=("/*", "*/"), nested=True, docstrings=False)
+HASH = CommentSyntax(line=("#",), block=None, nested=False, docstrings=False)
+
+# A file with one of these extensions contributes only its comment text;
+# every other in-scope extension is read whole-line, code and all.
+COMMENT_SYNTAX: dict[str, CommentSyntax] = {
+    ".py": HASH._replace(docstrings=True),
+    ".sh": HASH,
+    ".rs": C_LIKE,
+    ".swift": C_LIKE,
+}
+
+TRIPLE_QUOTE = r"(?P<prefix>[A-Za-z]*)(?P<quote>\"\"\"|''')"
+# Listed after `TRIPLE_QUOTE`, so at a `"""` the triple quote wins.
+ONE_LINE_STRING = r"""(?P<string>"(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*')"""
+DOCSTRING_PREFIXES = ("", "r", "u", "b")
+TRIPLE_QUOTE_CLOSE = {q: re.compile(rf"(?<!\\){q}") for q in ('"""', "'''")}
+
+
+def _code_opener(syntax: CommentSyntax) -> re.Pattern[str]:
+    """The earliest thing in a stretch of code that starts comment text or
+    a string worth following. A comment opener counts only at the start of
+    the line or after whitespace, so `${x#y}`, `$#` and `http://` stay
+    code. Strings are recognised only in a language with docstrings, and
+    only so triple quotes inside a one-line string aren't taken for a
+    string that opens."""
+
+    starts = [*syntax.line, *(syntax.block[:1] if syntax.block else ())]
+    alternatives = [rf"(?<!\S)(?P<comment>{'|'.join(map(re.escape, starts))})"]
+    if syntax.docstrings:
+        alternatives += [TRIPLE_QUOTE, ONE_LINE_STRING]
+    return re.compile("|".join(alternatives))
+
+
+def _comment_lines(syntax: CommentSyntax, lines: Sequence[str]) -> list[str]:
+    """Each line's comment text, `""` for a line of code only.
+
+    Read over the whole file, never line by line, because a line inside a
+    block comment or docstring can't be recognised on its own. Block
+    comments track nesting where the language nests them, so an inner `*/`
+    doesn't end the outer comment. In Python, a triple-quoted string is a
+    docstring when its opening quotes begin a line after indentation; any
+    other one is followed to its close only so its lines aren't read as
+    code that might hold a `#`.
+    """
+
+    opener = _code_opener(syntax)
+    depth = 0
+    quote: str | None = None
+    docstring = False
+    comments: list[str] = []
+    for number, line in enumerate(lines, start=1):
+        parts: list[str] = []
+        # A shebang is an interpreter path, not a comment.
+        i = len(line) if number == 1 and line.startswith("#!") else 0
+        while i < len(line):
+            if depth and syntax.block:
+                start, end = syntax.block
+                close = line.find(end, i)
+                inner = line.find(start, i) if syntax.nested else -1
+                if inner != -1 and (close == -1 or inner < close):
+                    parts.append(line[i:inner])
+                    depth += 1
+                    i = inner + len(start)
+                elif close == -1:
+                    parts.append(line[i:])
+                    break
+                else:
+                    parts.append(line[i:close])
+                    depth -= 1
+                    i = close + len(end)
+            elif quote:
+                found = TRIPLE_QUOTE_CLOSE[quote].search(line, i)
+                close = found.start() if found else -1
+                if docstring:
+                    parts.append(line[i:] if close == -1 else line[i:close])
+                if close == -1:
+                    break
+                i = close + len(quote)
+                quote = None
+            else:
+                match = opener.search(line, i)
+                if not match:
+                    break
+                comment = match.group("comment")
+                if comment in syntax.line:
+                    parts.append(line[match.end() :])
+                    break
+                if comment:
+                    depth = 1
+                elif match.group("quote"):
+                    quote = match.group("quote")
+                    docstring = (
+                        not line[: match.start()].strip()
+                        and match.group("prefix").lower() in DOCSTRING_PREFIXES
+                    )
+                i = match.end()
+        comments.append(" ".join(parts))
+    return comments
+
+
+def _prose_lines(path: str, lines: Sequence[str]) -> list[str]:
+    """`lines` as the prose this check reads: comment text only for an
+    extension in `COMMENT_SYNTAX`, each line whole for any other."""
+
+    syntax = COMMENT_SYNTAX.get(Path(path).suffix)
+    return _comment_lines(syntax, lines) if syntax else list(lines)
 
 
 def _normalise(line: str) -> list[str]:
@@ -136,8 +265,10 @@ def _in_scope(path: str | None, extensions: set[str], exclude: Sequence[str]) ->
 def _diff_by_file(
     repo_root: Path, diff_range: str, extensions: set[str], exclude: Sequence[str]
 ) -> list[tuple[list[str], list[str]]]:
-    """`[(removed, added), ...]` raw line text, one pair per file the diff
-    touches, each restricted to in-scope lines from that file's own side(s).
+    """`[(removed, added), ...]` line text, one pair per file the diff
+    touches, each restricted to in-scope lines from that file's own side(s)
+    and read as `_prose_lines` reads them, against the file's whole old or
+    new version.
 
     Kept per file rather than merged into one global removed/added stream:
     an unrelated file's incidental addition in the same diff must not cancel
@@ -155,17 +286,29 @@ def _diff_by_file(
     """
 
     segments: list[tuple[list[str], list[str]]] = []
-    for file_diff in iter_diff(repo_root, diff_range):
-        from_scope = _in_scope(file_diff.src, extensions, exclude)
-        to_scope = _in_scope(file_diff.dst, extensions, exclude)
-        removed: list[str] = []
-        added: list[str] = []
+    for file_diff in iter_diff(repo_root, diff_range, whole_files=True):
+        old: list[str] = []
+        new: list[str] = []
+        removed_at: list[int] = []
+        added_at: list[int] = []
         for item in file_diff.body:
             if isinstance(item, DiffLine):
-                if item.sign == "-" and from_scope:
-                    removed.append(item.text)
-                elif item.sign == "+" and to_scope:
-                    added.append(item.text)
+                if item.sign == "-":
+                    removed_at.append(len(old))
+                elif item.sign == "+":
+                    added_at.append(len(new))
+                if item.sign != "+":
+                    old.append(item.text)
+                if item.sign != "-":
+                    new.append(item.text)
+        removed: list[str] = []
+        added: list[str] = []
+        if file_diff.src and _in_scope(file_diff.src, extensions, exclude):
+            old_prose = _prose_lines(file_diff.src, old)
+            removed = [old_prose[at] for at in removed_at]
+        if file_diff.dst and _in_scope(file_diff.dst, extensions, exclude):
+            new_prose = _prose_lines(file_diff.dst, new)
+            added = [new_prose[at] for at in added_at]
         segments.append((removed, added))
     return segments
 
@@ -212,7 +355,7 @@ def _survivors(
             text = (repo_root / name).read_text(encoding="utf-8")
         except (OSError, UnicodeDecodeError):
             continue
-        lines = text.splitlines()
+        lines = _prose_lines(name, text.splitlines())
         located = [
             (word, number)
             for number, line in enumerate(lines, start=1)

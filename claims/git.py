@@ -58,6 +58,10 @@ _SRC_HEADER = f"--- {_SRC_PREFIX}"
 _DST_HEADER = f"+++ {_DST_PREFIX}"
 
 
+# Wider than any file can be long, so no unchanged line is left out.
+_WHOLE_FILE_CONTEXT = 2**31 - 1
+
+
 class DiffHunkStart(NamedTuple):
     """An `@@` hunk header's first line number on the new side."""
 
@@ -65,7 +69,9 @@ class DiffHunkStart(NamedTuple):
 
 
 class DiffLine(NamedTuple):
-    """One hunk content line. `sign` is `"+"` or `"-"`; `text` excludes it."""
+    """One hunk content line. `sign` is `"+"` or `"-"`, or `" "` for an
+    unchanged line (only under `iter_diff(..., whole_files=True)`); `text`
+    excludes it."""
 
     sign: str
     text: str
@@ -95,8 +101,21 @@ def _header_path(line: str, header: str) -> str | None:
     return line[len(header) :] if line.startswith(header) else None
 
 
-def iter_diff(repo_root: Path, diff_range: str) -> Iterator[FileDiff]:
-    """Walk `git diff --unified=0` for `diff_range`, one `FileDiff` per file.
+def iter_diff(
+    repo_root: Path, diff_range: str, *, whole_files: bool = False
+) -> Iterator[FileDiff]:
+    """Walk `git diff` for `diff_range`, one `FileDiff` per file: changed
+    lines only (`--unified=0`) by default.
+
+    `whole_files=True` widens the context to every line instead, each
+    unchanged line a `DiffLine` signed `" "`, so a file's body holds both
+    sides in full: its old version is the `" "` and `"-"` lines in order,
+    its new version the `" "` and `"+"` lines. That is both versions for
+    whatever form `diff_range` takes, without resolving it to commits.
+
+    A byte that isn't UTF-8 is replaced rather than raised on, as
+    `blob_text` does: with every line of a touched file in the output,
+    one Latin-1 byte in any of them would otherwise lose the whole diff.
 
     Pins the diff header to git's default `a/`/`b/` prefix via
     `--src-prefix`/`--dst-prefix`, overriding any repo-level
@@ -121,7 +140,7 @@ def iter_diff(repo_root: Path, diff_range: str) -> Iterator[FileDiff]:
             "git",
             *QUOTEPATH_OFF,
             "diff",
-            "--unified=0",
+            f"--unified={_WHOLE_FILE_CONTEXT if whole_files else 0}",
             "--no-color",
             f"--src-prefix={_SRC_PREFIX}",
             f"--dst-prefix={_DST_PREFIX}",
@@ -130,6 +149,7 @@ def iter_diff(repo_root: Path, diff_range: str) -> Iterator[FileDiff]:
         cwd=repo_root,
         capture_output=True,
         text=True,
+        errors="replace",
         check=True,
     ).stdout
 
@@ -138,7 +158,9 @@ def iter_diff(repo_root: Path, diff_range: str) -> Iterator[FileDiff]:
     src: str | None = None
     dst: str | None = None
     body: list[DiffHunkStart | DiffLine] = []
-    for line in diff.splitlines():
+    # `\n` only, as git splits: `splitlines()` also breaks on a form feed
+    # and the like, and the rest of such a line could parse as diff syntax.
+    for line in diff.split("\n"):
         if line.startswith("diff --git "):
             if in_file:
                 yield FileDiff(src, dst, body)
@@ -153,7 +175,7 @@ def iter_diff(repo_root: Path, diff_range: str) -> Iterator[FileDiff]:
         elif line.startswith("@@"):
             match = re.search(r"\+(\d+)", line)
             body.append(DiffHunkStart(int(match.group(1)) if match else 0))
-        elif line.startswith("+") or line.startswith("-"):
+        elif line.startswith(("+", "-", " ")):
             body.append(DiffLine(line[0], line[1:]))
     if in_file:
         yield FileDiff(src, dst, body)

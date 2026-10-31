@@ -11,6 +11,14 @@ reached you, not just that one was pushed upstream.
 
 ## [Unreleased]
 
+## [0.17.2] - 2026-10-31
+
+- Fixed: `restatement` reads only the comments in a `.py`, `.sh`, `.rs`
+  or `.swift` file (docstrings too, in Python), so deleting a line of
+  code no longer reports an identical line of code elsewhere as a
+  retracted claim. A project with `.rs` in `extensions` will see far
+  fewer findings. See [what it checks](docs/checks/restatement.md#what-it-checks).
+
 ## [0.17.1] - 2026-10-31
 
 - Fixed: `claim-words` and `temporal-words` read each row of a Markdown

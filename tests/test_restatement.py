@@ -33,6 +33,8 @@ from claims.runner import Finding, register_check, run
 
 from support import RegistryClearingTestCase, Repo
 
+PHRASE = "the bridge interface differs for every network it creates today"
+
 
 class RestatementTests(RegistryClearingTestCase):
     def setUp(self) -> None:
@@ -246,9 +248,9 @@ class RestatementTests(RegistryClearingTestCase):
         phrase = "the bridge interface differs for every network it creates today\n"
         with Repo() as repo:
             repo.write("a.md", phrase)
-            repo.write("b.swift", phrase)
-            repo.write("c.py", phrase)
-            repo.write("d.sh", phrase)
+            repo.write("b.swift", "// " + phrase)
+            repo.write("c.py", "# " + phrase)
+            repo.write("d.sh", "# " + phrase)
             repo.write("e.yml", phrase)
             repo.commit()
             repo.write("a.md", "unrelated wording entirely\n")
@@ -267,7 +269,7 @@ class RestatementTests(RegistryClearingTestCase):
         phrase = "the bridge interface differs for every network it creates today\n"
         with Repo() as repo:
             repo.write("a.md", phrase)
-            repo.write("b.rs", phrase)
+            repo.write("b.rs", "// " + phrase)
             repo.commit()
             repo.write("a.md", "unrelated wording entirely\n")
 
@@ -279,7 +281,7 @@ class RestatementTests(RegistryClearingTestCase):
         phrase = "the bridge interface differs for every network it creates today\n"
         with Repo() as repo:
             repo.write("a.md", phrase)
-            repo.write("b.rs", phrase)
+            repo.write("b.rs", "// " + phrase)
             repo.commit()
             repo.write("a.md", "unrelated wording entirely\n")
 
@@ -300,7 +302,7 @@ class RestatementTests(RegistryClearingTestCase):
         phrase = "the bridge interface differs for every network it creates today\n"
         with Repo() as repo:
             repo.write("a.md", phrase)
-            repo.write("b.rs", phrase)
+            repo.write("b.rs", "// " + phrase)
             repo.commit()
             repo.write("a.md", "unrelated wording entirely\n")
 
@@ -430,6 +432,180 @@ class RestatementTests(RegistryClearingTestCase):
         whole_line = [f for f in findings if f.mode == MODE_WHOLE_LINE]
         self.assertEqual(len(whole_line), 1)
         self.assertEqual(whole_line[0].citation, "c.md:1")
+
+    def test_a_code_line_removed_from_a_source_file_is_not_a_retraction(self) -> None:
+        """The triage repro: in a source file only comment text is prose,
+        so identical code surviving in another source file is nothing."""
+        code = "result = compute_the_value(alpha, beta, gamma, delta)\n"
+        with Repo() as repo:
+            repo.write("a.py", code)
+            repo.write("b.py", code)
+            repo.commit()
+            repo.write("a.py", "pass\n")
+
+            findings = self._findings(repo.root)
+
+        self.assertEqual(findings, [])
+
+    def _survivor_citations(self, survivor: str, text: str, **config: object) -> set[str]:
+        """Citations reported when `a.md` drops `PHRASE` and `survivor`
+        holds `text`."""
+        with Repo() as repo:
+            repo.write("a.md", PHRASE + "\n")
+            repo.write(survivor, text)
+            repo.commit()
+            repo.write("a.md", "unrelated wording entirely\n")
+
+            return {f.citation for f in self._findings(repo.root, config=dict(config))}
+
+    def test_comment_text_surviving_in_a_source_file_is_reported(self) -> None:
+        cases = {
+            "hash comment": ("b.py", f"x = 1\n# {PHRASE}\n", "b.py:2"),
+            "trailing comment": ("b.py", f"x = 1  # {PHRASE}\n", "b.py:1"),
+            "shell comment": ("b.sh", f"echo hi\n# {PHRASE}\n", "b.sh:2"),
+            "docstring": ("b.py", f'def f():\n    """Intro.\n\n    {PHRASE}\n    """\n', "b.py:4"),
+            "prefixed docstring": ("b.py", f'R"""{PHRASE}"""\n', "b.py:1"),
+            "single-quoted docstring": ("b.py", f"'''\n{PHRASE}\n'''\n", "b.py:2"),
+            "rust outer doc": ("b.rs", f"/// {PHRASE}\nfn f() {{}}\n", "b.rs:1"),
+            "rust inner doc": ("b.rs", f"//! {PHRASE}\n", "b.rs:1"),
+            "rust line comment": ("b.rs", f"let x = 1; // {PHRASE}\n", "b.rs:1"),
+            "swift block": ("b.swift", f"/*\n * {PHRASE}\n */\nlet x = 1\n", "b.swift:2"),
+            "rust nested block": (
+                "b.rs",
+                f"/* outer /* inner */\n{PHRASE}\n*/\nfn f() {{}}\n",
+                "b.rs:2",
+            ),
+        }
+        for name, (survivor, text, citation) in cases.items():
+            with self.subTest(name):
+                self.assertEqual(
+                    self._survivor_citations(survivor, text, extensions=[".rs"]),
+                    {citation},
+                )
+
+    def test_code_in_a_source_file_contributes_no_words(self) -> None:
+        cases = {
+            "shell parameter expansion": ("b.sh", f"echo ${{x#{PHRASE}}}\n"),
+            "shell argument count": ("b.sh", f"echo $# {PHRASE}\n"),
+            "url in code": ("b.rs", f'let u = "http://{PHRASE.replace(" ", "/")}";\n'),
+            "shebang": ("b.sh", f"#!/usr/bin/env {PHRASE}\n"),
+            "assigned triple-quoted string": ("b.py", f'x = """{PHRASE}"""\n'),
+            "hash inside a python string": ("b.py", f'x = "see # {PHRASE}"\n'),
+            "code after an assigned string's close": (
+                "b.py",
+                f'x = """\n"""\n{PHRASE.replace(" ", "_")} = 1\n',
+            ),
+            "code after a nested block's true close": (
+                "b.rs",
+                f"/* a /* b */ c */ let {PHRASE.replace(' ', '_')} = 1;\n",
+            ),
+        }
+        for name, (survivor, text) in cases.items():
+            with self.subTest(name):
+                self.assertEqual(
+                    self._survivor_citations(survivor, text, extensions=[".rs"]), set()
+                )
+
+    def test_a_retraction_from_a_source_comment_is_reported(self) -> None:
+        cases = {
+            "hash comment": ("a.py", f"x = 1\n# {PHRASE}\n", "x = 1\n"),
+            "docstring": ("a.py", f'"""\n{PHRASE}\n"""\n', '"""\n"""\n'),
+            "rust line comment": ("a.rs", f"// {PHRASE}\n", "\n"),
+            "rust outer doc": ("a.rs", f"/// {PHRASE}\nfn f() {{}}\n", "fn f() {}\n"),
+            "trailing comment": ("a.py", f"x = 1  # {PHRASE}\n", "x = 1\n"),
+            "swift block": ("a.swift", f"/*\n{PHRASE}\n*/\n", "/*\n*/\n"),
+        }
+        for name, (edited, before, after) in cases.items():
+            with self.subTest(name):
+                with Repo() as repo:
+                    repo.write(edited, before)
+                    repo.write("b.md", PHRASE + "\n")
+                    repo.commit()
+                    repo.write(edited, after)
+
+                    findings = self._findings(repo.root, config={"extensions": [".rs"]})
+
+                self.assertEqual({f.citation for f in findings}, {"b.md:1"})
+
+    def test_a_comment_retraction_surviving_in_another_files_comment_is_reported(
+        self,
+    ) -> None:
+        with Repo() as repo:
+            repo.write("a.rs", f"// {PHRASE}\nfn f() {{}}\n")
+            repo.write("b.py", f'"""{PHRASE}"""\n')
+            repo.commit()
+            repo.write("a.rs", "fn f() {}\n")
+
+            findings = self._findings(repo.root, config={"extensions": [".rs"]})
+
+        self.assertEqual({f.citation for f in findings}, {"b.py:1"})
+
+    def test_a_triple_quote_inside_a_one_line_string_opens_nothing(self) -> None:
+        cases = {
+            "double-quoted": f"x = '\"\"\"'\n# {PHRASE}\n",
+            "single-quoted": f"x = \"'''\"\n# {PHRASE}\n",
+            "escaped in a raw string": f'x = r"\\"\\"\\"|\'\'\'"\n# {PHRASE}\n',
+        }
+        for name, text in cases.items():
+            with self.subTest(name):
+                self.assertEqual(self._survivor_citations("b.py", text), {"b.py:2"})
+
+    def test_an_escaped_triple_quote_does_not_end_a_docstring(self) -> None:
+        text = f'"""Quote \\""" here.\n{PHRASE}\n"""\n'
+        self.assertEqual(self._survivor_citations("b.py", text), {"b.py:2"})
+
+    def test_a_removed_line_inside_a_comment_opened_outside_the_hunk_is_comment_text(
+        self,
+    ) -> None:
+        """Classified in the context of the whole old file: the hunk holds
+        only the removed middle line, whose opener is lines above it."""
+        cases = {
+            "docstring": ("a.py", '"""Intro.\n\n{}\n\nOutro.\n"""\nx = 1\n'),
+            "block comment": ("a.rs", "/*\n * Intro.\n *\n * {}\n *\n * Outro.\n */\n"),
+        }
+        for name, (edited, template) in cases.items():
+            with self.subTest(name):
+                with Repo() as repo:
+                    repo.write(edited, template.format(PHRASE))
+                    repo.write("b.md", PHRASE + "\n")
+                    repo.commit()
+                    repo.write(edited, template.format("unrelated wording entirely"))
+
+                    findings = self._findings(repo.root, config={"extensions": [".rs"]})
+
+                self.assertEqual({f.citation for f in findings}, {"b.md:1"})
+
+    def test_a_docstring_retraction_surviving_in_markdown_is_reported(self) -> None:
+        with Repo() as repo:
+            repo.write("a.py", f'"""{PHRASE}"""\n')
+            repo.write("b.md", PHRASE + "\n")
+            repo.commit()
+            repo.write("a.py", '"""Something else."""\n')
+
+            findings = self._findings(repo.root)
+
+        self.assertEqual({f.citation for f in findings}, {"b.md:1"})
+
+    def test_whole_line_mode_compares_only_a_lines_comment_portion(self) -> None:
+        sentence = "binding a proxy to zero dot zero dot zero dot zero exposes it to everything"
+        with Repo() as repo:
+            repo.write("a.md", sentence + "\n")
+            repo.write("b.py", f"proxy.bind(host)  # {sentence}\n")
+            repo.commit()
+            repo.write("a.md", "an entirely different sentence about something else\n")
+
+            findings = self._findings(repo.root)
+
+        whole_line = [f for f in findings if f.mode == MODE_WHOLE_LINE]
+        self.assertEqual([f.citation for f in whole_line], ["b.py:1"])
+
+    def test_an_extension_with_no_comment_syntax_is_read_whole_line(self) -> None:
+        self.assertEqual(
+            self._survivor_citations(
+                "b.ts", f"const s = '{PHRASE}';\n", extensions=[".ts"]
+            ),
+            {"b.ts:1"},
+        )
 
 
 if __name__ == "__main__":
