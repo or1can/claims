@@ -11,6 +11,12 @@ reached you, not just that one was pushed upstream.
 
 ## [Unreleased]
 
+## [0.17.6] - 2026-11-01
+
+- Fixed: `claim-words` and `temporal-words` no longer report a file's
+  untouched last line when it had no trailing newline and the diff
+  appends text after it, or when a diff only drops that newline.
+
 ## [0.17.5] - 2026-11-01
 
 - Fixed: `claim-words` and `temporal-words` no longer end a sentence at

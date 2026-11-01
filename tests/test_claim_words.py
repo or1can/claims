@@ -231,6 +231,23 @@ class ClaimWordsTests(RegistryClearingTestCase):
 
         self.assertEqual(findings, [])
 
+    def test_an_old_last_line_with_no_newline_is_not_reported_when_text_is_appended(
+        self,
+    ) -> None:
+        # Git shows the old last line removed and re-added, its newline the
+        # only change (#150).
+        with Repo() as repo:
+            repo.write("record.md", "# record\n\nEvery host in the fleet reports up.")
+            repo.commit()
+            repo.write(
+                "record.md",
+                "# record\n\nEvery host in the fleet reports up.\n\nseed\n",
+            )
+
+            findings = self._findings(repo.root, ["record.md"])
+
+        self.assertEqual(findings, [])
+
     def test_an_edited_table_row_is_reported_alone_at_its_own_line(self) -> None:
         with Repo() as repo:
             repo.write("t.md", DECISIONS.format(one="Binaries share a core", two="Every file is toml"))
