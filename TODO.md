@@ -1,5 +1,10 @@
 # TODO
 
+- `stale-claims` has no output cap (`top = N`) or churn floor
+  (`min_percent`). Diff-scoping it (#155,
+  `decisions/0009-stale-claims-is-diff-scoped.md`) removed the fixed
+  per-commit ranking that prompted them; revisit if a wide-range audit
+  is too long to read.
 - `claims/gate.py`'s `_disabled_checks` reads a check's own `enabled` by
   truthiness, so `[stale-claims] enabled = 0` silences that check and
   `enabled = "false"` does not: the same defect #129 fixed for `[hook]
