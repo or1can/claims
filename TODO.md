@@ -17,3 +17,7 @@
   works around it in its own whole-file walk; the helper sees only
   `--unified=0` hunks, so fixing it there means reading git's
   `\ No newline at end of file` marker.
+- `claims.markdown.SENTENCE_RE`'s fallback for a paragraph's unterminated
+  tail is `\S.+$`, so a one-character tail is dropped: `It runs. X`
+  yields only `It runs.`. Found reviewing #154; out of that ticket's
+  scope.
