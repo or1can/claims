@@ -22,7 +22,11 @@ not designated, are never read, however they are shaped.
 
 A **sentence** is found by joining a paragraph's lines and splitting at
 a full stop, question mark or exclamation mark, so a sentence wrapped
-across lines is read whole and reported at its first line. A table row
+across lines is read whole and reported at its first line. A mark does
+not end a sentence when it ends `e.g.`, `i.e.`, `vs.`, `etc.` or `cf.`
+(in any case), when the next word starts with a lowercase letter, or
+when it sits inside square brackets, such as a link's text, or an
+inline code span. A table row
 is a paragraph of its own: a sentence never runs from one row into the
 next, or into the line before the table, so editing one row reports that
 row alone and quotes nothing else. The row of dashes under a table's
