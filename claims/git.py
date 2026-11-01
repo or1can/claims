@@ -18,7 +18,7 @@ from __future__ import annotations
 
 import re
 import subprocess
-from collections.abc import Iterator
+from collections.abc import Iterator, Sequence
 from pathlib import Path
 from typing import NamedTuple
 
@@ -71,10 +71,13 @@ class DiffHunkStart(NamedTuple):
 class DiffLine(NamedTuple):
     """One hunk content line. `sign` is `"+"` or `"-"`, or `" "` for an
     unchanged line (only under `iter_diff(..., whole_files=True)`); `text`
-    excludes it."""
+    excludes it. `no_newline` is set on the line git follows with
+    `\\ No newline at end of file`: that side's last line, which ends
+    without one."""
 
     sign: str
     text: str
+    no_newline: bool = False
 
 
 class FileDiff(NamedTuple):
@@ -177,23 +180,62 @@ def iter_diff(
             body.append(DiffHunkStart(int(match.group(1)) if match else 0))
         elif line.startswith(("+", "-", " ")):
             body.append(DiffLine(line[0], line[1:]))
+        elif line.startswith("\\") and body and isinstance(body[-1], DiffLine):
+            body[-1] = body[-1]._replace(no_newline=True)
     if in_file:
         yield FileDiff(src, dst, body)
 
 
+def _newline_only(hunk: Sequence[tuple[int, DiffLine]]) -> set[int]:
+    """The `+` lines in `hunk` (each paired with its new-file line number)
+    that only re-add a removed line with its trailing newline gained or
+    lost. Git shows such a line removed and re-added, since it compares
+    lines newline and all, though its text never changed."""
+
+    removed = [line for _, line in hunk if line.sign == "-"]
+    added = [(number, line) for number, line in hunk if line.sign == "+"]
+    same: set[int] = set()
+    # Gained: the old last line had no newline and something follows it now.
+    old_end = next((line for line in removed if line.no_newline), None)
+    if old_end is not None:
+        twin = next((number for number, line in added if line.text == old_end.text), None)
+        if twin is not None:
+            same.add(twin)
+    # Lost: the new last line has no newline where its old twin had one.
+    new_end = next(((number, line) for number, line in added if line.no_newline), None)
+    if new_end is not None:
+        number, end = new_end
+        if any(line.text == end.text for line in removed):
+            same.add(number)
+    return same
+
+
 def added_lines_by_file(repo_root: Path, diff_range: str) -> dict[str, set[int]]:
-    """`{path: {added line numbers, in the new file}}` for `diff_range`."""
+    """`{path: {added line numbers, in the new file}}` for `diff_range`.
+
+    A line whose text is unchanged and that only gained or lost its
+    trailing newline is not added (ticket #150): see `_newline_only`."""
 
     added: dict[str, set[int]] = {}
     for file_diff in iter_diff(repo_root, diff_range):
+        if not file_diff.dst:
+            continue
+        numbers: set[int] = set()
+        hunk: list[tuple[int, DiffLine]] = []
         line_no = 0
         for item in file_diff.body:
             if isinstance(item, DiffHunkStart):
+                numbers -= _newline_only(hunk)
+                hunk = []
                 line_no = item.new_start
-            elif item.sign == "+":
-                if file_diff.dst:
-                    added.setdefault(file_diff.dst, set()).add(line_no)
-                line_no += 1
+            else:
+                hunk.append((line_no, item))
+                if item.sign == "+":
+                    numbers.add(line_no)
+                    line_no += 1
+        numbers -= _newline_only(hunk)
+        if numbers:
+            added[file_diff.dst] = numbers
     return added
 
 

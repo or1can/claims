@@ -184,6 +184,23 @@ class IterDiffTests(unittest.TestCase):
         self.assertEqual(len(file_diffs), 1)
         self.assertIn(DiffLine(sign="-", text="removed"), file_diffs[0].body)
 
+    def test_a_last_line_with_no_newline_is_marked(self) -> None:
+        with Repo() as repo:
+            repo.write("x.md", "a\nb")
+            repo.commit()
+            repo.write("x.md", "a\nb\nc\n")
+
+            file_diffs = list(iter_diff(repo.root, "HEAD"))
+
+        self.assertEqual(
+            [item for item in file_diffs[0].body if isinstance(item, DiffLine)],
+            [
+                DiffLine(sign="-", text="b", no_newline=True),
+                DiffLine(sign="+", text="b"),
+                DiffLine(sign="+", text="c"),
+            ],
+        )
+
     def test_a_mode_only_change_has_no_paths_and_an_empty_body(self) -> None:
         # A mode-only change (`old mode`/`new mode`) has no `--- `/`+++ `
         # pair at all — same shape as a pure rename or a binary file, the
@@ -317,6 +334,57 @@ class AddedLinesByFileTests(unittest.TestCase):
             added = added_lines_by_file(repo.root, "HEAD")
 
         self.assertEqual(added, {"normal.md": {3}, "café.md": {3}})
+
+    def test_an_old_last_line_that_only_gains_a_newline_is_not_added(self) -> None:
+        # Git shows `-b`, `\ No newline at end of file`, `+b`, `+c` (#150).
+        with Repo() as repo:
+            repo.write("x.md", "a\nb")
+            repo.commit()
+            repo.write("x.md", "a\nb\nc\n")
+
+            added = added_lines_by_file(repo.root, "HEAD")
+
+        self.assertEqual(added, {"x.md": {3}})
+
+    def test_a_last_line_that_only_loses_its_newline_is_not_added(self) -> None:
+        with Repo() as repo:
+            repo.write("x.md", "a\nb\n")
+            repo.commit()
+            repo.write("x.md", "a\nb")
+
+            added = added_lines_by_file(repo.root, "HEAD")
+
+        self.assertEqual(added, {})
+
+    def test_a_changed_last_line_with_no_newline_is_still_added(self) -> None:
+        with Repo() as repo:
+            repo.write("x.md", "a\nb")
+            repo.commit()
+            repo.write("x.md", "a\nB\n")
+
+            added = added_lines_by_file(repo.root, "HEAD")
+
+        self.assertEqual(added, {"x.md": {2}})
+
+    def test_a_new_file_with_no_trailing_newline_adds_every_line(self) -> None:
+        with Repo() as repo:
+            repo.write("seed.md", "seed\n")
+            repo.commit()
+            repo.write("x.md", "a\nb")
+
+            added = added_lines_by_file(repo.root, "HEAD")
+
+        self.assertEqual(added, {"x.md": {1, 2}})
+
+    def test_deleting_a_file_with_no_trailing_newline_adds_nothing(self) -> None:
+        with Repo() as repo:
+            repo.write("x.md", "a\nb")
+            repo.commit()
+            repo.rm("x.md")
+
+            added = added_lines_by_file(repo.root, "HEAD")
+
+        self.assertEqual(added, {})
 
 
 class IsFileAtTests(unittest.TestCase):
