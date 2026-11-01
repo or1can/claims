@@ -49,14 +49,29 @@ one is reported once per mode:
   count of the tree and a claim; "three seconds", "twelve megabytes" and
   "two percent" measure the world and are not. The unit list covers
   sizes in bytes, durations from milliseconds to centuries, percentages,
-  dollars and degrees.
+  dollars and degrees. Three more shapes are not counts:
+  - `one` before `that`, `of`, `with`, `in`, `is`, `at`, `as`, `who`,
+    `which`, `another`, `or` or `and` is a pronoun: "a prerequisite is
+    one that fails first". "one check runs" and "one fails" are still
+    counts, and "one of the three modes" is still reported for "three
+    modes".
+  - A digit in a version number: "0.16 it" and "v0.11.0 published".
+  - A digit straight after a label (`rule`, `step`, `item`, `line`,
+    `exit`, `code`, `issue`, `ticket`, `version`, `section`, `phase` or
+    `pr`, in any case) or after `#`: "rule 3 decides", "#12 fixes".
 - `claim-words-about-elsewhere`: the sentence holds a backticked
   citation and one of `would`, `otherwise`, `without`, `instead of`,
   `rather than`, `which means` or `which is why`. On its own each of
   those is ordinary English; beside a citation it asserts something
   about the cited code that the sentence is not showing.
 
-The three word lists are fixed and have no configuration surface.
+No mode reads what an inline code span or a link's `(destination)`
+holds: `every` in backticks, or in the path a link points to, is part
+of a name, not prose. A link's text is read, and a code span's backticks still count as
+the citation `claim-words-about-elsewhere` needs. A finding quotes the
+sentence as written.
+
+The word lists are fixed and have no configuration surface.
 
 The check runs no command and reads no code. A finding says that a
 sentence needs a reader; the subagent described on

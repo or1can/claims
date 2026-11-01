@@ -11,6 +11,14 @@ reached you, not just that one was pushed upstream.
 
 ## [Unreleased]
 
+## [0.18.1] - 2026-11-01
+
+- Fixed: `claim-words-counts` no longer reports a pronoun "one" ("one
+  that fails"), a digit in a version number ("0.16 it", "v0.11.0") or a
+  digit after a label or `#` ("rule 3", "exit 2", "#12"). No
+  `claim-words` mode reads inside an inline code span or a link's
+  destination any more. See [claim-words](docs/checks/claim-words.md#what-it-checks).
+
 ## [0.18.0] - 2026-11-01
 
 - Changed: `stale-claims` ranks only the sections that name a file the

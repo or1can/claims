@@ -33,6 +33,10 @@ check asks whether something **is** backticked; `temporal-words` is the
 first to need the opposite polarity — a match inside an inline code span
 is example syntax, not prose making a claim.
 
+`mask_link_destinations` is the same masking for an inline link's
+`(destination)`, which `claim-words` reads past as it reads past a code
+span's content: a path is a name, not prose (#151).
+
 `prose_lines` is `fence_state` applied for a check that reads whole
 sentences: `temporal-words` held it privately until `claim-words` needed
 the same treatment of fenced blocks.
@@ -55,6 +59,11 @@ from typing import NamedTuple
 FENCE_RE = re.compile(r"^\s*(`{3,})")
 
 CODE_SPAN_RE = re.compile(r"`([^`]+)`")
+
+# An inline link's destination, the `(...)` straight after a `]`, angle
+# brackets and a title included, holding at most one level of balanced
+# parentheses of its own (`docs/(old).md`).
+LINK_DESTINATION_RE = re.compile(r"\]\(((?:[^()]|\([^()]*\))*)\)")
 
 # A terminator may be immediately followed by closing markup (the `*` of an
 # `*italicised*` sentence, a closing quote or bracket) before the boundary —
@@ -182,6 +191,15 @@ def mask_code_spans(text: str) -> str:
     """
 
     return CODE_SPAN_RE.sub(lambda m: "`" + _MASK * len(m.group(1)) + "`", text)
+
+
+def mask_link_destinations(text: str) -> str:
+    """`text` with each inline link's destination written over, as
+    `mask_code_spans` writes over a span: the link text and the
+    brackets survive, and so does the length.
+    """
+
+    return LINK_DESTINATION_RE.sub(lambda m: "](" + _MASK * len(m.group(1)) + ")", text)
 
 
 class Sentence(NamedTuple):
