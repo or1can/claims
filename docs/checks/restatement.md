@@ -94,11 +94,29 @@ the others, and every copy of it is suppressed. The count is taken over
 the files that still hold the text, so a line present in two survivors
 is over the default threshold whichever of them is read first.
 
+A line the diff itself **added** is never a survivor, in any file.
+Because the subtraction is per file, a sentence moved from one file to
+another counts as removed from the first, and its new copy would
+otherwise be reported as the survivor of its own removal; whoever wrote
+that line in this change meant it. A run of six words is set aside only
+when every word of it is on an added line: a run that starts on an
+untouched line can be a real survivor wrapping onto a line the diff
+edited, so moved text rewrapped to start at the end of an untouched line
+is reported there. An old last line with no newline that the diff only
+gave one, by appending after it, is not an added line. Added lines are set aside before the
+threshold counts files, so a moved copy neither pushes an untouched
+survivor over the threshold nor is reported in its place: a sentence
+moved from one page to another, with an untouched copy in a third, is
+reported at the third. A line the diff did not add is still a survivor,
+even in a file the diff otherwise changed.
+
 The check is diff-scoped: with nothing removed there is nothing to
 search for, and a survivor left behind by an earlier commit is not
 reported on a later one. The survivor sweep itself is whole-tree over
 every tracked file in scope, so a copy in a file the diff never touched
-is found. The check runs no command.
+is found. It reads each file as it is on disk, so a `--diff-range` that
+does not end at the checked-out files can misplace or miss a survivor.
+The check runs no command.
 
 ## Why it exists
 
