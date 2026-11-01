@@ -58,6 +58,25 @@ def _summarize(findings: tuple[Finding, ...]) -> str:
     return "\n".join(str(f) for f in findings)
 
 
+def _non_boolean_enabled(
+    config: Mapping[str, object], registered: Sequence[str]
+) -> str | None:
+    """The first name in `registered` whose own `claims.toml` section has
+    an `enabled` that isn't a boolean (ticket #149), or `None`. Read by
+    truthiness, `"false"` would leave the check on and `0` would silence
+    it. Restricted to `registered` for `_disabled_checks`'s own reasons:
+    an unrecognized name is already a gate finding and never silences
+    anything, so its `enabled` isn't validated here."""
+
+    for name in registered:
+        section = config.get(name)
+        if isinstance(section, Mapping) and not isinstance(
+            section.get("enabled", True), bool
+        ):
+            return name
+    return None
+
+
 def _disabled_checks(
     config: Mapping[str, object], registered: Sequence[str]
 ) -> frozenset[str]:
@@ -88,7 +107,7 @@ def _disabled_checks(
         if name != "hook"
         and name in registered
         and isinstance(section, Mapping)
-        and not section.get("enabled", True)
+        and section.get("enabled", True) is False
     )
 
 
@@ -116,8 +135,9 @@ def decide_repo(repo_root: Path) -> Decision | None:
     `None` when there is nothing to report: it hasn't opted in with a root
     `claims.toml`, has switched the hook off, or has no finding left once
     disabled checks are filtered out. A `claims.toml` that doesn't parse,
-    or whose `[hook]` isn't a table or whose `[hook] enabled` isn't a
-    boolean, blocks as invalid."""
+    or whose `[hook]` isn't a table or whose `[hook] enabled` or a
+    registered check's own `enabled` isn't a boolean, blocks as
+    invalid."""
 
     if not has_config(repo_root):
         return None
@@ -147,6 +167,13 @@ def decide_repo(repo_root: Path) -> Decision | None:
         return Decision(
             block=True,
             message="0 checked — no checks registered (failure, not a clean pass)",
+        )
+
+    invalid = _non_boolean_enabled(config, result.checks_run)
+    if invalid is not None:
+        return Decision(
+            block=True,
+            message=f"claims.toml is invalid: `[{invalid}] enabled` must be true or false",
         )
 
     disabled = _disabled_checks(config, result.checks_run)

@@ -11,6 +11,14 @@ reached you, not just that one was pushed upstream.
 
 ## [Unreleased]
 
+## [0.17.4] - 2026-11-01
+
+- Fixed: a check's own `enabled` in `claims.toml` must now be `true` or
+  `false`. Anything else, such as `enabled = "false"` (which left the
+  check on) or `enabled = 0` (which silenced it), blocks every commit as
+  an invalid `claims.toml` until it is fixed. See [silencing one check at
+  commit time](docs/configuring.md#silencing-one-check-at-commit-time).
+
 ## [0.17.3] - 2026-10-31
 
 - Fixed: `restatement` never reports a line the diff itself added. Moving

@@ -79,6 +79,11 @@ whether to let the commit through. A gate check silenced this way no
 longer blocks a commit, so silencing one is a decision to stop enforcing
 what it enforces, not a way to quieten it.
 
+`enabled` takes `true` or `false`, and leaving it out is `true`. Anything
+else, such as `"false"` or `0`, makes `claims.toml` invalid: unless the
+[whole hook is switched off](#switching-the-commit-hook-off), it blocks
+every commit with the reason, naming the check, until it is fixed.
+
 Neither switch reads the other: the whole-gate toggle and a check's own
 key are independent, and a project can set both.
 
