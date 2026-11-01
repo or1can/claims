@@ -86,3 +86,8 @@ _Avoid_: Permission, allowlist entry
 
 **Execution-capable check**:
 A check that runs a command the project's own prose names.
+
+**Checked mark**:
+A record that someone read an advisory finding, which keeps it quiet until
+what it depends on changes.
+_Avoid_: Suppression, baseline, ignore
