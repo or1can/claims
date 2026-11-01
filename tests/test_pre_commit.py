@@ -104,6 +104,36 @@ class PreCommitTests(RegistryClearingTestCase):
             result = self._run(repo, "[multi-mode-check]\nenabled = false\n")
         self.assertEqual(result, (0, ""))
 
+    def test_a_check_with_enabled_true_or_absent_still_gates(self) -> None:
+        _register("failing-gate", gate=True)
+        for text in ("[failing-gate]\nenabled = true\n", "[failing-gate]\nx = 1\n"):
+            with self.subTest(text=text), Repo() as repo:
+                code, stderr = self._run(repo, text)
+                self.assertEqual(code, 1)
+                self.assertIn("bad", stderr)
+
+    def test_a_check_enabled_that_is_not_a_boolean_blocks_naming_it(self) -> None:
+        # Read by truthiness, `"false"` would leave the check on and `0`
+        # would silence it (ticket #149).
+        register_check("clean-check", lambda repo_root, diff_range, config: [])
+        for value in ('"false"', "0", "1", '""'):
+            with self.subTest(value=value), Repo() as repo:
+                code, stderr = self._run(repo, f"[clean-check]\nenabled = {value}\n")
+                self.assertEqual(code, 1)
+                self.assertIn(
+                    "claims.toml is invalid: `[clean-check] enabled` must be true or false",
+                    stderr,
+                )
+
+    def test_an_unrecognized_table_enabled_is_not_validated(self) -> None:
+        # Its own unrecognized-table finding already reports it (ticket #21).
+        register_check("clean-check", lambda repo_root, diff_range, config: [])
+        with Repo() as repo:
+            code, stderr = self._run(repo, '[not-a-real-check]\nenabled = "false"\n')
+        self.assertEqual(code, 1)
+        self.assertIn("not-a-real-check", stderr)
+        self.assertNotIn("must be true or false", stderr)
+
     def test_a_top_level_non_table_value_blocks_rather_than_crashing(self) -> None:
         # A bare `enabled = false` with no `[section]` is valid TOML whose
         # value is a bool, not a table: the unrecognized-table gate
