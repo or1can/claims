@@ -222,21 +222,36 @@ class RestatementTests(RegistryClearingTestCase):
 
         self.assertEqual([(f.citation, f.mode) for f in findings], [("c.md:5", MODE_NGRAM)])
 
-    def test_a_run_reaching_into_an_added_line_is_not_a_survivor(self) -> None:
-        """Moved text rewrapped so its first words land on an untouched
-        line is still text this diff wrote."""
+    def test_a_survivor_wrapping_onto_a_line_the_diff_edited_is_reported(self) -> None:
+        """Only a run lying wholly on added lines is the diff's own; one
+        that starts on an untouched line is still a survivor there."""
         with Repo() as repo:
-            repo.write("a.md", f"{PHRASE}\n")
-            repo.write("b.md", "intro the bridge interface\n")
+            repo.write("a.md", "alpha beta gamma delta epsilon zeta eta\n")
+            repo.write("b.md", "a heading\n\nas noted alpha beta gamma\ndelta epsilon zeta tail one\n")
             repo.commit()
             repo.write("a.md", "unrelated wording entirely\n")
-            repo.write(
-                "b.md", "intro the bridge interface\ndiffers for every network it creates today\n"
-            )
+            repo.write("b.md", "a heading\n\nas noted alpha beta gamma\ndelta epsilon zeta tail two\n")
 
             findings = self._findings(repo.root)
 
-        self.assertEqual(findings, [])
+        self.assertEqual([(f.citation, f.mode) for f in findings], [("b.md:3", MODE_NGRAM)])
+
+    def test_a_last_line_that_only_gained_a_newline_is_still_a_survivor(self) -> None:
+        """Git shows an old last line with no newline as removed and
+        re-added when something is appended after it, though its text
+        never changed."""
+        sentence = "binding a proxy to zero dot zero dot zero dot zero exposes it to everything"
+        with Repo() as repo:
+            repo.write("a.md", f"{sentence}\n")
+            repo.write("b.md", f"a heading\n\n{sentence}")
+            repo.commit()
+            repo.write("a.md", "an entirely different sentence about something else\n")
+            repo.write("b.md", f"a heading\n\n{sentence}\n\nan appended paragraph\n")
+
+            findings = self._findings(repo.root)
+
+        self.assertEqual({f.citation for f in findings}, {"b.md:3"})
+        self.assertEqual({f.mode for f in findings}, {MODE_NGRAM, MODE_WHOLE_LINE})
 
     def test_a_quotable_filenames_retraction_is_still_flagged(self) -> None:
         sentence = "binding a proxy to zero dot zero dot zero dot zero exposes it to everything\n"

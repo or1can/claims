@@ -48,9 +48,10 @@ of it, and a thing still said is not a thing retracted.
 so text moved from one file to another counts as retracted from the
 first, and the sweep would otherwise find its new copy and report the
 move as a survivor of itself. Whoever wrote the line in this change meant
-it. A run with any word on an added line is skipped too, so moved text
-rewrapped onto an untouched line's tail is still the diff's own. The
-added lines are dropped before the duplication threshold counts files, so a moved copy neither pushes a real survivor over the threshold
+it. Only a run lying wholly on added lines is skipped: one that starts
+on an untouched line may be a real survivor wrapping onto a line the
+diff edited, and a miss stays invisible where a false positive does not
+(`CLAUDE.md`'s "recall over precision"). The added lines are dropped before the duplication threshold counts files, so a moved copy neither pushes a real survivor over the threshold
 nor stands in for one.
 
 `extensions` is *added* to the default union of both source tools'
@@ -92,7 +93,7 @@ from pathlib import Path
 from typing import NamedTuple
 
 from ..config import exclude_patterns, numeric_config, path_matches, string_list_config
-from ..git import DiffLine, added_lines_by_file, iter_diff, tracked_files
+from ..git import DiffLine, iter_diff, tracked_files
 from ..runner import Finding, register_check
 
 NAME = "restatement"
@@ -273,11 +274,18 @@ def _in_scope(path: str | None, extensions: set[str], exclude: Sequence[str]) ->
 
 def _diff_by_file(
     repo_root: Path, diff_range: str, extensions: set[str], exclude: Sequence[str]
-) -> list[tuple[list[str], list[str]]]:
-    """`[(removed, added), ...]` line text, one pair per file the diff
-    touches, each restricted to in-scope lines from that file's own side(s)
-    and read as `_prose_lines` reads them, against the file's whole old or
-    new version.
+) -> tuple[list[tuple[list[str], list[str]]], dict[str, set[int]]]:
+    """`([(removed, added), ...], added_lines)`. The first is line text,
+    one pair per file the diff touches, each restricted to in-scope lines
+    from that file's own side(s) and read as `_prose_lines` reads them,
+    against the file's whole old or new version. The second is
+    `{path: {line numbers the diff added, in the new file}}`.
+
+    `claims.git.added_lines_by_file` would give the second, but counts an
+    old last line with no newline as added when anything is appended after
+    it: git shows that line removed and re-added though its text never
+    changed. The whole-file walk here can tell, since that line is the old
+    side's last and its twin is re-added after the final unchanged line.
 
     Kept per file rather than merged into one global removed/added stream:
     an unrelated file's incidental addition in the same diff must not cancel
@@ -295,11 +303,13 @@ def _diff_by_file(
     """
 
     segments: list[tuple[list[str], list[str]]] = []
+    added_lines: dict[str, set[int]] = {}
     for file_diff in iter_diff(repo_root, diff_range, whole_files=True):
         old: list[str] = []
         new: list[str] = []
         removed_at: list[int] = []
         added_at: list[int] = []
+        tail = 0
         for item in file_diff.body:
             if isinstance(item, DiffLine):
                 if item.sign == "-":
@@ -310,6 +320,14 @@ def _diff_by_file(
                     old.append(item.text)
                 if item.sign != "-":
                     new.append(item.text)
+                if item.sign == " ":
+                    tail = len(new)
+        if file_diff.dst:
+            really_added = set(added_at)
+            if removed_at and removed_at[-1] == len(old) - 1:
+                twin = next((at for at in added_at if at >= tail and new[at] == old[-1]), None)
+                really_added.discard(twin)
+            added_lines[file_diff.dst] = {at + 1 for at in really_added}
         removed: list[str] = []
         added: list[str] = []
         if file_diff.src and _in_scope(file_diff.src, extensions, exclude):
@@ -319,7 +337,7 @@ def _diff_by_file(
             new_prose = _prose_lines(file_diff.dst, new)
             added = [new_prose[at] for at in added_at]
         segments.append((removed, added))
-    return segments
+    return segments, added_lines
 
 
 def _tracked_scoped(
@@ -357,8 +375,8 @@ def _survivors(
     One read and one normalization pass per tracked file, shared by both
     modes, rather than sweeping the whole scoped tree twice.
 
-    A line in `added` is never a hit, and neither is a run with any word
-    on one. Skipped while sweeping, not filtered afterwards, so a run
+    A line in `added` is never a hit, and neither is a run lying wholly on
+    such lines. Skipped while sweeping, not filtered afterwards, so a run
     first met on an added line can still be found on a later untouched
     one.
     """
@@ -382,7 +400,7 @@ def _survivors(
             surviving: dict[str, int] = {}
             for i in range(0, len(located) - NGRAM_WORDS + 1):
                 window = located[i : i + NGRAM_WORDS]
-                if any(number in added_here for _, number in window):
+                if all(number in added_here for _, number in window):
                     continue
                 surviving.setdefault(" ".join(word for word, _ in window), window[0][1])
 
@@ -434,7 +452,7 @@ def check(
     extensions = _extensions(config)
     exclude = exclude_patterns(config)
     threshold = _duplication_threshold(config)
-    segments = _diff_by_file(repo_root, diff_range, extensions, exclude)
+    segments, added = _diff_by_file(repo_root, diff_range, extensions, exclude)
 
     wanted_ngrams: set[str] = set()
     wanted_lines: set[str] = set()
@@ -448,7 +466,6 @@ def check(
         return []
 
     tracked = _tracked_scoped(repo_root, extensions, exclude)
-    added = added_lines_by_file(repo_root, diff_range)
     ngram_hits, whole_line_hits = _survivors(
         repo_root, tracked, wanted_ngrams, wanted_lines, added
     )

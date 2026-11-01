@@ -9,3 +9,10 @@
   code there is still reported as a retraction. A `claims.toml` key that
   adds a row of the same shape (line-comment tokens, block delimiters,
   nesting, docstrings) is the likely fix.
+- `claims.git.added_lines_by_file` counts an old last line with no
+  newline as added when anything is appended after it (git shows it
+  removed and re-added, its text unchanged), so `claim-words` and
+  `temporal-words` treat that untouched line as new. `restatement`
+  works around it in its own whole-file walk; the helper sees only
+  `--unified=0` hunks, so fixing it there means reading git's
+  `\ No newline at end of file` marker.
