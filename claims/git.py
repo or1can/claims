@@ -239,6 +239,34 @@ def added_lines_by_file(repo_root: Path, diff_range: str) -> dict[str, set[int]]
     return added
 
 
+def changed_paths(repo_root: Path, diff_range: str) -> set[str]:
+    """Every path `diff_range` added, modified or deleted, a rename counted
+    by both its old and its new path.
+
+    `--no-renames` splits a rename into the deletion and the addition, so
+    both paths are listed. `iter_diff` cannot stand in here: a pure rename,
+    a binary file or a mode-only change has no `--- `/`+++ ` header for it
+    to read a path from.
+    """
+
+    result = subprocess.run(
+        [
+            "git",
+            *QUOTEPATH_OFF,
+            "diff",
+            "--name-only",
+            "--no-renames",
+            diff_range or "HEAD",
+        ],
+        cwd=repo_root,
+        capture_output=True,
+        text=True,
+        errors="replace",
+        check=True,
+    )
+    return {rel for rel in result.stdout.split("\n") if rel}
+
+
 UNCOMMITTED = "0" * 40
 """`git blame`'s own marker for a working-tree line no commit has yet."""
 

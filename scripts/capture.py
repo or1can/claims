@@ -35,8 +35,9 @@ against `HEAD`) is exactly that change. A whole-tree check reads the
 staged files like any tracked file and needs no history at all; a check
 keyed on history (`check-citations` flags a name the repository once
 declared and no longer has; `stale-claims` counts the commits a subject
-saw after a section's last touch, so its example is history alone) gets
-it from the committed steps; a diff-scoped check (`restatement` starts
+saw after a section's last touch, so its example is history alone, run
+over the range of its last step since `HEAD` would change no subject)
+gets it from the committed steps; a diff-scoped check (`restatement` starts
 from a retracted line, `claim-words` reads added ones, `judgment-agent`
 computes what the diff touched) reads the staged files as the diff. Every
 step of the input is a checked-in file the page can include, rather than
@@ -91,6 +92,11 @@ from support import Repo  # noqa: E402
 # the same history on every run and every machine.
 COMMIT_TIME = 1_700_000_000
 
+# The range a capture runs over where the hook's own `HEAD` shows nothing:
+# `stale-claims` ranks only a section whose subject the range changed, and
+# its example is history alone, so it runs over the last step's commit.
+DIFF_RANGES = {"stale-claims": "HEAD~1"}
+
 
 def capture(check: str) -> str:
     """`check`'s findings against `examples/<check>/`, one per line as the
@@ -143,10 +149,12 @@ def capture(check: str) -> str:
         # a real run reads a project's — `{}` for the check's section when
         # there is no file, the same as a project with no config at all.
         config = load_config(repo.root).get(check, {})
-        findings = module.check(repo.root, "HEAD", config)
+        diff_range = DIFF_RANGES.get(check, "HEAD")
+        findings = module.check(repo.root, diff_range, config)
     lines = [
         f"# python3 scripts/capture.py: {check}, run against a throwaway git "
         f"repository seeded from {example}"
+        + (f" over the diff range {diff_range}" if diff_range != "HEAD" else "")
     ]
     lines.extend(str(finding) for finding in findings)
     return "\n".join(lines) + "\n"

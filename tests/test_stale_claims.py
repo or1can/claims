@@ -25,6 +25,7 @@ from __future__ import annotations
 
 import contextlib
 import io
+import subprocess
 import unittest
 from pathlib import Path
 
@@ -86,18 +87,30 @@ def _build_fixture(repo: Repo) -> None:
     repo.commit(BASE + 500)
 
 
+def _audit_range(repo_root: Path) -> str:
+    """The first commit `..HEAD`: the wide range a whole-tree audit runs over."""
+
+    root = subprocess.run(
+        ["git", "-C", str(repo_root), "rev-list", "--max-parents=0", "HEAD"],
+        capture_output=True,
+        text=True,
+        check=True,
+    ).stdout.strip()
+    return f"{root}..HEAD"
+
+
 class StaleClaimsTests(RegistryClearingTestCase):
     def setUp(self) -> None:
         super().setUp()
         register_check(NAME, check)
 
     def _findings(self, repo_root: Path) -> list[Finding]:
-        return list(run(repo_root, "HEAD", {}).findings)
+        return list(run(repo_root, _audit_range(repo_root), {}).findings)
 
     def _findings_with_toml(self, repo_root: Path, claims_toml: str) -> list[Finding]:
         (repo_root / "claims.toml").write_text(claims_toml)
         config = load_config(repo_root)
-        return list(run(repo_root, "HEAD", config).findings)
+        return list(run(repo_root, _audit_range(repo_root), config).findings)
 
     def test_the_most_churned_subject_ranks_first(self) -> None:
         with Repo() as repo:
@@ -109,6 +122,75 @@ class StaleClaimsTests(RegistryClearingTestCase):
         self.assertIn("subject.py", findings[0].message)
         self.assertEqual(findings[1].citation, "doc.md:4")
         self.assertIn("quiet.py", findings[1].message)
+
+    def test_a_range_changing_no_subject_reports_nothing(self) -> None:
+        with Repo() as repo:
+            _build_fixture(repo)
+            repo.write("unrelated.txt", "v0")
+            repo.commit(BASE + 600)
+            self.assertEqual(len(self._findings(repo.root)), 2)
+            self.assertEqual(list(run(repo.root, "HEAD~1", {}).findings), [])
+            # Editing the citing page itself touches none of its subjects.
+            repo.write("doc.md", DOC_AFTER_MOVE + "\nMore.\n")
+            self.assertEqual(list(run(repo.root, "HEAD", {}).findings), [])
+
+    def test_a_range_changing_a_subject_ranks_its_section_with_the_same_score(
+        self,
+    ) -> None:
+        with Repo() as repo:
+            _build_fixture(repo)
+            audit = self._findings(repo.root)
+            # BASE + 400 changed quiet.py; BASE + 500 the "moved" pair.
+            scoped = list(run(repo.root, "HEAD~2", {}).findings)
+        self.assertEqual(scoped, [audit[1]])
+
+    def test_sections_in_scope_keep_their_relative_order(self) -> None:
+        with Repo() as repo:
+            _build_fixture(repo)
+            # BASE + 300 changed subject.py, BASE + 400 quiet.py.
+            scoped = list(run(repo.root, "HEAD~3", {}).findings)
+        self.assertEqual([f.citation for f in scoped], ["doc.md:1", "doc.md:4"])
+
+    def test_a_pure_rename_puts_a_section_naming_the_new_path_in_scope(self) -> None:
+        with Repo() as repo:
+            repo.write("guide.md", "## cache\nSee `cache` for details.\n")
+            repo.write("src/cache.py", "v0")
+            repo.commit(BASE)
+            (repo.root / "lib").mkdir()
+            subprocess.run(
+                ["git", "-C", str(repo.root), "mv", "src/cache.py", "lib/cache.py"],
+                check=True,
+            )
+            repo.commit(BASE + 100)
+            findings = list(run(repo.root, "HEAD~1", {}).findings)
+        self.assertEqual(len(findings), 1)
+        self.assertIn("cache.py 1 commit", findings[0].message)
+
+    def test_a_deleted_subject_puts_its_section_in_scope(self) -> None:
+        with Repo() as repo:
+            _build_fixture(repo)
+            # Unstaged: still in the index.
+            (repo.root / "src/quiet.py").unlink()
+            unstaged = list(run(repo.root, "HEAD", {}).findings)
+            # Staged, as the commit hook meets it: no longer tracked.
+            repo.rm("src/quiet.py")
+            staged = list(run(repo.root, "HEAD", {}).findings)
+            repo.commit(BASE + 600)
+            committed = list(run(repo.root, "HEAD~1", {}).findings)
+        self.assertEqual([f.citation for f in unstaged], ["doc.md:4"])
+        self.assertEqual([f.citation for f in staged], ["doc.md:4"])
+        self.assertEqual([f.citation for f in committed], ["doc.md:4"])
+        self.assertIn("quiet.py 2 commits", committed[0].message)
+
+    def test_a_rename_puts_a_section_naming_the_old_path_in_scope(self) -> None:
+        with Repo() as repo:
+            _build_fixture(repo)
+            subprocess.run(
+                ["git", "-C", str(repo.root), "mv", "src/quiet.py", "src/calm.py"],
+                check=True,
+            )
+            findings = list(run(repo.root, "HEAD", {}).findings)
+        self.assertEqual([f.citation for f in findings], ["doc.md:4"])
 
     def test_findings_are_advisory_not_gating(self) -> None:
         with Repo() as repo:
@@ -540,7 +622,14 @@ class StaleClaimsCliTests(RegistryClearingTestCase):
 
             out = io.StringIO()
             with contextlib.redirect_stdout(out):
-                code = main(["--repo-root", str(repo.root)])
+                code = main(
+                    [
+                        "--repo-root",
+                        str(repo.root),
+                        "--diff-range",
+                        _audit_range(repo.root),
+                    ]
+                )
             output = out.getvalue()
 
         self.assertEqual(code, 0)

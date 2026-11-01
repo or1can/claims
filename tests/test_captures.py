@@ -59,8 +59,9 @@ class CaptureFreshnessTests(unittest.TestCase):
         # `stale-claims` scores a section by the commits its subjects saw
         # after the section's own last touch, read from blame and log
         # timestamps, so its example is history alone and the steps are
-        # committed an hour apart at a fixed epoch. The capture ranks the
-        # section whose subject churned most first, on every machine.
+        # committed an hour apart at a fixed epoch, and it runs over the
+        # last step's range, which changes both subjects. The capture ranks
+        # the section whose subject churned most first, on every machine.
         text = capture("stale-claims")
         self.assertLess(text.index("'Caching'"), text.index("'Storage'"))
         self.assertNotIn("'Logging'", text)

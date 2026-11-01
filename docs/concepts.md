@@ -61,7 +61,8 @@ filter by either without parsing the message.
 Every check runs against a diff range, and each decides for itself how much
 of the range matters. A **diff-scoped** check reads only what the diff
 added or removed: `claim-words` sweeps added lines, `restatement` starts
-from removed ones, `judgment-agent` computes what the diff touched. A
+from removed ones, `judgment-agent` computes what the diff touched, and
+`stale-claims` ranks only the sections naming a file the diff changed. A
 **whole-tree** check ignores the diff's content and sweeps every tracked
 file of the kinds it reads, because what it looks for can be false today
 regardless of when it was written: a marker's command, a link, a citation.
