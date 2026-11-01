@@ -64,6 +64,8 @@ from ..markdown import (
     CODE_SPAN_RE,
     ITALIC_RE,
     RETIRED_LEAD_IN,
+    mask_code_spans,
+    mask_link_destinations,
     prose_lines,
     sentences_from,
 )
@@ -116,6 +118,21 @@ UNIT_WORDS = {
     "percent", "%", "dollar", "dollars", "degree", "degrees",
 }
 
+# "one" before a function word is a pronoun, not a count: "a prerequisite
+# is one that fails first". No verbs: they are an open class, so "one
+# fails" stays a finding.
+PRONOUN_ONE_FOLLOWERS = {
+    "that", "of", "with", "in", "is", "at", "as", "who", "which", "another",
+    "or", "and",
+}
+
+# A digit run straight after one of these, or after `#`, names something
+# rather than counting it: "rule 3 decides", "#12 fixes".
+LABEL_WORDS = {
+    "rule", "step", "item", "line", "exit", "code", "issue", "ticket",
+    "version", "section", "phase", "pr",
+}
+
 # `(?<![\w-])`/`(?![\w-])` rather than `\b`: a hyphen is a non-word
 # character, so `\b` alone still matches "always" inside a hyphenated
 # identifier like `--always-verify` — the boundary needs to reject a
@@ -131,11 +148,22 @@ ELSEWHERE_RE = re.compile(
 # Any run of spelled-out number words (joined by space, hyphen, or "and"),
 # or a bare digit run, immediately before the noun it counts.
 COUNT_RE = re.compile(
-    r"\b(?:\d+|"
+    r"\b(?P<number>\d+|"
     + _NUMBER_TOKEN
     + r"(?:[-\s]+(?:and[-\s]+)?"
     + _NUMBER_TOKEN
     + r")*)\s+(?P<noun>[\w%]+)",
+    re.IGNORECASE,
+)
+
+# What sits straight before a digit run that is not a count: a label word
+# or a `#`, or the `<digit>.` of a version ("0.16 it"). Matched once per
+# sentence, by where each one ends, rather than searched for behind every
+# `COUNT_RE` match. The rest of a version needs no pattern: `COUNT_RE`
+# wants whitespace after its number, so never matches a run followed by
+# `.<digit>`, and its `\b` never matches between a `v` and a digit.
+NOT_A_COUNT_BEFORE_RE = re.compile(
+    r"(?:(?<![\w-])(?:" + "|".join(sorted(LABEL_WORDS)) + r")\s+|#|\d\.)(?=\d)",
     re.IGNORECASE,
 )
 
@@ -145,11 +173,22 @@ COUNT_RE = re.compile(
 BLOCKQUOTE_RE = re.compile(r"^>(\s|$)")
 
 
+def _counts_a_noun(match: re.Match[str], labelled: set[int]) -> bool:
+    """Whether a `COUNT_RE` match counts its noun. `labelled` holds where
+    each `NOT_A_COUNT_BEFORE_RE` match in the sentence ends."""
+
+    number = match.group("number").lower()
+    noun = match.group("noun").lower().strip(".,;:")
+    if noun in UNIT_WORDS:
+        return False
+    if number == "one" and noun in PRONOUN_ONE_FOLLOWERS:
+        return False
+    return not (number.isdigit() and match.start() in labelled)
+
+
 def _is_count_claim(sentence: str) -> bool:
-    return any(
-        match.group("noun").lower().strip(".,;:") not in UNIT_WORDS
-        for match in COUNT_RE.finditer(sentence)
-    )
+    labelled = {m.end() for m in NOT_A_COUNT_BEFORE_RE.finditer(sentence)}
+    return any(_counts_a_noun(match, labelled) for match in COUNT_RE.finditer(sentence))
 
 
 def _is_retired_quote(sentence: str, lines: Sequence[str], start: int, end: int) -> bool:
@@ -166,8 +205,14 @@ def _is_retired_quote(sentence: str, lines: Sequence[str], start: int, end: int)
 
 
 def _classify(sentence: str) -> list[str]:
-    """Every mode this sentence matches — see the `MODE_*` constants."""
+    """Every mode this sentence matches — see the `MODE_*` constants.
 
+    Matched with code-span content and link destinations masked: what a
+    span or a destination holds is a name, not prose. A span's backticks
+    survive, so `about-elsewhere` still sees a citation.
+    """
+
+    sentence = mask_link_destinations(mask_code_spans(sentence))
     modes = []
     if STRONG_RE.search(sentence):
         modes.append(MODE_TOTALISING)

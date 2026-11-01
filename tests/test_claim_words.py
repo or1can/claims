@@ -56,6 +56,80 @@ class ClaimWordsTests(RegistryClearingTestCase):
     def _findings(self, repo_root: Path, files: list[str]) -> list[Finding]:
         return list(run(repo_root, "HEAD", {NAME: {"files": files}}).findings)
 
+    def _reported(self, mode: str, *sentences: str) -> list[str]:
+        """Which of `sentences`, each added as a paragraph of its own,
+        are reported under `mode`."""
+
+        with Repo() as repo:
+            repo.write("record.md", "# record\n\nseed\n")
+            repo.commit()
+            repo.write("record.md", "# record\n\n" + "\n\n".join(sentences) + "\n")
+            findings = self._findings(repo.root, ["record.md"])
+        return [f.message.removeprefix(f"[{mode}] ") for f in findings if f.mode == mode]
+
+    def test_a_digit_in_a_version_number_is_not_a_count(self) -> None:
+        self.assertEqual(
+            self._reported(
+                MODE_COUNTS,
+                "Since 0.16 it reads TOML.",
+                "Then ratect/v0.11.0 published today.",
+                "Tag v2 ships it.",
+                "Release 1.4 adds it.",
+                "There are 16 checks.",
+            ),
+            ["There are 16 checks."],
+        )
+
+    def test_a_digit_after_a_label_word_or_a_hash_is_not_a_count(self) -> None:
+        self.assertEqual(
+            self._reported(
+                MODE_COUNTS,
+                "Then rule 3 decides it.",
+                "It uses exit 2 for that.",
+                "See #12 fixes for this.",
+                "Run Step 4 first.",
+                "So PR 158 landed.",
+                "Then 16 checks run.",
+            ),
+            ["Then 16 checks run."],
+        )
+
+    def test_a_word_inside_a_code_span_or_link_destination_is_not_read(self) -> None:
+        sentences = (
+            "Set `every` here.",
+            "Read [the guide](docs/every.md) first.",
+            "Pass `3 checks` here.",
+            "Read [the guide](<docs/3 checks.md>) first.",
+            "Read [the guide](<docs/(old) every.md>) first.",
+            "Call `x would` here.",
+            "Read [the guide](otherwise.md) beside `x`.",
+            "Read [every guide](x.md) first.",
+            "Read [3 guides](x.md) first.",
+            "Read [it](x.md) without `x`.",
+        )
+        self.assertEqual(self._reported(MODE_TOTALISING, *sentences), ["Read [every guide](x.md) first."])
+        self.assertEqual(self._reported(MODE_COUNTS, *sentences), ["Read [3 guides](x.md) first."])
+        self.assertEqual(self._reported(MODE_ABOUT_ELSEWHERE, *sentences), ["Read [it](x.md) without `x`."])
+
+    def test_a_pronoun_one_before_a_function_word_is_not_a_count(self) -> None:
+        self.assertEqual(
+            self._reported(
+                MODE_COUNTS,
+                "A prerequisite is one that fails first.",
+                "Pick one of these.",
+                "Three checks run.",
+                "Only one check runs at commit time.",
+                "It is one of the three modes.",
+                "One fails.",
+            ),
+            [
+                "Three checks run.",
+                "Only one check runs at commit time.",
+                "It is one of the three modes.",
+                "One fails.",
+            ],
+        )
+
     def test_a_totalising_claim_past_a_table_is_flagged(self) -> None:
         with Repo() as repo:
             repo.write("record.md", "# record\n\nseed\n")
