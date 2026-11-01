@@ -22,6 +22,15 @@ Advisory (spec.md's check inventory): a churn-ranked candidate list, not
 a verdict — a hot file makes an accurate claim look suspicious, and a
 claim can rot while its subject sits still.
 
+Diff-scoped (ADR 0009): a section is ranked only when the range changed
+one of its subjects, so the hook stops printing the same whole-tree
+ranking on every commit. The paths come from `changed_paths`, not
+`iter_diff`, which has no path to give for a pure rename; the score
+still reads each subject's whole history, so a section scores the same
+whichever range brings it in. An explicit path the range deleted or
+renamed away still names a subject, though no longer tracked: a section
+citing a file that just went is the one most worth reading.
+
 **Known blind spot, not a silently accepted gap:** a claim and its subject
 edited in the same commit score zero for that subject — the commit that
 touched both isn't counted as "after" the claim, since it *is* the claim's
@@ -114,7 +123,7 @@ from pathlib import Path
 from typing import NamedTuple
 
 from ..config import CONFIG_FILENAME, exclude_patterns, path_matches, string_list_config
-from ..git import blob_text, tracked_files
+from ..git import blob_text, changed_paths, tracked_files
 from ..markdown import section_range
 from ..paths import PATH_RE, citing_relative, host_relative, repo_relative
 from ..runner import Finding, register_check
@@ -165,8 +174,13 @@ def _module_index(tracked: list[str]) -> dict[str, str]:
 def check(
     repo_root: Path, diff_range: str, config: Mapping[str, object]
 ) -> list[Finding]:
+    changed = changed_paths(repo_root, diff_range)
+    if not changed:
+        return []
     tracked = tracked_files(repo_root)
-    tracked_set = set(tracked)
+    # A path the range deleted or renamed away is no longer tracked, and
+    # is still the subject of a section that names it.
+    citable = set(tracked) | changed
     exclude = exclude_patterns(config)
     modules = _module_index(
         [
@@ -230,7 +244,7 @@ def check(
                 subjects |= {
                     (path, anchor if anchor and path.endswith(".md") and section(path, anchor) else "")
                     for path in paths
-                    if path in tracked_set
+                    if path in citable
                 }
             subjects |= {
                 (modules[name], "")
@@ -238,7 +252,7 @@ def check(
                 if name in modules
                 and (Path(modules[name]).suffix == ext if ext else bare_in_scope)
             }
-            if not subjects:
+            if not any(path in changed for path, _ in subjects):
                 continue
 
             blame = _git(

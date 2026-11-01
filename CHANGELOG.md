@@ -11,6 +11,13 @@ reached you, not just that one was pushed upstream.
 
 ## [Unreleased]
 
+## [0.18.0] - 2026-11-01
+
+- Changed: `stale-claims` ranks only the sections that name a file the
+  diff range changed, so a commit no longer prints the same whole-tree
+  ranking whatever it touched. To see every section, run the command line
+  over a wide range. See [auditing the whole tree](docs/checks/stale-claims.md#auditing-the-whole-tree).
+
 ## [0.17.6] - 2026-11-01
 
 - Fixed: `claim-words` and `temporal-words` no longer report a file's

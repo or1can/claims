@@ -22,9 +22,10 @@ one sentence, and the heading is what the finding names.
 
 A **subject** is a tracked file the section names, in one of two shapes.
 An explicit relative path, a directory and a file name with an
-extension, counts when a tracked file has exactly that path, read from
-the repository root or, failing that, from the directory of the file
-that cites it: `.github/workflows/ci.yml` names that file, and so does
+extension, counts when a tracked file has exactly that path, or the
+diff range deleted or renamed away a file at that path, read from the
+repository root or, failing that, from the directory of the file that
+cites it: `.github/workflows/ci.yml` names that file, and so does
 `./.github/workflows/ci.yml`. A path starting with `../` is read from
 the citing file's directory only. A path starting with `/` or `~/` names
 no subject, because it points outside the repository. A
@@ -56,6 +57,16 @@ changed first, each with its commit count and its share of history.
 Sections are reported in descending score, and a section none of whose
 subjects has changed since its last touch is not reported.
 
+A section is ranked only when the diff range changes one of its
+subjects: adds, modifies or deletes it, or renames it, counted by both
+its old and its new path. A section whose subjects the range leaves
+alone is not reported, however stale its score would be, and an edit to
+the section itself is not a change to a subject. The score is the same
+whichever range brings a section in, since it is read from the whole
+history of each subject, not from the range. At commit time the range is
+the pending change, so a commit hears about the sections that name what
+it changed.
+
 A path to a Markdown file followed directly by `#` and an anchor, in a
 link such as `[text](page.md#anchor)` or bare in prose, names one
 section of that file rather than the whole of it, when the anchor is the
@@ -81,8 +92,9 @@ the same way: the anchor then names no heading, `check-links` reports the
 link as broken, and fixing that link brings a reader back to the section
 that holds it.
 
-The check is whole-tree, over every tracked `.md` file on every run, and
-runs no command. A file named `CHANGELOG.md`, in any letter case and
+The check is diff-scoped: it reads every tracked `.md` file on every
+run, and reports only the sections the range brings in. It runs no
+command. A file named `CHANGELOG.md`, in any letter case and
 any directory, is skipped, because a changelog entry describes a release as it shipped and its
 subjects moving afterwards is expected.
 
@@ -152,7 +164,8 @@ disk:
 ```
 
 The design note is never edited after the first step. Run against that
-repository at its third commit, the check reports:
+repository over the range `HEAD~1`, the third step's own change, the
+check reports:
 
 ```
 {{#include ../captures/stale-claims.txt}}
@@ -163,17 +176,37 @@ three commits in the cache file's history, two came after the section
 was written. The Storage section names its subject as a path rather than
 a bare name, and ranks second, with one of the store file's two commits
 after the section. The Logging section names a file that has not
-changed since the section was written, and is not reported at all. The
-capture is the same on every run because the commits carry fixed
-timestamps; the score depends on commit times, not on the clock.
+changed since the section was written and is outside the range, and is
+not reported at all. The capture is the same on every run because the
+commits carry fixed timestamps; the score depends on commit times, not on the clock.
 
 Both findings are candidates. The Caching section is in fact false now,
 since the cache evicts, and the Storage section is still true, since
 entries are still one file per key. The check cannot tell those apart,
 and does not claim to. The fix for a candidate is to read the section
 against the code and either correct it or leave it, and a section that
-is read and left alone stays on the list until its lines are next
-touched.
+is read and left alone comes back on any range that changes one of its
+subjects again, until its lines are next touched.
+
+## Auditing the whole tree
+
+A section whose subjects nothing touches is never ranked at commit
+time, so a stale claim about a quiet file stays silent until a range
+reaches it. To rank every section whose subjects have changed at all,
+run the command line over a wide range: since a release tag,
+
+```sh
+python3 -m claims.cli --diff-range v1.0.0..HEAD
+```
+
+or since the first commit:
+
+```sh
+python3 -m claims.cli --diff-range "$(git rev-list --max-parents=0 HEAD)..HEAD"
+```
+
+Every check runs over that range, so the other diff-scoped checks report
+on everything the range changed too.
 
 ## Configuration
 
