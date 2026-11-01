@@ -11,6 +11,14 @@ reached you, not just that one was pushed upstream.
 
 ## [Unreleased]
 
+## [0.17.5] - 2026-11-01
+
+- Fixed: `claim-words` and `temporal-words` no longer end a sentence at
+  `e.g.`, `i.e.`, `vs.`, `etc.` or `cf.`, before a lowercase word, or
+  inside square brackets (a link's text) or an inline code span, so a
+  finding quotes the whole sentence rather than half of it. See
+  [claim-words](docs/checks/claim-words.md#what-it-checks).
+
 ## [0.17.4] - 2026-11-01
 
 - Fixed: a check's own `enabled` in `claims.toml` must now be `true` or

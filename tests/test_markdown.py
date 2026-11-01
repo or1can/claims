@@ -19,7 +19,8 @@ call them — `tests/test_check_file_refs.py` for nested and dangling
 fences, `tests/test_claim_words.py` for soft-wrapped sentences — and were
 moved here unchanged (ticket #52). What this file covers is
 `mask_code_spans`, which has no such caller behind it yet, and how
-`sentences_from` reads a table (#145).
+`sentences_from` reads a table (#145) and which terminators it does not
+end a sentence at (#154).
 """
 
 from __future__ import annotations
@@ -111,6 +112,64 @@ class SentencesFromTableTests(unittest.TestCase):
                 Sentence("| c | d |", 2, 2),
                 Sentence("Then prose wraps.", 3, 4),
             ],
+        )
+
+
+class SentencesFromSplitTests(unittest.TestCase):
+    def test_a_listed_abbreviation_does_not_end_a_sentence(self) -> None:
+        self.assertEqual(
+            sentences_from("Colours (e.g. the exit code) are kept.\n"),
+            [Sentence("Colours (e.g. the exit code) are kept.", 0, 0)],
+        )
+        self.assertEqual(
+            sentences_from("A thing etc. is here.\n"),
+            [Sentence("A thing etc. is here.", 0, 0)],
+        )
+        self.assertEqual(
+            sentences_from("A thing etc. Is here.\n"),
+            [Sentence("A thing etc. Is here.", 0, 0)],
+        )
+
+    def test_an_abbreviation_is_matched_without_regard_to_case(self) -> None:
+        self.assertEqual(
+            sentences_from("E.g. This one. Cf. That one.\n"),
+            [Sentence("E.g. This one.", 0, 0), Sentence("Cf. That one.", 0, 0)],
+        )
+
+    def test_any_other_terminator_still_ends_a_sentence(self) -> None:
+        self.assertEqual(
+            sentences_from("It runs. Then it stops.\n"),
+            [Sentence("It runs.", 0, 0), Sentence("Then it stops.", 0, 0)],
+        )
+        self.assertEqual(
+            sentences_from("Use `a.b`. Next.\n"),
+            [Sentence("Use `a.b`.", 0, 0), Sentence("Next.", 0, 0)],
+        )
+        self.assertEqual(
+            sentences_from("*It runs.* Then [it](x.md) stops.\n"),
+            [Sentence("*It runs.*", 0, 0), Sentence("Then [it](x.md) stops.", 0, 0)],
+        )
+
+    def test_a_terminator_before_a_lowercase_word_does_not_end_a_sentence(self) -> None:
+        self.assertEqual(
+            sentences_from("It ran fine. then\nit stopped.\n"),
+            [Sentence("It ran fine. then it stopped.", 0, 1)],
+        )
+
+    def test_a_terminator_inside_link_text_does_not_end_a_sentence(self) -> None:
+        self.assertEqual(
+            sentences_from("See [Logging vs. output](x.md) for more.\n"),
+            [Sentence("See [Logging vs. output](x.md) for more.", 0, 0)],
+        )
+        self.assertEqual(
+            sentences_from("See [the guide. Then](x.md) more.\n"),
+            [Sentence("See [the guide. Then](x.md) more.", 0, 0)],
+        )
+
+    def test_a_terminator_inside_a_code_span_does_not_end_a_sentence(self) -> None:
+        self.assertEqual(
+            sentences_from("Run `make. Then` here. Next.\n"),
+            [Sentence("Run `make. Then` here.", 0, 0), Sentence("Next.", 0, 0)],
         )
 
 

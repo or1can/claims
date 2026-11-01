@@ -60,7 +60,17 @@ CODE_SPAN_RE = re.compile(r"`([^`]+)`")
 # `*italicised*` sentence, a closing quote or bracket) before the boundary —
 # without this, "*claim.*" splits before the closing `*`, and a caller's
 # italics check never sees a whole-wrapped sentence.
-SENTENCE_RE = re.compile(r"\S.*?[.!?][*_'\")\]]*(?=\s|$)|\S.+$", re.DOTALL)
+_CLOSERS = r"[*_'\")\]]*"
+SENTENCE_RE = re.compile(rf"\S.*?[.!?]{_CLOSERS}(?=\s|$)|\S.+$", re.DOTALL)
+
+# What `_sentence_spans` asks of a `SENTENCE_RE` match's end to decide it
+# is no boundary (#154): whether it ends a listed abbreviation, whether the
+# next word starts lowercase, and whether its terminator sits inside
+# square brackets (a link's text) or an inline code span.
+ABBREVIATION_RE = re.compile(rf"(?<![\w.])(?:e\.g|i\.e|vs|etc|cf)\.{_CLOSERS}\Z", re.IGNORECASE)
+NEXT_CHAR_RE = re.compile(r"\s*(\S)")
+TERMINATOR_RE = re.compile(rf"[.!?]{_CLOSERS}\Z")
+BRACKETED_RE = re.compile(r"\[[^\[\]]*\]")
 
 # A table's delimiter row: cells of `-` with an optional `:` either side,
 # separated by `|`, the leading and trailing pipes optional but at least one
@@ -213,6 +223,7 @@ def sentences_from(text: str) -> list[Sentence]:
     sentences, so a sentence soft-wrapped across lines is read whole. A
     table row is a paragraph of its own, never joined to the rows or lines
     beside it, and a table's delimiter row is read as a blank line (#145).
+    Not every terminator ends a sentence; see `_sentence_spans` (#154).
     """
 
     lines = text.splitlines()
@@ -231,11 +242,52 @@ def sentences_from(text: str) -> list[Sentence]:
     results: list[Sentence] = []
     for para_start, para_end in paragraphs:
         para_text = "\n".join(lines[para_start:para_end])
-        for match in SENTENCE_RE.finditer(para_text):
-            before = para_text[: match.start()]
-            start = para_start + before.count("\n")
-            end = para_start + para_text[: match.end()].count("\n")
-            sentence = " ".join(match.group(0).split())
+        for begin, stop in _sentence_spans(para_text):
+            start = para_start + para_text[:begin].count("\n")
+            end = para_start + para_text[:stop].count("\n")
+            sentence = " ".join(para_text[begin:stop].split())
             if sentence:
                 results.append(Sentence(sentence, start, end))
     return results
+
+
+def _sentence_spans(para_text: str) -> list[tuple[int, int]]:
+    """The `(start, end)` offsets of each sentence in `para_text`.
+
+    Each `SENTENCE_RE` match ends at a candidate boundary; one that isn't
+    a boundary is joined to the match after it. Wrongly joining two
+    sentences only makes a quoted sentence longer, and no word goes
+    unread, so the rules lean towards not splitting.
+    """
+
+    # Each span's delimiters excluded: `[` and `]`, or the two backticks.
+    # Brackets are looked for with code spans masked, so a `[` in code
+    # opens nothing.
+    enclosed = [(m.start() + 1, m.end() - 1) for m in CODE_SPAN_RE.finditer(para_text)]
+    enclosed += [(m.start() + 1, m.end() - 1) for m in BRACKETED_RE.finditer(mask_code_spans(para_text))]
+
+    # Each search starts at the match's own start, not the paragraph's: a
+    # `\Z`-anchored search from 0 would make a long paragraph quadratic.
+    def joins_next(match: re.Match[str]) -> bool:
+        end = match.end()
+        terminator = TERMINATOR_RE.search(para_text, match.start(), end)
+        next_char = NEXT_CHAR_RE.match(para_text, end)
+        return bool(
+            ABBREVIATION_RE.search(para_text, match.start(), end)
+            or (next_char and next_char.group(1).islower())
+            or (terminator and any(a <= terminator.start() < b for a, b in enclosed))
+        )
+
+    spans: list[tuple[int, int]] = []
+    begin: int | None = None
+    end = 0
+    for match in SENTENCE_RE.finditer(para_text):
+        if begin is None:
+            begin = match.start()
+        end = match.end()
+        if not joins_next(match):
+            spans.append((begin, end))
+            begin = None
+    if begin is not None:
+        spans.append((begin, end))
+    return spans
