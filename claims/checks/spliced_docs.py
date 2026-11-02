@@ -207,6 +207,9 @@ RUST_SUMMARY_RE = re.compile(
 )
 RUST_PARAM_RE = re.compile(r"^\s*(?:mut\s+)?([a-z_][a-z_0-9]*)\s*:")
 RUST_BACKTICKED = re.compile(r"`([A-Za-z_][A-Za-z_0-9]*)`")
+# `//` not followed by `/` or `!`, or four or more slashes: rustdoc reads
+# both as plain comments, so neither detaches a doc comment from its item.
+RUST_PLAIN_COMMENT_RE = re.compile(r"^\s*(?://(?:[^/!]|$)|////)")
 
 
 def _rust_runs(lines: list[str]):
@@ -223,38 +226,72 @@ def _rust_runs(lines: list[str]):
         yield start, i
 
 
+def _rust_documented(lines: list[str], i: int, attributes: set[int]) -> bool:
+    """Whether the item on line `i` has a `///` doc comment above it, with
+    only attributes, plain comments and blank lines between."""
+
+    above = i - 1
+    while above >= 0 and (
+        above in attributes
+        or RUST_PLAIN_COMMENT_RE.match(lines[above])
+        or not lines[above].strip()
+    ):
+        above -= 1
+    return above >= 0 and bool(DOC_RE.match(lines[above]))
+
+
+def _rust_fn_local_lines(lines: list[str]) -> set[int]:
+    """Every index in `lines` that starts inside a `fn` body, however deep.
+
+    A rough brace count: the first `{` after a `fn` item opens its body,
+    and a `}` before it (a bodiless trait method's trait closing) cancels
+    that. Braces in double-quoted strings are ignored; braces in comments,
+    char literals and raw strings are not.
+    """
+
+    local: set[int] = set()
+    fn_bodies: list[bool] = []
+    fn_pending = False
+    for i, line in enumerate(lines):
+        if any(fn_bodies):
+            local.add(i)
+        matched = RUST_ITEM_RE.match(line)
+        if matched and matched.group(1) == "fn":
+            fn_pending = True
+        for char in DOUBLE_QUOTED_RE.sub("", line):
+            if char == "{":
+                fn_bodies.append(fn_pending)
+                fn_pending = False
+            elif char == "}":
+                fn_pending = False
+                if fn_bodies:
+                    fn_bodies.pop()
+    return local
+
+
 def _rust_bare_items(lines: list[str]) -> dict[str, set[str]]:
     """Undocumented declarations in `lines`, as `name -> {name, param names}`.
 
     By *name*, not by position: a trait method is documented once on the
-    trait and appears bare on every impl, which is not a stranding.
+    trait and appears bare on every impl, which is not a stranding. An item
+    inside a `fn` body is never bare: rustdoc does not render it.
     """
 
-    documented_at = {end for _, end in _rust_runs(lines)}
     attributes = _attribute_lines(lines, RUST_ATTR_RE, "[", "]", RUST_ITEM_RE)
     documented_names = set()
     for i, line in enumerate(lines):
         matched = RUST_ITEM_RE.match(line)
-        if not matched:
-            continue
-        attrs = i
-        while attrs - 1 in attributes:
-            attrs -= 1
-        if attrs in documented_at or (attrs > 0 and DOC_RE.match(lines[attrs - 1])):
+        if matched and _rust_documented(lines, i, attributes):
             documented_names.add(matched.group(2))
 
+    local = _rust_fn_local_lines(lines)
     bare: dict[str, set[str]] = {}
     for i, line in enumerate(lines):
         matched = RUST_ITEM_RE.match(line)
-        if not matched:
+        if not matched or i in local:
             continue
         name = matched.group(2)
         if name in documented_names:
-            continue
-        attrs = i
-        while attrs - 1 in attributes:
-            attrs -= 1
-        if attrs in documented_at or (attrs > 0 and DOC_RE.match(lines[attrs - 1])):
             continue
         idents = {name}
         for follow in lines[i : i + 12]:
