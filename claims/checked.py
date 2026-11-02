@@ -52,7 +52,7 @@ from typing import NamedTuple
 
 from .config import ConfigError
 from .git import tracked_files
-from .markdown import fence_state, prose_lines, section_range, sentences_from
+from .markdown import CODE_SPAN_RE, fence_state, prose_lines, section_range, sentences_from
 from .runner import Finding
 from .words import normalise
 
@@ -63,6 +63,9 @@ CHECKED_FILENAME = "claims.checked.toml"
 ORPHAN_MODE = "checked-mark"
 
 SENTENCE = "sentence"
+# `judgment-agent` cites a name wherever it appears, a fenced line
+# included, where no sentence holds it: there, the line is the unit.
+CITATION = "sentence or fenced line"
 HEADING = "heading"
 LINE = "surviving line"
 DOC_COMMENT = "doc comment"
@@ -72,7 +75,7 @@ DOC_COMMENT = "doc comment"
 UNITS = {
     "claim-words": SENTENCE,
     "temporal-words": SENTENCE,
-    "judgment-agent": SENTENCE,
+    "judgment-agent": CITATION,
     "stale-claims": HEADING,
     "restatement": LINE,
     "spliced-docs": DOC_COMMENT,
@@ -158,18 +161,17 @@ def _regular_file(repo_root: Path, rel: str) -> Path | None:
 
 
 def _units(kind: str, lines: Sequence[str]) -> list[_Unit]:
-    if kind == SENTENCE:
+    if kind in (SENTENCE, CITATION):
         units = [
             _Unit(start, end, _words_digest(sentence), sentence)
             for sentence, start, end in sentences_from(prose_lines(lines))
         ]
-        # A fenced line is in no sentence, and `judgment-agent` cites a
-        # name wherever it appears: there, the line is the unit.
-        units.extend(
-            _Unit(i, i, _words_digest(line), line)
-            for i, (line, fenced) in enumerate(zip(lines, fence_state(lines)))
-            if fenced and normalise(line)
-        )
+        if kind == CITATION:
+            units.extend(
+                _Unit(i, i, _words_digest(line), line)
+                for i, (line, fenced) in enumerate(zip(lines, fence_state(lines)))
+                if fenced and normalise(line)
+            )
         return units
     if kind == HEADING:
         # A repeated heading is a different anchor, as `-1` makes it on
@@ -253,11 +255,16 @@ class _Tree:
         ]
         if not covering:
             return None
-        # Two sentences can share a line. A sentence check's message is
-        # its sentence, and it cites the line the sentence starts on.
+        # Two sentences can share a line. `claim-words` and
+        # `temporal-words` quote their sentence; `judgment-agent` quotes
+        # the name it cites, which its sentence holds.
+        cited = CODE_SPAN_RE.findall(finding.message)
         unit = next(
             (u for u in covering if u.body == finding.message),
-            next((u for u in covering if u.start == index), covering[0]),
+            next(
+                (u for u in covering if cited and f"`{cited[0]}`" in u.body),
+                covering[0],
+            ),
         )
         digest = unit.digest
         if kind == LINE:
@@ -337,9 +344,10 @@ def load_marks(repo_root: Path) -> list[Mark]:
     path = repo_root / CHECKED_FILENAME
     if not path.exists() and not path.is_symlink():
         return []
-    # Committed, so a pull request's to make a symlink out of the tree.
+    # Committed, so a pull request's to make a symlink, and `mark-checked`
+    # would write through it to whatever file it names.
     resolved = _regular_file(repo_root, CHECKED_FILENAME)
-    if resolved is None:
+    if path.is_symlink() or resolved is None:
         raise ConfigError("is not a regular file inside the repository")
     try:
         text = resolved.read_text(encoding="utf-8")
@@ -508,25 +516,27 @@ def new_marks(
         elif not note:
             problems.append(f"{entry}: needs a note saying what was verified")
         else:
-            found = tree.unit_of(matching[0])
-            if found is None:
-                problems.append(f"{entry}: the finding's line is in no {unit_kind(mode)}")
-                continue
-            unit, digest = found
+            # Every finding of `mode` at the citation: two sentences that
+            # share a line print at one citation, and the entry names both.
             kind = unit_kind(mode)
             assert kind is not None
-            subjects = dict(sorted(tree.subjects(file, unit).items()))
-            marks.append(
-                Mark(
-                    file=file,
-                    mode=mode,
-                    unit=digest,
-                    copies=tree.copies(file, kind)[_in_file(digest)],
-                    subjects=subjects,
-                    note=note,
-                    by=by,
+            for finding in matching:
+                found = tree.unit_of(finding)
+                if found is None:
+                    problems.append(f"{entry}: the finding's line is in no {kind}")
+                    break
+                unit, digest = found
+                marks.append(
+                    Mark(
+                        file=file,
+                        mode=mode,
+                        unit=digest,
+                        copies=tree.copies(file, kind)[_in_file(digest)],
+                        subjects=dict(sorted(tree.subjects(file, unit).items())),
+                        note=note,
+                        by=by,
+                    )
                 )
-            )
     return marks, problems
 
 

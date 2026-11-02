@@ -44,8 +44,9 @@ kind of unit:
 
 | Check | Unit |
 | --- | --- |
-| `claim-words`, `temporal-words`, `judgment-agent` | The sentence holding the cited line; where two sentences share that line, the one the finding quotes, or else the one starting there. A line inside a fenced code block, which no sentence holds, is its own unit. |
-| `stale-claims` | The section's heading. A heading repeated in one file is a separate unit each time, told apart by its order, as a repeated heading's anchor is. A file with no heading is one section, whose unit is the file itself: its mark expires only with its subjects. |
+| `claim-words`, `temporal-words` | The sentence the finding quotes. |
+| `judgment-agent` | The sentence holding the cited line; where two sentences share that line, the one holding the cited name. A line inside a fenced code block, which no sentence holds, is its own unit. |
+| `stale-claims` | The section's heading. A heading repeated in one file is a separate unit each time, told apart by its order, as a repeated heading's anchor is, so inserting an identical heading above existing ones can move a mark onto another section of the same name, where only a subject change expires it. A file with no heading is one section, whose unit is the file itself: its mark expires only with its subjects. |
 | `restatement` | The surviving line, together with the retracted words the finding quotes. |
 | `spliced-docs` | The run of `///` doc-comment lines holding the cited line. |
 
@@ -104,7 +105,9 @@ docs/guide.md:3 claim-words-totalising src/cache.py has one reader, get, and not
 
 The checks run once for the whole batch, over `--diff-range` (default
 `HEAD`, the same meaning as a normal run), and every entry must name an
-advisory finding of that run. An audit that read findings over a wide
+advisory finding of that run. An entry marks every finding of its mode at
+its citation: two sentences sharing a line print at one citation, and one
+note covers both. An audit that read findings over a wide
 range marks them over the same range, where a diff-scoped check still
 reports them; on `HEAD` alone it would not.
 

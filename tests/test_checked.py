@@ -561,5 +561,51 @@ class CheckedMarkTests(RegistryClearingTestCase):
         self.assertNotIn("copies = 2", (self.repo.root / "claims.checked.toml").read_text())
 
 
+    def test_a_judgment_agent_mark_is_on_the_sentence_holding_the_citation(self) -> None:
+        register_check(
+            "cites",
+            lambda repo_root, diff_range, config: [
+                Finding(
+                    file="docs/a.md", line=2, message="cites `foo`, removed by this diff",
+                    mode="judgment-agent-removed", gate=False,
+                )
+            ],
+        )
+        self.repo.write("docs/a.md", "The first sentence wraps\nonto `foo` here. Second one starts.\n")
+        self.mark("docs/a.md:2 judgment-agent-removed foo is gone on purpose")
+
+        self.repo.write("docs/a.md", "The first sentence wraps\nonto `foo` here. Second one ends.\n")
+        self.assertTrue(self.summary().endswith(", 1 quiet while checked"))
+
+        self.repo.write("docs/a.md", "The first sentence moves\nonto `foo` here. Second one starts.\n")
+        self.assertNotIn("quiet", self.summary())
+
+    def test_one_entry_marks_every_finding_of_its_mode_at_its_citation(self) -> None:
+        self.repo.write("docs/a.md", "Always quick. Always safe.\n")
+
+        self.assertEqual(self.mark("docs/a.md:1 claim-words-totalising read both")[0], 0)
+
+        self.assertTrue(self.summary().endswith(", 2 quiet while checked"))
+
+    def test_a_sidecar_symlinked_inside_the_repository_is_invalid_and_never_written(self) -> None:
+        self.repo.write("empty.py", "")
+        (self.repo.root / "claims.checked.toml").symlink_to("empty.py")
+        self.repo.write("docs/a.md", "Every check runs.\n")
+
+        code, out, _ = self.run_cli()
+        self.assertIn("[GATE] claims.checked.toml:0 (config) is invalid:", out)
+
+        self.assertEqual(self.mark("docs/a.md:1 claim-words-totalising read it")[0], 2)
+        self.assertEqual((self.repo.root / "empty.py").read_text(), "")
+
+    def test_a_fenced_copy_of_a_marked_sentence_is_not_a_copy(self) -> None:
+        self.repo.write("docs/a.md", "Every check runs.\n")
+        self.mark("docs/a.md:1 claim-words-totalising read it")
+
+        self.repo.write("docs/a.md", "Every check runs.\n\n```\nEvery check runs.\n```\n")
+
+        self.assertTrue(self.summary().endswith(", 1 quiet while checked"))
+
+
 if __name__ == "__main__":
     unittest.main()
