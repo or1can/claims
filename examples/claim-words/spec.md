@@ -6,7 +6,7 @@ Every request reads through the same cache.
 
 Every read goes through the cache, and nothing else touches the store.
 
-The cache has three backends.
+Each of the three backends keeps its own copy.
 
 Without `evict`, the cache would grow until restart.
 

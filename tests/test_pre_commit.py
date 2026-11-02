@@ -253,6 +253,19 @@ class PreCommitTests(RegistryClearingTestCase):
         self.assertIn("failing-gate", stderr)
         self.assertIn("advisory-check", stderr)
 
+    def test_one_sentence_several_modes_match_prints_one_line(self) -> None:
+        register_check(
+            "multi",
+            lambda repo_root, diff_range, config: [
+                Finding(file="a.md", line=1, message="s", mode=mode, gate=True)
+                for mode in ("multi-one", "multi-two")
+            ],
+        )
+        with Repo() as repo:
+            code, stderr = self._run(repo)
+        self.assertEqual(code, 1)
+        self.assertEqual(stderr, "[GATE] a.md:1 (multi-one, multi-two) s\n")
+
     def test_advisory_findings_only_exits_0_with_the_summary(self) -> None:
         _register("advisory-check", gate=False)
         with Repo() as repo:

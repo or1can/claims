@@ -42,7 +42,7 @@ from pathlib import Path
 
 from . import checks  # noqa: F401
 from .config import ConfigError, has_config, load_config
-from .runner import Finding, run
+from .runner import Finding, format_findings, run
 
 
 @dataclass(frozen=True)
@@ -55,7 +55,7 @@ class Decision:
 
 
 def _summarize(findings: tuple[Finding, ...]) -> str:
-    return "\n".join(str(f) for f in findings)
+    return "\n".join(format_findings(findings))
 
 
 def _non_boolean_enabled(

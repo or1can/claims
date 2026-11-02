@@ -188,7 +188,7 @@ def check(
                     Finding(
                         file=path,
                         line=start + 1,
-                        message=f"[{mode}] {sentence}",
+                        message=sentence,
                         mode=mode,
                         gate=False,
                     )

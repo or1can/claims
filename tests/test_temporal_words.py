@@ -124,7 +124,7 @@ class TemporalWordsTests(RegistryClearingTestCase):
 
         self.assertEqual(len(findings), 1)
         self.assertEqual(findings[0].citation, "reference.md:3")
-        self.assertIn("The output mode is not written yet.", findings[0].message)
+        self.assertEqual(findings[0].message, "The output mode is not written yet.")
 
     # --- temporal-words-version -----------------------------------------
 

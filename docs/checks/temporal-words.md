@@ -37,8 +37,9 @@ masked: the backticks stay, the text between them is not matched
 against. `` `alpine:3.18.2` `` and `` `ref = "1.2.3"` `` are syntax a
 page is showing, not a claim it is making.
 
-Three **modes** classify a sentence, and a sentence matching more than
-one is reported once per mode:
+Three **modes** classify a sentence. A sentence matching more than one
+is reported once per mode and printed once, with each mode it matched
+in the parentheses:
 
 - `temporal-words-version`: the sentence carries a version number of
   exactly three dot-separated components, `0.3.0`. A number of two

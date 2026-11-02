@@ -133,9 +133,11 @@ Run with that edit staged, the check reports:
 {{#include ../captures/claim-words.txt}}
 ```
 
-The first three findings are the three modes, one each: the sentence
-asserting over every read, the sentence counting backends, and the
-sentence saying what would happen without a cited function. The sweep
+The first three findings are the three modes: the sentence asserting
+over every read, the sentence about the backends, and the sentence
+saying what would happen without a cited function. The backends sentence
+both asserts over a set and counts it, so it is reported under two
+modes and printed once. The sweep
 that took three seconds is a count of time and is not reported. The
 three marked copies of the retired sentence, the blockquote, the
 italics and the "Previously said:" lead-in, are skipped; the unmarked

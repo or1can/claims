@@ -237,7 +237,12 @@ python3 -m claims.cli --repo-root <path> --diff-range <range>
 `--repo-root` defaults to the current directory and `--diff-range` to
 `HEAD`, the working tree against the last commit. The command prints each
 finding, then a summary line of the form `N checked, M finding(s), G gate
-failure(s)`, and exits with:
+failure(s)`, and exits with the code below. Findings that cite the same
+line with the same message and the same severity print as one line, with
+every mode that reported them in its parentheses; `M` still counts each
+one. The commit hook prints its findings the same way.
+
+The exit code is:
 
 - `0` when no finding is a gate finding, advisory findings included;
 - `1` on a gate finding, or when no check at all is registered, which is

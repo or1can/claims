@@ -22,7 +22,7 @@ from pathlib import Path
 
 from . import checks  # noqa: F401
 from .config import ConfigError, load_config
-from .runner import run
+from .runner import format_findings, run
 
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
@@ -55,8 +55,8 @@ def main(argv: list[str] | None = None) -> int:
         print("0 checked — no checks registered (failure, not a clean pass)")
         return 1
 
-    for finding in result.findings:
-        print(finding)
+    for line in format_findings(result.findings):
+        print(line)
 
     gate_findings = [f for f in result.findings if f.gate]
     print(
