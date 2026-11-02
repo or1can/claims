@@ -20,6 +20,9 @@ reached you, not just that one was pushed upstream.
   summary line counts it as `quiet while checked`. A mark whose sentence
   is gone is reported, and an invalid `claims.checked.toml` blocks a
   commit. See [Checked marks](docs/checked-marks.md).
+- Fixed: `claim-words`, `temporal-words` and `restatement` now read a
+  changed file whose path holds a space. Such a file was skipped, as if
+  the diff had not touched it.
 
 ## [0.19.4] - 2026-11-02
 

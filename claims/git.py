@@ -101,7 +101,8 @@ class FileDiff(NamedTuple):
 
 
 def _header_path(line: str, header: str) -> str | None:
-    return line[len(header) :] if line.startswith(header) else None
+    # git ends the header with a tab when the path holds a space.
+    return line[len(header) :].removesuffix("\t") if line.startswith(header) else None
 
 
 def iter_diff(
