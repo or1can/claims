@@ -48,15 +48,6 @@ A name the base tree held only as a Rust struct field or enum variant is
 not "added" when the head declares an item of that name (ticket #171: on
 or1can/ratect, 34 of 78 candidates were one field name beside a new
 `fn`). `_rust_members` finds those members with `spliced_docs._rust_code`'s
-stripped view and a brace count, not a new lexer. That narrows what
-"added" means rather than scoring candidates: a deliberate precision
-trade with that evidence behind it, on the added half only — a name
-leaving the item index is still removed while a field of its name
-remains.
-A name the base tree held only as a Rust struct field or enum variant is
-not "added" when the head declares an item of that name (ticket #171: on
-or1can/ratect, 34 of 78 candidates were one field name beside a new
-`fn`). `_rust_members` finds those members with `spliced_docs._rust_code`'s
 stripped view and a brace count, not a new lexer; it is the one place a
 citation is dropped, a deliberate precision trade with that evidence
 behind it, and it applies to the added half only — a name leaving the
