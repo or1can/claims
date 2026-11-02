@@ -42,7 +42,7 @@ Two failure modes this exists to avoid, both demonstrated in that research:
 
 The subject index reuses `spliced_docs.SWIFT_DECL_RE` and
 `spliced_docs.RUST_ITEM_RE`, the same "what does this repo declare"
-answer `check-citations` and `spliced-docs` already share (this
+answer `spliced-docs` uses and `check-citations` shares for Swift (this
 consolidation's own precedent for not letting that answer drift twice).
 A name the base tree held only as a Rust struct field or enum variant is
 not "added" when the head declares an item of that name (ticket #171: on

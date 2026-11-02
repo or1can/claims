@@ -48,9 +48,9 @@ source tools' whole-tree behaviour — a splice can predate the diff being
 checked.
 
 `SWIFT_DECL_RE` and `RUST_ITEM_RE` are the "what does this repository
-declare" answer `check-citations` and `judgment-agent` import rather than
-redefine — see `check_citations.py` for why that answer must not exist
-twice.
+declare" answer `judgment-agent` imports rather than redefines, as
+`check-citations` does `SWIFT_DECL_RE` — see `check_citations.py` for why
+that answer must not exist twice.
 """
 
 from __future__ import annotations
