@@ -26,7 +26,9 @@ branch.
 
 Show the user the CLI's output verbatim — every finding line, then its
 summary line (`N checked, M finding(s), G gate failure(s)`) — rather than
-summarizing or filtering it yourself.
+summarizing or filtering it yourself. Findings that share a citation,
+message and severity print as one line listing each mode in its
+parentheses, so `M` can exceed the number of finding lines.
 
 The one case to get right: if the runner has zero checks registered, the
 CLI prints `0 checked — no checks registered (failure, not a clean pass)`
@@ -44,8 +46,8 @@ user's attention but isn't asserting the project is broken.
 ## A `judgment-agent` finding gets a subagent verdict, not a verbatim line
 
 One exception to "show the CLI's output verbatim": a finding whose `mode`
-is `judgment-agent-added` or `judgment-agent-removed` (`(judgment-agent-added)`
-or `(judgment-agent-removed)` in the printed line) is a *candidate* for
+is `judgment-agent-added` or `judgment-agent-removed` (either name among
+the modes in the printed line's parentheses) is a *candidate* for
 judgment, not a verdict on its own — `claims/checks/judgment_agent.py` only
 computes which claims cite a subject this diff touched; it never itself
 decides whether the claim is still true. Printing its line and moving on,

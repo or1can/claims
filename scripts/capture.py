@@ -25,7 +25,7 @@ drift.
 `capture` builds a throwaway git repository from the example and calls
 the named check through the same `(repo_root, diff_range, config) ->
 findings` seam every entry point and every check test calls, rendering
-each finding the way the CLI prints it. The repository is built the way
+the findings the way the CLI prints them. The repository is built the way
 the commit hook meets one: whatever the example's `history/` holds is
 committed, one step per directory in name order, at fixed timestamps an
 hour apart; the example's own files are then written over that and
@@ -86,6 +86,7 @@ CAPTURES_DIR = REPO_ROOT / "docs" / "captures"
 sys.path[:0] = [str(REPO_ROOT), str(REPO_ROOT / "tests")]
 from claims.config import load_config  # noqa: E402
 from claims.git import tracked_files  # noqa: E402
+from claims.runner import format_findings  # noqa: E402
 from support import Repo  # noqa: E402
 
 # Fixed rather than wall-clock, so a check that ranks by commit age sees
@@ -99,7 +100,7 @@ DIFF_RANGES = {"stale-claims": "HEAD~1"}
 
 
 def capture(check: str) -> str:
-    """`check`'s findings against `examples/<check>/`, one per line as the
+    """`check`'s findings against `examples/<check>/`, printed the way the
     CLI prints them, headed by a one-line provenance note."""
 
     module = importlib.import_module(f"claims.checks.{check.replace('-', '_')}")
@@ -156,7 +157,7 @@ def capture(check: str) -> str:
         f"repository seeded from {example}"
         + (f" over the diff range {diff_range}" if diff_range != "HEAD" else "")
     ]
-    lines.extend(str(finding) for finding in findings)
+    lines.extend(format_findings(findings))
     return "\n".join(lines) + "\n"
 
 

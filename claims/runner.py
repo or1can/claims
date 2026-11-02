@@ -55,8 +55,26 @@ class Finding:
         return f"{self.file}:{self.line}"
 
     def __str__(self) -> str:
-        marker = "GATE" if self.gate else "advisory"
-        return f"[{marker}] {self.citation} ({self.mode}) {self.message}"
+        return format_findings([self])[0]
+
+
+def format_findings(findings: Sequence[Finding]) -> list[str]:
+    """One printed line per distinct `(file, line, message, gate)`, naming
+    every mode that reported it, in first-seen order (ticket #153). A
+    sentence several modes match would otherwise print once per mode. The
+    CLI and the commit hook both print through this, and so does a lone
+    finding's own `str`."""
+
+    groups: dict[tuple[str, int, str, bool], list[Finding]] = {}
+    for f in findings:
+        groups.setdefault((f.file, f.line, f.message, f.gate), []).append(f)
+    lines = []
+    for group in groups.values():
+        first = group[0]
+        modes = ", ".join(dict.fromkeys(f.mode for f in group))
+        marker = "GATE" if first.gate else "advisory"
+        lines.append(f"[{marker}] {first.citation} ({modes}) {first.message}")
+    return lines
 
 
 @dataclass(frozen=True)

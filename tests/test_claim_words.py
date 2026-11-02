@@ -65,7 +65,21 @@ class ClaimWordsTests(RegistryClearingTestCase):
             repo.commit()
             repo.write("record.md", "# record\n\n" + "\n\n".join(sentences) + "\n")
             findings = self._findings(repo.root, ["record.md"])
-        return [f.message.removeprefix(f"[{mode}] ") for f in findings if f.mode == mode]
+        return [f.message for f in findings if f.mode == mode]
+
+    def test_a_sentence_several_modes_match_carries_one_message_under_each(self) -> None:
+        with Repo() as repo:
+            repo.write("record.md", "# record\n\nseed\n")
+            repo.commit()
+            repo.write("record.md", "# record\n\nEvery one of the 12 hosts reports up.\n")
+            findings = self._findings(repo.root, ["record.md"])
+
+        self.assertEqual(
+            [f.mode for f in findings], [MODE_TOTALISING, MODE_COUNTS]
+        )
+        self.assertEqual(
+            {f.message for f in findings}, {"Every one of the 12 hosts reports up."}
+        )
 
     def test_a_digit_in_a_version_number_is_not_a_count(self) -> None:
         self.assertEqual(
@@ -170,7 +184,7 @@ class ClaimWordsTests(RegistryClearingTestCase):
             findings = self._findings(repo.root, ["record.md"])
 
         self.assertEqual(len(findings), 1)
-        self.assertIn("counts", findings[0].message)
+        self.assertEqual(findings[0].mode, MODE_COUNTS)
 
     def test_a_byte_measurement_is_not_treated_as_a_tree_count(self) -> None:
         with Repo() as repo:
@@ -196,7 +210,7 @@ class ClaimWordsTests(RegistryClearingTestCase):
 
             findings = self._findings(repo.root, ["record.md"])
 
-        self.assertFalse(any("totalising" in f.message for f in findings))
+        self.assertFalse(any(f.mode == MODE_TOTALISING for f in findings))
 
     def test_an_italicised_retired_claim_does_not_fire(self) -> None:
         with Repo() as repo:
@@ -209,7 +223,7 @@ class ClaimWordsTests(RegistryClearingTestCase):
 
             findings = self._findings(repo.root, ["record.md"])
 
-        self.assertFalse(any("totalising" in f.message for f in findings))
+        self.assertFalse(any(f.mode == MODE_TOTALISING for f in findings))
 
     def test_a_lead_in_phrase_retired_claim_does_not_fire(self) -> None:
         with Repo() as repo:
@@ -222,7 +236,7 @@ class ClaimWordsTests(RegistryClearingTestCase):
 
             findings = self._findings(repo.root, ["record.md"])
 
-        self.assertFalse(any("totalising" in f.message for f in findings))
+        self.assertFalse(any(f.mode == MODE_TOTALISING for f in findings))
 
     def test_an_unmarked_quotation_of_a_retired_claim_still_fires(self) -> None:
         with Repo() as repo:
@@ -235,7 +249,7 @@ class ClaimWordsTests(RegistryClearingTestCase):
 
             findings = self._findings(repo.root, ["record.md"])
 
-        self.assertTrue(any("totalising" in f.message for f in findings))
+        self.assertTrue(any(f.mode == MODE_TOTALISING for f in findings))
 
     def test_a_file_not_designated_is_not_swept(self) -> None:
         with Repo() as repo:
@@ -406,7 +420,7 @@ class ClaimWordsTests(RegistryClearingTestCase):
 
             findings = self._findings(repo.root, ["record.md"])
 
-        self.assertTrue(any("totalising" in f.message for f in findings))
+        self.assertTrue(any(f.mode == MODE_TOTALISING for f in findings))
 
     def test_a_bare_string_files_config_is_one_pattern_not_every_character(self) -> None:
         with Repo() as repo:

@@ -22,9 +22,10 @@ from __future__ import annotations
 
 import tempfile
 import unittest
+from dataclasses import replace
 from pathlib import Path
 
-from claims.runner import Finding, register_check, run
+from claims.runner import Finding, format_findings, register_check, run
 
 from support import RegistryClearingTestCase
 
@@ -270,6 +271,46 @@ class RunnerTests(RegistryClearingTestCase):
         result = run(repo_root, "HEAD", {})
 
         self.assertEqual(result.findings, ())
+
+
+class FormatFindingsTests(unittest.TestCase):
+    def test_findings_sharing_file_line_message_and_gate_print_as_one_line(self) -> None:
+        findings = [
+            Finding(file="a.md", line=1, message="Every check runs.", mode=mode, gate=False)
+            for mode in ("claim-words-totalising", "claim-words-counts", "claim-words-always")
+        ]
+
+        self.assertEqual(
+            format_findings(findings),
+            [
+                "[advisory] a.md:1 (claim-words-totalising, claim-words-counts, "
+                "claim-words-always) Every check runs."
+            ],
+        )
+
+    def test_a_single_finding_prints_exactly_as_its_own_str(self) -> None:
+        finding = Finding(file="a.md", line=1, message="bad", mode="x", gate=True)
+
+        self.assertEqual(format_findings([finding]), ["[GATE] a.md:1 (x) bad"])
+
+    def test_findings_differing_in_any_grouped_field_print_separately(self) -> None:
+        base = Finding(file="a.md", line=1, message="m", mode="first", gate=False)
+        for field, value in (("file", "b.md"), ("line", 2), ("message", "n"), ("gate", True)):
+            other = replace(base, **{field: value}, mode="second")
+            with self.subTest(field=field):
+                self.assertEqual(
+                    format_findings([base, other]), [str(base), str(other)]
+                )
+
+    def test_a_group_prints_where_its_first_finding_was(self) -> None:
+        a1 = Finding(file="a.md", line=1, message="m", mode="one", gate=False)
+        b = Finding(file="b.md", line=1, message="m", mode="one", gate=False)
+        a2 = Finding(file="a.md", line=1, message="m", mode="two", gate=False)
+
+        self.assertEqual(
+            format_findings([a1, b, a2]),
+            ["[advisory] a.md:1 (one, two) m", "[advisory] b.md:1 (one) m"],
+        )
 
 
 if __name__ == "__main__":

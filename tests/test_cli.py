@@ -90,6 +90,23 @@ class CliTests(RegistryClearingTestCase):
         self.assertEqual(code, 1)
         self.assertIn("a.md:1", output)
 
+    def test_one_sentence_several_modes_match_prints_once_but_counts_each(self) -> None:
+        register_check(
+            "multi",
+            lambda repo_root, diff_range, config: [
+                Finding(file="a.md", line=1, message="s", mode=mode, gate=False)
+                for mode in ("multi-one", "multi-two")
+            ],
+        )
+        with tempfile.TemporaryDirectory() as repo_root:
+            code, output = self._run_main(["--repo-root", repo_root])
+
+        self.assertEqual(code, 0)
+        self.assertEqual(
+            output.splitlines(),
+            ["[advisory] a.md:1 (multi-one, multi-two) s", "1 checked, 2 finding(s), 0 gate failure(s)"],
+        )
+
     def test_repo_root_and_diff_range_reach_the_check_unchanged(self) -> None:
         seen = {}
 

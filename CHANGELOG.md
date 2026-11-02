@@ -11,6 +11,17 @@ reached you, not just that one was pushed upstream.
 
 ## [Unreleased]
 
+## [0.19.0] - 2026-11-02
+
+- Changed: findings that cite the same line with the same message and
+  severity print as one line, every mode that reported them listed in
+  its parentheses, in both the CLI and the commit hook. A sentence three
+  `claim-words` modes match prints once instead of three times. The
+  summary line still counts every finding.
+- Changed: `claim-words` and `temporal-words` messages no longer start
+  with their own `[mode]` prefix, which repeated the mode the line
+  already names. See [The command line](docs/installation.md#the-command-line).
+
 ## [0.18.1] - 2026-11-01
 
 - Fixed: `claim-words-counts` no longer reports a pronoun "one" ("one
