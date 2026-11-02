@@ -336,6 +336,79 @@ class ClaimWordsTests(RegistryClearingTestCase):
 
         self.assertEqual(findings, [])
 
+    def test_an_unchanged_sentence_on_an_edited_line_is_not_reported(self) -> None:
+        # The repro #152 was triaged with: changing "The hook" re-adds the
+        # line "Every check runs in order." sits on.
+        with Repo() as repo:
+            repo.write("a.md", "Every check runs in order. The hook\nreads every config first.\n")
+            repo.commit()
+            repo.write("a.md", "Every check runs in order. The gate\nreads every config first.\n")
+
+            findings = self._findings(repo.root, ["a.md"])
+
+        self.assertEqual(
+            [(f.mode, f.message) for f in findings],
+            [(MODE_TOTALISING, "The gate reads every config first.")],
+        )
+
+    def test_a_rewrapped_paragraph_reports_nothing(self) -> None:
+        with Repo() as repo:
+            repo.write(
+                "a.md",
+                "Every check runs in order. The hook reads\nevery config first. Only one hook\nruns.\n",
+            )
+            repo.commit()
+            repo.write(
+                "a.md",
+                "Every check runs\nin order. The hook reads every config\nfirst. Only one hook runs.\n",
+            )
+
+            findings = self._findings(repo.root, ["a.md"])
+
+        self.assertEqual(findings, [])
+
+    def test_a_sentence_with_one_word_changed_is_reported(self) -> None:
+        with Repo() as repo:
+            repo.write("a.md", "Every check runs in order.\n")
+            repo.commit()
+            repo.write("a.md", "Every check runs in sequence.\n")
+
+            findings = self._findings(repo.root, ["a.md"])
+
+        self.assertEqual([f.citation for f in findings], ["a.md:1"])
+
+    def test_a_sentence_that_only_lost_words_is_reported(self) -> None:
+        with Repo() as repo:
+            repo.write("a.md", "Every check runs, except the slow ones.\n")
+            repo.commit()
+            repo.write("a.md", "Every check runs.\n")
+
+            findings = self._findings(repo.root, ["a.md"])
+
+        self.assertEqual([f.citation for f in findings], ["a.md:1"])
+
+    def test_a_sentence_moved_out_of_a_fenced_block_is_reported(self) -> None:
+        with Repo() as repo:
+            repo.write("a.md", "```\nEvery check runs\nin order.\n```\n")
+            repo.commit()
+            repo.write("a.md", "Every check runs in order.\n")
+
+            findings = self._findings(repo.root, ["a.md"])
+
+        self.assertEqual([f.citation for f in findings], ["a.md:1"])
+
+    def test_a_sentence_moved_in_from_another_file_is_reported(self) -> None:
+        with Repo() as repo:
+            repo.write("a.md", "Every check runs in order.\n")
+            repo.write("b.md", "seed\n")
+            repo.commit()
+            repo.write("a.md", "seed\n")
+            repo.write("b.md", "Every check runs in order.\n")
+
+            findings = self._findings(repo.root, ["a.md", "b.md"])
+
+        self.assertEqual([f.citation for f in findings], ["b.md:1"])
+
     def test_an_edited_table_row_is_reported_alone_at_its_own_line(self) -> None:
         with Repo() as repo:
             repo.write("t.md", DECISIONS.format(one="Binaries share a core", two="Every file is toml"))

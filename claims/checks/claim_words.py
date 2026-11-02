@@ -70,6 +70,7 @@ from ..markdown import (
     sentences_from,
 )
 from ..runner import Finding, register_check
+from ..words import removed_sentences_by_file, rewrapped
 
 NAME = "claim-words"
 
@@ -231,6 +232,7 @@ def check(
         return []
 
     added = added_lines_by_file(repo_root, diff_range)
+    removed = removed_sentences_by_file(repo_root, diff_range)
     findings: list[Finding] = []
 
     for path, added_line_numbers in sorted(added.items()):
@@ -242,9 +244,12 @@ def check(
             continue
         lines = text.splitlines()
         zero_based_added = {n - 1 for n in added_line_numbers}
+        removed_here = removed.get(path, set())
 
         for sentence, start, end in sentences_from(prose_lines(lines)):
             if zero_based_added.isdisjoint(range(start, end + 1)):
+                continue
+            if rewrapped(sentence, removed_here):
                 continue
             if _is_retired_quote(sentence, lines, start, end):
                 continue

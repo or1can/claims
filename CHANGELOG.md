@@ -11,6 +11,15 @@ reached you, not just that one was pushed upstream.
 
 ## [Unreleased]
 
+## [0.19.1] - 2026-11-02
+
+- Fixed: `claim-words` and `temporal-words` no longer report a sentence
+  an edit only rewrapped. Changing one word of a wrapped paragraph used
+  to report every unchanged sentence on the lines it reflowed; now a
+  sentence is skipped only when it is, word for word, a whole sentence
+  the edit removed from the same file. See [claim-words](docs/checks/claim-words.md#what-it-checks)
+  and [temporal-words](docs/checks/temporal-words.md#what-it-checks).
+
 ## [0.19.0] - 2026-11-02
 
 - Changed: findings that cite the same line with the same message and
