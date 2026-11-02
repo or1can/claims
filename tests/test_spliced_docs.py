@@ -696,6 +696,11 @@ class SplicedDocsTests(RegistryClearingTestCase):
             set(_rust_bare_items(lines)), {"top", "Plain", "method", "Shape", "area", "later"}
         )
 
+    def test_a_rust_impl_is_named_by_its_implementing_type(self) -> None:
+        # Ticket #173: `impl fmt::Display for Text` was bare as `fmt`.
+        lines = ["/// The text.", "struct Text;", "impl fmt::Display for Text {}"]
+        self.assertEqual(_rust_bare_items(lines), {})
+
     def test_items_nested_two_blocks_deep_in_a_rust_fn_body_are_not_bare(
         self,
     ) -> None:

@@ -40,7 +40,10 @@ mode that fired:
   `spliced-docs-undocumented`. In Rust, "names" also covers a parameter
   of the undocumented function when the parameter sits on a line of its
   own, and a name documented once on a trait and bare on every
-  implementation is not counted as undocumented. An item declared
+  implementation is not counted as undocumented. A Rust `impl` declares
+  the type it implements, never the trait, in both modes: an
+  undocumented `impl fmt::Display for Text` is a bare `Text`, documented
+  when `struct Text` is. An item declared
   inside a function body, however deeply nested, is never counted as
   undocumented either: rustdoc does not render it. It still counts as
   declared for `unknown`. A function's body opens at the first `{` after

@@ -20,6 +20,18 @@ function, struct, enum, trait, type alias, module or `impl` block, with
 any visibility, `async`, `unsafe` or `const` in front. Nothing in any
 other language is a subject.
 
+A Rust `impl` block declares the type it implements, never a trait: the
+type after `for` when there is one, otherwise the type after `impl`, by
+the last segment of its path and without generic arguments. So
+`impl PartialEq<str> for Text` and `impl fmt::Display for Text` both
+declare `Text`, and `impl<T: Clone> Wrapper<T>` declares `Wrapper`. Only
+the `impl` line up to its first `{` is read for the `for`, so one on a
+later line is not seen: the block is read as declaring its trait, and as
+an inherent block. Otherwise a function directly inside an
+`impl … for …` block is not a subject: it implements a name the trait
+declares. A function inside an inherent
+`impl Wrapper<T>` block still is.
+
 Test code is not a subject either. A Rust file named `*_tests.rs` or
 under a directory named `tests`, a Swift file named `*Tests.swift` or
 under a directory named `Tests`, and every line of a Rust `#[cfg(test)]`

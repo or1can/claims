@@ -42,13 +42,13 @@ Two failure modes this exists to avoid, both demonstrated in that research:
 
 The subject index reuses `spliced_docs.SWIFT_DECL_RE` and
 `spliced_docs.RUST_ITEM_RE`, the same "what does this repo declare"
-answer `check-citations` and `spliced-docs` already share (this
+answer `spliced-docs` uses and `check-citations` shares for Swift (this
 consolidation's own precedent for not letting that answer drift twice).
 A name the base tree held only as a Rust struct field or enum variant is
 not "added" when the head declares an item of that name (ticket #171: on
 or1can/ratect, 34 of 78 candidates were one field name beside a new
 `fn`). `_rust_members` finds those members with `spliced_docs._rust_code`'s
-stripped view and a brace count, not a new lexer; it is one of two places
+stripped view and a brace count, not a new lexer; it is one of three places
 a citation is dropped, a deliberate precision trade with that evidence
 behind it, and it applies to the added half only — a name leaving the
 item index is still removed while a field of its name remains.
@@ -56,9 +56,14 @@ Test code is not a subject on either side (ticket #172: on or1can/ratect,
 26 of 78 candidates cited a test helper). The readers leave out a test
 file by its path, and `_without_cfg_test_modules` blanks each
 `#[cfg(test)]` module's lines with the same stripped view and brace
-count, keeping line numbers. That is the other place a citation is
+count, keeping line numbers. That is the second place a citation is
 dropped, on both halves. A fixed default, not an `exclude` key: a doc
 citing a name means the code the project ships, never its tests.
+A `fn` directly inside an `impl … for …` body is not a subject on either
+side (ticket #173: on or1can/ratect, a trait method's `source` drew four
+candidates from prose about shell and OCI `source`): it implements a name
+the trait declares. `_rust_trait_impl_fns` finds them with the same
+stripped view and brace count, the third place a citation is dropped.
 A plain `diff_range` naming one revision compares it against the working
 tree, matching every other check's convention in this codebase.
 `A..B`/`A...B` is split into two revisions at the separator — a
@@ -185,7 +190,7 @@ def _declared_name(rel: str, line: str) -> str | None:
         return match.group(1) if match else None
     if rel.endswith(".rs"):
         match = RUST_ITEM_RE.match(line)
-        return match.group(2) if match else None
+        return match.group("name") if match else None
     return None
 
 
@@ -194,11 +199,47 @@ def _subject_index(files: Mapping[str, str]) -> dict[str, _Subject]:
 
     index: dict[str, _Subject] = {}
     for rel, text in sorted(files.items()):
-        for number, line in enumerate(text.splitlines(), 1):
-            name = _declared_name(rel, line)
+        lines = text.splitlines()
+        skip = _rust_trait_impl_fns(lines) if rel.endswith(".rs") else set()
+        for number, line in enumerate(lines, 1):
+            name = None if number - 1 in skip else _declared_name(rel, line)
             if name and name not in index:
                 index[name] = _Subject(rel, number)
     return index
+
+
+def _rust_trait_impl_fns(lines: list[str]) -> set[int]:
+    """Every index in `lines` of a `fn` item directly inside an
+    `impl … for …` body: it implements a name the trait declares.
+
+    A rough brace count over `_rust_code`, as `_rust_members` does: the
+    first `{` after a trait impl's `impl` line, outside any `(` or `[`
+    opened since, opens its body.
+    """
+
+    fns: set[int] = set()
+    blocks: list[bool] = []  # whether each open `{` starts a trait impl body
+    pending = False
+    groups = 0  # `(` and `[` left open since `pending` was set
+    for i, (_, code) in enumerate(_rust_code(lines)):
+        item = RUST_ITEM_RE.match(code)
+        if item and item.group("kind") == "fn" and blocks and blocks[-1]:
+            fns.add(i)
+        if item and item.group("kind") == "impl":
+            pending = item.group("trait") is not None
+            groups = 0
+        for char in code:
+            if char in "([":
+                groups += 1
+            elif char in ")]":
+                groups = max(groups - 1, 0)
+            elif char == "{":
+                blocks.append(pending and not groups)
+                if not groups:
+                    pending = False
+            elif char == "}" and blocks:
+                blocks.pop()
+    return fns
 
 
 def _rust_members(files: Mapping[str, str]) -> set[str]:
@@ -230,7 +271,7 @@ def _rust_members(files: Mapping[str, str]) -> set[str]:
                 members.add(member.group(1))
             item = RUST_ITEM_RE.match(code)
             if item:
-                pending = _RUST_MEMBER_PATTERNS.get(item.group(1))
+                pending = _RUST_MEMBER_PATTERNS.get(item.group("kind"))
                 groups = 0
             for char in code:
                 if char in "([":
@@ -283,7 +324,7 @@ def _without_cfg_test_modules(text: str) -> str:
                 rest = rest[attribute.end() :]
             if pending and rest.strip():
                 item = RUST_ITEM_RE.match(rest)
-                if item and item.group(1) == "mod":
+                if item and item.group("kind") == "mod":
                     start, start_depth, opened = number, depth, False
                 elif not rest.lstrip().startswith("#["):
                     pending = False

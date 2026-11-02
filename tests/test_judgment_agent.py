@@ -323,6 +323,61 @@ class JudgmentAgentTests(RegistryClearingTestCase):
         self.assertEqual([f.mode for f in findings], [MODE_ADDED])
         self.assertIn("declared at src/lib.rs:4 ", findings[0].message)
 
+    def _cited_after_adding(self, code: str, *names: str) -> list[str]:
+        """The names cited as added when the range adds `code` as
+        `src/lib.rs` and a doc cites each of `names`."""
+
+        with Repo() as repo:
+            repo.write("docs/NOTES.md", "".join(f"Uses `{name}`.\n" for name in names))
+            repo.commit()
+            repo.write("src/lib.rs", code)
+
+            findings = self._findings(repo.root)
+
+        self.assertTrue(all(f.mode == MODE_ADDED for f in findings))
+        return sorted(f.message.split("`")[1] for f in findings)
+
+    # Ticket #173: on or1can/ratect, six candidates cited `PartialEq` or a
+    # trait method's `source`.
+    def test_an_impl_names_its_implementing_type_never_the_trait(self) -> None:
+        for line, implementing, trait in (
+            ("impl PartialEq<str> for Text {", "Text", "PartialEq"),
+            ("impl fmt::Display for X {", "X", "fmt"),
+            ("impl<T: Clone> Wrapper<T> {", "Wrapper", "T"),
+            ("unsafe impl<T> Send for crate::a::Cell<T> {", "Cell", "Send"),
+            ("impl<F: Fn() -> u8> Runner<F> {", "Runner", "u8"),
+        ):
+            with self.subTest(line=line):
+                self.assertEqual(
+                    self._cited_after_adding(line + "\n}\n", implementing, trait),
+                    [implementing],
+                )
+
+    def test_a_method_in_a_trait_impl_is_not_a_subject(self) -> None:
+        self.assertEqual(
+            self._cited_after_adding(
+                "impl std::error::Error for MyError\nwhere\n    Self: Sized,\n{\n"
+                "    fn source(&self) -> Option<&str> {\n"
+                "        fn helper() {}\n        None\n    }\n}\n",
+                "source",
+                "helper",
+            ),
+            ["helper"],
+        )
+
+    def test_a_method_in_an_inherent_impl_is_still_a_subject(self) -> None:
+        self.assertEqual(
+            self._cited_after_adding(
+                "impl<T> Wrapper<T> {\n    fn new() -> Self { todo!() }\n}\n"
+                "impl Clone for Wrapper<u8> {\n    fn clone(&self) -> Self { todo!() }\n}\n"
+                "fn after() {}\n",
+                "new",
+                "clone",
+                "after",
+            ),
+            ["after", "new"],
+        )
+
     def test_no_touched_subjects_means_no_findings_not_a_crash(self) -> None:
         with Repo() as repo:
             repo.write("README.md", "nothing to see here\n")
