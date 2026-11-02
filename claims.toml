@@ -37,9 +37,10 @@ exclude = [".scratch/*", "examples/*"]
 # that takes a path-scoped `exclude` gets one here rather than being
 # switched off, so the rest of the tree stays covered. `check-file-refs`
 # and `check-cli-flags` carry theirs above. Of the checks with no
-# `exclude`, `check-citations` and `judgment-agent` read no config at all,
-# and `claim-words`, `temporal-words` and `check-config-defaults` sweep
-# only what a project names, which `examples/` isn't.
+# `exclude`, `check-citations` reads no config at all, `judgment-agent`
+# reads only `historical`, and `claim-words`, `temporal-words` and
+# `check-config-defaults` sweep only what a project names, which
+# `examples/` isn't.
 [check-links]
 exclude = ["examples/*"]
 
@@ -62,14 +63,14 @@ exclude = ["examples/*", ".scratch/*"]
 # A released `CHANGELOG.md` entry describes a change as it shipped and is
 # never reworded afterwards (`AGENTS.md`, "Versioning"), so prose a later
 # diff retracts elsewhere legitimately goes on being asserted there — the
-# same reason `stale-claims` excludes the file built-in, and the check's
-# own documented example of this key (`docs/checks/restatement.md`).
-# Excluding a file drops it from the duplication count as well as from
-# the survivor sweep, so this isn't purely subtractive: a text the
-# changelog held the second surviving copy of now falls under
-# `duplication_threshold` and gets reported where it lives. Over
-# `HEAD~15` that traded 31 suppressed findings for 3 new ones — two in
-# `.scratch/`, and one genuine duplicate the changelog had been masking in
+# same reason `stale-claims` excludes the file built-in. It was under
+# `exclude` until `historical` existed (#174), which skips the shipped
+# lines alike, from the duplication count as well as the survivor sweep,
+# but still reads the changelog's own diff, so an `[Unreleased]` line
+# this repo edits away is searched for elsewhere. Over `HEAD~15` the
+# switch changed none of the 9 findings either way. Excluding it first
+# traded 31 suppressed findings for 3 new ones — two in `.scratch/`,
+# and one genuine duplicate the changelog had been masking in
 # `claims/hook.py`, since deleted.
 #
 # `.scratch/*` is excluded for the reason `stale-claims` gives above: the
@@ -79,7 +80,8 @@ exclude = ["examples/*", ".scratch/*"]
 # same reason as the changelog surfaced 9 new ones outside it that the
 # archive had been holding under `duplication_threshold`.
 [restatement]
-exclude = ["examples/*", "CHANGELOG.md", ".scratch/*"]
+exclude = ["examples/*", ".scratch/*"]
+historical = ["CHANGELOG.md"]
 
 [check-env-vars]
 exclude = ["examples/*"]

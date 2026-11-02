@@ -96,7 +96,7 @@ declaring file in range rather than only those that touched the
 declaring line.
 
 With no name added or removed, the check reports nothing. The check
-runs no command and reads no configuration.
+runs no command.
 
 ## What the subagent decides
 
@@ -216,12 +216,18 @@ confirmed one is nothing. A candidate is never itself something to fix.
 
 ## Configuration
 
-None. The check reads no key from `claims.toml`, and there is no
-`exclude`: every tracked `.swift` and `.rs` file outside test code is a
-source of subjects and every tracked `.md` file is a source of
-citations. A
-`[judgment-agent]` table is accepted, and `enabled` below is the only
-key that does anything in it.
+```toml
+[judgment-agent]
+historical = ["CHANGELOG.md", "RELEASES.md"]
+```
+
+| Key | Shape | Default | Reach for this when |
+| --- | --- | --- | --- |
+| `historical` | list of glob strings; a bare string is a one-element list | `[]`: every citation is read | A file is an append-only record, a changelog or release notes, whose shipped entries your own rules forbid editing, so a candidate citing a name a shipped entry mentions is never something to fix. A citation on a line in it that the diff did not add is not a candidate. One on a line the diff did add, an entry in an `[Unreleased]` section, is a candidate as before. Citations are read from the files on disk and added lines from the diff, so with a `--diff-range` that does not end at the checked-out files a line can be taken for added or shipped wrongly. |
+
+There is no `exclude`: every tracked `.swift` and `.rs` file outside
+test code is a source of subjects and every tracked `.md` file is a
+source of citations.
 
 `enabled`, which takes a check out of the commit gate while leaving it
 in the on-demand skill and the CLI, is read by the commit hook rather

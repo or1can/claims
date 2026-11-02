@@ -23,3 +23,11 @@
   openers partway along a line; the second needs the attribute scan,
   shared with Swift, to read the comment-free view. Found reviewing
   #168.
+- Checks number a file's lines with `str.splitlines()`, which also
+  breaks on U+2028, U+2029, `\x0b`, `\x0c`, `\x1c`–`\x1e` and `\x85`,
+  while git numbers lines by `\n` only. A file holding one of those
+  shifts every later line's number against git's, so a finding cites
+  the wrong line, and `restatement`'s and `judgment-agent`'s
+  `historical` skip can take an added line for a shipped one or the
+  reverse. About 34 call sites; splitting on `\n` alone is the likely
+  fix. Found reviewing #174.

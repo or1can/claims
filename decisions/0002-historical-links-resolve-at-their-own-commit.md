@@ -18,6 +18,17 @@ testing only there gated it forever — including, through the uncommitted
 case, in the very commit recording it. The Decision, the uncommitted-line
 detail and the example messages are revised to match.
 
+Amended by #174, which gives `restatement` and `judgment-agent` the key
+with a different meaning: a line in a matching file that the diff did not
+add is skipped, with nothing re-tested at any commit. This reverses what
+"Which checks this reaches" said of both. `exclude` was not the historical
+semantics for `restatement` after all, because it also stops reading the
+lines the diff adds and removes in the record, its `[Unreleased]` section.
+On or1can/ratect, released `CHANGELOG.md`/`RELEASES.md` entries produced
+62 of 168 `restatement` findings and 23 of 78 `judgment-agent`
+candidates, and none of them was actionable, since that project's rules
+forbid editing a shipped entry. The section is revised to match.
+
 ## Context
 
 `check-links` is a gate: a commit is refused while any internal Markdown
@@ -50,7 +61,9 @@ gate finding had they not been retargeted.
 
 A project may list its append-only records under a check's `historical`
 key — `[check-links] historical` for links, `[check-file-refs] historical`
-for bare path mentions. For a reference in a matching file that fails
+for bare path mentions (`restatement` and `judgment-agent` take the key
+with a narrower meaning, set out under "Which checks this reaches"). For
+a reference in a matching file that fails
 against the working tree, the check re-resolves it against the tree at the
 commit `git blame` attributes the line to, and against the tree just
 before that commit — each of its parents — and passes it if it held at any
@@ -98,14 +111,15 @@ pays one `git blame` per record file that has a failing reference.
 
 ## Which checks this reaches
 
-The key earns its keep only where a claim can have been *false when
-written*. Re-resolving at the blame commit then discriminates "was always
+Re-resolving earns its keep only where a claim can have been *false
+when written*. Re-resolving at the blame commit then discriminates "was always
 broken", which still gates, from "broke later", which does not — and that
 discrimination is the whole value. Where the claim held at the commit
 that wrote it by construction, re-resolving there passes every line
-unconditionally, and an `exclude` glob already *is* the historical
-semantics, without the blame walk. That test, read against each check's
-own page and code:
+unconditionally, so there is nothing to re-test. Skipping the record's
+shipped lines is then all the key can mean, and `exclude` is not quite
+that, since it skips the lines the diff writes too. That test, read
+against each check's own page and code:
 
 - **`check-links` and `check-file-refs`** assert existence — this
   reference resolves — can be false when written, and are answered at a
@@ -136,17 +150,30 @@ own page and code:
 - **`restatement`** asserts that a retracted sentence is not still said
   elsewhere. A survivor matched its source exactly at the commit that
   wrote it — that is what makes it a restatement — so re-resolving there
-  passes every one. `exclude` is the historical semantics.
+  passes every one, and there is nothing to re-test. It still takes the
+  key, with its own meaning: a line in a matching file that the diff did
+  not add is never a survivor and never counts toward
+  `duplication_threshold`. `exclude` would do that too, but it also
+  stops reading the record's own diff, so an edit to its `[Unreleased]`
+  section would no longer be searched for as a retraction, and a
+  survivor starting on a line the diff added there would no longer be
+  reported. With the key, both still are.
 - **`stale-claims`** ranks sections by churn since their last edit, which
   is zero at the commit that made that edit. It degenerates the same way;
   `exclude` again.
+- **`judgment-agent`** reaches a shipped entry citing a name the diff
+  touched. A candidate comes from this diff's own delta, which a shipped
+  line predates, so there is nothing to re-test at its commit either; and
+  the candidate is never something to act on, since the entry may not be
+  edited whatever the subagent concludes. It takes the key with
+  `restatement`'s meaning: a citation on a line of a matching file that
+  the diff did not add is not a candidate, and one on a line the diff
+  added, an `[Unreleased]` entry, still is. `exclude` would drop that
+  live part too, and the check has no `exclude`.
 - **`claim-words`** and **`temporal-words`** read only sentences the
   diff added, so a shipped entry is never re-read and there is nothing to
-  resolve historically. **`judgment-agent`** does reach a shipped entry
-  citing a name the diff touched, but it only nominates a candidate; the
-  verdict comes from a subagent reading today's code, and it gates
-  nothing. **`spliced-docs`** reads doc comments in code, not references
-  in prose. All four are out of scope.
+  resolve historically. **`spliced-docs`** reads doc comments in code,
+  not references in prose. All three are out of scope.
 
 ## Alternatives considered
 

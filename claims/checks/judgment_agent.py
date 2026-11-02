@@ -83,6 +83,14 @@ narrower version of it). Scope is Markdown only, narrower than
 citing code, and every one of this consolidation's user stories about
 "architecture or intent" claims names documentation, not source comments.
 
+`historical` (#174) skips a citation on a line of a matching file that
+the diff didn't add: a shipped changelog entry cites the names its
+release touched, and the project's rules forbid editing it whatever the
+subagent concludes. A line the diff added, an `[Unreleased]` entry, is a
+candidate as before. Unlike `check-links`' key it re-tests nothing at the
+blamed commit, since a candidate comes from this diff's own delta, which
+a shipped line predates; and the diff is read only when the key is set.
+
 Each candidate's message carries the diff evidence rather than a bare
 citation because the `pre-commit` hook runs before `git commit` completes,
 so the common case is an uncommitted working-tree change with no commit
@@ -114,7 +122,8 @@ from collections.abc import Mapping
 from pathlib import Path
 from typing import NamedTuple
 
-from ..git import QUOTEPATH_OFF, tracked_files
+from ..config import path_matches, string_list_config
+from ..git import QUOTEPATH_OFF, added_lines_by_file, tracked_files
 from ..runner import Finding, register_check
 from .check_citations import CITATION_RE
 from .spliced_docs import RUST_ITEM_RE, SWIFT_DECL_RE, _rust_code
@@ -438,8 +447,12 @@ def check(
     if not removed and not added:
         return []
 
+    historical = string_list_config(config, "historical")
+    added_lines = added_lines_by_file(repo_root, diff_range) if historical else {}
     candidates: list[_Candidate] = []
     for rel, line, name in _citations(repo_root):
+        if path_matches(rel, historical) and line not in added_lines.get(rel, set()):
+            continue
         if name in removed:
             subject, mode, direction = base_index[name], MODE_REMOVED, "removed"
         elif name in added:
