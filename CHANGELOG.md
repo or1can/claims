@@ -11,6 +11,13 @@ reached you, not just that one was pushed upstream.
 
 ## [Unreleased]
 
+## [0.19.3] - 2026-11-02
+
+- Fixed: `spliced-docs` no longer reports a Rust item as undocumented
+  when a `/* */` block comment sits between it and its `///` doc
+  comment, or when it is documented with a `/** */` block doc. A
+  `/** */` doc is not searched for breaks. See [spliced-docs](docs/checks/spliced-docs.md#what-it-checks).
+
 ## [0.19.2] - 2026-11-02
 
 - Fixed: `spliced-docs` no longer reports a Rust item as undocumented

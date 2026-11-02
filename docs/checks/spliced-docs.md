@@ -13,9 +13,9 @@ reads Swift and Rust, and nothing else.
 ## What it checks
 
 Every tracked `.swift` and `.rs` file is read; no Markdown is, and no
-comment other than a `///` line. The unit is a **run**: one contiguous
-block of `///` lines, together with the attributes and the declaration
-beneath it.
+comment other than a `///` line is searched for breaks. The unit is a
+**run**: one contiguous block of `///` lines, together with the
+attributes and the declaration beneath it.
 
 A **break** is a place inside a run where one line ends a sentence and
 the next reads as a fresh summary, with no blank `///` between them. A
@@ -55,8 +55,13 @@ A comment whose declaration is documented and whose stranded half names
 nothing bare is not reported, whatever its breaks. A documented
 declaration is one whose `///` run sits above it with only attributes
 and blank lines between, and, in Rust, plain comments too: a line
-opening with `//` and no third `/` or `!`, or with four or more slashes.
-A `//!` line between them detaches the run. An attribute counts whole
+opening with `//` and no third `/` or `!`, or with four or more slashes,
+and a `/* */` block comment, nested or not, over one line or several.
+In Rust a `/** */` block doc above a declaration documents it as well,
+but it is never searched for breaks; `/**/` and `/***` are plain
+comments, as rustc reads them, and so is a doc comment written inside
+another block comment. A `//!` line or a `/*! */` comment between a
+doc and its declaration detaches the doc. An attribute counts whole
 however many lines it spans, through the line where its brackets close:
 `]` for Rust's `#[...]`, `)` for Swift's `@name(...)`.
 

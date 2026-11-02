@@ -226,18 +226,39 @@ def _rust_runs(lines: list[str]):
         yield start, i
 
 
-def _rust_documented(lines: list[str], i: int, attributes: set[int]) -> bool:
-    """Whether the item on line `i` has a `///` doc comment above it, with
-    only attributes, plain comments and blank lines between."""
+# `/**` opening an outer block doc. `/**/` and `/***…` are plain comments.
+RUST_BLOCK_DOC_RE = re.compile(r"^\s*/\*\*(?![*/])")
+# `//!` or `/*!`: an inner doc, which documents the enclosing module.
+RUST_INNER_DOC_RE = re.compile(r"^\s*/[/*]!")
 
-    above = i - 1
-    while above >= 0 and (
-        above in attributes
-        or RUST_PLAIN_COMMENT_RE.match(lines[above])
-        or not lines[above].strip()
-    ):
-        above -= 1
-    return above >= 0 and bool(DOC_RE.match(lines[above]))
+
+def _rust_documented(
+    lines: list[str], code: list[tuple[bool, str]], i: int, attributes: set[int]
+) -> bool:
+    """Whether the item on line `i` has a `///` or `/** */` doc comment above
+    it, with only attributes, plain comments and blank lines between.
+
+    `code` is `_rust_code(lines)`: a line with no code left in it is a
+    comment or blank, and skipped unless it opens a doc comment outside
+    any other.
+    """
+
+    for above in range(i - 1, -1, -1):
+        line = lines[above]
+        opens_in_code, rest = code[above]
+        if rest.strip():
+            if above in attributes:
+                continue
+            return False
+        if not opens_in_code:
+            continue
+        if RUST_INNER_DOC_RE.match(line):
+            return False
+        if RUST_BLOCK_DOC_RE.match(line) or (
+            DOC_RE.match(line) and not RUST_PLAIN_COMMENT_RE.match(line)
+        ):
+            return True
+    return False
 
 
 # A raw string's opening, `r"`, `r#"` or `br##"`, not the tail of an
@@ -250,7 +271,9 @@ RUST_CHAR_RE = re.compile(r"'(?:[^'\\]|\\(?:x[0-9A-Fa-f]{2}|u\{[0-9A-Fa-f]+\}|.)
 
 def _rust_code(lines: list[str]):
     """Each of `lines` with its comments, strings and char literals removed,
-    carrying an open string or block comment from one line to the next.
+    carrying an open string or block comment from one line to the next, as
+    `(opens_in_code, code)`: `opens_in_code` is false for a line that starts
+    inside a string or block comment.
 
     Not a full lexer: enough that a brace count over what is left balances.
     """
@@ -259,6 +282,7 @@ def _rust_code(lines: list[str]):
     in_string = False
     comment_depth = 0
     for line in lines:
+        opens_in_code = raw_close is None and not in_string and not comment_depth
         code = []
         j = 0
         while j < len(line):
@@ -299,7 +323,7 @@ def _rust_code(lines: list[str]):
             else:
                 code.append(line[j])
                 j += 1
-        yield "".join(code)
+        yield opens_in_code, "".join(code)
 
 
 def _rust_fn_local_lines(lines: list[str]) -> set[int]:
@@ -313,7 +337,7 @@ def _rust_fn_local_lines(lines: list[str]) -> set[int]:
     local: set[int] = set()
     fn_bodies: list[bool] = []
     fn_pending = False
-    for i, code in enumerate(_rust_code(lines)):
+    for i, (_, code) in enumerate(_rust_code(lines)):
         if any(fn_bodies):
             local.add(i)
         matched = RUST_ITEM_RE.match(code)
@@ -339,10 +363,11 @@ def _rust_bare_items(lines: list[str]) -> dict[str, set[str]]:
     """
 
     attributes = _attribute_lines(lines, RUST_ATTR_RE, "[", "]", RUST_ITEM_RE)
+    code: list[tuple[bool, str]] = list(_rust_code(lines))
     documented_names = set()
     for i, line in enumerate(lines):
         matched = RUST_ITEM_RE.match(line)
-        if matched and _rust_documented(lines, i, attributes):
+        if matched and _rust_documented(lines, code, i, attributes):
             documented_names.add(matched.group(2))
 
     local = _rust_fn_local_lines(lines)

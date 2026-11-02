@@ -14,3 +14,12 @@
   tail is `\S.+$`, so a one-character tail is dropped: `It runs. X`
   yields only `It runs.`. Found reviewing #154; out of that ticket's
   scope.
+- `spliced-docs`'s Rust walk back from an item to its doc comment looks
+  for a doc marker only at the start of a line, and for an attribute
+  only where `#[` starts one. So `/* x` / `*/ /** doc */` / `fn a() {}`
+  and `/** Doc.` / `*/ #[inline]` / `fn a() {}` both read `a` as
+  undocumented, though rustdoc documents it. rustfmt never writes
+  either shape. Fixing the first needs `_rust_code` to report doc
+  openers partway along a line; the second needs the attribute scan,
+  shared with Swift, to read the comment-free view. Found reviewing
+  #168.

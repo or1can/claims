@@ -589,6 +589,79 @@ class SplicedDocsTests(RegistryClearingTestCase):
         lines = ["/// Doc.", "//! Module doc.", "fn detached() {}"]
         self.assertIn("detached", _rust_bare_items(lines))
 
+    def test_a_plain_block_comment_between_a_rust_doc_and_its_item_does_not_detach_it(
+        self,
+    ) -> None:
+        comments = {
+            "single line": ["/* note */"],
+            "multi-line": ["/*", " * note", " */"],
+            "nested": ["/* a /* b */ c */"],
+            "nested across lines": ["/* a /* b", " */ c */"],
+        }
+        for shape, comment in comments.items():
+            with self.subTest(shape):
+                lines = ["/// Doc.", *comment, "fn a() {}"]
+                self.assertEqual(_rust_bare_items(lines), {})
+
+    def test_an_outer_block_doc_documents_a_rust_item(self) -> None:
+        docs = {
+            "single line": ["/** Doc. */"],
+            "multi-line": ["/**", " * Doc.", " */"],
+            "text on the opening line": ["/** Doc.", " * More.", " */"],
+            "under a plain comment": ["/** Doc. */", "// note", "/* aside */"],
+        }
+        for shape, doc in docs.items():
+            with self.subTest(shape):
+                lines = [*doc, "#[inline]", "fn a() {}"]
+                self.assertEqual(_rust_bare_items(lines), {})
+
+    def test_an_inner_block_doc_detaches_a_rust_doc_from_its_item(self) -> None:
+        shapes = {
+            "single line": ["/*! inner */"],
+            "multi-line": ["/*!", " * inner", " */"],
+        }
+        for shape, inner in shapes.items():
+            with self.subTest(shape):
+                lines = ["/// Doc.", *inner, "fn a() {}"]
+                self.assertIn("a", _rust_bare_items(lines))
+
+    def test_a_doc_marker_inside_a_plain_block_comment_is_not_a_rust_doc(self) -> None:
+        comments = {
+            "line doc": ["/*", "/// old", "*/"],
+            "block doc": ["/* outer", "/** inner */", "*/"],
+        }
+        for shape, comment in comments.items():
+            with self.subTest(shape):
+                self.assertIn("a", _rust_bare_items([*comment, "fn a() {}"]))
+
+    def test_an_inner_block_doc_nested_in_an_outer_one_does_not_detach_it(self) -> None:
+        lines = ["/** Doc.", "/*! x */", "*/", "fn a() {}"]
+        self.assertEqual(_rust_bare_items(lines), {})
+
+    def test_a_block_doc_on_another_items_line_does_not_document_the_next(self) -> None:
+        lines = ["/** Doc. */ struct S;", "fn a() {}"]
+        self.assertIn("a", _rust_bare_items(lines))
+
+    def test_an_empty_or_banner_block_comment_is_not_a_rust_doc(self) -> None:
+        for comment in ["/**/", "/*** banner ***/", "/* plain */"]:
+            with self.subTest(comment):
+                self.assertIn("a", _rust_bare_items([comment, "fn a() {}"]))
+
+    def test_a_rust_outer_block_doc_is_not_checked_for_breaks(self) -> None:
+        with Repo() as repo:
+            repo.write(
+                "src/lib.rs",
+                "fn helper() {}\n\n"
+                "/** Loads the config.\n"
+                " * The `helper` result is cached. */\n"
+                "fn load() {}\n",
+            )
+            repo.commit()
+
+            findings = self._findings(repo.root)
+
+        self.assertEqual(findings, [])
+
     def test_a_struct_inside_a_rust_fn_body_is_not_bare(self) -> None:
         lines = [
             "/// Removes things.",
