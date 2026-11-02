@@ -95,6 +95,7 @@ from typing import NamedTuple
 from ..config import exclude_patterns, numeric_config, path_matches, string_list_config
 from ..git import DiffLine, added_lines_by_file, iter_diff, tracked_files
 from ..runner import Finding, register_check
+from ..words import normalise
 
 NAME = "restatement"
 
@@ -105,13 +106,6 @@ NGRAM_WORDS = 6
 MIN_LINE_WORDS = 10
 
 DEFAULT_EXTENSIONS = (".md", ".swift", ".py", ".sh", ".yml")
-
-# Inline markup, links and punctuation are dropped before matching, so a
-# sentence surviving with different emphasis or a re-pointed link still
-# counts as the same claim. Only the words carry the assertion.
-LINK_RE = re.compile(r"\[([^\]]*)\]\([^)]*\)")
-MARKUP_RE = re.compile(r"[`*_~<>\[\]()#|]")
-NON_WORD_RE = re.compile(r"[^a-z0-9]+")
 
 
 class CommentSyntax(NamedTuple):
@@ -231,14 +225,6 @@ def _prose_lines(path: str, lines: Sequence[str]) -> list[str]:
 
     syntax = COMMENT_SYNTAX.get(Path(path).suffix)
     return _comment_lines(syntax, lines) if syntax else list(lines)
-
-
-def _normalise(line: str) -> list[str]:
-    """One line as the words it asserts, in order."""
-
-    line = LINK_RE.sub(r"\1", line)
-    line = MARKUP_RE.sub(" ", line)
-    return NON_WORD_RE.sub(" ", line.lower()).split()
 
 
 def _runs(words: Sequence[str], length: int) -> set[str]:
@@ -376,7 +362,7 @@ def _survivors(
         located = [
             (word, number)
             for number, line in enumerate(lines, start=1)
-            for word in _normalise(line)
+            for word in normalise(line)
         ]
 
         if wanted_ngrams:
@@ -398,7 +384,7 @@ def _survivors(
 
         if wanted_lines:
             for number, line in enumerate(lines, start=1):
-                normalised = " ".join(_normalise(line))
+                normalised = " ".join(normalise(line))
                 if number not in added_here and normalised in wanted_lines:
                     whole_line_hits.append((name, number, normalised))
 
@@ -417,7 +403,7 @@ def _wanted_whole_lines(removed_lines: Sequence[str], added_words: Sequence[str]
     wanted = set()
     runs_by_length: dict[int, set[str]] = {}
     for line in removed_lines:
-        words = _normalise(line)
+        words = normalise(line)
         if len(words) < MIN_LINE_WORDS:
             continue
         length = len(words)
@@ -440,8 +426,8 @@ def check(
     wanted_ngrams: set[str] = set()
     wanted_lines: set[str] = set()
     for removed_lines, added_lines in segments:
-        removed_words = [word for line in removed_lines for word in _normalise(line)]
-        added_words = [word for line in added_lines for word in _normalise(line)]
+        removed_words = [word for line in removed_lines for word in normalise(line)]
+        added_words = [word for line in added_lines for word in normalise(line)]
         wanted_ngrams |= _runs(removed_words, NGRAM_WORDS) - _runs(added_words, NGRAM_WORDS)
         wanted_lines |= _wanted_whole_lines(removed_lines, added_words)
 

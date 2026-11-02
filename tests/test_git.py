@@ -129,6 +129,30 @@ class IterDiffTests(unittest.TestCase):
 
         self.assertEqual([(f.src, f.dst) for f in file_diffs], [("a.md", "a.md"), ("b.md", "b.md")])
 
+    def test_paths_restricts_the_diff_to_those_files(self) -> None:
+        with Repo() as repo:
+            repo.write("a.md", "one\n")
+            repo.write("b.md", "one\n")
+            repo.commit()
+            repo.write("a.md", "one\ntwo\n")
+            repo.write("b.md", "one\ntwo\n")
+
+            file_diffs = list(iter_diff(repo.root, "HEAD", paths=["b.md"]))
+
+        self.assertEqual([(f.src, f.dst) for f in file_diffs], [("b.md", "b.md")])
+
+    def test_paths_are_matched_literally_not_as_globs(self) -> None:
+        with Repo() as repo:
+            repo.write("x.md", "one\n")
+            repo.write("[x].md", "one\n")
+            repo.commit()
+            repo.write("x.md", "one\ntwo\n")
+            repo.write("[x].md", "one\ntwo\n")
+
+            file_diffs = list(iter_diff(repo.root, "HEAD", paths=["[x].md"]))
+
+        self.assertEqual([f.dst for f in file_diffs], ["[x].md"])
+
     def test_a_hunk_start_gives_the_new_sides_first_line_number(self) -> None:
         with Repo() as repo:
             repo.write("doc.md", "one\ntwo\nthree\n")

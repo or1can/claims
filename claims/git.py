@@ -105,10 +105,19 @@ def _header_path(line: str, header: str) -> str | None:
 
 
 def iter_diff(
-    repo_root: Path, diff_range: str, *, whole_files: bool = False
+    repo_root: Path,
+    diff_range: str,
+    *,
+    whole_files: bool = False,
+    paths: Sequence[str] = (),
 ) -> Iterator[FileDiff]:
     """Walk `git diff` for `diff_range`, one `FileDiff` per file: changed
     lines only (`--unified=0`) by default.
+
+    `paths`, if given, restricts the diff to those files, each matched
+    literally rather than as a glob. A rename is only paired when both its
+    paths are listed: name one side alone and git shows that side as a
+    new or deleted file.
 
     `whole_files=True` widens the context to every line instead, each
     unchanged line a `DiffLine` signed `" "`, so a file's body holds both
@@ -148,6 +157,7 @@ def iter_diff(
             f"--src-prefix={_SRC_PREFIX}",
             f"--dst-prefix={_DST_PREFIX}",
             diff_range or "HEAD",
+            *(["--", *(f":(literal){path}" for path in paths)] if paths else []),
         ],
         cwd=repo_root,
         capture_output=True,

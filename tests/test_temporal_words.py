@@ -97,6 +97,61 @@ class TemporalWordsTests(RegistryClearingTestCase):
 
         self.assertEqual(modes, [])
 
+    def test_an_unchanged_sentence_on_an_edited_line_is_not_read(self) -> None:
+        with Repo() as repo:
+            repo.write("reference.md", "Released 1.2.3 today. The hook\ncurrently reads TOML.\n")
+            repo.commit()
+            repo.write("reference.md", "Released 1.2.3 today. The gate\ncurrently reads TOML.\n")
+
+            findings = self._findings(repo.root, {"files": ["reference.md"]})
+
+        self.assertEqual(
+            [(f.mode, f.message) for f in findings],
+            [(MODE_PHRASE, "The gate currently reads TOML.")],
+        )
+
+    def test_a_rewrapped_paragraph_is_not_read(self) -> None:
+        with Repo() as repo:
+            repo.write("reference.md", "Released 1.2.3 today. The hook\ncurrently reads TOML.\n")
+            repo.commit()
+            repo.write("reference.md", "Released 1.2.3\ntoday. The hook currently\nreads TOML.\n")
+
+            modes = self._modes(repo.root, ["reference.md"])
+
+        self.assertEqual(modes, [])
+
+    def test_a_sentence_with_one_word_changed_is_read(self) -> None:
+        with Repo() as repo:
+            repo.write("reference.md", "The hook currently reads TOML.\n")
+            repo.commit()
+            repo.write("reference.md", "The hook currently reads YAML.\n")
+
+            modes = self._modes(repo.root, ["reference.md"])
+
+        self.assertEqual(modes, [MODE_PHRASE])
+
+    def test_a_sentence_that_only_lost_words_is_read(self) -> None:
+        with Repo() as repo:
+            repo.write("reference.md", "The hook currently reads TOML, but not JSON.\n")
+            repo.commit()
+            repo.write("reference.md", "The hook currently reads TOML.\n")
+
+            modes = self._modes(repo.root, ["reference.md"])
+
+        self.assertEqual(modes, [MODE_PHRASE])
+
+    def test_a_sentence_moved_in_from_another_file_is_read(self) -> None:
+        with Repo() as repo:
+            repo.write("a.md", "The hook currently reads TOML.\n")
+            repo.write("b.md", "seed\n")
+            repo.commit()
+            repo.write("a.md", "seed\n")
+            repo.write("b.md", "The hook currently reads TOML.\n")
+
+            findings = self._findings(repo.root, {"files": ["a.md", "b.md"]})
+
+        self.assertEqual([f.citation for f in findings], ["b.md:1"])
+
     def test_a_glob_designates_a_whole_directory(self) -> None:
         with Repo() as repo:
             self._added(repo, "Released 1.2.3.\n", name="docs/guide.md")

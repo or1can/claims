@@ -92,6 +92,7 @@ from ..markdown import (
     sentences_from,
 )
 from ..runner import Finding, register_check
+from ..words import removed_sentences_by_file, rewrapped
 
 NAME = "temporal-words"
 
@@ -167,19 +168,23 @@ def check(
         return []
 
     added = added_lines_by_file(repo_root, diff_range)
+    designated = [path for path in added if path_matches(path, patterns)]
+    removed = removed_sentences_by_file(repo_root, diff_range, designated)
     findings: list[Finding] = []
 
-    for path, added_line_numbers in sorted(added.items()):
-        if not path_matches(path, patterns):
-            continue
+    for path in sorted(designated):
+        added_line_numbers = added[path]
         try:
             text = (repo_root / path).read_text(encoding="utf-8")
         except (OSError, UnicodeDecodeError):
             continue
         zero_based_added = {n - 1 for n in added_line_numbers}
+        removed_here = removed.get(path, set())
 
         for sentence, start, end in sentences_from(prose_lines(text.splitlines())):
             if zero_based_added.isdisjoint(range(start, end + 1)):
+                continue
+            if rewrapped(sentence, removed_here):
                 continue
             if _is_retired_quote(sentence):
                 continue

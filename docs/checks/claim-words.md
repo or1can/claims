@@ -19,6 +19,14 @@ touched, and only a sentence at least one of whose lines the diff added.
 A sentence already in the file, and a sentence in a file the project has
 not designated, are never read, however they are shaped.
 
+A sentence the diff only rewrapped counts as already in the file: one
+whose words are exactly those of a whole sentence the diff removed from
+the same file, as when an edit to one word reflows the rest of its
+paragraph onto new lines. The comparison ignores case, punctuation,
+inline markup and a link's destination. A sentence with even one word
+changed, added or dropped is read, and so is a sentence moved in from
+another file, which is new to this one.
+
 A **sentence** is found by joining a paragraph's lines and splitting at
 a full stop, question mark or exclamation mark, so a sentence wrapped
 across lines is read whole and reported at its first line. A mark does
