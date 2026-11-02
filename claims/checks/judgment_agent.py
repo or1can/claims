@@ -48,10 +48,17 @@ A name the base tree held only as a Rust struct field or enum variant is
 not "added" when the head declares an item of that name (ticket #171: on
 or1can/ratect, 34 of 78 candidates were one field name beside a new
 `fn`). `_rust_members` finds those members with `spliced_docs._rust_code`'s
-stripped view and a brace count, not a new lexer; it is the one place a
-citation is dropped, a deliberate precision trade with that evidence
+stripped view and a brace count, not a new lexer; it is one of two places
+a citation is dropped, a deliberate precision trade with that evidence
 behind it, and it applies to the added half only — a name leaving the
 item index is still removed while a field of its name remains.
+Test code is not a subject on either side (ticket #172: on or1can/ratect,
+26 of 78 candidates cited a test helper). The readers leave out a test
+file by its path, and `_without_cfg_test_modules` blanks each
+`#[cfg(test)]` module's lines with the same stripped view and brace
+count, keeping line numbers. That is the other place a citation is
+dropped, on both halves. A fixed default, not an `exclude` key: a doc
+citing a name means the code the project ships, never its tests.
 A plain `diff_range` naming one revision compares it against the working
 tree, matching every other check's convention in this codebase.
 `A..B`/`A...B` is split into two revisions at the separator — a
@@ -124,6 +131,12 @@ _RUST_MEMBER_PATTERNS = {
     ),
     "enum": re.compile(r"^\s*(?:r#)?([A-Za-z_][A-Za-z_0-9]*)"),
 }
+
+
+# An outer attribute opening what is left of a line, and the one that
+# makes an item test code.
+_RUST_ATTRIBUTE_RE = re.compile(r"\s*#\[[^\[\]]*\]")
+_RUST_CFG_TEST_RE = re.compile(r"\s*#\[\s*cfg\s*\(\s*test\s*\)\s*\]")
 
 
 class _Subject(NamedTuple):
@@ -237,6 +250,66 @@ def _rust_members(files: Mapping[str, str]) -> set[str]:
     return members
 
 
+def _is_test_file(rel: str) -> bool:
+    directories, _, name = rel.rpartition("/")
+    parts = directories.split("/")
+    if rel.endswith(".rs"):
+        return name.endswith("_tests.rs") or "tests" in parts
+    return name.endswith("Tests.swift") or "Tests" in parts
+
+
+def _without_cfg_test_modules(text: str) -> str:
+    """`text` with every line of each `#[cfg(test)]` module, from its
+    `mod` line through its closing brace, blanked, so line numbers stay.
+
+    A brace count over `_rust_code`: the attribute applies to the next item
+    after any further attributes, and only a `mod … {` with a body is
+    blanked. `mod tests;` is left as it is: its file is left out only when
+    its own path makes it a test file.
+    """
+
+    lines = text.splitlines()
+    depth = 0
+    pending = False  # a `#[cfg(test)]` awaits its item
+    start: int | None = None  # the open test module's `mod` line…
+    start_depth = 0  # …and the depth outside it
+    opened = False  # its body's `{` has been seen
+    blank: set[int] = set()
+    for number, (_, code) in enumerate(_rust_code(lines)):
+        if start is None:
+            rest = code
+            while attribute := _RUST_ATTRIBUTE_RE.match(rest):
+                pending = pending or bool(_RUST_CFG_TEST_RE.fullmatch(attribute.group()))
+                rest = rest[attribute.end() :]
+            if pending and rest.strip():
+                item = RUST_ITEM_RE.match(rest)
+                if item and item.group(1) == "mod":
+                    start, start_depth, opened = number, depth, False
+                elif not rest.lstrip().startswith("#["):
+                    pending = False
+        for char in code:
+            if char == "{":
+                depth += 1
+                opened = opened or start is not None
+            elif char == "}":
+                depth = max(depth - 1, 0)
+            elif char == ";" and start is not None and not opened:
+                start = None
+        if start is not None:
+            blank.add(number)
+            if opened and depth <= start_depth:
+                start, pending = None, False
+    return "\n".join("" if i in blank else line for i, line in enumerate(lines))
+
+
+def _non_test_code(rel: str, text: str) -> str | None:
+    """`text` with its test code left out, `None` for a test file."""
+
+    if _is_test_file(rel):
+        return None
+    return _without_cfg_test_modules(text) if rel.endswith(".rs") else text
+
+
 def _read_tracked(path: Path) -> str | None:
     if path.is_symlink():
         return None
@@ -250,8 +323,9 @@ def _files_working_tree(repo_root: Path) -> dict[str, str]:
     files: dict[str, str] = {}
     for rel in tracked_files(repo_root, *_SUBJECT_PATTERNS):
         text = _read_tracked(repo_root / rel)
-        if text is not None:
-            files[rel] = text
+        code = _non_test_code(rel, text) if text is not None else None
+        if code is not None:
+            files[rel] = code
     return files
 
 
@@ -267,8 +341,9 @@ def _files_at_ref(repo_root: Path, ref: str) -> dict[str, str]:
         if not rel.endswith((".swift", ".rs")):
             continue
         text = _git(repo_root, "show", f"{ref}:{rel}")
-        if text is not None:
-            files[rel] = text
+        code = _non_test_code(rel, text) if text is not None else None
+        if code is not None:
+            files[rel] = code
     return files
 
 

@@ -212,6 +212,83 @@ class JudgmentAgentTests(RegistryClearingTestCase):
 
         self.assertEqual([f.mode for f in findings], [MODE_REMOVED])
 
+    # Ticket #172: on or1can/ratect, 26 of 78 candidates cited a test
+    # helper's declaration.
+    _TEST_HELPERS = {
+        "src/engine_tests.rs": "fn project_directory() {}\n",
+        "tests/common/mod.rs": "pub fn project_directory() {}\n",
+        "src/engine.rs": (
+            "#[cfg(test)]\nmod tests {\n    fn project_directory() {}\n}\n"
+        ),
+        "src/lib.rs": (
+            "#[allow(dead_code)] #[cfg(test)] mod tests {\n"
+            "    fn project_directory() {}\n}\n"
+        ),
+        "Tests/FooTests.swift": "func project_directory() {}\n",
+        "Sources/FooTests.swift": "func project_directory() {}\n",
+    }
+
+    def test_a_helper_added_in_test_code_is_not_a_subject(self) -> None:
+        for path, helper in self._TEST_HELPERS.items():
+            with self.subTest(path=path), Repo() as repo:
+                repo.write("docs/NOTES.md", "Uses `project_directory`.\n")
+                repo.commit()
+                repo.write(path, helper)
+
+                self.assertEqual(self._findings(repo.root), [])
+
+    def test_a_helper_removed_from_test_code_is_not_a_subject(self) -> None:
+        for path, helper in self._TEST_HELPERS.items():
+            with self.subTest(path=path), Repo() as repo:
+                repo.write(path, helper)
+                repo.write("docs/NOTES.md", "Uses `project_directory`.\n")
+                repo.commit()
+                repo.rm(path)
+
+                self.assertEqual(self._findings(repo.root), [])
+
+    def test_a_non_test_item_of_a_test_helpers_name_is_the_subject(self) -> None:
+        # Each test declaration sorts or sits before the real one, so a
+        # first-declaration index that kept test code would cite it.
+        for test_path, test_text, real_path, real_text in (
+            (
+                "src/engine_tests.rs",
+                "fn project_directory() {}\n",
+                "src/paths.rs",
+                "fn project_directory() {}\n",
+            ),
+            (
+                "src/a/tests/common.rs",
+                "fn project_directory() {}\n",
+                "src/b.rs",
+                "fn project_directory() {}\n",
+            ),
+            (
+                "src/engine.rs",
+                "#[cfg(test)]\nmod tests {\n    fn project_directory() {}\n}\n",
+                "src/engine.rs",
+                "#[cfg(test)]\nmod tests {\n    fn project_directory() {}\n}\n"
+                "fn project_directory() {}\n",
+            ),
+            (
+                "App/Tests/FooTests.swift",
+                "func project_directory() {}\n",
+                "Sources/Foo.swift",
+                "func project_directory() {}\n",
+            ),
+        ):
+            with self.subTest(test_path=test_path), Repo() as repo:
+                repo.write("docs/NOTES.md", "Uses `project_directory`.\n")
+                repo.commit()
+                repo.write(test_path, test_text)
+                repo.write(real_path, real_text)
+                real_line = real_text.count("\n")
+
+                findings = self._findings(repo.root)
+
+                self.assertEqual([f.mode for f in findings], [MODE_ADDED])
+                self.assertIn(f"declared at {real_path}:{real_line} ", findings[0].message)
+
     def test_no_touched_subjects_means_no_findings_not_a_crash(self) -> None:
         with Repo() as repo:
             repo.write("README.md", "nothing to see here\n")
