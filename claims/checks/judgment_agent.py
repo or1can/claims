@@ -205,7 +205,9 @@ def _rust_members(files: Mapping[str, str]) -> set[str]:
     bodies: the first `{` after a `struct` or `enum` item, outside any `(`
     or `[` opened since, opens its body; a `;` first means it has none. A
     line starting inside a `(` or `[`, a multi-line tuple variant's types,
-    names nothing.
+    names nothing, and neither does one continuing the line before it, a
+    discriminant after `=`: a member opens a line only after a `{`, `,`,
+    `}` or an attribute's `]`.
     """
 
     members: set[str] = set()
@@ -216,9 +218,11 @@ def _rust_members(files: Mapping[str, str]) -> set[str]:
         blocks: list[re.Pattern[str] | None] = []
         pending: re.Pattern[str] | None = None
         groups = 0  # `(` and `[` left open since `pending` was set
+        previous = ""  # the last non-space code character
         for _, code in _rust_code(text.splitlines()):
             member_re = blocks[-1] if blocks else None
-            if member_re and not groups and (member := member_re.match(code)):
+            opens_member = not groups and previous in ("{", ",", "}", "]")
+            if member_re and opens_member and (member := member_re.match(code)):
                 members.add(member.group(1))
             item = RUST_ITEM_RE.match(code)
             if item:
@@ -237,6 +241,8 @@ def _rust_members(files: Mapping[str, str]) -> set[str]:
                         pending = None
                 elif char == "}" and blocks:
                     blocks.pop()
+                if not char.isspace():
+                    previous = char
     return members
 
 

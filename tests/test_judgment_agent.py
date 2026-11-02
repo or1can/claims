@@ -195,6 +195,11 @@ class JudgmentAgentTests(RegistryClearingTestCase):
         self.assertEqual([f.mode for f in findings], [MODE_ADDED])
         self.assertIn("src/config.rs:", findings[0].message)
 
+    def test_a_discriminant_continued_onto_its_own_line_is_not_a_variant(self) -> None:
+        findings = self._added_beside("enum Key {\n    A =\n        project_name,\n}\n")
+
+        self.assertEqual([f.mode for f in findings], [MODE_ADDED])
+
     def test_a_removed_fn_is_still_removed_while_a_field_of_its_name_remains(self) -> None:
         field = "struct C {\n    x: u8,\n}\n"
         with Repo() as repo:
