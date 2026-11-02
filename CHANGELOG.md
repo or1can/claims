@@ -11,6 +11,14 @@ reached you, not just that one was pushed upstream.
 
 ## [Unreleased]
 
+## [0.20.1] - 2026-11-02
+
+- Changed: an agent running the `check-claims` skill that cannot start a
+  subagent, such as one inside a workflow, no longer judges
+  `judgment-agent` candidates itself. It lists them, citation and message
+  verbatim, under a heading saying they are not judged, for the session
+  that invoked it to dispatch `claims:judgment-agent` on each.
+
 ## [0.20.0] - 2026-11-02
 
 - Added: checked marks. `python3 -m claims.cli mark-checked` records, in

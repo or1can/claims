@@ -80,6 +80,34 @@ or the subagent's own file. See "Broadening the search after a refuted
 verdict" below for an additional, on-demand step appended to this same
 procedure.
 
+### When no subagent can be started
+
+Step 1 needs a way to start a subagent, and an agent that has none — one
+running inside a workflow with no Agent or Task tool, for instance —
+cannot take it. Such an agent does **not** judge the candidates itself:
+it does not read the cited code against the claim in the subagent's
+place, and presents no reading of its own as a verdict. Instead it hands
+the candidates back unjudged:
+
+- Report every other finding exactly as above; only the judgment step
+  changes.
+- In place of the verdicts, list every
+  `judgment-agent-added`/`judgment-agent-removed` finding together,
+  apart from the other findings, under a heading that says they are not
+  judged and why — `judgment-agent candidates: not judged (no subagent could be started)`
+  — each with its citation (`file:line`) and message verbatim, never
+  paraphrased or shortened, since those are exactly what the subagent's
+  input contract asks for.
+- The caller acts next: whoever invoked this skill, typically a main
+  session that does have an Agent tool, dispatches `claims:judgment-agent`
+  for each listed candidate, per steps 1–3 above.
+- Mark none of these candidates as checked (see "Marking a finding as
+  checked" below): a mark written on your own reading would quiet the
+  candidate before the caller sees it, which is a verdict by another
+  route.
+
+When a subagent can be started, none of this applies.
+
 ## Broadening the search after a refuted verdict (on demand)
 
 `judgment-agent` is diff-scoped by design: its candidate list only ever
