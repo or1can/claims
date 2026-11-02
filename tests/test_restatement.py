@@ -551,6 +551,20 @@ class RestatementTests(RegistryClearingTestCase):
             self._historical_survivors({"historical": "CHANGELOG.md"}), {"b.md:1"}
         )
 
+    def test_a_historical_files_shipped_line_is_no_whole_line_survivor(self) -> None:
+        """With the changelog the only survivor, nothing is over the
+        threshold to hide a whole-line hit there."""
+        sentence = "binding a proxy to zero dot zero dot zero dot zero exposes it to everything\n"
+        with Repo() as repo:
+            repo.write("a.md", sentence)
+            repo.write("CHANGELOG.md", "## [1.0.0]\n\n" + sentence)
+            repo.commit()
+            repo.write("a.md", "an entirely different sentence about something else\n")
+
+            findings = self._findings(repo.root, config={"historical": ["CHANGELOG.md"]})
+
+        self.assertEqual(findings, [])
+
     def _wrapping_run(self, before: str, after: str, config: dict[str, object]) -> set[str]:
         with Repo() as repo:
             repo.write("a.md", "alpha beta gamma delta epsilon zeta eta\n")

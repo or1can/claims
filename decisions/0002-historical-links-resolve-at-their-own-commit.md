@@ -61,7 +61,9 @@ gate finding had they not been retargeted.
 
 A project may list its append-only records under a check's `historical`
 key — `[check-links] historical` for links, `[check-file-refs] historical`
-for bare path mentions. For a reference in a matching file that fails
+for bare path mentions (`restatement` and `judgment-agent` take the key
+with a narrower meaning, set out under "Which checks this reaches"). For
+a reference in a matching file that fails
 against the working tree, the check re-resolves it against the tree at the
 commit `git blame` attributes the line to, and against the tree just
 before that commit — each of its parents — and passes it if it held at any
@@ -109,14 +111,15 @@ pays one `git blame` per record file that has a failing reference.
 
 ## Which checks this reaches
 
-The key earns its keep only where a claim can have been *false when
-written*. Re-resolving at the blame commit then discriminates "was always
+Re-resolving earns its keep only where a claim can have been *false
+when written*. Re-resolving at the blame commit then discriminates "was always
 broken", which still gates, from "broke later", which does not — and that
 discrimination is the whole value. Where the claim held at the commit
 that wrote it by construction, re-resolving there passes every line
-unconditionally, and an `exclude` glob already *is* the historical
-semantics, without the blame walk. That test, read against each check's
-own page and code:
+unconditionally, so there is nothing to re-test. Skipping the record's
+shipped lines is then all the key can mean, and `exclude` is not quite
+that, since it skips the lines the diff writes too. That test, read
+against each check's own page and code:
 
 - **`check-links` and `check-file-refs`** assert existence — this
   reference resolves — can be false when written, and are answered at a
