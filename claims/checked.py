@@ -44,7 +44,7 @@ import tomllib
 from collections import Counter
 from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 from typing import NamedTuple
 
 from .config import ConfigError
@@ -131,6 +131,29 @@ def _in_file(unit_hash: str) -> str:
     return unit_hash.split("-")[0]
 
 
+def _repo_relative(rel: str) -> bool:
+    """Whether `rel` is a path inside the repository as written: a
+    committed sidecar is a pull request's to edit, and `/dev/zero` or
+    `../` would have every reviewer's hook read outside it."""
+
+    path = PurePosixPath(rel)
+    return bool(rel) and not path.is_absolute() and ".." not in path.parts
+
+
+def _regular_file(repo_root: Path, rel: str) -> Path | None:
+    """`rel` as a regular file inside `repo_root` once symlinks are
+    followed, or `None`: a link to a device or out of the tree is never
+    read."""
+
+    try:
+        resolved = (repo_root / rel).resolve(strict=True)
+    except (OSError, RuntimeError):
+        return None
+    if not resolved.is_relative_to(repo_root.resolve()) or not resolved.is_file():
+        return None
+    return resolved
+
+
 def _units(kind: str, lines: Sequence[str]) -> list[_Unit]:
     if kind == SENTENCE:
         return [
@@ -182,12 +205,12 @@ class _Tree:
 
     def lines(self, rel: str) -> list[str] | None:
         if rel not in self._lines:
+            path = _regular_file(self.repo_root, rel)
             try:
-                text = (self.repo_root / rel).read_text(encoding="utf-8", errors="replace")
+                text = None if path is None else path.read_text(encoding="utf-8", errors="replace")
             except OSError:
-                self._lines[rel] = None
-            else:
-                self._lines[rel] = text.splitlines()
+                text = None
+            self._lines[rel] = None if text is None else text.splitlines()
         return self._lines[rel]
 
     def units(self, rel: str, kind: str) -> list[_Unit] | None:
@@ -217,8 +240,11 @@ class _Tree:
 
     def subject_hash(self, subject: str) -> str | None:
         path, _, anchor = subject.partition("#")
+        resolved = _regular_file(self.repo_root, path)
+        if resolved is None:
+            return None
         try:
-            text = (self.repo_root / path).read_bytes()
+            text = resolved.read_bytes()
         except OSError:
             return None
         if not anchor:
@@ -305,6 +331,10 @@ def load_marks(repo_root: Path) -> list[Mark]:
             isinstance(v, str) for v in subjects.values()
         ):
             raise _invalid(line, "needs 'subjects', a table of path to content hash")
+        if not _repo_relative(entry["file"]):
+            raise _invalid(line, "has a 'file' outside the repository")
+        if not all(_repo_relative(s.partition("#")[0]) for s in subjects):
+            raise _invalid(line, "has a subject outside the repository")
         by = entry.get("by")
         if by is not None and not isinstance(by, str):
             raise _invalid(line, "has a 'by' that is not a string")

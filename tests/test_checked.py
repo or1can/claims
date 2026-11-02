@@ -20,6 +20,9 @@ from __future__ import annotations
 
 import contextlib
 import io
+import json
+import os
+import tempfile
 import unittest
 from unittest import mock
 
@@ -415,6 +418,44 @@ class CheckedMarkTests(RegistryClearingTestCase):
         self.assertTrue(
             self.run_cli("--diff-range", "HEAD~1")[1].endswith(", 1 quiet while checked\n")
         )
+
+
+    def outside_file(self) -> str:
+        # A small regular file outside the repository, never a device: if
+        # the guard regresses, the test fails rather than reading forever.
+        handle = tempfile.NamedTemporaryFile("w", suffix=".txt", delete=False)
+        handle.write("outside\n")
+        handle.close()
+        self.addCleanup(os.unlink, handle.name)
+        return handle.name
+
+    def test_a_path_outside_the_repository_is_invalid(self) -> None:
+        outside = json.dumps(self.outside_file())
+        entry = '[[mark]]\nfile = {file}\nmode = "claim-words-totalising"\nunit = "x"\ncopies = 1\nnote = "n"\nsubjects = {{ {subject} = "h" }}\n'
+        for file, subject in (
+            (outside, '"docs/a.md"'),
+            ('"docs/a.md"', outside),
+            ('"docs/a.md"', '"../outside.txt"'),
+            ('"docs/../../outside.md"', '"docs/a.md"'),
+        ):
+            with self.subTest(file=file, subject=subject):
+                (self.repo.root / "claims.checked.toml").write_text(
+                    entry.format(file=file, subject=subject)
+                )
+                code, out, _ = self.run_cli()
+                self.assertEqual(code, 1)
+                self.assertIn("[GATE] claims.checked.toml:0 (config) is invalid:", out)
+
+    def test_a_symlink_out_of_the_repository_is_never_read(self) -> None:
+        self.repo.write("docs/a.md", "Every read goes through src/cache.py first.\n")
+        (self.repo.root / "src").mkdir()
+        (self.repo.root / "src/cache.py").symlink_to(self.outside_file())
+        self.git("add", "src/cache.py")
+
+        code, _, err = self.mark("docs/a.md:1 claim-words-totalising read it")
+
+        self.assertEqual((code, err), (0, ""))
+        self.assertIn("subjects = {}", (self.repo.root / "claims.checked.toml").read_text())
 
 
 if __name__ == "__main__":

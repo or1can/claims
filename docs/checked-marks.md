@@ -26,8 +26,10 @@ is what a check's `exclude` key is for.
 
 A missing file means no marks. A file that does not parse, an entry
 missing a required key or holding one of the wrong shape, an entry with an
-empty note, or an entry written other than as a `[[mark]]` table is
-invalid. An invalid file is reported as one gate finding, cited at
+empty note, an entry whose `file` or a subject is an absolute path or
+climbs out with `..`, or an entry written other than as a `[[mark]]`
+table is invalid. A path that reaches outside the repository through a
+symlink, or names anything but a regular file, is never read. An invalid file is reported as one gate finding, cited at
 `claims.checked.toml:0`, so it blocks a commit the way an invalid
 `claims.toml` does, and no mark applies until it is fixed.
 
