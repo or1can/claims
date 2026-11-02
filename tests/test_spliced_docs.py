@@ -650,6 +650,24 @@ class SplicedDocsTests(RegistryClearingTestCase):
         ]
         self.assertEqual(set(_rust_bare_items(lines)), {"after"})
 
+    def test_braces_outside_rust_code_do_not_shift_a_fn_body_depth(self) -> None:
+        # Each shape left a `{` counted in ratect, so the body never closed
+        # and every top-level item below it read as function-local.
+        bodies = {
+            "line comment": ["    // opens { here"],
+            "doc comment": ["    /// Anything after a `{` starts a name."],
+            "block comment": ["    /* { */"],
+            "byte literal": ["    if c == b'{' {", "    }"],
+            "char literal": ["    let c = '{';"],
+            "continued string": ["    let s = \"a = { b }\\n\\", "        c = {\\n\";"],
+            "raw string": ["    let s = r#\"", "{ \"quoted", "\"#;"],
+            "lifetime": ["    let s: &'static str = \"\";", "    struct Local<'a>(&'a str);"],
+        }
+        for shape, body in bodies.items():
+            with self.subTest(shape):
+                lines = ["/// Runs.", "fn outer() {", *body, "    struct Inner;", "}", "fn after() {}"]
+                self.assertEqual(set(_rust_bare_items(lines)), {"after"})
+
     def test_a_splice_naming_a_rust_fn_local_item_is_not_flagged(self) -> None:
         with Repo() as repo:
             repo.write(

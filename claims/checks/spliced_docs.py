@@ -240,25 +240,86 @@ def _rust_documented(lines: list[str], i: int, attributes: set[int]) -> bool:
     return above >= 0 and bool(DOC_RE.match(lines[above]))
 
 
+# A raw string's opening, `r"`, `r#"` or `br##"`, not the tail of an
+# identifier such as `for"`.
+RUST_RAW_OPEN_RE = re.compile(r"(?<![A-Za-z0-9_])b?r(#*)\"")
+# A char or byte literal: `'{'`, `b'{'`, `'\''`, `'\u{7b}'`. A lifetime,
+# `'a`, has no closing quote one character on, so never matches.
+RUST_CHAR_RE = re.compile(r"'(?:[^'\\]|\\(?:x[0-9A-Fa-f]{2}|u\{[0-9A-Fa-f]+\}|.))'")
+
+
+def _rust_code(lines: list[str]):
+    """Each of `lines` with its comments, strings and char literals removed,
+    carrying an open string or block comment from one line to the next.
+
+    Not a full lexer: enough that a brace count over what is left balances.
+    """
+
+    raw_close = None  # the `"#…` that ends the raw string we are inside
+    in_string = False
+    comment_depth = 0
+    for line in lines:
+        code = []
+        j = 0
+        while j < len(line):
+            if raw_close is not None:
+                end = line.find(raw_close, j)
+                if end < 0:
+                    break
+                j = end + len(raw_close)
+                raw_close = None
+            elif in_string:
+                if line[j] == "\\":
+                    j += 2
+                    continue
+                in_string = line[j] != '"'
+                j += 1
+            elif comment_depth:
+                if line.startswith("/*", j):
+                    comment_depth += 1
+                    j += 2
+                elif line.startswith("*/", j):
+                    comment_depth -= 1
+                    j += 2
+                else:
+                    j += 1
+            elif line.startswith("//", j):
+                break
+            elif line.startswith("/*", j):
+                comment_depth = 1
+                j += 2
+            elif raw := RUST_RAW_OPEN_RE.match(line, j):
+                raw_close = '"' + raw.group(1)
+                j = raw.end()
+            elif line[j] == '"':
+                in_string = True
+                j += 1
+            elif char := RUST_CHAR_RE.match(line, j):
+                j = char.end()
+            else:
+                code.append(line[j])
+                j += 1
+        yield "".join(code)
+
+
 def _rust_fn_local_lines(lines: list[str]) -> set[int]:
     """Every index in `lines` that starts inside a `fn` body, however deep.
 
-    A rough brace count: the first `{` after a `fn` item opens its body,
-    and a `}` before it (a bodiless trait method's trait closing) cancels
-    that. Braces in double-quoted strings are ignored; braces in comments,
-    char literals and raw strings are not.
+    A rough brace count over `_rust_code`: the first `{` after a `fn` item
+    opens its body, and a `}` before it (a bodiless trait method's trait
+    closing) cancels that.
     """
 
     local: set[int] = set()
     fn_bodies: list[bool] = []
     fn_pending = False
-    for i, line in enumerate(lines):
+    for i, code in enumerate(_rust_code(lines)):
         if any(fn_bodies):
             local.add(i)
-        matched = RUST_ITEM_RE.match(line)
+        matched = RUST_ITEM_RE.match(code)
         if matched and matched.group(1) == "fn":
             fn_pending = True
-        for char in DOUBLE_QUOTED_RE.sub("", line):
+        for char in code:
             if char == "{":
                 fn_bodies.append(fn_pending)
                 fn_pending = False
