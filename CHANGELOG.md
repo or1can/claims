@@ -11,6 +11,13 @@ reached you, not just that one was pushed upstream.
 
 ## [Unreleased]
 
+## [0.19.2] - 2026-11-02
+
+- Fixed: `spliced-docs` no longer reports a Rust item as undocumented
+  when only plain `//` comments or blank lines sit between it and its
+  `///` doc comment, and never counts an item declared inside a function
+  body as undocumented. See [spliced-docs](docs/checks/spliced-docs.md#what-it-checks).
+
 ## [0.19.1] - 2026-11-02
 
 - Fixed: `claim-words` and `temporal-words` no longer report a sentence

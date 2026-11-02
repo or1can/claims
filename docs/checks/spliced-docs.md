@@ -40,7 +40,10 @@ mode that fired:
   `spliced-docs-undocumented`. In Rust, "names" also covers a parameter
   of the undocumented function when the parameter sits on a line of its
   own, and a name documented once on a trait and bare on every
-  implementation is not counted as undocumented.
+  implementation is not counted as undocumented. An item declared
+  inside a function body, however deeply nested, is never counted as
+  undocumented either: rustdoc does not render it. It still counts as
+  declared for `unknown`.
 - `unknown`, opt-in: the stranded half names something no tracked Swift
   or Rust file declares at all, reported under `spliced-docs-unknown`.
   On a codebase with dense, cross-referencing doc comments this fires on
@@ -51,9 +54,11 @@ mode that fired:
 A comment whose declaration is documented and whose stranded half names
 nothing bare is not reported, whatever its breaks. A documented
 declaration is one whose `///` run sits above it with only attributes
-between, or, in Swift, attributes and blank lines. An attribute counts
-whole however many lines it spans, through the line where its brackets
-close: `]` for Rust's `#[...]`, `)` for Swift's `@name(...)`.
+and blank lines between, and, in Rust, plain comments too: a line
+opening with `//` and no third `/` or `!`, or with four or more slashes.
+A `//!` line between them detaches the run. An attribute counts whole
+however many lines it spans, through the line where its brackets close:
+`]` for Rust's `#[...]`, `)` for Swift's `@name(...)`.
 
 The check is whole-tree, and has no `exclude`: a splice can predate the
 commit being checked by years, and every tracked Swift and Rust file is

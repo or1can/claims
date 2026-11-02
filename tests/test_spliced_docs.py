@@ -563,6 +563,133 @@ class SplicedDocsTests(RegistryClearingTestCase):
         ]
         self.assertEqual(_rust_bare_items(lines), {})
 
+    def test_a_plain_comment_between_a_rust_doc_and_its_attributes_does_not_detach_it(
+        self,
+    ) -> None:
+        lines = [
+            "/// Does a thing.",
+            "// note",
+            "#[instrument]",
+            "#[allow(clippy::too_many_arguments)]",
+            "async fn ensure_container_created() {}",
+        ]
+        self.assertEqual(_rust_bare_items(lines), {})
+
+    def test_a_blank_line_between_a_rust_doc_and_its_item_does_not_detach_it(
+        self,
+    ) -> None:
+        lines = ["/// Doc.", "", "fn spaced() {}"]
+        self.assertEqual(_rust_bare_items(lines), {})
+
+    def test_a_four_slash_line_is_a_plain_comment_rust_skips(self) -> None:
+        lines = ["/// Doc.", "//// aside", "fn spaced() {}"]
+        self.assertEqual(_rust_bare_items(lines), {})
+
+    def test_an_inner_doc_line_detaches_a_rust_doc_from_its_item(self) -> None:
+        lines = ["/// Doc.", "//! Module doc.", "fn detached() {}"]
+        self.assertIn("detached", _rust_bare_items(lines))
+
+    def test_a_struct_inside_a_rust_fn_body_is_not_bare(self) -> None:
+        lines = [
+            "/// Removes things.",
+            "async fn remove() {",
+            "    struct Reinsert<'a> {",
+            "        a: &'a str,",
+            "    }",
+            "}",
+        ]
+        self.assertEqual(_rust_bare_items(lines), {})
+
+    def test_undocumented_top_level_rust_items_and_impl_methods_are_still_bare(
+        self,
+    ) -> None:
+        lines = [
+            "fn top() {}",
+            "struct Plain {",
+            "    a: u8,",
+            "}",
+            "impl Plain {",
+            "    fn method(&self) {}",
+            "}",
+            "trait Shape {",
+            "    fn area(&self) -> f64;",
+            "}",
+            "impl Shape for Plain {",
+            "    fn area(&self) -> f64 { 0.0 }",
+            "    fn later() {}",
+            "}",
+        ]
+        self.assertEqual(
+            set(_rust_bare_items(lines)), {"top", "Plain", "method", "Shape", "area", "later"}
+        )
+
+    def test_items_nested_two_blocks_deep_in_a_rust_fn_body_are_not_bare(
+        self,
+    ) -> None:
+        lines = [
+            "/// Runs.",
+            "fn outer(x: bool) {",
+            "    if x {",
+            "        struct Inner;",
+            "        fn helper() {}",
+            "    }",
+            "}",
+        ]
+        self.assertEqual(_rust_bare_items(lines), {})
+
+    def test_a_brace_in_a_string_in_a_rust_fn_body_does_not_shift_its_depth(
+        self,
+    ) -> None:
+        lines = [
+            "/// Runs.",
+            "fn outer() {",
+            "    let open = \"{\";",
+            "    struct Inner;",
+            "}",
+            "fn after() {}",
+        ]
+        self.assertEqual(set(_rust_bare_items(lines)), {"after"})
+
+    def test_braces_outside_rust_code_do_not_shift_a_fn_body_depth(self) -> None:
+        # Each shape left a `{` counted in ratect, so the body never closed
+        # and every top-level item below it read as function-local.
+        bodies = {
+            "line comment": ["    // opens { here"],
+            "doc comment": ["    /// Anything after a `{` starts a name."],
+            "block comment": ["    /* { */"],
+            "byte literal": ["    if c == b'{' {", "    }"],
+            "char literal": ["    let c = '{';"],
+            "continued string": ["    let s = \"a = { b }\\n\\", "        c = {\\n\";"],
+            "raw string": ["    let s = r#\"", "{ \"quoted", "\"#;"],
+            "lifetime": ["    let s: &'static str = \"\";", "    struct Local<'a>(&'a str);"],
+        }
+        for shape, body in bodies.items():
+            with self.subTest(shape):
+                lines = ["/// Runs.", "fn outer() {", *body, "    struct Inner;", "}", "fn after() {}"]
+                self.assertEqual(set(_rust_bare_items(lines)), {"after"})
+
+    def test_a_splice_naming_a_rust_fn_local_item_is_not_flagged(self) -> None:
+        with Repo() as repo:
+            repo.write(
+                "src/lib.rs",
+                "/// Runs.\n"
+                "fn outer(x: bool) {\n"
+                "    if x {\n"
+                "        struct Inner;\n"
+                "    }\n"
+                "}\n\n"
+                "/// Loads `Inner` from disk.\n"
+                "/// Returns the parsed config.\n"
+                "fn load() {}\n",
+            )
+            repo.commit()
+
+            findings = self._findings(
+                repo.root, config={"modes": ["undocumented", "unknown"]}
+            )
+
+        self.assertEqual(findings, [])
+
 
 if __name__ == "__main__":
     unittest.main()
