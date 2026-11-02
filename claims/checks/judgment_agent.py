@@ -44,6 +44,23 @@ The subject index reuses `spliced_docs.SWIFT_DECL_RE` and
 `spliced_docs.RUST_ITEM_RE`, the same "what does this repo declare"
 answer `check-citations` and `spliced-docs` already share (this
 consolidation's own precedent for not letting that answer drift twice).
+A name the base tree held only as a Rust struct field or enum variant is
+not "added" when the head declares an item of that name (ticket #171: on
+or1can/ratect, 34 of 78 candidates were one field name beside a new
+`fn`). `_rust_members` finds those members with `spliced_docs._rust_code`'s
+stripped view and a brace count, not a new lexer. That narrows what
+"added" means rather than scoring candidates: a deliberate precision
+trade with that evidence behind it, on the added half only — a name
+leaving the item index is still removed while a field of its name
+remains.
+A name the base tree held only as a Rust struct field or enum variant is
+not "added" when the head declares an item of that name (ticket #171: on
+or1can/ratect, 34 of 78 candidates were one field name beside a new
+`fn`). `_rust_members` finds those members with `spliced_docs._rust_code`'s
+stripped view and a brace count, not a new lexer; it is the one place a
+citation is dropped, a deliberate precision trade with that evidence
+behind it, and it applies to the added half only — a name leaving the
+item index is still removed while a field of its name remains.
 A plain `diff_range` naming one revision compares it against the working
 tree, matching every other check's convention in this codebase.
 `A..B`/`A...B` is split into two revisions at the separator — a
@@ -88,6 +105,7 @@ first because a citation of a now-gone name is the more urgent read.
 
 from __future__ import annotations
 
+import re
 import subprocess
 from collections.abc import Mapping
 from pathlib import Path
@@ -96,7 +114,7 @@ from typing import NamedTuple
 from ..git import QUOTEPATH_OFF, tracked_files
 from ..runner import Finding, register_check
 from .check_citations import CITATION_RE
-from .spliced_docs import RUST_ITEM_RE, SWIFT_DECL_RE
+from .spliced_docs import RUST_ITEM_RE, SWIFT_DECL_RE, _rust_code
 
 NAME = "judgment-agent"
 
@@ -104,6 +122,17 @@ MODE_REMOVED = "judgment-agent-removed"
 MODE_ADDED = "judgment-agent-added"
 
 _SUBJECT_PATTERNS = ("*.swift", "*.rs")
+
+# What names a member on a line directly inside each kind of body: a struct
+# field, `name:` after an optional `pub`/`pub(crate)` (`::` is a path), and
+# an enum variant, the identifier the line opens with. A raw identifier,
+# `r#type`, names what follows its `r#`.
+_RUST_MEMBER_PATTERNS = {
+    "struct": re.compile(
+        r"^\s*(?:pub(?:\([^)]*\))?\s+)?(?:r#)?([A-Za-z_][A-Za-z_0-9]*)\s*:(?!:)"
+    ),
+    "enum": re.compile(r"^\s*(?:r#)?([A-Za-z_][A-Za-z_0-9]*)"),
+}
 
 
 class _Subject(NamedTuple):
@@ -166,6 +195,55 @@ def _subject_index(files: Mapping[str, str]) -> dict[str, _Subject]:
             if name and name not in index:
                 index[name] = _Subject(rel, number)
     return index
+
+
+def _rust_members(files: Mapping[str, str]) -> set[str]:
+    """Every struct field and enum variant name directly inside a
+    `struct … {` or `enum … {` body across the `.rs` files in `files`.
+
+    A rough brace count over `_rust_code`, as `spliced_docs` does for `fn`
+    bodies: the first `{` after a `struct` or `enum` item, outside any `(`
+    or `[` opened since, opens its body; a `;` first means it has none. A
+    line starting inside a `(` or `[`, a multi-line tuple variant's types,
+    names nothing, and neither does one continuing the line before it, a
+    discriminant after `=`: a member opens a line only after a `{`, `,`,
+    `}` or an attribute's `]`.
+    """
+
+    members: set[str] = set()
+    for rel, text in files.items():
+        if not rel.endswith(".rs"):
+            continue
+        # the member pattern of the body each open `{` starts, if any
+        blocks: list[re.Pattern[str] | None] = []
+        pending: re.Pattern[str] | None = None
+        groups = 0  # `(` and `[` left open since `pending` was set
+        previous = ""  # the last non-space code character
+        for _, code in _rust_code(text.splitlines()):
+            member_re = blocks[-1] if blocks else None
+            opens_member = not groups and previous in ("{", ",", "}", "]")
+            if member_re and opens_member and (member := member_re.match(code)):
+                members.add(member.group(1))
+            item = RUST_ITEM_RE.match(code)
+            if item:
+                pending = _RUST_MEMBER_PATTERNS.get(item.group(1))
+                groups = 0
+            for char in code:
+                if char in "([":
+                    groups += 1
+                elif char in ")]":
+                    groups = max(groups - 1, 0)
+                elif char == ";" and not groups:
+                    pending = None
+                elif char == "{":
+                    blocks.append(pending if not groups else None)
+                    if not groups:
+                        pending = None
+                elif char == "}" and blocks:
+                    blocks.pop()
+                if not char.isspace():
+                    previous = char
+    return members
 
 
 def _read_tracked(path: Path) -> str | None:
@@ -239,7 +317,8 @@ def check(
 ) -> list[Finding]:
     endpoints = _split_diff_range(diff_range)
 
-    base_index = _subject_index(_files_at_ref(repo_root, endpoints.base))
+    base_files = _files_at_ref(repo_root, endpoints.base)
+    base_index = _subject_index(base_files)
     head_files = (
         _files_at_ref(repo_root, endpoints.head)
         if endpoints.head
@@ -248,7 +327,7 @@ def check(
     head_index = _subject_index(head_files)
 
     removed = base_index.keys() - head_index.keys()
-    added = head_index.keys() - base_index.keys()
+    added = head_index.keys() - base_index.keys() - _rust_members(base_files)
     if not removed and not added:
         return []
 
