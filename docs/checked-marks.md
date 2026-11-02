@@ -44,8 +44,8 @@ kind of unit:
 
 | Check | Unit |
 | --- | --- |
-| `claim-words`, `temporal-words`, `judgment-agent` | The sentence holding the cited line. |
-| `stale-claims` | The section's heading. A heading repeated in one file is a separate unit each time, told apart by its order, as a repeated heading's anchor is. |
+| `claim-words`, `temporal-words`, `judgment-agent` | The sentence holding the cited line; where two sentences share that line, the one the finding quotes, or else the one starting there. A line inside a fenced code block, which no sentence holds, is its own unit. |
+| `stale-claims` | The section's heading. A heading repeated in one file is a separate unit each time, told apart by its order, as a repeated heading's anchor is. A file with no heading is one section, whose unit is the file itself: its mark expires only with its subjects. |
 | `restatement` | The surviving line, together with the retracted words the finding quotes. |
 | `spliced-docs` | The run of `///` doc-comment lines holding the cited line. |
 

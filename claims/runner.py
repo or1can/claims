@@ -250,6 +250,9 @@ def run(
         findings.append(
             Finding(file=CHECKED_FILENAME, line=0, message=f"is invalid: {e}", mode="config", gate=True)
         )
+    except Exception as exc:
+        # As for a check: one crash finding, every other finding kept.
+        findings.append(_crash_finding("checked-marks", exc))
     return RunResult(
         checks_run=tuple(_registry), findings=tuple(findings), quiet=tuple(quiet)
     )

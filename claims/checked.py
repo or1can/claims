@@ -30,9 +30,12 @@ are counted by, and the message's, since the same line surviving a
 different retraction is a different finding.
 
 Subjects are resolved by `stale_claims.subjects_named`, so a mark and
-`stale-claims` can't disagree about what a sentence names, and are read
-as they are on disk: a mark records a content hash per subject rather
-than a commit, which a rebase or squash would take out of history.
+`stale-claims` read the same paths and names out of a sentence. They are
+read as they are on disk, an anchor's heading included, where
+`stale-claims` looks an anchor up at `HEAD` for `git log -L`: a mark
+records a content hash per subject rather than a commit, which a rebase
+or squash would take out of history, and that hash is of what the reader
+had in front of them.
 """
 
 from __future__ import annotations
@@ -49,7 +52,7 @@ from typing import NamedTuple
 
 from .config import ConfigError
 from .git import tracked_files
-from .markdown import prose_lines, section_range, sentences_from
+from .markdown import fence_state, prose_lines, section_range, sentences_from
 from .runner import Finding
 from .words import normalise
 
@@ -156,21 +159,33 @@ def _regular_file(repo_root: Path, rel: str) -> Path | None:
 
 def _units(kind: str, lines: Sequence[str]) -> list[_Unit]:
     if kind == SENTENCE:
-        return [
+        units = [
             _Unit(start, end, _words_digest(sentence), sentence)
             for sentence, start, end in sentences_from(prose_lines(lines))
         ]
+        # A fenced line is in no sentence, and `judgment-agent` cites a
+        # name wherever it appears: there, the line is the unit.
+        units.extend(
+            _Unit(i, i, _words_digest(line), line)
+            for i, (line, fenced) in enumerate(zip(lines, fence_state(lines)))
+            if fenced and normalise(line)
+        )
+        return units
     if kind == HEADING:
         # A repeated heading is a different anchor, as `-1` makes it on
         # GitHub, not a second copy of one section: each has its own body.
+        # `#` is never in normalised words, so `foo#1` can't be a heading's.
+        # A file with no heading is one section, reported at its first line.
         starts = [i for i, line in enumerate(lines) if _SECTION_HEADING_RE.match(line)]
+        if not starts:
+            return [_Unit(0, 0, _digest(""), "\n".join(lines))] if lines else []
         seen: Counter[str] = Counter()
         units = []
         for start, end in zip(starts, starts[1:] + [len(lines)]):
             heading = _SECTION_HEADING_RE.match(lines[start])
             assert heading is not None
             words = " ".join(normalise(heading.group(2)))
-            digest = _digest(f"{words} {seen[words]}" if seen[words] else words)
+            digest = _digest(f"{words}#{seen[words]}" if seen[words] else words)
             seen[words] += 1
             units.append(_Unit(start, start, digest, "\n".join(lines[start:end])))
         return units
@@ -202,6 +217,7 @@ class _Tree:
         self._lines: dict[str, list[str] | None] = {}
         self._units: dict[tuple[str, str], list[_Unit] | None] = {}
         self._resolver: tuple[set[str], dict[str, str]] | None = None
+        self._hashes: dict[str, str | None] = {}
 
     def lines(self, rel: str) -> list[str] | None:
         if rel not in self._lines:
@@ -230,15 +246,30 @@ class _Tree:
         if kind is None:
             return None
         index = finding.line - 1
-        for unit in self.units(finding.file, kind) or []:
-            if unit.start <= index <= unit.end and (kind != HEADING or unit.start == index):
-                digest = unit.digest
-                if kind == LINE:
-                    digest += "-" + _words_digest(finding.message)
-                return unit, digest
-        return None
+        covering = [
+            unit
+            for unit in self.units(finding.file, kind) or []
+            if unit.start <= index <= unit.end and (kind != HEADING or unit.start == index)
+        ]
+        if not covering:
+            return None
+        # Two sentences can share a line. A sentence check's message is
+        # its sentence, and it cites the line the sentence starts on.
+        unit = next(
+            (u for u in covering if u.body == finding.message),
+            next((u for u in covering if u.start == index), covering[0]),
+        )
+        digest = unit.digest
+        if kind == LINE:
+            digest += "-" + _words_digest(finding.message)
+        return unit, digest
 
     def subject_hash(self, subject: str) -> str | None:
+        if subject not in self._hashes:
+            self._hashes[subject] = self._read_hash(subject)
+        return self._hashes[subject]
+
+    def _read_hash(self, subject: str) -> str | None:
         path, _, anchor = subject.partition("#")
         resolved = _regular_file(self.repo_root, path)
         if resolved is None:
@@ -255,9 +286,10 @@ class _Tree:
             return None
         return _digest("\n".join(decoded.splitlines()[span[0] - 1 : span[1]]))
 
-    def subjects(self, rel: str, unit: _Unit) -> set[str]:
-        """The subjects `unit`, in `rel`, names that exist on disk: one
-        tracked but deleted has no content to record or compare."""
+    def subjects(self, rel: str, unit: _Unit) -> dict[str, str]:
+        """`{subject: content hash}` for each subject `unit`, in `rel`,
+        names that exists on disk: one tracked but deleted has no content
+        to record or compare."""
 
         # Imported here: `stale_claims` registers itself with the runner on
         # import, and this module is imported by the runner.
@@ -270,7 +302,7 @@ class _Tree:
             tracked = tracked_files(self.repo_root)
             try:
                 modules = module_index(tracked, stale_config)
-            except ConfigError:
+            except (ConfigError, TypeError):
                 # `stale-claims` reports its own bad `exclude` when it
                 # runs; this is no reason to call the sidecar invalid.
                 modules = module_index(tracked, {})
@@ -281,11 +313,16 @@ class _Tree:
             lines = self.lines(path)
             return lines is not None and section_range("\n".join(lines), anchor) is not None
 
-        named = {
-            f"{path}#{anchor}" if anchor else path
-            for path, anchor in subjects_named(rel, unit.body, stale_config, citable, modules, section)
+        try:
+            found = subjects_named(rel, unit.body, stale_config, citable, modules, section)
+        except (ConfigError, TypeError):
+            # `stale-claims` reports its own bad key; read with defaults.
+            found = subjects_named(rel, unit.body, {}, citable, modules, section)
+        hashes = {
+            subject: self.subject_hash(subject)
+            for subject in (f"{path}#{anchor}" if anchor else path for path, anchor in found)
         }
-        return {subject for subject in named if self.subject_hash(subject) is not None}
+        return {subject: h for subject, h in hashes.items() if h is not None}
 
 
 def _invalid(line: int, problem: str) -> ConfigError:
@@ -298,10 +335,14 @@ def load_marks(repo_root: Path) -> list[Mark]:
     entry of the wrong shape, an empty note included."""
 
     path = repo_root / CHECKED_FILENAME
-    if not path.is_file():
+    if not path.exists() and not path.is_symlink():
         return []
+    # Committed, so a pull request's to make a symlink out of the tree.
+    resolved = _regular_file(repo_root, CHECKED_FILENAME)
+    if resolved is None:
+        raise ConfigError("is not a regular file inside the repository")
     try:
-        text = path.read_text(encoding="utf-8")
+        text = resolved.read_text(encoding="utf-8")
         data = tomllib.loads(text)
     except (UnicodeDecodeError, tomllib.TOMLDecodeError) as e:
         raise ConfigError(str(e)) from e
@@ -358,7 +399,7 @@ def _current(tree: _Tree, mark: Mark, rel: str, unit: _Unit) -> bool:
 
     if any(tree.subject_hash(s) != h for s, h in mark.subjects.items()):
         return False
-    return tree.subjects(rel, unit) <= mark.subjects.keys()
+    return tree.subjects(rel, unit).keys() <= mark.subjects.keys()
 
 
 def apply_marks(
@@ -429,7 +470,7 @@ def _orphans(tree: _Tree, marks: Iterable[Mark]) -> list[Finding]:
     return found
 
 
-ENTRY_RE = re.compile(r"^(?P<file>\S+):(?P<line>\d+)\s+(?P<mode>\S+)(?:\s+(?P<note>.*))?$")
+ENTRY_RE = re.compile(r"^(?P<file>.+?):(?P<line>\d+)\s+(?P<mode>\S+)(?:\s+(?P<note>.*))?$")
 
 
 def new_marks(
@@ -474,10 +515,7 @@ def new_marks(
             unit, digest = found
             kind = unit_kind(mode)
             assert kind is not None
-            subjects = {
-                subject: tree.subject_hash(subject) or ""
-                for subject in sorted(tree.subjects(file, unit))
-            }
+            subjects = dict(sorted(tree.subjects(file, unit).items()))
             marks.append(
                 Mark(
                     file=file,

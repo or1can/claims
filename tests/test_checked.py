@@ -24,6 +24,7 @@ import json
 import os
 import tempfile
 import unittest
+from pathlib import Path
 from unittest import mock
 
 from claims.checks import claim_words, restatement, spliced_docs, stale_claims
@@ -456,6 +457,108 @@ class CheckedMarkTests(RegistryClearingTestCase):
 
         self.assertEqual((code, err), (0, ""))
         self.assertIn("subjects = {}", (self.repo.root / "claims.checked.toml").read_text())
+
+
+    def test_a_sentence_sharing_a_line_with_an_earlier_one_is_its_own_unit(self) -> None:
+        self.repo.write("docs/a.md", "Intro wraps onto\nthe next line. It always works.\n")
+        self.mark("docs/a.md:2 claim-words-totalising read it")
+
+        self.repo.write("docs/a.md", "Intro wraps onto\nthe next page. It always works.\n")
+        self.assertTrue(self.summary().endswith(", 1 quiet while checked"))
+
+        self.repo.write("docs/a.md", "Intro wraps onto\nthe next line. It never works.\n")
+        self.assertNotIn("quiet", self.summary())
+
+    def test_a_bad_module_reference_scope_is_not_blamed_on_the_sidecar(self) -> None:
+        self.repo.write("claims.toml", CONFIG + "\n[stale-claims]\nmodule_reference_scope = 3\n")
+        register_check(stale_claims.NAME, lambda repo_root, diff_range, config: [])
+        self.repo.write("docs/a.md", "Every check runs.\n")
+
+        code, _, err = self.mark("docs/a.md:1 claim-words-totalising read it")
+
+        self.assertEqual((code, err), (0, ""))
+        self.assertTrue(self.summary().endswith(", 1 quiet while checked"))
+
+    def test_a_stale_claims_section_with_no_heading_can_be_marked(self) -> None:
+        register_check(stale_claims.NAME, stale_claims.check)
+        self.repo.write("src/x.py", "X = 1\n")
+        self.repo.write("notes/n.md", "Reads go through src/x.py.\n")
+        self.repo.commit(when=1_700_000_000)
+        self.repo.write("src/x.py", "X = 2\n")
+        self.repo.commit(when=1_700_003_600)
+
+        code, _, err = self.mark("notes/n.md:1 stale-claims x still read", diff_range="HEAD~1")
+
+        self.assertEqual((code, err), (0, ""))
+        self.assertTrue(
+            self.run_cli("--diff-range", "HEAD~1")[1].endswith(", 1 quiet while checked\n")
+        )
+
+    def test_a_finding_on_a_fenced_line_can_be_marked(self) -> None:
+        register_check(
+            "fenced",
+            lambda repo_root, diff_range, config: [
+                Finding(file="docs/a.md", line=2, message="m", mode="judgment-agent-added", gate=False)
+            ],
+        )
+        self.repo.write("docs/a.md", "```\nload(`foo`)\n```\n")
+
+        code, _, err = self.mark("docs/a.md:2 judgment-agent-added foo is real")
+
+        self.assertEqual((code, err), (0, ""))
+        self.assertTrue(self.summary().endswith(", 1 quiet while checked"))
+
+    def test_an_error_applying_marks_is_reported_not_raised(self) -> None:
+        self.repo.write("docs/a.md", "Every check runs.\n")
+        self.mark("docs/a.md:1 claim-words-totalising read it")
+
+        with mock.patch("claims.checked.tracked_files", side_effect=FileNotFoundError("git")):
+            code, out, _ = self.run_cli()
+
+        self.assertEqual(code, 1)
+        self.assertIn("[advisory] docs/a.md:1 (claim-words-totalising)", out)
+        self.assertIn("(checked-marks) check 'checked-marks' crashed: FileNotFoundError", out)
+
+    def test_a_sidecar_symlinked_out_of_the_repository_is_invalid_and_never_written(self) -> None:
+        outside = self.outside_file()
+        Path(outside).write_text("")
+        (self.repo.root / "claims.checked.toml").symlink_to(outside)
+        self.repo.write("docs/a.md", "Every check runs.\n")
+
+        code, out, _ = self.run_cli()
+        self.assertIn("[GATE] claims.checked.toml:0 (config) is invalid:", out)
+
+        code, _, _ = self.mark("docs/a.md:1 claim-words-totalising read it")
+        self.assertEqual(code, 2)
+        self.assertEqual(Path(outside).read_text(), "")
+
+    def test_a_path_with_a_space_can_be_marked(self) -> None:
+        self.repo.write("claims.toml", '[claim-words]\nfiles = ["docs/*"]\n')
+        self.repo.write("docs/user guide.md", "Every check runs.\n")
+
+        code, _, err = self.mark("docs/user guide.md:1 claim-words-totalising read it")
+
+        self.assertEqual((code, err), (0, ""))
+        self.assertTrue(self.summary().endswith(", 1 quiet while checked"))
+
+    def test_a_repeated_heading_never_shares_a_unit_with_a_numbered_one(self) -> None:
+        register_check(stale_claims.NAME, stale_claims.check)
+        for name in ("a", "b", "c"):
+            self.repo.write(f"src/{name}.py", "V = 1\n")
+        self.repo.write(
+            "notes/s.md",
+            "# Foo\n\nsrc/a.py\n\n# Foo\n\nsrc/b.py\n\n# Foo 1\n\nsrc/c.py\n",
+        )
+        self.repo.commit(when=1_700_000_000)
+        for name in ("a", "b", "c"):
+            self.repo.write(f"src/{name}.py", "V = 2\n")
+        self.repo.commit(when=1_700_003_600)
+        self.mark("notes/s.md:5 stale-claims b read", diff_range="HEAD~1")
+
+        code, out, _ = self.run_cli("--diff-range", "HEAD~1")
+
+        self.assertIn("[advisory] notes/s.md:9 (stale-claims)", out)
+        self.assertNotIn("copies = 2", (self.repo.root / "claims.checked.toml").read_text())
 
 
 if __name__ == "__main__":
