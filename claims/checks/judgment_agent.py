@@ -294,7 +294,7 @@ def _without_cfg_test_modules(text: str) -> str:
             elif char == "}":
                 depth = max(depth - 1, 0)
             elif char == ";" and start is not None and not opened:
-                start = None
+                start, pending = None, False
         if start is not None:
             blank.add(number)
             if opened and depth <= start_depth:

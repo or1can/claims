@@ -37,6 +37,19 @@ from claims.runner import Finding, register_check, run
 from support import RegistryClearingTestCase, Repo
 
 
+# A nested `#[cfg(test)]` module whose `{` opens on its own line and
+# whose body holds braces in a string and a char literal, left open in
+# its enclosing module.
+_TRICKY_TEST_MODULE = (
+    "mod outer {\n"
+    "    #[cfg(test)]\n"
+    "    mod tests\n"
+    "    {\n"
+    "        fn project_directory() { let _ = (\"}}\", '}'); }\n"
+    "    }\n"
+)
+
+
 class JudgmentAgentTests(RegistryClearingTestCase):
     def setUp(self) -> None:
         super().setUp()
@@ -271,6 +284,12 @@ class JudgmentAgentTests(RegistryClearingTestCase):
                 "fn project_directory() {}\n",
             ),
             (
+                "src/outer.rs",
+                _TRICKY_TEST_MODULE,
+                "src/outer.rs",
+                _TRICKY_TEST_MODULE + "    fn project_directory() {}\n}\n",
+            ),
+            (
                 "App/Tests/FooTests.swift",
                 "func project_directory() {}\n",
                 "Sources/Foo.swift",
@@ -282,12 +301,27 @@ class JudgmentAgentTests(RegistryClearingTestCase):
                 repo.commit()
                 repo.write(test_path, test_text)
                 repo.write(real_path, real_text)
-                real_line = real_text.count("\n")
+                lines = real_text.splitlines()
+                real_line = max(i for i, x in enumerate(lines, 1) if "project_directory" in x)
 
                 findings = self._findings(repo.root)
 
                 self.assertEqual([f.mode for f in findings], [MODE_ADDED])
                 self.assertIn(f"declared at {real_path}:{real_line} ", findings[0].message)
+
+    def test_a_module_after_a_cfg_test_module_declaration_is_still_indexed(self) -> None:
+        with Repo() as repo:
+            repo.write("docs/NOTES.md", "Uses `project_directory`.\n")
+            repo.commit()
+            repo.write(
+                "src/lib.rs",
+                "#[cfg(test)]\nmod tests;\nmod engine {\n    fn project_directory() {}\n}\n",
+            )
+
+            findings = self._findings(repo.root)
+
+        self.assertEqual([f.mode for f in findings], [MODE_ADDED])
+        self.assertIn("declared at src/lib.rs:4 ", findings[0].message)
 
     def test_no_touched_subjects_means_no_findings_not_a_crash(self) -> None:
         with Repo() as repo:
