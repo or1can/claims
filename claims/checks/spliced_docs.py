@@ -198,9 +198,22 @@ def _attribute_lines(
 # --- Rust -------------------------------------------------------------
 
 RUST_ATTR_RE = re.compile(r"^\s*#\[")
+# Generic parameters or arguments, `<…>`, nested three deep; `->` inside
+# them, `Fn() -> u8`, closes nothing.
+_RUST_GENERICS = r"<(?:->|[^<>]|<(?:->|[^<>]|<(?:->|[^<>])*>)*>)*>"
+# An item's `kind` and `name`. An `impl` names its implementing type, the
+# last path segment of the type after `for`, with the trait it implements
+# as `trait`, or of the type after `impl`/`impl<…>` when there is no `for`.
+# Only the line before any `{` is read for `for`. One whose type after `for`
+# has no name, `(A, B)`, matches nothing.
 RUST_ITEM_RE = re.compile(
     r"^\s*(?:pub(?:\([^)]*\))?\s+)?(?:async\s+|unsafe\s+|const\s+)*"
-    r"(fn|struct|enum|trait|type|mod|impl)\s+([A-Za-z_][A-Za-z_0-9]*)"
+    r"(?P<kind>fn|struct|enum|trait|type|mod|impl)"
+    rf"(?:(?<=impl)(?:\s*{_RUST_GENERICS}\s*|\s+)"
+    r"(?:(?P<trait>[^\s{][^{]*?)\s+for\s+|(?![^{]*\sfor\s))"
+    r"&?(?:'[A-Za-z_]\w*\s+)?(?:mut\s+)?(?:dyn\s+)?(?:[A-Za-z_][A-Za-z_0-9]*::)*"
+    r"|(?<!impl)\s+)"
+    r"(?P<name>[A-Za-z_][A-Za-z_0-9]*)"
 )
 RUST_SUMMARY_RE = re.compile(
     r"^\s*/// (?:The|A|An) \S|^\s*/// [A-Z][a-z]+(?:s|es) [`\w]"
@@ -347,7 +360,7 @@ def _rust_fn_local_lines(lines: list[str]) -> set[int]:
         if any(fn_bodies):
             local.add(i)
         matched = RUST_ITEM_RE.match(code)
-        if matched and matched.group(1) == "fn":
+        if matched and matched.group("kind") == "fn":
             fn_pending = True
             signature_base = len(fn_bodies)
             groups = 0
@@ -385,7 +398,7 @@ def _rust_bare_items(lines: list[str]) -> dict[str, set[str]]:
     for i, line in enumerate(lines):
         matched = RUST_ITEM_RE.match(line)
         if matched and _rust_documented(lines, code, i, attributes):
-            documented_names.add(matched.group(2))
+            documented_names.add(matched.group("name"))
 
     local = _rust_fn_local_lines(lines)
     bare: dict[str, set[str]] = {}
@@ -393,7 +406,7 @@ def _rust_bare_items(lines: list[str]) -> dict[str, set[str]]:
         matched = RUST_ITEM_RE.match(line)
         if not matched or i in local:
             continue
-        name = matched.group(2)
+        name = matched.group("name")
         if name in documented_names:
             continue
         idents = {name}
@@ -413,7 +426,7 @@ def _rust_all_names(all_lines: list[list[str]]) -> set[str]:
         for line in lines:
             matched = RUST_ITEM_RE.match(line)
             if matched:
-                names.add(matched.group(2))
+                names.add(matched.group("name"))
     return names
 
 

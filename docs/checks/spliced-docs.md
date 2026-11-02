@@ -51,6 +51,8 @@ mode that fired:
   an item inside the real body is then counted as undocumented.
 - `unknown`, opt-in: the stranded half names something no tracked Swift
   or Rust file declares at all, reported under `spliced-docs-unknown`.
+  A Rust `impl` declares the type it implements, never the trait, so
+  `impl fmt::Display for Text` declares `Text` and not `Display`.
   On a codebase with dense, cross-referencing doc comments this fires on
   ordinary technical prose, a configuration field, a domain term, a
   parameter, far more often than on a splice, which is why it is off

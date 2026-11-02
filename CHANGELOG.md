@@ -11,6 +11,15 @@ reached you, not just that one was pushed upstream.
 
 ## [Unreleased]
 
+## [0.20.4] - 2026-11-02
+
+- Fixed: a Rust `impl` now declares the type it implements, never the
+  trait, in `judgment-agent` and `spliced-docs`: `impl PartialEq<str> for
+  Text` declares `Text`, so a new trait impl no longer makes every
+  citation of the trait's name a `judgment-agent` candidate.
+- Fixed: `judgment-agent` no longer takes a method in an `impl … for …`
+  block as a subject, since it implements a name the trait declares.
+
 ## [0.20.3] - 2026-11-02
 
 - Fixed: `judgment-agent` no longer takes a declaration in test code as a
