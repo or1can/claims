@@ -101,6 +101,18 @@ class IterDiffTests(unittest.TestCase):
         self.assertEqual(len(file_diffs), 1)
         self.assertEqual((file_diffs[0].src, file_diffs[0].dst), ("café.md", "café.md"))
 
+    def test_a_path_with_a_space_has_no_trailing_tab(self) -> None:
+        # git ends a `---`/`+++` header with a tab when the path holds a
+        # space, so a diff-scoped check would look up "a b.md\t".
+        with Repo() as repo:
+            repo.write("a b.md", "one\n")
+            repo.commit()
+            repo.write("a b.md", "two\n")
+
+            file_diffs = list(iter_diff(repo.root, "HEAD"))
+
+        self.assertEqual((file_diffs[0].src, file_diffs[0].dst), ("a b.md", "a b.md"))
+
     def test_a_non_default_diff_header_prefix_does_not_lose_paths(self) -> None:
         for config_key in ("diff.mnemonicPrefix", "diff.noprefix"):
             with self.subTest(config_key=config_key):

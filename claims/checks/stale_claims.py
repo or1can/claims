@@ -118,7 +118,7 @@ from __future__ import annotations
 import bisect
 import re
 import subprocess
-from collections.abc import Mapping
+from collections.abc import Callable, Collection, Mapping
 from pathlib import Path
 from typing import NamedTuple
 
@@ -171,6 +171,55 @@ def _module_index(tracked: list[str]) -> dict[str, str]:
     return {stem: files[0] for stem, files in stems.items() if len(files) == 1}
 
 
+def module_index(tracked: list[str], config: Mapping[str, object]) -> dict[str, str]:
+    """The stems a bare backtick name can resolve to: `tracked` less the
+    root `claims.toml` and whatever `exclude` names."""
+
+    exclude = exclude_patterns(config)
+    return _module_index(
+        [rel for rel in tracked if rel != CONFIG_FILENAME and not path_matches(rel, exclude)]
+    )
+
+
+def subjects_named(
+    rel: str,
+    body: str,
+    config: Mapping[str, object],
+    citable: Collection[str],
+    modules: Mapping[str, str],
+    section: Callable[[str, str], object],
+) -> set[tuple[str, str]]:
+    """Every `(path, anchor)` subject `body`, prose in `rel`, names.
+    `anchor` is "" unless it names a heading `section(path, anchor)`
+    finds in a `.md` path, so an unscoped subject is one key per file.
+    Checked marks resolve a unit's subjects through this too (ADR 0010),
+    so the two can't disagree about what a sentence names."""
+
+    subjects: set[tuple[str, str]] = set()
+    for match in PATH_RE.finditer(body):
+        if host_relative(body, match.start()):
+            continue
+        raw = match.group(0)
+        paths = (citing_relative(rel, raw),)
+        if not raw.startswith("../"):
+            paths = (repo_relative(raw),) + paths
+        anchored = ANCHOR_RE.match(body, match.end())
+        anchor = anchored.group(1) if anchored else ""
+        subjects |= {
+            (path, anchor if anchor and path.endswith(".md") and section(path, anchor) else "")
+            for path in paths
+            if path in citable
+        }
+    bare_in_scope = _in_module_scope(rel, config)
+    subjects |= {
+        (modules[name], "")
+        for name, ext in MODULE_RE.findall(body)
+        if name in modules
+        and (Path(modules[name]).suffix == ext if ext else bare_in_scope)
+    }
+    return subjects
+
+
 def check(
     repo_root: Path, diff_range: str, config: Mapping[str, object]
 ) -> list[Finding]:
@@ -182,13 +231,7 @@ def check(
     # is still the subject of a section that names it.
     citable = set(tracked) | changed
     exclude = exclude_patterns(config)
-    modules = _module_index(
-        [
-            rel
-            for rel in tracked
-            if rel != CONFIG_FILENAME and not path_matches(rel, exclude)
-        ]
-    )
+    modules = module_index(tracked, config)
     docs = sorted(
         rel
         for rel in tracked
@@ -224,34 +267,11 @@ def check(
         lines = (repo_root / rel).read_text(encoding="utf-8", errors="replace").splitlines()
         if not lines:
             continue
-        bare_in_scope = _in_module_scope(rel, config)
         starts = [i for i, l in enumerate(lines) if HEADING_RE.match(l)] or [0]
         for start, end in zip(starts, starts[1:] + [len(lines)]):
             matched = HEADING_RE.match(lines[start])
             body = "\n".join(lines[start:end])
-            # (path, anchor): anchor is "" unless it names a heading in a
-            # tracked `.md` path, so an unscoped subject is one key per file.
-            subjects: set[tuple[str, str]] = set()
-            for match in PATH_RE.finditer(body):
-                if host_relative(body, match.start()):
-                    continue
-                raw = match.group(0)
-                paths = (citing_relative(rel, raw),)
-                if not raw.startswith("../"):
-                    paths = (repo_relative(raw),) + paths
-                anchored = ANCHOR_RE.match(body, match.end())
-                anchor = anchored.group(1) if anchored else ""
-                subjects |= {
-                    (path, anchor if anchor and path.endswith(".md") and section(path, anchor) else "")
-                    for path in paths
-                    if path in citable
-                }
-            subjects |= {
-                (modules[name], "")
-                for name, ext in MODULE_RE.findall(body)
-                if name in modules
-                and (Path(modules[name]).suffix == ext if ext else bare_in_scope)
-            }
+            subjects = subjects_named(rel, body, config, citable, modules, section)
             if not any(path in changed for path, _ in subjects):
                 continue
 
