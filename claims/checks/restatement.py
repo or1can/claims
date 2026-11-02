@@ -83,6 +83,14 @@ matched text) — no extra git-history walk.
 `check-links`' own. An excluded file is dropped from the survivor sweep
 entirely, not just from candidate extraction, so it neither counts toward
 nor is reported as another file's duplication.
+
+`historical` (#174) skips a line in a matching file that the diff didn't
+add, and a run starting on one: it is a shipped entry the project's rules
+forbid editing. A run starting on an added line, an `[Unreleased]` entry,
+still counts even where it wraps onto a shipped one, as it would in any
+file. The file's own diff is still read, which is what an `exclude` glob
+would stop: an edit to a changelog's `[Unreleased]` section is a
+retraction like any other.
 """
 
 from __future__ import annotations
@@ -338,6 +346,7 @@ def _survivors(
     wanted_ngrams: set[str],
     wanted_lines: set[str],
     added: Mapping[str, set[int]],
+    historical: Sequence[str],
 ) -> tuple[list[tuple[str, int, str]], list[tuple[str, int, str]]]:
     """`(ngram_hits, whole_line_hits)`, each `(file, line, text)`.
 
@@ -345,9 +354,12 @@ def _survivors(
     modes, rather than sweeping the whole scoped tree twice.
 
     A line in `added` is never a hit, and neither is a run lying wholly on
-    such lines. Skipped while sweeping, not filtered afterwards, so a run
-    first met on an added line can still be found on a later untouched
-    one.
+    such lines. In a `historical` file, neither is a line not in `added`
+    nor a run starting on one, the line it would be reported at, so only
+    a run starting on an added line and wrapping onto a shipped one is
+    left.
+    Skipped while sweeping, not filtered afterwards, so a run first met on
+    a skipped line can still be found on a later one.
     """
 
     ngram_hits: list[tuple[str, int, str]] = []
@@ -359,6 +371,7 @@ def _survivors(
             continue
         lines = _prose_lines(name, text.splitlines())
         added_here = added.get(name, set())
+        historical_here = path_matches(name, historical)
         located = [
             (word, number)
             for number, line in enumerate(lines, start=1)
@@ -371,6 +384,8 @@ def _survivors(
                 window = located[i : i + NGRAM_WORDS]
                 if all(number in added_here for _, number in window):
                     continue
+                if historical_here and window[0][1] not in added_here:
+                    continue
                 surviving.setdefault(" ".join(word for word, _ in window), window[0][1])
 
             # Overlapping runs of one sentence all match; report each
@@ -382,7 +397,8 @@ def _survivors(
                     best[line] = run
             ngram_hits.extend((name, line, run) for line, run in sorted(best.items()))
 
-        if wanted_lines:
+        # In a `historical` file every line is either added or shipped.
+        if wanted_lines and not historical_here:
             for number, line in enumerate(lines, start=1):
                 normalised = " ".join(normalise(line))
                 if number not in added_here and normalised in wanted_lines:
@@ -436,8 +452,9 @@ def check(
 
     tracked = _tracked_scoped(repo_root, extensions, exclude)
     added = added_lines_by_file(repo_root, diff_range)
+    historical = string_list_config(config, "historical")
     ngram_hits, whole_line_hits = _survivors(
-        repo_root, tracked, wanted_ngrams, wanted_lines, added
+        repo_root, tracked, wanted_ngrams, wanted_lines, added, historical
     )
     ngram_hits = _below_duplication_threshold(ngram_hits, threshold)
     whole_line_hits = _below_duplication_threshold(whole_line_hits, threshold)

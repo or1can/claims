@@ -105,10 +105,11 @@ class ConfigValueMatchesTests(unittest.TestCase):
         self.assertEqual(matches[0].key, "exclude")
         self.assertEqual(matches[0].matched_files, ())
 
-    def test_historical_key_is_reviewed_for_both_checks_that_take_it(self) -> None:
+    def test_historical_key_is_reviewed_for_every_check_that_takes_it(self) -> None:
         # `historical` reached `check-links` (#50) and `check-file-refs`
         # (#57) without either landing here, so a mistyped glob in it
         # silently resolved every mention against the working tree only.
+        # `restatement` and `judgment-agent` took it in #174.
         with Repo() as repo:
             repo.write("real.md", "prose\n")
             matches = config_value_matches(
@@ -116,6 +117,8 @@ class ConfigValueMatchesTests(unittest.TestCase):
                 {
                     "check-links": {"historical": ["nonexistent.md"]},
                     "check-file-refs": {"historical": ["nonexistent.md"]},
+                    "restatement": {"historical": ["nonexistent.md"]},
+                    "judgment-agent": {"historical": ["nonexistent.md"]},
                 },
             )
         self.assertEqual(
@@ -123,6 +126,8 @@ class ConfigValueMatchesTests(unittest.TestCase):
             [
                 ("check-file-refs", "historical", ()),
                 ("check-links", "historical", ()),
+                ("judgment-agent", "historical", ()),
+                ("restatement", "historical", ()),
             ],
         )
 

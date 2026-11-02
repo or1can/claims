@@ -188,14 +188,16 @@ dismiss the finding each time.
 
 ```toml
 [restatement]
-exclude = ["CHANGELOG.md"]
+exclude = ["examples/*"]
+historical = ["CHANGELOG.md", "RELEASES.md"]
 extensions = [".rs"]
 duplication_threshold = 3
 ```
 
 | Key | Shape | Default | Reach for this when |
 | --- | --- | --- | --- |
-| `exclude` | list of glob strings; a bare string is a one-element list | `[]`: nothing excluded | A file is expected to keep retracted prose on purpose: a release history that still describes a shipped release as it shipped, or a directory of inputs written to be broken, like this site's own examples. An excluded file contributes no removed lines from its own diff, and is dropped from the survivor sweep entirely, so it neither counts toward another file's duplication nor is reported for it. |
+| `exclude` | list of glob strings; a bare string is a one-element list | `[]`: nothing excluded | A file is expected to keep retracted prose on purpose, such as a directory of inputs written to be broken, like this site's own examples. An excluded file contributes no removed lines from its own diff, and is dropped from the survivor sweep entirely, so it neither counts toward another file's duplication nor is reported for it. |
+| `historical` | list of glob strings; a bare string is a one-element list | `[]`: every file is swept for survivors | A file is an append-only record, a changelog or release notes, whose shipped entries your own rules forbid editing, so a survivor in one is never something to fix. A line in it that the diff did not add is never a survivor and never counts toward `duplication_threshold`, and nor is a run of six words starting on one. A line the diff did add is read as in any file: a run that starts on it and wraps onto a shipped line is still reported there. Its own diff is still read: a line removed from it, such as an edit to an `[Unreleased]` section, is searched for elsewhere like any other retraction, which `exclude` would stop. |
 | `extensions` | list of dotted suffixes; a bare string is a one-element list | the built-in set alone: `.md`, `.swift`, `.py`, `.sh`, `.yml` | The project has prose or source in a language the built-in set does not cover, `.rs` for a Rust project, and wants its retractions and its survivors read too. Entries are added to the built-in set, never substituted for it. `.py`, `.sh`, `.rs` and `.swift` are read as comment text only, as described above; any other extension, built-in or added, is read whole, code included. |
 | `duplication_threshold` | integer; a boolean or a non-integer is a configuration error | `1` | Text is duplicated on purpose across more files than the default tolerates, a shared licence header or a generated banner, and each copy is reported every time one of the others changes. `0` reports nothing at all, since every survivor is in at least one file; the lowest useful value is the default. |
 

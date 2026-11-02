@@ -46,7 +46,7 @@ from .git import tracked_files
 # compute at all, so including them would only ever report a false zero.
 GLOB_CONFIG_KEYS: Mapping[str, Sequence[str]] = {
     "executable-claims": ("exclude",),
-    "restatement": ("exclude",),
+    "restatement": ("exclude", "historical"),
     "check-links": ("exclude", "historical"),
     "check-file-refs": ("exclude", "historical"),
     "claim-words": ("files",),
@@ -54,6 +54,7 @@ GLOB_CONFIG_KEYS: Mapping[str, Sequence[str]] = {
     "check-cli-flags": ("exclude",),
     "stale-claims": ("module_reference_scope", "exclude"),
     "temporal-words": ("files",),
+    "judgment-agent": ("historical",),
 }
 
 # `restatement`'s own `extensions`, and `check-file-refs`' own `extensions`
@@ -68,8 +69,8 @@ EXTENSION_CONFIG_KEYS: Mapping[str, Sequence[str]] = {
 }
 
 # Every other registered check's own config section carries nothing
-# glob/extension-shaped at all (`check-citations`/`judgment-agent` read no
-# config; `spliced-docs`'s `modes` names a fixed enum; `check-config-defaults`'
+# glob/extension-shaped at all (`check-citations` reads no config;
+# `spliced-docs`'s `modes` names a fixed enum; `check-config-defaults`'
 # own section is itself a setting-name -> file:line mapping, not a glob or
 # extension list). Listed explicitly, not left as "everything else" —
 # `test_config_review.py`'s own completeness test checks every registered
@@ -77,7 +78,7 @@ EXTENSION_CONFIG_KEYS: Mapping[str, Sequence[str]] = {
 # adding a path-shaped key without updating this module fails loud (a red
 # test) instead of the check simply never being reviewed by this helper.
 NO_PATH_SHAPED_CONFIG = frozenset(
-    {"check-citations", "spliced-docs", "judgment-agent", "check-config-defaults"}
+    {"check-citations", "spliced-docs", "check-config-defaults"}
 )
 
 

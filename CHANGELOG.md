@@ -11,6 +11,14 @@ reached you, not just that one was pushed upstream.
 
 ## [Unreleased]
 
+## [0.21.0] - 2026-11-02
+
+- Added: `restatement` and `judgment-agent` accept a `historical` glob
+  list in `claims.toml`. A shipped entry in a listed changelog, any line
+  the diff did not add, is no longer a `restatement` survivor or a
+  `judgment-agent` candidate. Unlike `exclude`, the `[Unreleased]`
+  section the diff edits is still checked.
+
 ## [0.20.4] - 2026-11-02
 
 - Fixed: a Rust `impl` now declares the type it implements, never the
