@@ -330,27 +330,44 @@ def _rust_fn_local_lines(lines: list[str]) -> set[int]:
     """Every index in `lines` that starts inside a `fn` body, however deep.
 
     A rough brace count over `_rust_code`: the first `{` after a `fn` item
-    opens its body, and a `}` before it (a bodiless trait method's trait
-    closing) cancels that.
+    opens its body, and a `}` closing a block opened before it (a bodiless
+    trait method's trait closing) cancels that. A `{` in the signature is an
+    ordinary block when it sits inside a `(` or `[` opened since the item, or
+    straight after a `<`; one after a comma in generics, `Foo<A, { N }>`, still
+    opens the body.
     """
 
     local: set[int] = set()
     fn_bodies: list[bool] = []
     fn_pending = False
+    signature_base = 0  # len(fn_bodies) when the pending `fn` item began
+    groups = 0  # `(` and `[` left open since then
+    previous = ""  # the last non-space code character
     for i, (_, code) in enumerate(_rust_code(lines)):
         if any(fn_bodies):
             local.add(i)
         matched = RUST_ITEM_RE.match(code)
         if matched and matched.group(1) == "fn":
             fn_pending = True
+            signature_base = len(fn_bodies)
+            groups = 0
         for char in code:
-            if char == "{":
-                fn_bodies.append(fn_pending)
-                fn_pending = False
+            if char in "([":
+                groups += 1
+            elif char in ")]":
+                groups = max(groups - 1, 0)
+            elif char == "{":
+                opens_body = fn_pending and not groups and previous != "<"
+                fn_bodies.append(opens_body)
+                if opens_body:
+                    fn_pending = False
             elif char == "}":
-                fn_pending = False
+                if len(fn_bodies) <= signature_base:
+                    fn_pending = False
                 if fn_bodies:
                     fn_bodies.pop()
+            if not char.isspace():
+                previous = char
     return local
 
 
