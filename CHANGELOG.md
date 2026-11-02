@@ -11,6 +11,16 @@ reached you, not just that one was pushed upstream.
 
 ## [Unreleased]
 
+## [0.20.0] - 2026-11-02
+
+- Added: checked marks. `python3 -m claims.cli mark-checked` records, in
+  a committed `claims.checked.toml`, that advisory findings were read,
+  one note per finding. A marked finding is no longer printed until its
+  sentence's wording, or the content of a file it names, changes; the
+  summary line counts it as `quiet while checked`. A mark whose sentence
+  is gone is reported, and an invalid `claims.checked.toml` blocks a
+  commit. See [Checked marks](docs/checked-marks.md).
+
 ## [0.19.4] - 2026-11-02
 
 - Fixed: `spliced-docs` no longer reports an item declared inside a Rust

@@ -25,8 +25,9 @@ branch.
 ## Reporting the result
 
 Show the user the CLI's output verbatim — every finding line, then its
-summary line (`N checked, M finding(s), G gate failure(s)`) — rather than
-summarizing or filtering it yourself. Findings that share a citation,
+summary line (`N checked, M finding(s), G gate failure(s)`, ending
+`, Q quiet while checked` when checked marks kept findings quiet) —
+rather than summarizing or filtering it yourself. Findings that share a citation,
 message and severity print as one line listing each mode in its
 parentheses, so `M` can exceed the number of finding lines.
 
@@ -117,6 +118,33 @@ own wording, beyond matching its exact cited subject name, is out of
 scope — same-subject citation matching is the concretely implementable
 slice of the idea; a fuzzier "same shape" match is a future direction if
 this narrower version proves useful in practice.
+
+## Marking a finding as checked
+
+A project can record, in a committed `claims.checked.toml`, that an
+advisory finding was read and found true; the finding then stays quiet
+until its wording or a file it names changes (the plugin's
+`docs/checked-marks.md`). You may write a mark only after you have read
+the finding against what it cites — the code, file or section the
+sentence names — and found it true, never on the strength of the
+finding's own text. A `judgment-agent` verdict never writes a mark by
+itself: when you asked for the verdict, you may mark the finding once you
+have read the verdict's evidence, the same as any other finding.
+
+Mark a batch, one entry per line, each with a note saying what you
+verified, over the same `--diff-range` the findings were reported for:
+
+```bash
+PYTHONPATH="${CLAUDE_PLUGIN_ROOT}" python3 -m claims.cli mark-checked --repo-root <path> --diff-range <range> --by <who read them> - <<'EOF'
+docs/guide.md:3 claim-words-totalising src/cache.py has one reader, get, and nothing else reads the store
+EOF
+```
+
+Never mark a finding you didn't read, a false one (fix it instead), or
+one the user hasn't asked you to work through. Gate findings can't be
+marked. One bad entry fails the whole batch and nothing is written; the
+command names each bad entry. Commit `claims.checked.toml` with the rest
+of the change.
 
 ## Coverage
 

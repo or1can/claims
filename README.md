@@ -44,6 +44,8 @@ Advisory:
 
 [`docs/configuring.md`](docs/configuring.md) covers the settings no single
 check owns.
+[`docs/checked-marks.md`](docs/checked-marks.md) covers recording that an
+advisory finding was read, so it stays quiet until what it names changes.
 
 ## Using it
 

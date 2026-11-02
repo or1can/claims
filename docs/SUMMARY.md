@@ -5,6 +5,7 @@
 - [Installation](installation.md)
 - [Concepts](concepts.md)
 - [Configuring `claims`](configuring.md)
+- [Checked marks](checked-marks.md)
 
 # Gate checks
 

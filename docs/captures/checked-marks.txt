@@ -1,0 +1,12 @@
+# python3 scripts/capture.py: checked-marks, `claim-words` run against a throwaway git repository seeded from examples/checked-marks, marked from its marks.txt
+# claims.checked.toml as mark-checked wrote it:
+[[mark]]
+file = "docs/guide.md"
+mode = "claim-words-totalising"
+unit = "75ba9b923fa77a8d"
+copies = 1
+note = "src/cache.py has one reader, get, and nothing else reads the store"
+subjects = { "src/cache.py" = "55967961246bba4c" }
+# the findings with those marks applied:
+[advisory] docs/guide.md:5 (claim-words-totalising, claim-words-counts) Only one writer runs at a time.
+1 quiet while checked

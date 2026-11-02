@@ -81,6 +81,8 @@ def format_findings(findings: Sequence[Finding]) -> list[str]:
 class RunResult:
     checks_run: tuple[str, ...]
     findings: tuple[Finding, ...]
+    # Advisory findings a checked mark kept out of `findings` (ADR 0010).
+    quiet: tuple[Finding, ...] = ()
 
 
 _registry: dict[str, CheckFn] = {}
@@ -210,6 +212,12 @@ def run(
     that doesn't parse is skipped here rather than raised: each check that
     reads it turns that `ConfigError` into its own crash finding when it
     runs.
+
+    After every check, `claims.checked.toml`'s marks are applied
+    (`claims.checked`): an advisory finding a current mark covers moves to
+    `RunResult.quiet`, and a mark whose unit is gone is reported. A
+    sidecar that doesn't parse is one gate finding, so it blocks a commit
+    the way an invalid `claims.toml` does.
     """
 
     registered = tuple(_registry)
@@ -231,4 +239,17 @@ def run(
             findings.extend(check(repo_root, diff_range, check_config))
         except Exception as exc:
             findings.append(_crash_finding(name, exc))
-    return RunResult(checks_run=tuple(_registry), findings=tuple(findings))
+
+    # Imported here: `checked` builds `Finding`s, so imports this module.
+    from .checked import CHECKED_FILENAME, apply_marks
+
+    quiet: list[Finding] = []
+    try:
+        findings, quiet = apply_marks(repo_root, findings, config)
+    except ConfigError as e:
+        findings.append(
+            Finding(file=CHECKED_FILENAME, line=0, message=f"is invalid: {e}", mode="config", gate=True)
+        )
+    return RunResult(
+        checks_run=tuple(_registry), findings=tuple(findings), quiet=tuple(quiet)
+    )

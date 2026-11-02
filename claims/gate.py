@@ -134,7 +134,8 @@ def decide_repo(repo_root: Path) -> Decision | None:
     """The decision for a commit to the repository at `repo_root`, or
     `None` when there is nothing to report: it hasn't opted in with a root
     `claims.toml`, has switched the hook off, or has no finding left once
-    disabled checks are filtered out. A `claims.toml` that doesn't parse,
+    disabled checks are filtered out and none that a checked mark kept
+    quiet either. A `claims.toml` that doesn't parse,
     or whose `[hook]` isn't a table or whose `[hook] enabled` or a
     registered check's own `enabled` isn't a boolean, blocks as
     invalid."""
@@ -180,7 +181,13 @@ def decide_repo(repo_root: Path) -> Decision | None:
     findings = tuple(
         f for f in result.findings if _finding_check(f, disabled) is None
     )
+    quiet = [f for f in result.quiet if _finding_check(f, disabled) is None]
 
-    if not findings:
+    if not findings and not quiet:
         return None
-    return Decision(block=any(f.gate for f in findings), message=_summarize(findings))
+    # Counted even when nothing else is printed, so a commit marks kept
+    # quiet isn't mistaken for a clean pass (ADR 0010).
+    lines = [_summarize(findings)] if findings else []
+    if quiet:
+        lines.append(f"{len(quiet)} quiet while checked")
+    return Decision(block=any(f.gate for f in findings), message="\n".join(lines))

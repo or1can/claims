@@ -1,0 +1,1 @@
+docs/guide.md:3 claim-words-totalising src/cache.py has one reader, get, and nothing else reads the store

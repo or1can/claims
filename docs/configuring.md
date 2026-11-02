@@ -243,10 +243,17 @@ A `claims.local.toml` that git does track is a gate finding, as the grant
 file section above describes, so a mistake is caught, but it should not be
 how you find out.
 
+## Recording what was read
+
+A third file, `claims.checked.toml`, also committed at the repository
+root, records advisory findings someone has read and found true, so they
+stay quiet until what they were read against changes. [Checked
+marks](checked-marks.md) covers the file, the command that writes it, and
+when a mark stops applying.
+
 ## Next
 
 Each check's own section of `claims.toml` is documented with the check.
-The check pages follow, gate checks first, and
-[executable-claims](checks/executable-claims.md) opens them. The [Concepts](concepts.md)
-page is where to look up a word a check's description uses without
-defining it.
+[Checked marks](checked-marks.md) comes next, then the check pages, gate
+checks first. The [Concepts](concepts.md) page is where to look up a word
+a check's description uses without defining it.
