@@ -72,7 +72,11 @@ Each candidate's message already carries everything the subagent needs:
 the citation's `file:line`, the subject's name, which way it changed,
 and where it is declared. The `check-claims` skill invokes the
 `judgment-agent` subagent once per candidate, never batched, and passes
-it the finding's citation and message verbatim.
+it the finding's citation and message verbatim. An agent running the
+skill with no means of starting a subagent judges nothing itself: it
+lists each candidate's citation and message verbatim under a heading
+saying they are not judged, and marks none of them as checked, for
+whoever invoked it to dispatch the subagent on each.
 
 The subagent locates the subject by its exact name, opens every site it
 touches with the file-reading tool rather than stopping at a search
