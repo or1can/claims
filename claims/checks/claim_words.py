@@ -232,12 +232,12 @@ def check(
         return []
 
     added = added_lines_by_file(repo_root, diff_range)
-    removed = removed_sentences_by_file(repo_root, diff_range)
+    designated = [path for path in added if path_matches(path, patterns)]
+    removed = removed_sentences_by_file(repo_root, diff_range, designated)
     findings: list[Finding] = []
 
-    for path, added_line_numbers in sorted(added.items()):
-        if not path_matches(path, patterns):
-            continue
+    for path in sorted(designated):
+        added_line_numbers = added[path]
         try:
             text = (repo_root / path).read_text(encoding="utf-8")
         except (OSError, UnicodeDecodeError):

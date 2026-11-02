@@ -409,6 +409,18 @@ class ClaimWordsTests(RegistryClearingTestCase):
 
         self.assertEqual([f.citation for f in findings], ["b.md:1"])
 
+    def test_an_unchanged_sentence_in_a_renamed_file_is_not_reported(self) -> None:
+        filler = "".join(f"Line {n} of filler.\n" for n in range(20))
+        with Repo() as repo:
+            repo.write("a.md", filler + "Every check runs in order. The hook\nreads every config.\n")
+            repo.commit()
+            repo.rm("a.md")
+            repo.write("b.md", filler + "Every check runs in order. The gate\nreads every config.\n")
+
+            findings = self._findings(repo.root, ["b.md"])
+
+        self.assertEqual([f.message for f in findings], ["The gate reads every config."])
+
     def test_an_edited_table_row_is_reported_alone_at_its_own_line(self) -> None:
         with Repo() as repo:
             repo.write("t.md", DECISIONS.format(one="Binaries share a core", two="Every file is toml"))

@@ -36,6 +36,7 @@ per-file subtraction `restatement` makes.
 from __future__ import annotations
 
 import re
+from collections.abc import Collection
 from pathlib import Path
 
 from .git import DiffLine, iter_diff
@@ -58,15 +59,32 @@ def normalise(line: str) -> list[str]:
 
 
 def removed_sentences_by_file(
-    repo_root: Path, diff_range: str
+    repo_root: Path, diff_range: str, paths: Collection[str]
 ) -> dict[str, set[tuple[str, ...]]]:
     """`{path: normalised sentences}` for `diff_range`, keyed by the
     file's new path: every sentence of its old version that a removed line
-    is part of, as `normalise` reads it. A file with no removed line is
-    absent."""
+    is part of, as `normalise` reads it. Only a file in `paths` is read,
+    and one with no removed line is absent.
+
+    Each of `paths` is read whole, both versions, so a changed-lines-only
+    diff first finds which of them lost a line and, for a rename, the old
+    path git needs to pair it. Reading every file the range touched whole
+    instead would cost a release-wide range its whole changed tree, twice,
+    for the few designated files either check reads."""
+
+    sides = {
+        side
+        for file_diff in iter_diff(repo_root, diff_range)
+        if file_diff.dst in paths
+        and any(isinstance(item, DiffLine) and item.sign == "-" for item in file_diff.body)
+        for side in (file_diff.src, file_diff.dst)
+        if side
+    }
+    if not sides:
+        return {}
 
     removed: dict[str, set[tuple[str, ...]]] = {}
-    for file_diff in iter_diff(repo_root, diff_range, whole_files=True):
+    for file_diff in iter_diff(repo_root, diff_range, whole_files=True, paths=sorted(sides)):
         old: list[str] = []
         removed_at: set[int] = set()
         for item in file_diff.body:
