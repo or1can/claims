@@ -43,7 +43,12 @@ mode that fired:
   implementation is not counted as undocumented. An item declared
   inside a function body, however deeply nested, is never counted as
   undocumented either: rustdoc does not render it. It still counts as
-  declared for `unknown`.
+  declared for `unknown`. A function's body opens at the first `{` after
+  its name that is not inside the signature's own parentheses or square
+  brackets and does not follow a `<`, so `[u8; { N }]` and
+  `Foo<{ N + 1 }>` stay in the signature. A const block after a comma
+  in generic arguments, `Foo<A, { N }>`, is still read as the body, and
+  an item inside the real body is then counted as undocumented.
 - `unknown`, opt-in: the stranded half names something no tracked Swift
   or Rust file declares at all, reported under `spliced-docs-unknown`.
   On a codebase with dense, cross-referencing doc comments this fires on

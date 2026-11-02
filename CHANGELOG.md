@@ -11,6 +11,13 @@ reached you, not just that one was pushed upstream.
 
 ## [Unreleased]
 
+## [0.19.4] - 2026-11-02
+
+- Fixed: `spliced-docs` no longer reports an item declared inside a Rust
+  function as undocumented when a `{` sits in that function's signature,
+  as in `-> [u8; { N }]` or `-> Foo<{ N + 1 }>`. A const block after a
+  comma, `Foo<A, { N }>`, is still read as the body. See [spliced-docs](docs/checks/spliced-docs.md#what-it-checks).
+
 ## [0.19.3] - 2026-11-02
 
 - Fixed: `spliced-docs` no longer reports a Rust item as undocumented

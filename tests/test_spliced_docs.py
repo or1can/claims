@@ -741,6 +741,40 @@ class SplicedDocsTests(RegistryClearingTestCase):
                 lines = ["/// Runs.", "fn outer() {", *body, "    struct Inner;", "}", "fn after() {}"]
                 self.assertEqual(set(_rust_bare_items(lines)), {"after"})
 
+    def test_a_brace_in_a_rust_fn_signature_does_not_open_its_body(self) -> None:
+        signatures = {
+            "array length": "fn f() -> [u8; { N }] {",
+            "const generic": "fn f() -> Foo<{ N + 1 }> {",
+            "parameter type": "fn f(x: [u8; { N }]) {",
+        }
+        for shape, signature in signatures.items():
+            with self.subTest(shape):
+                lines = ["/// Doc.", signature, "    struct In;", "}", "fn after() {}"]
+                self.assertEqual(set(_rust_bare_items(lines)), {"after"})
+
+    def test_a_rust_where_clause_leaves_the_body_on_its_own_line(self) -> None:
+        lines = [
+            "/// Doc.",
+            "fn f<T>(x: T)",
+            "where",
+            "    T: Clone,",
+            "{",
+            "    struct In;",
+            "}",
+            "fn after() {}",
+        ]
+        self.assertEqual(set(_rust_bare_items(lines)), {"after"})
+
+    def test_a_one_line_rust_fn_does_not_leave_its_body_pending(self) -> None:
+        lines = ["/// Doc.", "fn a() { x }", "impl X {", "    fn m() {}", "}"]
+        self.assertIn("m", _rust_bare_items(lines))
+
+    def test_a_const_block_after_a_comma_in_rust_generics_opens_the_body(self) -> None:
+        # An accepted gap, pinned so that changing it is deliberate: a comma
+        # rule would also catch a body after a `where` clause's trailing comma.
+        lines = ["/// Doc.", "fn f() -> Foo<A, { N }> {", "    struct In;", "}"]
+        self.assertIn("In", _rust_bare_items(lines))
+
     def test_a_splice_naming_a_rust_fn_local_item_is_not_flagged(self) -> None:
         with Repo() as repo:
             repo.write(
