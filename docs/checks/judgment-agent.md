@@ -36,6 +36,18 @@ added name, not a pair, because nothing here guesses that the two are
 the same thing. A name declared in the diff but present on both sides,
 because its body changed and its name did not, is not in the delta.
 
+A Rust name the base already had as a member is not added either. A
+struct field or an enum variant is not a subject, but when the head
+declares an item with a name the base tree held as a field, on a line
+directly inside a `struct` body, or as a variant, opening a line
+directly inside an `enum` body, the name was already there, and its
+citations are not candidates. A trait's method signatures are already
+subjects, with or without a default body. This applies only to the added
+half: a removed item is still removed when a field or variant of its
+name remains, and a candidate still cites the item declaration, never
+the member. Swift needs no such rule, since its properties and enum
+cases are subjects already.
+
 A **candidate** is a backticked citation, in any tracked `.md` file,
 whose name is in the delta. A dotted citation names its last component,
 so `Store.fetchRecord` cites `fetchRecord`, and trailing call

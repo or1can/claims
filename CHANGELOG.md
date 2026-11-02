@@ -11,6 +11,13 @@ reached you, not just that one was pushed upstream.
 
 ## [Unreleased]
 
+## [0.20.2] - 2026-11-02
+
+- Fixed: `judgment-agent` no longer reports a Rust name as added by the
+  diff when the earlier tree already had it as a struct field or enum
+  variant, so a new `fn` sharing a field's name no longer makes every
+  citation of that name a candidate.
+
 ## [0.20.1] - 2026-11-02
 
 - Changed: an agent running the `check-claims` skill that cannot start a

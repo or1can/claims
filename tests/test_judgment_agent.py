@@ -150,6 +150,63 @@ class JudgmentAgentTests(RegistryClearingTestCase):
         self.assertEqual(len(findings), 1)
         self.assertEqual(findings[0].mode, MODE_REMOVED)
 
+    def _added_beside(self, base: str) -> list[Finding]:
+        """Findings when the range adds `fn project_name` beside `base`, the
+        earlier tree's `src/config.rs`, and a doc cites `project_name`."""
+
+        with Repo() as repo:
+            repo.write("src/config.rs", base)
+            repo.write("docs/NOTES.md", "Reads `project_name` from the file.\n")
+            repo.commit()
+            repo.write("src/config.rs", base + "fn project_name() -> String {}\n")
+
+            return self._findings(repo.root)
+
+    def test_a_name_the_base_had_as_a_struct_field_is_not_added(self) -> None:
+        # or1can/ratect: 34 of 78 candidates were this shape.
+        self.assertEqual(
+            self._added_beside("struct C {\n    pub project_name: String,\n}\n"), []
+        )
+
+    def test_a_name_the_base_had_as_an_enum_variant_is_not_added(self) -> None:
+        self.assertEqual(
+            self._added_beside("enum Key {\n    #[default]\n    project_name(String),\n}\n"), []
+        )
+
+    def test_a_raw_identifier_member_names_what_follows_its_prefix(self) -> None:
+        self.assertEqual(self._added_beside("enum Key {\n    r#project_name,\n}\n"), [])
+
+    def test_a_name_the_base_had_as_a_trait_method_is_not_added(self) -> None:
+        for method in (
+            "    fn project_name(&self) -> String;\n",
+            "    fn project_name(&self) -> String {\n        String::new()\n    }\n",
+        ):
+            with self.subTest(method=method):
+                self.assertEqual(self._added_beside("trait Named {\n" + method + "}\n"), [])
+
+    def test_a_name_the_base_never_had_as_a_member_is_still_added(self) -> None:
+        # `project_name` appears in the base only in a tuple variant's types,
+        # a fn body and a struct literal: none of them declares it.
+        findings = self._added_beside(
+            "enum Key {\n    Name(\n        project_name,\n    ),\n}\n"
+            "fn load() {\n    let project_name = 1;\n    C { project_name: 2 };\n}\n"
+        )
+
+        self.assertEqual([f.mode for f in findings], [MODE_ADDED])
+        self.assertIn("src/config.rs:", findings[0].message)
+
+    def test_a_removed_fn_is_still_removed_while_a_field_of_its_name_remains(self) -> None:
+        field = "struct C {\n    x: u8,\n}\n"
+        with Repo() as repo:
+            repo.write("src/c.rs", field + "fn x() {}\n")
+            repo.write("docs/NOTES.md", "Call `x`.\n")
+            repo.commit()
+            repo.write("src/c.rs", field)
+
+            findings = self._findings(repo.root)
+
+        self.assertEqual([f.mode for f in findings], [MODE_REMOVED])
+
     def test_no_touched_subjects_means_no_findings_not_a_crash(self) -> None:
         with Repo() as repo:
             repo.write("README.md", "nothing to see here\n")
