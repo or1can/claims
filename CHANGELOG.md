@@ -11,6 +11,14 @@ reached you, not just that one was pushed upstream.
 
 ## [Unreleased]
 
+## [0.20.3] - 2026-11-02
+
+- Fixed: `judgment-agent` no longer takes a declaration in test code as a
+  subject. Rust `*_tests.rs` files, files under `tests/` and
+  `#[cfg(test)]` modules, and Swift `*Tests.swift` files and files under
+  `Tests/`, are left out, so a new test helper no longer makes every
+  citation of its name a candidate.
+
 ## [0.20.2] - 2026-11-02
 
 - Fixed: `judgment-agent` no longer reports a Rust name as added by the

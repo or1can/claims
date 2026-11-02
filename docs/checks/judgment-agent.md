@@ -20,6 +20,14 @@ function, struct, enum, trait, type alias, module or `impl` block, with
 any visibility, `async`, `unsafe` or `const` in front. Nothing in any
 other language is a subject.
 
+Test code is not a subject either. A Rust file named `*_tests.rs` or
+under a directory named `tests`, a Swift file named `*Tests.swift` or
+under a directory named `Tests`, and every line of a Rust `#[cfg(test)]`
+module, from its `mod` line through its closing brace, are left out of
+both sides of the diff. A test helper added or removed is not in the
+delta, and a name declared both in test code and outside it cites the
+declaration outside.
+
 The **subject index** is built twice, once at the base of the diff range
 and once at its head. For the range `HEAD`, which is what the commit
 hook and the CLI use by default, the base is the last commit and the
@@ -197,8 +205,9 @@ confirmed one is nothing. A candidate is never itself something to fix.
 ## Configuration
 
 None. The check reads no key from `claims.toml`, and there is no
-`exclude`: every tracked `.swift` and `.rs` file is a source of subjects
-and every tracked `.md` file is a source of citations. A
+`exclude`: every tracked `.swift` and `.rs` file outside test code is a
+source of subjects and every tracked `.md` file is a source of
+citations. A
 `[judgment-agent]` table is accepted, and `enabled` below is the only
 key that does anything in it.
 
