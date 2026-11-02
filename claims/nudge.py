@@ -154,6 +154,7 @@ def _state_file(state_dir: Path, session_id: str) -> Path:
 
 def _read(state: Path) -> list[str]:
     try:
+        # This hook's own state file, never numbered against git.
         return state.read_text(errors="replace").splitlines()
     except OSError:
         return []

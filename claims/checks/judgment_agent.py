@@ -124,6 +124,7 @@ from typing import NamedTuple
 
 from ..config import path_matches, string_list_config
 from ..git import QUOTEPATH_OFF, added_lines_by_file, tracked_files
+from ..lines import git_lines
 from ..runner import Finding, register_check
 from .check_citations import CITATION_RE
 from .spliced_docs import RUST_ITEM_RE, SWIFT_DECL_RE, _rust_code
@@ -208,7 +209,7 @@ def _subject_index(files: Mapping[str, str]) -> dict[str, _Subject]:
 
     index: dict[str, _Subject] = {}
     for rel, text in sorted(files.items()):
-        lines = text.splitlines()
+        lines = git_lines(text)
         skip = _rust_trait_impl_fns(lines) if rel.endswith(".rs") else set()
         for number, line in enumerate(lines, 1):
             name = None if number - 1 in skip else _declared_name(rel, line)
@@ -273,7 +274,7 @@ def _rust_members(files: Mapping[str, str]) -> set[str]:
         pending: re.Pattern[str] | None = None
         groups = 0  # `(` and `[` left open since `pending` was set
         previous = ""  # the last non-space code character
-        for _, code in _rust_code(text.splitlines()):
+        for _, code in _rust_code(git_lines(text)):
             member_re = blocks[-1] if blocks else None
             opens_member = not groups and previous in ("{", ",", "}", "]")
             if member_re and opens_member and (member := member_re.match(code)):
@@ -318,7 +319,7 @@ def _without_cfg_test_modules(text: str) -> str:
     its own path makes it a test file.
     """
 
-    lines = text.splitlines()
+    lines = git_lines(text)
     depth = 0
     pending = False  # a `#[cfg(test)]` awaits its item
     start: int | None = None  # the open test module's `mod` line…
@@ -387,7 +388,7 @@ def _files_at_ref(repo_root: Path, ref: str) -> dict[str, str]:
     if listing is None:
         return {}
     files: dict[str, str] = {}
-    for rel in listing.splitlines():
+    for rel in git_lines(listing):
         if not rel.endswith((".swift", ".rs")):
             continue
         text = _git(repo_root, "show", f"{ref}:{rel}")
@@ -422,7 +423,7 @@ def _citations(repo_root: Path) -> list[tuple[str, int, str]]:
         text = _read_tracked(repo_root / rel)
         if text is None:
             continue
-        for number, line in enumerate(text.splitlines(), 1):
+        for number, line in enumerate(git_lines(text), 1):
             for match in CITATION_RE.finditer(line):
                 found.append((rel, number, match.group(1)))
     return found

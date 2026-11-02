@@ -56,6 +56,8 @@ import re
 from collections.abc import Sequence
 from typing import NamedTuple
 
+from .lines import git_lines
+
 FENCE_RE = re.compile(r"^\s*(`{3,})")
 
 CODE_SPAN_RE = re.compile(r"`([^`]+)`")
@@ -152,7 +154,7 @@ def slug(heading: str) -> str:
 
 
 def slugs_of(text: str) -> set[str]:
-    return {slug(m.group(2)) for line in text.splitlines() if (m := HEADING_RE.match(line))}
+    return {slug(m.group(2)) for line in git_lines(text) if (m := HEADING_RE.match(line))}
 
 
 def section_range(text: str, anchor: str) -> tuple[int, int] | None:
@@ -166,7 +168,7 @@ def section_range(text: str, anchor: str) -> tuple[int, int] | None:
     comment` in a shell block would otherwise end the section early.
     """
 
-    lines = text.splitlines()
+    lines = git_lines(text)
     in_fence = fence_state(lines)
     headings = [
         (i, len(m.group(1)), m.group(2))
@@ -244,7 +246,7 @@ def sentences_from(text: str) -> list[Sentence]:
     Not every terminator ends a sentence; see `_sentence_spans` (#154).
     """
 
-    lines = text.splitlines()
+    lines = git_lines(text)
     table = _table_rows(lines)
     paragraphs: list[tuple[int, int]] = []
     para_start = 0

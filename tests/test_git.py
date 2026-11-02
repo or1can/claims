@@ -23,6 +23,7 @@ from claims.git import (
     DiffHunkStart,
     DiffLine,
     added_lines_by_file,
+    blame_commits,
     exists_at,
     is_file_at,
     iter_diff,
@@ -278,6 +279,23 @@ class TrackedFilesTests(unittest.TestCase):
             repo.write("café.md", "text")
             files = tracked_files(repo.root)
         self.assertEqual(files, ["café.md"])
+
+    def test_a_filename_with_a_unicode_line_separator_is_not_split(self) -> None:
+        """Git ends each path with `\n` alone (#185)."""
+        with Repo() as repo:
+            repo.write("a\u2028b.md", "text")
+            files = tracked_files(repo.root)
+        self.assertEqual(files, ["a\u2028b.md"])
+
+
+class BlameCommitsTests(unittest.TestCase):
+    def test_a_form_feed_in_a_line_does_not_read_as_another_line(self) -> None:
+        """The rest of the line after it would parse as a porcelain header (#185)."""
+        with Repo() as repo:
+            repo.write("a.md", "x\x0c" + "0" * 40 + " 1 1\n")
+            repo.commit()
+            commits = blame_commits(repo.root, "a.md")
+        self.assertEqual(len(commits or []), 1)
 
 
 class AddedLinesByFileTests(unittest.TestCase):

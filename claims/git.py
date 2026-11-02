@@ -22,6 +22,8 @@ from collections.abc import Iterator, Sequence
 from pathlib import Path
 from typing import NamedTuple
 
+from .lines import git_lines
+
 
 QUOTEPATH_OFF = ["-c", "core.quotepath=false"]
 """Disables git's default quoting of a non-ASCII byte in a path (e.g.
@@ -49,7 +51,7 @@ def tracked_files(repo_root: Path, *pathspecs: str) -> list[str]:
         text=True,
         errors="replace",
     )
-    return [rel for rel in result.stdout.splitlines() if rel]
+    return [rel for rel in git_lines(result.stdout) if rel]
 
 
 _SRC_PREFIX = "a/"
@@ -307,7 +309,7 @@ def blame_commits(repo_root: Path, rel: str) -> list[str] | None:
         return None
     return [
         m.group(1)
-        for line in result.stdout.splitlines()
+        for line in git_lines(result.stdout)
         if (m := _BLAME_HEADER_RE.match(line))
     ]
 

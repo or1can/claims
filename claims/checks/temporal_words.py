@@ -83,6 +83,7 @@ from pathlib import Path
 
 from ..config import path_matches, string_list_config
 from ..git import added_lines_by_file
+from ..lines import git_lines
 from ..markdown import (
     CODE_SPAN_RE,
     ITALIC_RE,
@@ -181,7 +182,7 @@ def check(
         zero_based_added = {n - 1 for n in added_line_numbers}
         removed_here = removed.get(path, set())
 
-        for sentence, start, end in sentences_from(prose_lines(text.splitlines())):
+        for sentence, start, end in sentences_from(prose_lines(git_lines(text))):
             if zero_based_added.isdisjoint(range(start, end + 1)):
                 continue
             if rewrapped(sentence, removed_here):

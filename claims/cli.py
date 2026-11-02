@@ -72,6 +72,7 @@ def mark_checked(argv: list[str]) -> int:
     except ConfigError as e:
         print(f"{CHECKED_FILENAME} is invalid: {e}", file=sys.stderr)
         return 2
+    # One entry per line, never numbered against a file: `splitlines()` will do.
     if args.entries == "-":
         entries = sys.stdin.read().splitlines()
     else:

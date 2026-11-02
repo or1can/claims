@@ -196,6 +196,7 @@ from pathlib import Path
 from ..config import exclude_patterns, path_matches, string_list_config
 from ..git import is_file_at, tracked_files
 from ..historical import HistoricalResolver
+from ..lines import git_lines
 from ..markdown import fence_state
 from ..paths import PATH_RE, citing_relative, host_relative, repo_relative
 from ..runner import Finding, register_check
@@ -364,7 +365,7 @@ def check(repo_root: Path, diff_range: str, config: Mapping[str, object]) -> lis
         if text is None:
             continue
         file_resolver = resolver if path_matches(rel, historical) else None
-        lines = text.splitlines()
+        lines = git_lines(text)
         in_fence = fence_state(lines)
         for line_no, line in enumerate(lines, 1):
             if in_fence[line_no - 1]:

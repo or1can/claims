@@ -23,11 +23,11 @@
   openers partway along a line; the second needs the attribute scan,
   shared with Swift, to read the comment-free view. Found reviewing
   #168.
-- Checks number a file's lines with `str.splitlines()`, which also
-  breaks on U+2028, U+2029, `\x0b`, `\x0c`, `\x1c`–`\x1e` and `\x85`,
-  while git numbers lines by `\n` only. A file holding one of those
-  shifts every later line's number against git's, so a finding cites
-  the wrong line, and `restatement`'s and `judgment-agent`'s
-  `historical` skip can take an added line for a shipped one or the
-  reverse. About 34 call sites; splitting on `\n` alone is the likely
-  fix. Found reviewing #174.
+- Checks read a file with `Path.read_text()`, and git's output with
+  `subprocess.run(text=True)`, whose universal-newline mode turns a
+  lone `\r` into `\n` before `claims.lines.git_lines` or `iter_diff`
+  sees it, while git ends a line at `\n` only. A file holding a lone
+  `\r` still shifts every later line's number against git's.
+  `read_text(newline="")` is 3.13+ and `requires-python` is `>=3.11`,
+  so the fix is an `open(..., newline="")` at each file read and
+  decoding git's bytes without translation. Found working on #185.

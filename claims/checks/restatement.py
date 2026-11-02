@@ -102,6 +102,7 @@ from typing import NamedTuple
 
 from ..config import exclude_patterns, numeric_config, path_matches, string_list_config
 from ..git import DiffLine, added_lines_by_file, iter_diff, tracked_files
+from ..lines import git_lines
 from ..runner import Finding, register_check
 from ..words import normalise
 
@@ -369,7 +370,7 @@ def _survivors(
             text = (repo_root / name).read_text(encoding="utf-8")
         except (OSError, UnicodeDecodeError):
             continue
-        lines = _prose_lines(name, text.splitlines())
+        lines = _prose_lines(name, git_lines(text))
         added_here = added.get(name, set())
         historical_here = path_matches(name, historical)
         located = [

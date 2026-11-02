@@ -52,6 +52,7 @@ from typing import NamedTuple
 
 from .config import ConfigError
 from .git import tracked_files
+from .lines import git_lines
 from .markdown import CODE_SPAN_RE, fence_state, prose_lines, section_range, sentences_from
 from .runner import Finding
 from .words import normalise
@@ -228,7 +229,7 @@ class _Tree:
                 text = None if path is None else path.read_text(encoding="utf-8", errors="replace")
             except OSError:
                 text = None
-            self._lines[rel] = None if text is None else text.splitlines()
+            self._lines[rel] = None if text is None else git_lines(text)
         return self._lines[rel]
 
     def units(self, rel: str, kind: str) -> list[_Unit] | None:
@@ -291,7 +292,7 @@ class _Tree:
         span = section_range(decoded, anchor)
         if span is None:
             return None
-        return _digest("\n".join(decoded.splitlines()[span[0] - 1 : span[1]]))
+        return _digest("\n".join(git_lines(decoded)[span[0] - 1 : span[1]]))
 
     def subjects(self, rel: str, unit: _Unit) -> dict[str, str]:
         """`{subject: content hash}` for each subject `unit`, in `rel`,
@@ -358,7 +359,7 @@ def load_marks(repo_root: Path) -> list[Mark]:
     if unknown:
         raise ConfigError(f"unknown top-level key {sorted(unknown)[0]!r}")
     entries = data.get("mark", [])
-    headers = [n for n, line in enumerate(text.splitlines(), 1) if _MARK_HEADER_RE.match(line)]
+    headers = [n for n, line in enumerate(git_lines(text), 1) if _MARK_HEADER_RE.match(line)]
     if not isinstance(entries, list) or len(headers) != len(entries):
         raise ConfigError("marks must be written as [[mark]] tables")
 
@@ -571,7 +572,8 @@ def write_marks(repo_root: Path, marks: Sequence[Mark]) -> None:
     text = path.read_text(encoding="utf-8") if path.is_file() else ""
     replaced = {mark.key for mark in marks}
 
-    lines = text.splitlines(keepends=True)
+    # Numbered as `load_marks` numbers each entry's `line`.
+    lines = [line + "\n" for line in git_lines(text)]
     starts = [m.line - 1 for m in existing]
     kept = "".join(lines[: starts[0]] if starts else lines)
     for mark, start, end in zip(existing, starts, starts[1:] + [len(lines)]):

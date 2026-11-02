@@ -61,6 +61,7 @@ from pathlib import Path
 
 from ..config import ConfigError
 from ..git import tracked_files
+from ..lines import git_lines
 from ..runner import Finding, register_check
 
 NAME = "spliced-docs"
@@ -446,7 +447,7 @@ def _rust_breaks(lines: list[str]):
 
 def _check_rust(repo_root: Path, enabled_modes: frozenset[str]) -> list[Finding]:
     files = {
-        rel: (repo_root / rel).read_text(encoding="utf-8", errors="replace").splitlines()
+        rel: git_lines((repo_root / rel).read_text(encoding="utf-8", errors="replace"))
         for rel in tracked_files(repo_root, "*.rs")
     }
     all_names = _rust_all_names(list(files.values())) if UNKNOWN in enabled_modes else set()
@@ -540,7 +541,7 @@ def _swift_breaks(lines: list[str]):
 
 def _check_swift(repo_root: Path, enabled_modes: frozenset[str]) -> list[Finding]:
     files = {
-        rel: (repo_root / rel).read_text(encoding="utf-8", errors="replace").splitlines()
+        rel: git_lines((repo_root / rel).read_text(encoding="utf-8", errors="replace"))
         for rel in tracked_files(repo_root, "*.swift")
     }
 

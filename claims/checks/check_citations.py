@@ -61,6 +61,7 @@ from collections.abc import Mapping
 from pathlib import Path
 
 from ..git import tracked_files
+from ..lines import git_lines
 from ..runner import Finding, register_check
 from .spliced_docs import SWIFT_DECL_RE
 
@@ -135,7 +136,7 @@ def _declared_now(repo_root: Path) -> set[str]:
         text = _read_tracked(repo_root / rel)
         if text is None:
             continue
-        for line in text.splitlines():
+        for line in git_lines(text):
             match = SWIFT_DECL_RE.match(line)
             if match:
                 names.add(match.group(1))
@@ -224,7 +225,7 @@ def _declared_in_range(repo_root: Path, rev_range: str) -> set[str]:
         "*.swift",
     )
     names: set[str] = set()
-    for line in log.splitlines():
+    for line in git_lines(log):
         if line.startswith("+") and not line.startswith("+++"):
             match = SWIFT_DECL_RE.match(line[1:])
             if match:
@@ -360,7 +361,7 @@ def check(
         text = _read_tracked(repo_root / rel)
         if text is None:
             continue
-        lines = text.splitlines()
+        lines = git_lines(text)
         extract = _extract_markdown if rel.endswith(".md") else _extract_swift_comment
         findings.extend(_findings_in(rel, lines, current, gone, extract))
     return findings

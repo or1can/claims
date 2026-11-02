@@ -595,6 +595,36 @@ class RestatementTests(RegistryClearingTestCase):
             {"CHANGELOG.md:3"},
         )
 
+    def test_a_form_feed_does_not_shift_a_later_lines_number(self) -> None:
+        """Git numbers lines by `\n` alone (#185)."""
+        sentence = "binding a proxy to zero dot zero dot zero dot zero exposes it to everything\n"
+        with Repo() as repo:
+            repo.write("a.md", sentence)
+            repo.write("b.md", "Intro\x0c page.\n" + sentence)
+            repo.commit()
+            repo.write("a.md", "an entirely different sentence about something else\n")
+
+            findings = self._findings(repo.root)
+
+        self.assertEqual({f.citation for f in findings}, {"b.md:2"})
+
+    def test_a_form_feed_does_not_make_an_added_historical_line_a_shipped_one(self) -> None:
+        """The `historical` skip matches git's added lines to the file's (#185)."""
+        before = "## [1.0.0]\x0c\n\ndelta epsilon zeta tail\n"
+        after = "## [1.0.0]\x0c\n\nnew alpha beta gamma\ndelta epsilon zeta tail\n"
+        self.assertEqual(
+            self._wrapping_run(before, after, {"historical": ["CHANGELOG.md"]}),
+            {"CHANGELOG.md:3"},
+        )
+
+    def test_a_form_feed_does_not_make_a_shipped_historical_line_an_added_one(self) -> None:
+        """The `historical` skip matches git's added lines to the file's (#185)."""
+        before = "## [1.0.0]\x0c\n\nas noted alpha beta gamma\ndelta epsilon zeta tail one\n"
+        after = "## [1.0.0]\x0c\n\nas noted alpha beta gamma\ndelta epsilon zeta tail two\n"
+        self.assertEqual(
+            self._wrapping_run(before, after, {"historical": ["CHANGELOG.md"]}), set()
+        )
+
     def test_a_line_removed_from_a_historical_file_is_still_a_retraction(self) -> None:
         """Unlike `exclude`, the key leaves the record's own diff read: an
         edit to its `[Unreleased]` section is searched for as before."""

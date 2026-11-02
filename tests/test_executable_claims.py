@@ -214,6 +214,14 @@ class ExecutableClaimsTests(RegistryClearingTestCase):
             findings = self._findings(repo.root, allow=[command])
         self.assertEqual(findings, [])
 
+    def test_a_form_feed_in_output_matches_the_same_line_documented(self) -> None:
+        """Output is split as the documented block is, by `\n` alone (#185)."""
+        command = echo("a\x0cb\n")
+        with Repo() as repo:
+            repo.write("doc.md", marked(command, "a\x0cb"))
+            findings = self._findings(repo.root, allow=[command])
+        self.assertEqual(findings, [])
+
     def test_a_false_claim_with_mismatched_output_fails(self) -> None:
         command = echo("actual\n")
         with Repo() as repo:
