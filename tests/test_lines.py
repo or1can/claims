@@ -16,9 +16,11 @@
 
 from __future__ import annotations
 
+import tempfile
 import unittest
+from pathlib import Path
 
-from claims.lines import git_lines
+from claims.lines import git_lines, tracked_text
 
 
 class GitLinesTests(unittest.TestCase):
@@ -39,6 +41,32 @@ class GitLinesTests(unittest.TestCase):
 
     def test_an_empty_string_gives_no_lines(self) -> None:
         self.assertEqual(git_lines(""), [])
+
+
+class TrackedTextTests(unittest.TestCase):
+    """A tracked file's text, every line ending kept for `git_lines` (#191)."""
+
+    def _file(self, data: bytes) -> Path:
+        directory = tempfile.TemporaryDirectory()
+        self.addCleanup(directory.cleanup)
+        path = Path(directory.name) / "a.md"
+        path.write_bytes(data)
+        return path
+
+    def test_a_bare_carriage_return_is_kept(self) -> None:
+        path = self._file(b"a\rb\nc\n")
+        self.assertEqual(git_lines(tracked_text(path)), ["a\rb", "c"])
+
+    def test_a_crlf_file_reads_as_its_lf_twin(self) -> None:
+        crlf = git_lines(tracked_text(self._file(b"a\r\nb\r\n")))
+        self.assertEqual(crlf, git_lines(tracked_text(self._file(b"a\nb\n"))))
+
+    def test_undecodable_bytes_raise_by_default(self) -> None:
+        with self.assertRaises(UnicodeDecodeError):
+            tracked_text(self._file(b"a\xff\n"))
+
+    def test_undecodable_bytes_follow_the_callers_policy(self) -> None:
+        self.assertEqual(tracked_text(self._file(b"a\xff\n"), errors="replace"), "a\ufffd\n")
 
 
 if __name__ == "__main__":

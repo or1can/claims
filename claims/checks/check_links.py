@@ -94,7 +94,7 @@ from posixpath import dirname, join, normpath
 from ..config import exclude_patterns, path_matches, string_list_config
 from ..git import blob_text, exists_at, tracked_files
 from ..historical import HistoricalResolver
-from ..lines import git_lines
+from ..lines import git_lines, tracked_text
 from ..markdown import fence_state, mask_code_spans, slugs_of
 from ..runner import Finding, register_check
 
@@ -118,7 +118,7 @@ def _read(path: Path) -> str | None:
     if path.is_symlink() or not path.is_file():
         return None
     try:
-        return path.read_text(encoding="utf-8", errors="replace")
+        return tracked_text(path, errors="replace")
     except OSError:
         return None
 
@@ -189,6 +189,8 @@ def _target(
     if not real.is_file() or not resolved.endswith(".md"):
         return set()
     try:
+        # Only slugs, never line-numbered, so a lone `\r` may end a line
+        # here as it ends one where the page renders.
         text = real.read_text(encoding="utf-8", errors="replace")
     except OSError:
         return None

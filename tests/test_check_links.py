@@ -83,6 +83,17 @@ class CheckLinksTests(RegistryClearingTestCase):
         self.assertTrue(findings[0].gate)
         self.assertIn("docs/NOTES.md", findings[0].message)
 
+    def test_a_bare_carriage_return_does_not_shift_a_later_lines_number(self) -> None:
+        """The file is read with no newline translation, so a finding cites
+        git's line number (#191)."""
+        with Repo() as repo:
+            repo.write("README.md", "Intro\r page.\nSee [notes](docs/NOTES.md) for details.\n")
+            repo.commit()
+
+            findings = self._findings(repo.root)
+
+        self.assertEqual([f.citation for f in findings], ["README.md:2"])
+
     def test_a_correct_relative_link_with_an_anchor_is_not_flagged(self) -> None:
         with Repo() as repo:
             repo.write("README.md", "See [notes](docs/NOTES.md#some-heading).\n")

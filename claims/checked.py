@@ -61,7 +61,7 @@ from typing import NamedTuple
 
 from .config import ConfigError, append_only
 from .git import DiffLine, blob_id, iter_diff, read_blob, tracked_files
-from .lines import git_lines
+from .lines import git_lines, tracked_text
 from .markdown import CODE_SPAN_RE, fence_state, prose_lines, section_range, sentences_from
 from .runner import Finding
 from .words import normalise
@@ -263,7 +263,7 @@ class _Tree:
         if rel not in self._lines:
             path = _regular_file(self.repo_root, rel)
             try:
-                text = None if path is None else path.read_text(encoding="utf-8", errors="replace")
+                text = None if path is None else tracked_text(path, errors="replace")
             except OSError:
                 text = None
             self._lines[rel] = None if text is None else git_lines(text)
@@ -434,6 +434,8 @@ def load_marks(repo_root: Path) -> list[Mark]:
     if path.is_symlink() or resolved is None:
         raise ConfigError("is not a regular file inside the repository")
     try:
+        # Not `tracked_text`: this file is only parsed as TOML, never matched
+        # against git's line numbers, and `write_marks` reads it the same way.
         text = resolved.read_text(encoding="utf-8")
     except UnicodeDecodeError as e:
         raise ConfigError(str(e)) from e
@@ -690,6 +692,7 @@ def write_marks(repo_root: Path, marks: Sequence[Mark]) -> None:
 
     path = repo_root / CHECKED_FILENAME
     existing = load_marks(repo_root)
+    # Read as `load_marks` reads it, so each entry is numbered the same.
     text = path.read_text(encoding="utf-8") if path.is_file() else ""
     replaced = {mark.key for mark in marks}
 

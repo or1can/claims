@@ -141,7 +141,7 @@ from ..config import (
     string_list_config,
 )
 from ..git import blob_text, changed_paths, tracked_files
-from ..lines import git_lines
+from ..lines import git_lines, tracked_text
 from ..markdown import section_range
 from ..paths import PATH_RE, citing_relative, host_relative, repo_relative
 from ..runner import Finding, register_check
@@ -304,7 +304,7 @@ def check(
 
     ranked: list[_Candidate] = []
     for rel in docs:
-        lines = git_lines((repo_root / rel).read_text(encoding="utf-8", errors="replace"))
+        lines = git_lines(tracked_text(repo_root / rel, errors="replace"))
         if not lines:
             continue
         starts = [i for i, l in enumerate(lines) if HEADING_RE.match(l)] or [0]
