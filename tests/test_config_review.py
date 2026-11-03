@@ -171,6 +171,20 @@ class ConfigValueMatchesTests(unittest.TestCase):
         self.assertEqual(by_check["check-links"].matched_files, ("a.md",))
         self.assertEqual(by_check["claim-words"].matched_files, ("b.md",))
 
+    def test_subjects_append_only_globs_are_reviewed(self) -> None:
+        with Repo() as repo:
+            repo.write("RELEASES.md", "prose\n")
+            matches = config_value_matches(
+                repo.root, {"subjects": {"append_only": ["RELEASES.md", "HISTORY.md"]}}
+            )
+        self.assertEqual(
+            [(m.check, m.key, m.value, m.matched_files) for m in matches],
+            [
+                ("subjects", "append_only", "RELEASES.md", ("RELEASES.md",)),
+                ("subjects", "append_only", "HISTORY.md", ()),
+            ],
+        )
+
     def test_every_registered_check_is_accounted_for_exactly_once(self) -> None:
         # A future check adding a glob/extension-shaped key without
         # updating this module's own maps would otherwise just never be
@@ -186,7 +200,8 @@ class ConfigValueMatchesTests(unittest.TestCase):
         extension_names = set(EXTENSION_CONFIG_KEYS)
         self.assertTrue(NO_PATH_SHAPED_CONFIG.isdisjoint(glob_names | extension_names))
         accounted_for = glob_names | extension_names | NO_PATH_SHAPED_CONFIG
-        self.assertEqual(accounted_for, every_check_name())
+        # `[subjects]` is a table no check owns (ADR 0011).
+        self.assertEqual(accounted_for - {"subjects"}, every_check_name())
 
     def test_a_non_repo_path_raises_rather_than_reporting_false_zero_matches(
         self,

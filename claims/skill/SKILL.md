@@ -252,7 +252,9 @@ happening.
 Not covered by this step (tracked separately, not this capability's job):
 an unrecognized top-level table name is a mechanical hard error the
 runner itself already gates on (ticket #21, no judgment involved); a
-typo'd key *within* an otherwise-correctly-named section isn't detected
-at all yet, pending schema-declaration infrastructure that doesn't exist;
+typo'd key *within* an otherwise-correctly-named check section isn't
+detected at all yet, pending schema-declaration infrastructure that
+doesn't exist (`[subjects]`, which no check owns, is the exception: the
+runner gates on a key it doesn't take);
 and this never recommends settings for a project with no `claims.toml` at
 all — it reviews what's already there, it doesn't onboard from scratch.

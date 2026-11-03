@@ -36,6 +36,14 @@ read as they are on disk, an anchor's heading included, where
 records a content hash per subject rather than a commit, which a rebase
 or squash would take out of history, and that hash is of what the reader
 had in front of them.
+
+An append-only subject (ADR 0011) records its git blob id instead, the
+one record of what the reader saw that its later growth can be compared
+against: the blob is read back from the object store, never from
+history, so a rebase or squash still leaves the mark alone. The id is
+never written to the store here: a blob committed is in every clone that
+fetches the commit, where one written for this clone alone would hold
+the mark here and expire it everywhere else.
 """
 
 from __future__ import annotations
@@ -50,8 +58,8 @@ from dataclasses import dataclass
 from pathlib import Path, PurePosixPath
 from typing import NamedTuple
 
-from .config import ConfigError
-from .git import tracked_files
+from .config import ConfigError, append_only
+from .git import blob_id, read_blob, tracked_files
 from .lines import git_lines
 from .markdown import CODE_SPAN_RE, fence_state, prose_lines, section_range, sentences_from
 from .runner import Finding
@@ -88,6 +96,10 @@ _SECTION_HEADING_RE = re.compile(r"^(#{1,6})\s+(.*)")
 _DOC_RE = re.compile(r"^\s*///")
 _MARK_HEADER_RE = re.compile(r"^\s*\[\[\s*mark\s*\]\]\s*(#.*)?$")
 _KEYS = {"file", "mode", "unit", "copies", "subjects", "note", "by"}
+# A full SHA-1 or SHA-256 object id: what an append-only subject records.
+# Nothing else is passed to `git cat-file`: the sidecar is committed, so a
+# pull request could otherwise hand it a revision or an option.
+_BLOB_ID_RE = re.compile(r"[0-9a-f]{40}(?:[0-9a-f]{24})?")
 
 
 def unit_kind(mode: str) -> str | None:
@@ -128,6 +140,22 @@ def _digest(text: str) -> str:
 
 def _words_digest(text: str) -> str:
     return _digest(" ".join(normalise(text)))
+
+
+def _blob_lines(data: bytes) -> list[str]:
+    """`data`'s lines, numbered by `\n` alone as git numbers them, with a
+    `\r\n` read as `\n`, so a working-tree copy checked out with `\r\n`
+    compares line for line with the blob it was checked out from."""
+
+    return git_lines(data.decode("utf-8", errors="replace").replace("\r\n", "\n"))
+
+
+def _only_grew(old: Sequence[str], new: Sequence[str]) -> bool:
+    """Whether every line of `old` is still in `new`, in order: a diff
+    from one to the other removes no lines."""
+
+    remaining = iter(new)
+    return all(line in remaining for line in old)
 
 
 def _in_file(unit_hash: str) -> str:
@@ -220,7 +248,8 @@ class _Tree:
         self._lines: dict[str, list[str] | None] = {}
         self._units: dict[tuple[str, str], list[_Unit] | None] = {}
         self._resolver: tuple[set[str], dict[str, str]] | None = None
-        self._hashes: dict[str, str | None] = {}
+        self._hashes: dict[tuple[str, bool], str | None] = {}
+        self._grown: dict[tuple[str, str], bool] = {}
 
     def lines(self, rel: str) -> list[str] | None:
         if rel not in self._lines:
@@ -273,11 +302,17 @@ class _Tree:
         return unit, digest
 
     def subject_hash(self, subject: str) -> str | None:
-        if subject not in self._hashes:
-            self._hashes[subject] = self._read_hash(subject)
-        return self._hashes[subject]
+        """What a mark records for `subject`: an append-only file's blob
+        id, anything else's content hash."""
 
-    def _read_hash(self, subject: str) -> str | None:
+        return self._hash(subject, append_only(self.config, subject.partition("#")[0]))
+
+    def _hash(self, subject: str, blob: bool) -> str | None:
+        if (subject, blob) not in self._hashes:
+            self._hashes[subject, blob] = self._read_hash(subject, blob)
+        return self._hashes[subject, blob]
+
+    def _read_hash(self, subject: str, blob: bool) -> str | None:
         path, _, anchor = subject.partition("#")
         resolved = _regular_file(self.repo_root, path)
         if resolved is None:
@@ -287,15 +322,55 @@ class _Tree:
         except OSError:
             return None
         if not anchor:
-            return hashlib.sha256(text).hexdigest()[:16]
+            return blob_id(self.repo_root, path, text) if blob else hashlib.sha256(text).hexdigest()[:16]
         decoded = text.decode("utf-8", errors="replace")
         span = section_range(decoded, anchor)
         if span is None:
             return None
+        if blob:
+            return blob_id(self.repo_root, path, text)
         return _digest("\n".join(git_lines(decoded)[span[0] - 1 : span[1]]))
 
+    def subject_holds(self, subject: str, recorded: str) -> bool:
+        """Whether `subject` is as it was when a mark recorded `recorded`
+        for it. An append-only file's blob id holds while the recorded
+        blob's lines, or its section's, are all still there (ADR 0011).
+        Any other value has to equal the content hash, which is how a mark
+        written before a file was append-only goes on being compared."""
+
+        path, _, anchor = subject.partition("#")
+        if not (_BLOB_ID_RE.fullmatch(recorded) and append_only(self.config, path)):
+            return self._hash(subject, blob=False) == recorded
+        current = self._hash(subject, blob=True)
+        if current == recorded:
+            return True
+        if current is None:
+            return False
+        if (subject, recorded) not in self._grown:
+            self._grown[subject, recorded] = self._grew(path, anchor, recorded)
+        return self._grown[subject, recorded]
+
+    def _grew(self, path: str, anchor: str, recorded: str) -> bool:
+        old = read_blob(self.repo_root, recorded)
+        resolved = _regular_file(self.repo_root, path)
+        if old is None or resolved is None:
+            return False
+        try:
+            current = resolved.read_bytes()
+        except OSError:
+            return False
+        old_lines, new_lines = _blob_lines(old), _blob_lines(current)
+        if anchor:
+            old_span = section_range("\n".join(old_lines), anchor)
+            new_span = section_range("\n".join(new_lines), anchor)
+            if old_span is None or new_span is None:
+                return False
+            old_lines = old_lines[old_span[0] - 1 : old_span[1]]
+            new_lines = new_lines[new_span[0] - 1 : new_span[1]]
+        return _only_grew(old_lines, new_lines)
+
     def subjects(self, rel: str, unit: _Unit) -> dict[str, str]:
-        """`{subject: content hash}` for each subject `unit`, in `rel`,
+        """`{subject: subject_hash}` for each subject `unit`, in `rel`,
         names that exists on disk: one tracked but deleted has no content
         to record or compare."""
 
@@ -406,7 +481,7 @@ def load_marks(repo_root: Path) -> list[Mark]:
 def _current(tree: _Tree, mark: Mark, rel: str, unit: _Unit) -> bool:
     """Whether everything `mark` was read against is as it was."""
 
-    if any(tree.subject_hash(s) != h for s, h in mark.subjects.items()):
+    if not all(tree.subject_holds(s, h) for s, h in mark.subjects.items()):
         return False
     return tree.subjects(rel, unit).keys() <= mark.subjects.keys()
 

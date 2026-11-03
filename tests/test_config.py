@@ -20,7 +20,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from claims.config import ConfigError, load_config, load_local_config
+from claims.config import ConfigError, append_only, load_config, load_local_config
 
 
 class ConfigTests(unittest.TestCase):
@@ -66,6 +66,40 @@ class ConfigTests(unittest.TestCase):
             local_config = load_local_config(Path(repo_root))
 
         self.assertEqual(local_config, {"executable-claims": {"allowed": ["true"]}})
+
+
+
+class AppendOnlyTests(unittest.TestCase):
+    def _load(self, claims_toml: str) -> dict[str, dict[str, object]]:
+        with tempfile.TemporaryDirectory() as repo_root:
+            (Path(repo_root) / "claims.toml").write_text(claims_toml)
+            return load_config(Path(repo_root))
+
+    def test_changelog_is_append_only_built_in(self) -> None:
+        self.assertTrue(append_only({}, "CHANGELOG.md"))
+        self.assertFalse(append_only({}, "README.md"))
+
+    def test_a_listed_glob_adds_to_the_built_in(self) -> None:
+        config = self._load('[subjects]\nappend_only = ["notes/*.md"]\n')
+
+        self.assertTrue(append_only(config, "notes/2026.md"))
+        self.assertTrue(append_only(config, "CHANGELOG.md"))
+        self.assertFalse(append_only(config, "README.md"))
+
+    def test_a_bare_string_is_a_one_element_list(self) -> None:
+        config = self._load('[subjects]\nappend_only = "RELEASES.md"\n')
+
+        self.assertTrue(append_only(config, "RELEASES.md"))
+        self.assertFalse(append_only(config, "R"))
+
+    def test_a_wrong_typed_value_is_invalid_config(self) -> None:
+        for claims_toml in (
+            "[subjects]\nappend_only = 3\n",
+            "[subjects]\nappend_only = [3]\n",
+            'subjects = "CHANGELOG.md"\n',
+        ):
+            with self.subTest(claims_toml=claims_toml), self.assertRaises(ConfigError):
+                self._load(claims_toml)
 
 
 if __name__ == "__main__":

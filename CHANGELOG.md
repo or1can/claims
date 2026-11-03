@@ -11,6 +11,17 @@ reached you, not just that one was pushed upstream.
 
 ## [Unreleased]
 
+## [0.22.0] - 2026-11-03
+
+- Added: a `[subjects]` table in `claims.toml`, whose `append_only` glob
+  list names files that only grow. `CHANGELOG.md` is append-only built
+  in. An append to such a file no longer counts as `stale-claims` churn
+  for a section naming it, and no longer expires a checked mark on a
+  claim naming it; changing or removing a line still does both.
+- Changed: a new checked mark on an append-only file records its git
+  blob id rather than a content hash. A mark written before this keeps
+  expiring on any change to the file until it is marked again.
+
 ## [0.21.1] - 2026-11-02
 
 - Fixed: every check numbers a file's lines by `\n` alone, as `git diff`

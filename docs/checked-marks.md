@@ -20,7 +20,7 @@ is what a check's `exclude` key is for.
 | `mode` | string | The finding's mode. A mark on one mode of a sentence leaves the sentence's other modes reported. |
 | `unit` | string | A hash of the finding's unit, described below. |
 | `copies` | positive integer | How many copies of the unit the file held when it was marked. |
-| `subjects` | table of path to hash | A content hash of each file, or `page.md#anchor` section, the unit names. |
+| `subjects` | table of path to hash | A content hash of each file, or `page.md#anchor` section, the unit names; for an [append-only file](configuring.md#append-only-files), its git blob id. |
 | `note` | non-empty string | What the reader verified. Required. |
 | `by` | string, optional | Who read it. Nothing reads this key; it is a record. |
 
@@ -65,8 +65,9 @@ unchanged. It stops applying when any of these happens:
 
 - No unit in the file hashes to the mark's `unit`: the wording changed.
 - A recorded subject's content differs from its recorded hash, or its file
-  is gone. A subject whose file is already gone when the mark is written
-  is not recorded.
+  is gone. An append-only file only growing is not a difference. A
+  subject whose file is already gone when the mark is written is not
+  recorded.
 - The unit now names a subject the mark did not record, such as a bare
   `` `store` `` once a `store.py` exists to resolve it to.
 
@@ -74,8 +75,28 @@ Subjects are found the way `stale-claims` finds them, from the paths and
 backticked file names the unit's text holds, and are read as they are on
 disk. No commit is recorded, so a rebase, a squash, or the order in which
 fixes land after a reading does not matter: a mark applies while what it
-was read against is byte-identical. Edit a subject and then put it back
-exactly as it was, and the mark applies again.
+was read against is byte-identical, or for an append-only file, below,
+has only grown. Edit a subject and then put it back exactly as it was,
+and the mark applies again.
+
+An [append-only file](configuring.md#append-only-files), which
+`CHANGELOG.md` is by default, is recorded as its git blob id: the id
+staging the file would give it, with the line-ending conversion and
+filters staging applies, so a clone that checks it out with `\r\n`
+records the same id as one that does not. Growing does not count as its
+content differing. While the file matches the recorded blob the mark
+applies. Otherwise the recorded blob is read from git's object store,
+and the mark applies while every one of its lines is still in the file,
+in the same order: lines added anywhere keep the mark, and a line
+changed or removed expires it. A subject naming one section of such a
+file is compared the same way over that section's lines. A blob the
+store does not hold expires the mark, which is what happens to one
+recorded against content that was never staged or committed, or that
+was only ever in another clone. Content staged but never committed is
+in this clone's store alone, so a mark recorded against it holds here
+and expires everywhere else. A mark recorded before a file was
+append-only holds that file's content hash, and goes on expiring on any
+change to it until it is marked again.
 
 A unit that names no subject expires only on its wording. Its mark says
 that the sentence was read, not that it is still true: a claim about

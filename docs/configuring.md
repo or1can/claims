@@ -14,7 +14,8 @@ the CLI are asked for explicitly, so they run anywhere, a missing file
 meaning every check on its defaults; see
 [ADR 0006](../decisions/0006-claims-toml-opts-in-to-the-commit-hook.md)
 for why only the hook asks. Each top-level table is one check's own
-section, named for the check:
+section, named for the check, except [`[hook]`](#switching-the-commit-hook-off)
+and [`[subjects]`](#append-only-files):
 
 ```toml
 [check-links]
@@ -87,11 +88,41 @@ every commit with the reason, naming the check, until it is fixed.
 Neither switch reads the other: the whole-gate toggle and a check's own
 key are independent, and a project can set both.
 
+## Append-only files
+
+Some files only ever grow. A changelog gains an entry on almost every
+pull request, and the entries already there stay as they shipped. When
+such a file is something a claim names, its growth is not its content
+changing, so it does not make `stale-claims` rank the claim's section as
+moved or expire a [checked mark](checked-marks.md) on the claim. Changing
+or removing a line still does both. `CHANGELOG.md`, in any directory,
+is append-only without being listed, and `[subjects]` adds to it:
+
+```toml
+[subjects]
+append_only = ["RELEASES.md", "notes/*.md"]
+```
+
+`append_only` is a list of globs matched against repo-relative paths,
+and a bare string is a one-element list. A value that is not a string or
+a list of strings, or a top-level `subjects` that is not a table, makes
+`claims.toml` invalid: the hook blocks every commit with the reason and
+the CLI exits with it, until it is fixed. A key other than
+`append_only` in `[subjects]` is a gate finding under the mode `config`,
+naming the key.
+
+Append-only is a property of the file, not of one check: `stale-claims`
+and checked marks both read it. It says nothing about how a line *in*
+the file is judged, which is what a check's own `historical` key is
+for, so a project can list a changelog in both. [ADR
+0011](../decisions/0011-append-only-is-a-property-of-the-file.md) has
+why the two are kept apart.
+
 ## The unrecognized-table gate
 
-`hook` is the one top-level table that is not a check's name. Any other
-table naming no registered check is itself a gate finding, reported under
-the mode `config` and naming the table. A table that differs from a real
+`hook` and `subjects` are the two top-level tables that are not a check's
+name. Any other table naming no registered check is itself a gate
+finding, reported under the mode `config` and naming the table. A table that differs from a real
 check's name only by underscores for hyphens, `[executable_claims]` for
 `[executable-claims]`, is named as the likely intent in the finding.
 

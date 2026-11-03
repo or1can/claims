@@ -116,11 +116,15 @@ def _crash_finding(name: str, exc: Exception) -> Finding:
     )
 
 
-# `claims.toml`'s one legitimate top-level table that isn't a registered
-# check's own name — see `docs/configuring.md`'s "Switching the commit hook
-# off" section. Any other unrecognized table is a project's config
-# silently doing nothing (ticket #21), not a second exception to add here.
-_KNOWN_NON_CHECK_TABLES = frozenset({"hook"})
+# `claims.toml`'s top-level tables that aren't a registered check's own
+# name: `[hook]` (`docs/configuring.md`'s "Switching the commit hook off")
+# and `[subjects]` (ADR 0011). Any other unrecognized table is a project's
+# config silently doing nothing (ticket #21).
+_KNOWN_NON_CHECK_TABLES = frozenset({"hook", "subjects"})
+
+# The keys `[subjects]` takes: it belongs to no check, so no check's own
+# reading of it would notice a misspelt one.
+_SUBJECTS_KEYS = frozenset({"append_only"})
 
 # `claims.local.toml`'s counterpart: `[nudge]`, one person's opt-out from
 # the missing-hook nudge in one clone (ticket #132) — see `claims.nudge`.
@@ -189,6 +193,29 @@ def _unrecognized_table_findings(
     return findings
 
 
+def _unrecognized_subjects_key_findings(
+    config: Mapping[str, Mapping[str, object]],
+) -> list[Finding]:
+    """One gate finding per key of `[subjects]` it doesn't take, cited
+    against `claims.toml` as an unrecognized table is. A `[subjects]` that
+    isn't a table is `load_config`'s to refuse, so none is reported here."""
+
+    subjects = config.get("subjects", {})
+    if not isinstance(subjects, Mapping):
+        return []
+    return [
+        Finding(
+            file=CONFIG_FILENAME,
+            line=0,
+            message=f"[subjects] {key} is not a recognized key — [subjects] takes append_only",
+            mode="config",
+            gate=True,
+        )
+        for key in subjects
+        if key not in _SUBJECTS_KEYS
+    ]
+
+
 def run(
     repo_root: Path, diff_range: str, config: Mapping[str, Mapping[str, object]]
 ) -> RunResult:
@@ -205,10 +232,11 @@ def run(
 
     Before any check runs, `config`'s own top-level table names are
     checked against the live registry (`_unrecognized_table_findings`,
-    ticket #21): a table naming neither a registered check nor `[hook]`
-    gets its own gate finding rather than silently resolving to an empty
-    section for a check that doesn't exist. `repo_root`'s own
-    `claims.local.toml` gets the same check (ticket #86). A local file
+    ticket #21): a table naming neither a registered check, `[hook]` nor
+    `[subjects]` gets its own gate finding rather than silently resolving
+    to an empty section for a check that doesn't exist, and so does a key
+    `[subjects]` doesn't take. `repo_root`'s own `claims.local.toml` gets
+    the same check (ticket #86). A local file
     that doesn't parse is skipped here rather than raised: each check that
     reads it turns that `ConfigError` into its own crash finding when it
     runs.
@@ -224,6 +252,7 @@ def run(
     findings: list[Finding] = _unrecognized_table_findings(
         config, registered, CONFIG_FILENAME, _KNOWN_NON_CHECK_TABLES
     )
+    findings.extend(_unrecognized_subjects_key_findings(config))
     try:
         local_config = load_local_config(repo_root)
     except ConfigError:

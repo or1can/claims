@@ -326,6 +326,30 @@ def blob_text(repo_root: Path, commit: str, rel: str) -> str | None:
     return result.stdout if result.returncode == 0 else None
 
 
+def blob_id(repo_root: Path, rel: str, data: bytes) -> str | None:
+    """The id `data`, `rel`'s content in the working tree, would have as a
+    blob once staged, without writing it to the store. `--path` applies
+    the clean filters and line-ending conversion staging would, so a
+    `\r\n` checkout of an `\n` blob hashes to that blob."""
+
+    result = subprocess.run(
+        ["git", *QUOTEPATH_OFF, "-C", str(repo_root), "hash-object", f"--path={rel}", "--stdin"],
+        input=data,
+        capture_output=True,
+    )
+    return result.stdout.decode().strip() if result.returncode == 0 else None
+
+
+def read_blob(repo_root: Path, oid: str) -> bytes | None:
+    """The blob `oid` names in `repo_root`'s object store, or `None` when
+    the store holds no blob by that id."""
+
+    result = subprocess.run(
+        ["git", "-C", str(repo_root), "cat-file", "blob", oid], capture_output=True
+    )
+    return result.stdout if result.returncode == 0 else None
+
+
 def _object_type_at(repo_root: Path, commit: str, rel: str) -> str | None:
     """The type of `commit`'s object at `rel` (`blob`, `tree`, ...), or
     `None` if it has none — asks for the type rather than reading the
