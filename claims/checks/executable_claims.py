@@ -189,7 +189,7 @@ from pathlib import Path
 from ..config import exclude_patterns, numeric_config, path_matches, string_list_config
 from ..execution_grants import local_grants, toml_string
 from ..git import tracked_files
-from ..lines import git_lines
+from ..lines import git_lines, tracked_text
 from ..runner import Finding, register_check
 
 NAME = "executable-claims"
@@ -610,7 +610,7 @@ def check(
             continue
         seen.add(real)
         swept_any = True
-        lines = git_lines((repo_root / rel).read_text(encoding="utf-8"))
+        lines = git_lines(tracked_text(repo_root / rel))
         in_fence, opened_at = _fence_state(lines)
         if opened_at is not None:
             findings.append(_finding(rel, opened_at, "fenced code block is never closed"))

@@ -175,6 +175,37 @@ class ClaimWordsTests(RegistryClearingTestCase):
 
         self.assertEqual([f.citation for f in findings], ["record.md:3"])
 
+    def test_a_bare_carriage_return_does_not_shift_a_later_lines_number(self) -> None:
+        """The file is read with no newline translation, so git's line 3 is
+        the line found and line 2, untouched, is not (#191)."""
+        with Repo() as repo:
+            repo.write("a.md", "Intro line\r more text here.\nEvery check runs now.\n")
+            repo.commit()
+            repo.write(
+                "a.md",
+                "Intro line\r more text here.\nEvery check runs now.\n"
+                "The gate never runs twice.\n",
+            )
+
+            findings = self._findings(repo.root, ["a.md"])
+
+        self.assertEqual([f.citation for f in findings], ["a.md:3"])
+        self.assertIn("never", findings[0].message)
+
+    def test_a_crlf_file_gives_its_lf_twins_findings(self) -> None:
+        def citations(newline: str) -> list[tuple[str, str]]:
+            with Repo() as repo:
+                repo.write("record.md", newline.join(["# record", "", "seed", ""]))
+                repo.commit()
+                repo.write(
+                    "record.md",
+                    newline.join(["# record", "", "Every host in the fleet reports up.", ""]),
+                )
+                return [(f.citation, f.mode) for f in self._findings(repo.root, ["record.md"])]
+
+        self.assertEqual(citations("\r\n"), citations("\n"))
+        self.assertEqual([c for c, _ in citations("\n")], ["record.md:3"])
+
     def test_a_spelled_out_count_beyond_the_old_twelve_word_ceiling_is_flagged(self) -> None:
         with Repo() as repo:
             repo.write("record.md", "# record\n\nseed\n")

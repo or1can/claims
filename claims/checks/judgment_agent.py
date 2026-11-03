@@ -124,7 +124,7 @@ from typing import NamedTuple
 
 from ..config import path_matches, string_list_config
 from ..git import QUOTEPATH_OFF, added_lines_by_file, tracked_files
-from ..lines import git_lines
+from ..lines import git_lines, tracked_text
 from ..runner import Finding, register_check
 from .check_citations import CITATION_RE
 from .spliced_docs import RUST_ITEM_RE, SWIFT_DECL_RE, _rust_code
@@ -365,7 +365,7 @@ def _read_tracked(path: Path) -> str | None:
     if path.is_symlink():
         return None
     try:
-        return path.read_text(encoding="utf-8", errors="replace")
+        return tracked_text(path, errors="replace")
     except OSError:
         return None
 

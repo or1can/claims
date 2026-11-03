@@ -87,6 +87,24 @@ class SplicedDocsTests(RegistryClearingTestCase):
         self.assertEqual(findings[0].mode, MODE_UNDOCUMENTED)
         self.assertIn("load_project", findings[0].message)
 
+    def test_a_bare_carriage_return_does_not_shift_a_later_lines_number(self) -> None:
+        """The file is read with no newline translation, so a finding cites
+        git's line number (#191)."""
+        with Repo() as repo:
+            repo.write(
+                "src/lib.rs",
+                "// Intro\r page.\n"
+                "fn load_project() -> Project {}\n\n"
+                "/// Loads the project's `load_project` config from disk.\n"
+                "/// Converts the config into native TOML for `to_native_toml`.\n"
+                "fn to_native_toml() -> Config {}\n",
+            )
+            repo.commit()
+
+            findings = self._findings(repo.root)
+
+        self.assertEqual([f.citation for f in findings], ["src/lib.rs:5"])
+
     def test_unknown_mode_is_opt_in_a_rust_splice_naming_nothing_is_not_flagged_by_default(
         self,
     ) -> None:

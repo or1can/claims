@@ -60,7 +60,7 @@ from pathlib import Path
 
 from ..config import path_matches, string_list_config
 from ..git import added_lines_by_file
-from ..lines import git_lines
+from ..lines import git_lines, tracked_text
 from ..markdown import (
     CODE_SPAN_RE,
     ITALIC_RE,
@@ -240,7 +240,7 @@ def check(
     for path in sorted(designated):
         added_line_numbers = added[path]
         try:
-            text = (repo_root / path).read_text(encoding="utf-8")
+            text = tracked_text(repo_root / path)
         except (OSError, UnicodeDecodeError):
             continue
         lines = git_lines(text)

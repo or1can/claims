@@ -102,7 +102,7 @@ from typing import NamedTuple
 
 from ..config import exclude_patterns, numeric_config, path_matches, string_list_config
 from ..git import DiffLine, added_lines_by_file, iter_diff, tracked_files
-from ..lines import git_lines
+from ..lines import git_lines, tracked_text
 from ..runner import Finding, register_check
 from ..words import normalise
 
@@ -367,7 +367,7 @@ def _survivors(
     whole_line_hits: list[tuple[str, int, str]] = []
     for name in tracked:
         try:
-            text = (repo_root / name).read_text(encoding="utf-8")
+            text = tracked_text(repo_root / name)
         except (OSError, UnicodeDecodeError):
             continue
         lines = _prose_lines(name, git_lines(text))

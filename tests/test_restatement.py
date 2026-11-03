@@ -617,6 +617,18 @@ class RestatementTests(RegistryClearingTestCase):
             {"CHANGELOG.md:3"},
         )
 
+    def test_a_bare_carriage_return_does_not_make_an_added_historical_line_a_shipped_one(
+        self,
+    ) -> None:
+        """The file is read with no newline translation, so the `historical`
+        skip matches git's added lines to the file's (#191)."""
+        before = "## [1.0.0]\r notes\n\ndelta epsilon zeta tail\n"
+        after = "## [1.0.0]\r notes\n\nnew alpha beta gamma\ndelta epsilon zeta tail\n"
+        self.assertEqual(
+            self._wrapping_run(before, after, {"historical": ["CHANGELOG.md"]}),
+            {"CHANGELOG.md:3"},
+        )
+
     def test_a_form_feed_does_not_make_a_shipped_historical_line_an_added_one(self) -> None:
         """The `historical` skip matches git's added lines to the file's (#185)."""
         before = "## [1.0.0]\x0c\n\nas noted alpha beta gamma\ndelta epsilon zeta tail one\n"

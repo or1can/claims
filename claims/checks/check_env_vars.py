@@ -111,7 +111,7 @@ from pathlib import Path
 
 from ..config import exclude_patterns, path_matches, string_list_config
 from ..git import tracked_files
-from ..lines import git_lines
+from ..lines import git_lines, tracked_text
 from ..markdown import fence_state
 from ..runner import Finding, register_check
 
@@ -143,7 +143,7 @@ def _read(path: Path) -> str | None:
     if path.is_symlink() or not path.is_file():
         return None
     try:
-        return path.read_text(encoding="utf-8", errors="replace")
+        return tracked_text(path, errors="replace")
     except OSError:
         return None
 

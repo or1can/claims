@@ -11,6 +11,16 @@ reached you, not just that one was pushed upstream.
 
 ## [Unreleased]
 
+## [0.23.1] - 2026-11-03
+
+- Fixed: a lone carriage return (`\r`) in a file no longer shifts later
+  findings onto the wrong line, hides a finding on a line the diff added,
+  or makes `historical` treat an added line as shipped. CRLF files read
+  as before.
+- Changed: a checked mark on a claim that a lone `\r` used to split
+  across two lines no longer matches it, and expires once until it is
+  marked again.
+
 ## [0.23.0] - 2026-11-03
 
 - Added: `python3 -m claims.cli --fail-on-unmarked[=check,...]` exits `3`

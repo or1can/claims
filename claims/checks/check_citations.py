@@ -61,7 +61,7 @@ from collections.abc import Mapping
 from pathlib import Path
 
 from ..git import tracked_files
-from ..lines import git_lines
+from ..lines import git_lines, tracked_text
 from ..runner import Finding, register_check
 from .spliced_docs import SWIFT_DECL_RE
 
@@ -125,7 +125,7 @@ def _read_tracked(path: Path) -> str | None:
     if path.is_symlink():
         return None
     try:
-        return path.read_text(encoding="utf-8", errors="replace")
+        return tracked_text(path, errors="replace")
     except OSError:
         return None
 
@@ -169,6 +169,7 @@ def _load_cache(cache_path: Path) -> tuple[str, set[str]] | None:
     """
 
     try:
+        # This check's own JSON cache, never numbered against git.
         raw = json.loads(cache_path.read_text(encoding="utf-8"))
         return raw["head"], set(raw["names"])
     except (OSError, ValueError, KeyError, TypeError):

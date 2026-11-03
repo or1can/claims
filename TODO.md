@@ -23,11 +23,11 @@
   openers partway along a line; the second needs the attribute scan,
   shared with Swift, to read the comment-free view. Found reviewing
   #168.
-- Checks read a file with `Path.read_text()`, and git's output with
-  `subprocess.run(text=True)`, whose universal-newline mode turns a
-  lone `\r` into `\n` before `claims.lines.git_lines` or `iter_diff`
-  sees it, while git ends a line at `\n` only. A file holding a lone
-  `\r` still shifts every later line's number against git's.
-  `read_text(newline="")` is 3.13+ and `requires-python` is `>=3.11`,
-  so the fix is an `open(..., newline="")` at each file read and
-  decoding git's bytes without translation. Found working on #185.
+- Checks read git's output with `subprocess.run(text=True)`, whose
+  universal-newline mode turns a lone `\r` into `\n` before
+  `claims.lines.git_lines` or `iter_diff` sees it, while git ends a line
+  at `\n` only. A diff, blame or blob (`blob_text`, which `stale-claims`
+  numbers a section from) holding a lone `\r` still shifts every later
+  line's number against git's. The fix is decoding git's bytes without
+  translation. Files in the working tree are read through
+  `claims.lines.tracked_text` since #191. Found working on #185.
