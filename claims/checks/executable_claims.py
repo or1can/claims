@@ -189,6 +189,7 @@ from pathlib import Path
 from ..config import exclude_patterns, numeric_config, path_matches, string_list_config
 from ..execution_grants import local_grants, toml_string
 from ..git import tracked_files
+from ..lines import git_lines
 from ..runner import Finding, register_check
 
 NAME = "executable-claims"
@@ -609,7 +610,7 @@ def check(
             continue
         seen.add(real)
         swept_any = True
-        lines = (repo_root / rel).read_text(encoding="utf-8").splitlines()
+        lines = git_lines((repo_root / rel).read_text(encoding="utf-8"))
         in_fence, opened_at = _fence_state(lines)
         if opened_at is not None:
             findings.append(_finding(rel, opened_at, "fenced code block is never closed"))
@@ -672,8 +673,8 @@ def check(
                 continue
             # Kept apart: concatenated, a stdout not ending in a newline
             # would weld its last line onto stderr's first and report the
-            # seam as drift.
-            actual = _trim(done.stdout.splitlines() + done.stderr.splitlines())
+            # seam as drift. Split as the expected block's lines are.
+            actual = _trim(git_lines(done.stdout) + git_lines(done.stderr))
             want = _trim([l for l in _dedent(expected) if not PROMPT_RE.match(l)])
             if actual != want:
                 findings.append(

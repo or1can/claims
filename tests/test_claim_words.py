@@ -164,6 +164,17 @@ class ClaimWordsTests(RegistryClearingTestCase):
         self.assertEqual(findings[0].citation, "record.md:8")
         self.assertEqual(findings[0].mode, MODE_TOTALISING)
 
+    def test_a_form_feed_does_not_shift_a_later_lines_number(self) -> None:
+        """Git numbers lines by `\n` alone (#185)."""
+        with Repo() as repo:
+            repo.write("record.md", "# record\x0c page\n\nseed\n")
+            repo.commit()
+            repo.write("record.md", "# record\x0c page\n\nEvery host in the fleet reports up.\n")
+
+            findings = self._findings(repo.root, ["record.md"])
+
+        self.assertEqual([f.citation for f in findings], ["record.md:3"])
+
     def test_a_spelled_out_count_beyond_the_old_twelve_word_ceiling_is_flagged(self) -> None:
         with Repo() as repo:
             repo.write("record.md", "# record\n\nseed\n")

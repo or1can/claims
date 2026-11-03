@@ -11,6 +11,14 @@ reached you, not just that one was pushed upstream.
 
 ## [Unreleased]
 
+## [0.21.1] - 2026-11-02
+
+- Fixed: every check numbers a file's lines by `\n` alone, as `git diff`
+  and `git blame` do. A form feed, vertical tab, `\x1c`–`\x1e`, `\x85`,
+  U+2028 or U+2029 in a file no longer shifts later findings onto the
+  wrong line, nor makes `historical` treat an added line as shipped or
+  the reverse.
+
 ## [0.21.0] - 2026-11-02
 
 - Added: `restatement` and `judgment-agent` accept a `historical` glob

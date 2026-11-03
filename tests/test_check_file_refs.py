@@ -53,6 +53,14 @@ class CheckFileRefsTests(RegistryClearingTestCase):
         self.assertTrue(findings[0].gate)
         self.assertIn("scripts/build.py", findings[0].message)
 
+    def test_a_form_feed_does_not_shift_a_later_lines_number(self) -> None:
+        """Git numbers lines by `\n` alone (#185)."""
+        with Repo() as repo:
+            repo.write("README.md", "Intro\x0c page.\nSee scripts/build.py for the build steps.\n")
+            repo.commit()
+            findings = self._findings(repo.root)
+        self.assertEqual([f.citation for f in findings], ["README.md:2"])
+
     def test_a_bare_prose_reference_to_an_existing_file_is_not_flagged(self) -> None:
         with Repo() as repo:
             repo.write("scripts/build.py", "print('hi')\n")

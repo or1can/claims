@@ -122,6 +122,7 @@ from pathlib import Path
 from ..config import exclude_patterns, numeric_config, path_matches
 from ..execution_grants import local_grants, toml_string
 from ..git import tracked_files
+from ..lines import git_lines
 from ..markdown import fence_state
 from ..runner import Finding, register_check
 
@@ -282,7 +283,7 @@ def check(repo_root: Path, diff_range: str, config: Mapping[str, object]) -> lis
         text = _read(repo_root / rel)
         if text is None:
             continue
-        lines = text.splitlines()
+        lines = git_lines(text)
         in_fence = fence_state(lines)
         for line_no, line in enumerate(lines, 1):
             if in_fence[line_no - 1]:

@@ -60,6 +60,7 @@ from pathlib import Path
 
 from ..config import path_matches, string_list_config
 from ..git import added_lines_by_file
+from ..lines import git_lines
 from ..markdown import (
     CODE_SPAN_RE,
     ITALIC_RE,
@@ -242,7 +243,7 @@ def check(
             text = (repo_root / path).read_text(encoding="utf-8")
         except (OSError, UnicodeDecodeError):
             continue
-        lines = text.splitlines()
+        lines = git_lines(text)
         zero_based_added = {n - 1 for n in added_line_numbers}
         removed_here = removed.get(path, set())
 

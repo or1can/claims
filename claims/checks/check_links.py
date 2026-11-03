@@ -94,6 +94,7 @@ from posixpath import dirname, join, normpath
 from ..config import exclude_patterns, path_matches, string_list_config
 from ..git import blob_text, exists_at, tracked_files
 from ..historical import HistoricalResolver
+from ..lines import git_lines
 from ..markdown import fence_state, mask_code_spans, slugs_of
 from ..runner import Finding, register_check
 
@@ -242,7 +243,7 @@ def check(repo_root: Path, diff_range: str, config: Mapping[str, object]) -> lis
         if text is None:
             continue
         file_resolver = resolver if path_matches(rel, historical) else None
-        lines = text.splitlines()
+        lines = git_lines(text)
         in_fence = fence_state(lines)
         for line_no, line in enumerate(lines, 1):
             if in_fence[line_no - 1]:
