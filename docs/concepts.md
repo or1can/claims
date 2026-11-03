@@ -34,6 +34,14 @@ might be spliced. An advisory check can be certain of what it saw and still
 be advisory, because what it saw is a place to look rather than a claim
 proved false.
 
+There is one exception, and a run has to ask for it. With
+`--fail-on-unmarked`, the CLI fails on an advisory finding that no
+[checked mark](checked-marks.md#failing-a-run-on-unmarked-findings) keeps
+quiet, so a CI run can require that each one is read. The finding itself
+stays advisory, and the commit hook never applies the flag.
+[ADR 0012](../decisions/0012-a-ci-run-can-fail-on-unmarked-findings.md)
+records why it is a CLI flag and not a setting.
+
 Severity belongs to the check, not to the individual finding, and a check
 that departs from its own severity for one kind of finding says so. A
 command that times out is reported advisory by an otherwise gate check,

@@ -11,6 +11,16 @@ reached you, not just that one was pushed upstream.
 
 ## [Unreleased]
 
+## [0.23.0] - 2026-11-03
+
+- Added: `python3 -m claims.cli --fail-on-unmarked[=check,...]` exits `3`
+  when an advisory finding from a markable check has no checked mark
+  keeping it quiet, or a mark is orphaned, so a CI run can require each
+  finding be fixed or marked. A gate finding still exits `1`. No
+  `claims.toml` key sets it and the commit hook never applies it.
+- Added: the CLI's summary line ends `, N mark(s) added in range` when
+  the range added entries to `claims.checked.toml`.
+
 ## [0.22.0] - 2026-11-03
 
 - Added: a `[subjects]` table in `claims.toml`, whose `append_only` glob

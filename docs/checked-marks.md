@@ -164,6 +164,66 @@ same count as the last line of its message, including on a commit where
 marks quieted every finding. Gate findings and exit codes are unchanged:
 a mark only ever quiets an advisory finding, which never blocked anything.
 
+The CLI's summary line also ends `, A mark(s) added in range` when the
+range added entries to `claims.checked.toml`. An entry counts when its
+`file`, `mode` and `unit` are on the range's new side and not its old one,
+so re-marking a finding that already has an entry adds nothing. A batch
+of new marks is the thing for a reviewer to read: the count is the only
+sign that marks were written without a reading. The CLI reads the range
+from git, so a `claims.checked.toml` git does not track yet adds nothing.
+
+## Failing a run on unmarked findings
+
+An **unmarked finding** is an advisory finding, from a check whose
+findings can be marked, that no mark keeps quiet. A CLI run can be told to
+fail on them:
+
+```sh
+python3 -m claims.cli --fail-on-unmarked
+python3 -m claims.cli --fail-on-unmarked=restatement,judgment-agent
+```
+
+On its own, the flag covers every check in the table under
+[Units](#units). With a list, it covers only the named checks, and a name
+that is not one of them is a usage error, exit `2`, naming it. With the
+flag, an orphaned mark fails the run too, whatever checks the flag names,
+since deleting its entry resolves it. An advisory finding from a check
+that cannot be marked never fails the run, and gate findings behave as
+they do without the flag.
+
+With the flag, the summary line ends `, U unmarked`, counting the
+unmarked findings and orphans in scope. The exit code is `1` on a gate
+finding, otherwise `3` when `U` is above zero, and otherwise `0`. A run
+that exits `3` closes with one more line after the summary, starting
+`failing:`, which gives the count again and says to fix or mark each one.
+
+No `claims.toml` key sets the flag, and the commit hook never applies it,
+so local commits stay advisory and the cost of reading lands where a
+project asks for it. A project passes it in CI, over the pull request's
+whole range from its merge base, so that the pull request resolves every
+finding it brings in. On GitHub Actions, with the project's history
+fetched and `claims` checked out beside it as
+[the command line](installation.md#the-command-line) describes:
+
+```yaml
+- uses: actions/checkout@v7
+  with:
+    fetch-depth: 0
+- uses: actions/checkout@v7
+  with:
+    repository: or1can/claims
+    ref: <tag>
+    path: claims
+- run: |
+    base=$(git merge-base "origin/${{ github.base_ref }}" HEAD)
+    PYTHONPATH=claims python3 -m claims.cli --repo-root . --diff-range "$base" --fail-on-unmarked
+```
+
+A pull request that fails this way is fixed by changing the prose, or by
+running `mark-checked` over the same range once each finding has been
+read. A dependency bot cannot read a finding, so on a bot's pull request
+a person or an agent reads the findings and marks them on its behalf.
+
 ## Example
 
 The example is the `claim-words` configuration with a guide that makes two

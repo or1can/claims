@@ -239,17 +239,24 @@ python3 -m claims.cli --repo-root <path> --diff-range <range>
 finding, then a summary line of the form `N checked, M finding(s), G gate
 failure(s)`, and exits with the code below. When
 [checked marks](checked-marks.md) kept findings quiet, the summary line
-ends `, Q quiet while checked`. Findings that cite the same
+adds `, Q quiet while checked`, and when the range added checked marks it
+adds `, A mark(s) added in range`. Findings that cite the same
 line with the same message and the same severity print as one line, with
 every mode that reported them in its parentheses; `M` still counts each
 one. The commit hook prints its findings the same way.
 
 The exit code is:
 
-- `0` when no finding is a gate finding, advisory findings included;
+- `0` when no finding is a gate finding, advisory findings included,
+  apart from the case `3` names;
 - `1` on a gate finding, or when no check at all is registered, which is
   reported as a failure and not as a clean pass;
-- `2` when `claims.toml` exists and does not parse.
+- `2` when `claims.toml` exists and does not parse, or an option is
+  misused;
+- `3` under `--fail-on-unmarked`, when no finding is a gate finding but
+  an advisory finding no checked mark keeps quiet is in scope, as
+  [Checked marks](checked-marks.md#failing-a-run-on-unmarked-findings)
+  describes.
 
 The commit hook and the CLI differ in two respects. The hook runs only in
 a repository with a root `claims.toml`, and the CLI runs anywhere, with

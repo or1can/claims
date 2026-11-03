@@ -51,6 +51,7 @@ from __future__ import annotations
 import hashlib
 import json
 import re
+import subprocess
 import tomllib
 from collections import Counter
 from collections.abc import Iterable, Mapping, Sequence
@@ -59,7 +60,7 @@ from pathlib import Path, PurePosixPath
 from typing import NamedTuple
 
 from .config import ConfigError, append_only
-from .git import blob_id, read_blob, tracked_files
+from .git import DiffLine, blob_id, iter_diff, read_blob, tracked_files
 from .lines import git_lines
 from .markdown import CODE_SPAN_RE, fence_state, prose_lines, section_range, sentences_from
 from .runner import Finding
@@ -102,11 +103,18 @@ _KEYS = {"file", "mode", "unit", "copies", "subjects", "note", "by"}
 _BLOB_ID_RE = re.compile(r"[0-9a-f]{40}(?:[0-9a-f]{24})?")
 
 
-def unit_kind(mode: str) -> str | None:
-    for name, kind in UNITS.items():
+def markable_check(mode: str) -> str | None:
+    """The `UNITS` check whose findings `mode` names, or `None`."""
+
+    for name in UNITS:
         if mode == name or mode.startswith(f"{name}-"):
-            return kind
+            return name
     return None
+
+
+def unit_kind(mode: str) -> str | None:
+    name = markable_check(mode)
+    return None if name is None else UNITS[name]
 
 
 @dataclass(frozen=True)
@@ -427,8 +435,15 @@ def load_marks(repo_root: Path) -> list[Mark]:
         raise ConfigError("is not a regular file inside the repository")
     try:
         text = resolved.read_text(encoding="utf-8")
+    except UnicodeDecodeError as e:
+        raise ConfigError(str(e)) from e
+    return _parse_marks(text)
+
+
+def _parse_marks(text: str) -> list[Mark]:
+    try:
         data = tomllib.loads(text)
-    except (UnicodeDecodeError, tomllib.TOMLDecodeError) as e:
+    except tomllib.TOMLDecodeError as e:
         raise ConfigError(str(e)) from e
     unknown = set(data) - {"mark"}
     if unknown:
@@ -476,6 +491,37 @@ def load_marks(repo_root: Path) -> list[Mark]:
             )
         )
     return marks
+
+
+def marks_added(repo_root: Path, diff_range: str) -> int:
+    """How many entries `claims.checked.toml` holds on `diff_range`'s new
+    side and not its old one, each entry known by its file, mode and unit.
+    A side that doesn't parse holds none: the run reports the file. No
+    range git can diff, outside a repository included, adds none."""
+
+    old_lines: list[str] = []
+    new_lines: list[str] = []
+    try:
+        diffs = list(iter_diff(repo_root, diff_range, whole_files=True, paths=[CHECKED_FILENAME]))
+    except subprocess.CalledProcessError:
+        return 0
+    for diff in diffs:
+        for line in diff.body:
+            if isinstance(line, DiffLine):
+                if line.sign in " -":
+                    old_lines.append(line.text)
+                if line.sign in " +":
+                    new_lines.append(line.text)
+    old = {m.key for m in _parse_or_none("\n".join(old_lines))}
+    new = {m.key for m in _parse_or_none("\n".join(new_lines))}
+    return len(new - old)
+
+
+def _parse_or_none(text: str) -> list[Mark]:
+    try:
+        return _parse_marks(text)
+    except ConfigError:
+        return []
 
 
 def _current(tree: _Tree, mark: Mark, rel: str, unit: _Unit) -> bool:
