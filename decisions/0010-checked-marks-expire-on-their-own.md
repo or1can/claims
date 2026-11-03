@@ -20,6 +20,11 @@ written. One finding per call meant 889 calls, each re-running the checks.
 And on `HEAD`, a diff-scoped check reports nothing for a sentence an
 audit read. The rules below replace those.
 
+Amended by `decisions/0011-append-only-is-a-property-of-the-file.md`
+(#187): a subject the project marks append-only, `CHANGELOG.md` by
+default, is compared by git blob id. A mark on it survives an append and
+expires on any change or removal of a line.
+
 ## Context
 
 The advisory checks exist so that a claim gets read. On a real project
