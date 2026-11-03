@@ -98,6 +98,11 @@ parser. A commit removing lines elsewhere in the file still counts for
 the section, which misses less. `[subjects]` is project-wide, so it is
 read from `claims.toml` here rather than from this check's own section.
 
+A navigation page (ADR 0013, `config.navigation`) named without an anchor
+is no subject of the section: a link to a hub page is usually there to
+point the reader at it, not a claim about all of it. An anchored link
+into one still names its section.
+
 The root `claims.toml` is left out of the stem index built-in (#100), the
 reverse case: every project running this check has one, and a bare
 `` `claims` `` names the tool, never its config file. Dropping it also
@@ -135,6 +140,7 @@ from typing import NamedTuple
 from ..config import (
     CONFIG_FILENAME,
     append_only,
+    counts_as_subject,
     exclude_patterns,
     load_config,
     path_matches,
@@ -311,7 +317,11 @@ def check(
         for start, end in zip(starts, starts[1:] + [len(lines)]):
             matched = HEADING_RE.match(lines[start])
             body = "\n".join(lines[start:end])
-            subjects = subjects_named(rel, body, config, citable, modules, section)
+            subjects = {
+                (path, anchor)
+                for path, anchor in subjects_named(rel, body, config, citable, modules, section)
+                if counts_as_subject(project, path, anchor)
+            }
             if not any(path in changed for path, _ in subjects):
                 continue
 

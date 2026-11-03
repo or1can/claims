@@ -98,6 +98,12 @@ and expires everywhere else. A mark recorded before a file was
 append-only holds that file's content hash, and goes on expiring on any
 change to it until it is marked again.
 
+A [navigation page](configuring.md#navigation-pages) named without an
+anchor is not recorded, and an edit to it expires no mark. A link with
+an anchor into one records that section, as into any page. A mark
+recorded before the page was listed keeps its entry for the whole page,
+and that entry is no longer compared.
+
 A unit that names no subject expires only on its wording. Its mark says
 that the sentence was read, not that it is still true: a claim about
 behaviour the sentence never cites by path or name can go false under

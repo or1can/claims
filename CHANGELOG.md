@@ -11,6 +11,14 @@ reached you, not just that one was pushed upstream.
 
 ## [Unreleased]
 
+## [0.24.0] - 2026-11-03
+
+- Added: `[subjects] navigation = [globs]` lists pages linked for
+  navigation. Named without an anchor, a listed page is no longer a
+  subject: editing it expires no checked mark and doesn't rank the
+  sections linking it in `stale-claims`. An anchored link into it still
+  counts that section. Existing marks need no rewrite.
+
 ## [0.23.1] - 2026-11-03
 
 - Fixed: a lone carriage return (`\r`) in a file no longer shifts later

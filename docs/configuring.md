@@ -15,7 +15,8 @@ meaning every check on its defaults; see
 [ADR 0006](../decisions/0006-claims-toml-opts-in-to-the-commit-hook.md)
 for why only the hook asks. Each top-level table is one check's own
 section, named for the check, except [`[hook]`](#switching-the-commit-hook-off)
-and [`[subjects]`](#append-only-files):
+and `[subjects]`, which lists [append-only files](#append-only-files)
+and [navigation pages](#navigation-pages):
 
 ```toml
 [check-links]
@@ -108,8 +109,8 @@ and a bare string is a one-element list. A value that is not a string or
 a list of strings, or a top-level `subjects` that is not a table, makes
 `claims.toml` invalid: the hook blocks every commit with the reason and
 the CLI exits with it, until it is fixed. A key other than
-`append_only` in `[subjects]` is a gate finding under the mode `config`,
-naming the key.
+`append_only` and [`navigation`](#navigation-pages) in `[subjects]` is
+a gate finding under the mode `config`, naming the key.
 
 Append-only is a property of the file, not of one check: `stale-claims`
 and checked marks both read it. It says nothing about how a line *in*
@@ -117,6 +118,40 @@ the file is judged, which is what a check's own `historical` key is
 for, so a project can list a changelog in both. [ADR
 0011](../decisions/0011-append-only-is-a-property-of-the-file.md) has
 why the two are kept apart.
+
+## Navigation pages
+
+A page linked from many sections is often linked to point the reader at
+it, not to claim anything about all of it. Named whole, such a page is a
+subject of every section linking it: an edit anywhere in it expires every
+[checked mark](checked-marks.md) on those sections and makes
+`stale-claims` rank each of them as moved.
+
+The precise fix is in the prose. A link with an anchor,
+`[exit codes](hub.md#exit-codes)`, names only that section of the page,
+so only an edit inside it counts. Where a page's links cannot all be
+anchored, `[subjects]` lists it as a navigation page:
+
+```toml
+[subjects]
+navigation = ["docs/hub.md", "docs/reference/*.md"]
+```
+
+A navigation page named without an anchor is no subject at all: a
+checked mark does not record it, an edit to it expires no mark, and
+`stale-claims` neither counts its history nor names it in a finding. A
+link with an anchor into it still names that section, as it does into
+any page, and one whose anchor names none of its headings names the
+whole page, so is no subject either. A mark recorded before the page was listed keeps its entry for
+it, and that entry is no longer compared, so the mark need not be
+written again. A sentence that does claim something about the whole
+page loses the page as a subject, which is the trade listing it makes.
+
+`navigation` takes the same shape as `append_only`, a list of globs or a
+bare string, is invalid the same way, and is empty by default. A page
+can be listed in both. [ADR
+0013](../decisions/0013-a-navigation-page-is-not-a-whole-page-subject.md)
+has why the list is explicit rather than every page.
 
 ## The unrecognized-table gate
 

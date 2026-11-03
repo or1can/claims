@@ -58,6 +58,12 @@ added to it is not its content changing; only a line changed or removed
 is.
 _Avoid_: Historical, which is how a line *in* a file is judged
 
+**Navigation page**:
+A page linked to point the reader at it rather than to claim anything
+about all of it, so that named without an anchor it is no subject; a
+link with an anchor into it still names that section.
+_Avoid_: Hub page, which says how much it is linked, not how
+
 **Candidate**:
 A claim in doubt but not yet decided.
 _Avoid_: Suspect, hit
