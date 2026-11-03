@@ -645,6 +645,29 @@ class CheckedMarkTests(RegistryClearingTestCase):
         (self.repo.root / "CHANGELOG.md").write_text(self.LOG + "- Unstaged.\n- More.\n")
         self.assertEqual(self.summary(), self.SHOWN)
 
+    def test_a_mark_on_a_changelog_checked_out_with_crlf_holds_after_an_append(self) -> None:
+        # Stored with `\n`, checked out with `\r\n`: the recorded blob has
+        # to be the one git stored, not the bytes on disk.
+        self.repo.config("core.autocrlf", "true")
+        crlf = self.LOG.replace("\n", "\r\n").encode()
+        (self.repo.root / "CHANGELOG.md").write_bytes(crlf)
+        self.repo.commit()
+        self.repo.write("docs/a.md", "Every release is in `CHANGELOG.md`.\n")
+        self.assertEqual(self.mark("docs/a.md:1 claim-words-totalising read the log")[0], 0)
+
+        (self.repo.root / "CHANGELOG.md").write_bytes(crlf + b"- Also.\r\n")
+        self.assertTrue(self.summary().endswith(self.QUIET))
+
+    def test_a_carriage_return_inside_a_changelog_line_does_not_split_it(self) -> None:
+        log = self.LOG.replace("- First.", "- First\rpart.")
+        self.repo.write("CHANGELOG.md", log)
+        self.repo.commit()
+        self.repo.write("docs/a.md", "Every release is in `CHANGELOG.md`.\n")
+        self.assertEqual(self.mark("docs/a.md:1 claim-words-totalising read the log")[0], 0)
+
+        self.repo.write("CHANGELOG.md", log + "- Also.\n")
+        self.assertTrue(self.summary().endswith(self.QUIET))
+
     def test_a_listed_append_only_file_holds_after_an_append(self) -> None:
         self.repo.write("claims.toml", CONFIG + '\n[subjects]\nappend_only = "RELEASES.md"\n')
         self.mark_release_claim("`RELEASES.md`", log="RELEASES.md")

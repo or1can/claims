@@ -25,6 +25,7 @@ from __future__ import annotations
 
 import contextlib
 import io
+import os
 import subprocess
 import unittest
 from pathlib import Path
@@ -246,6 +247,45 @@ class StaleClaimsTests(RegistryClearingTestCase):
         # Creating the file removed no lines either, so the edit is its
         # whole counted history.
         self.assertIn("CHANGELOG.md 1 commit (100% of its history)", findings[0].message)
+
+    def test_a_section_of_a_changelog_is_filtered_the_same_way(self) -> None:
+        with Repo() as repo:
+            repo.write("docs/notes.md", "## Next\n\nSee [the log](../CHANGELOG.md#unreleased).\n")
+            repo.write("CHANGELOG.md", "# Log\n\n## Unreleased\n\n- Next.\n\n## 1.0\n\n- First.\n")
+            repo.commit(BASE)
+            repo.write("CHANGELOG.md", "# Log\n\n## Unreleased\n\n- Next.\n- Newer.\n\n## 1.0\n\n- First.\n")
+            repo.commit(BASE + 100)
+            self.assertEqual(self._findings_with_toml(repo.root, ""), [])
+
+            repo.write("CHANGELOG.md", "# Log\n\n## Unreleased\n\n- Later.\n- Newer.\n\n## 1.0\n\n- First.\n")
+            repo.commit(BASE + 200)
+            findings = self._findings_with_toml(repo.root, "")
+
+        self.assertEqual(len(findings), 1)
+        self.assertIn("CHANGELOG.md#unreleased 1 commit", findings[0].message)
+
+    def test_a_merge_of_two_appends_is_not_churn(self) -> None:
+        with Repo() as repo:
+            log = "# Log\n\n## Unreleased\n\n- First.\n"
+            repo.write("notes.md", "## Releases\n\nSee `CHANGELOG.md` for each release.\n")
+            repo.write("CHANGELOG.md", log)
+            repo.commit(BASE)
+            git = ["git", "-C", str(repo.root)]
+            subprocess.run([*git, "checkout", "-q", "-b", "side"], check=True)
+            repo.write("CHANGELOG.md", log + "- Side.\n")
+            repo.commit(BASE + 100)
+            subprocess.run([*git, "checkout", "-q", "-"], check=True)
+            repo.write("CHANGELOG.md", log.replace("- First.", "- Main.\n- First."))
+            repo.commit(BASE + 200)
+            date = {**os.environ, "GIT_AUTHOR_DATE": f"{BASE + 300} +0000", "GIT_COMMITTER_DATE": f"{BASE + 300} +0000"}
+            subprocess.run([*git, "merge", "-q", "--no-edit", "side"], check=True, env=date)
+            parents = subprocess.run(
+                [*git, "log", "--format=%P", "-1", "--", "CHANGELOG.md"],
+                capture_output=True, text=True, check=True,
+            ).stdout.split()
+            self.assertEqual(len(parents), 2, "the merge must be in the file's history")
+
+            self.assertEqual(self._findings_with_toml(repo.root, ""), [])
 
     def test_appends_to_a_listed_append_only_subject_are_not_churn(self) -> None:
         with Repo() as repo:

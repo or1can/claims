@@ -142,6 +142,14 @@ def _words_digest(text: str) -> str:
     return _digest(" ".join(normalise(text)))
 
 
+def _blob_lines(data: bytes) -> list[str]:
+    """`data`'s lines, numbered by `\n` alone as git numbers them, with a
+    `\r\n` read as `\n`, so a working-tree copy checked out with `\r\n`
+    compares line for line with the blob it was checked out from."""
+
+    return git_lines(data.decode("utf-8", errors="replace").replace("\r\n", "\n"))
+
+
 def _only_grew(old: Sequence[str], new: Sequence[str]) -> bool:
     """Whether every line of `old` is still in `new`, in order: a diff
     from one to the other removes no lines."""
@@ -241,6 +249,7 @@ class _Tree:
         self._units: dict[tuple[str, str], list[_Unit] | None] = {}
         self._resolver: tuple[set[str], dict[str, str]] | None = None
         self._hashes: dict[tuple[str, bool], str | None] = {}
+        self._grown: dict[tuple[str, str], bool] = {}
 
     def lines(self, rel: str) -> list[str] | None:
         if rel not in self._lines:
@@ -313,13 +322,13 @@ class _Tree:
         except OSError:
             return None
         if not anchor:
-            return blob_id(self.repo_root, text) if blob else hashlib.sha256(text).hexdigest()[:16]
+            return blob_id(self.repo_root, path, text) if blob else hashlib.sha256(text).hexdigest()[:16]
         decoded = text.decode("utf-8", errors="replace")
         span = section_range(decoded, anchor)
         if span is None:
             return None
         if blob:
-            return blob_id(self.repo_root, text)
+            return blob_id(self.repo_root, path, text)
         return _digest("\n".join(git_lines(decoded)[span[0] - 1 : span[1]]))
 
     def subject_holds(self, subject: str, recorded: str) -> bool:
@@ -337,20 +346,28 @@ class _Tree:
             return True
         if current is None:
             return False
+        if (subject, recorded) not in self._grown:
+            self._grown[subject, recorded] = self._grew(path, anchor, recorded)
+        return self._grown[subject, recorded]
+
+    def _grew(self, path: str, anchor: str, recorded: str) -> bool:
         old = read_blob(self.repo_root, recorded)
-        new = self.lines(path)
-        if old is None or new is None:
+        resolved = _regular_file(self.repo_root, path)
+        if old is None or resolved is None:
             return False
-        old_text, new_text = old.decode("utf-8", errors="replace"), "\n".join(new)
-        old_lines = git_lines(old_text)
+        try:
+            current = resolved.read_bytes()
+        except OSError:
+            return False
+        old_lines, new_lines = _blob_lines(old), _blob_lines(current)
         if anchor:
-            old_span = section_range(old_text, anchor)
-            new_span = section_range(new_text, anchor)
+            old_span = section_range("\n".join(old_lines), anchor)
+            new_span = section_range("\n".join(new_lines), anchor)
             if old_span is None or new_span is None:
                 return False
             old_lines = old_lines[old_span[0] - 1 : old_span[1]]
-            new = new[new_span[0] - 1 : new_span[1]]
-        return _only_grew(old_lines, new)
+            new_lines = new_lines[new_span[0] - 1 : new_span[1]]
+        return _only_grew(old_lines, new_lines)
 
     def subjects(self, rel: str, unit: _Unit) -> dict[str, str]:
         """`{subject: subject_hash}` for each subject `unit`, in `rel`,

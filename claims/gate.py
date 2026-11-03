@@ -135,10 +135,11 @@ def decide_repo(repo_root: Path) -> Decision | None:
     `None` when there is nothing to report: it hasn't opted in with a root
     `claims.toml`, has switched the hook off, or has no finding left once
     disabled checks are filtered out and none that a checked mark kept
-    quiet either. A `claims.toml` that doesn't parse,
-    or whose `[hook]` isn't a table or whose `[hook] enabled` or a
-    registered check's own `enabled` isn't a boolean, blocks as
-    invalid."""
+    quiet either. A `claims.toml` that doesn't parse, whose `[subjects]`
+    is the wrong shape (`load_config` refuses it, so even with the hook
+    switched off), or whose `[hook]` isn't a table or whose `[hook]
+    enabled` or a registered check's own `enabled` isn't a boolean,
+    blocks as invalid."""
 
     if not has_config(repo_root):
         return None

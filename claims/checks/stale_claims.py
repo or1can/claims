@@ -183,10 +183,13 @@ def _git(repo_root: Path, *args: str) -> str:
 def _appends(repo_root: Path, path: str) -> set[str]:
     """The commits whose diff for `path` removes no lines: an append-only
     file's growth, which ADR 0011 doesn't count as its content changing.
-    A commit with no line counts, a binary one, is no append."""
+    A commit with no line counts, a binary one, is no append. A merge is
+    read against its first parent, as what it brought to the branch it
+    landed on: `git log` gives a merge no line counts otherwise."""
 
+    log = ("log", "--format=%x00%H", "--numstat", "--diff-merges=first-parent", "--", path)
     appends: set[str] = set()
-    for block in _git(repo_root, "log", "--format=%x00%H", "--numstat", "--", path).split("\0")[1:]:
+    for block in _git(repo_root, *log).split("\0")[1:]:
         commit, *stats = [line for line in block.split("\n") if line]
         if stats and all(stat.split("\t")[1] == "0" for stat in stats):
             appends.add(commit)
