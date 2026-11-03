@@ -134,7 +134,9 @@ class CheckedMarkTests(RegistryClearingTestCase):
         self.repo.commit()
         self.git("reset", "--soft", "HEAD~2")
 
-        self.assertTrue(self.summary().endswith(", 1 quiet while checked"))
+        self.assertTrue(
+            self.summary().endswith(", 1 quiet while checked, 1 mark(s) added in range")
+        )
 
     def git(self, *args: str) -> None:
         import subprocess
@@ -417,7 +419,9 @@ class CheckedMarkTests(RegistryClearingTestCase):
         self.git("rebase", "-q", "base")
 
         self.assertTrue(
-            self.run_cli("--diff-range", "HEAD~1")[1].endswith(", 1 quiet while checked\n")
+            self.run_cli("--diff-range", "HEAD~1")[1].endswith(
+                ", 1 quiet while checked, 1 mark(s) added in range\n"
+            )
         )
 
 
@@ -605,6 +609,104 @@ class CheckedMarkTests(RegistryClearingTestCase):
         self.repo.write("docs/a.md", "Every check runs.\n\n```\nEvery check runs.\n```\n")
 
         self.assertTrue(self.summary().endswith(", 1 quiet while checked"))
+
+    def test_an_unmarked_finding_fails_under_the_flag_until_it_is_marked(self) -> None:
+        self.repo.write("docs/a.md", "Every check runs.\n")
+
+        code, out, _ = self.run_cli("--fail-on-unmarked")
+
+        self.assertEqual(code, 3)
+        self.assertEqual(
+            out.splitlines()[-2:],
+            [
+                "1 checked, 1 finding(s), 0 gate failure(s), 1 unmarked",
+                "failing: 1 unmarked advisory finding(s); fix or mark each",
+            ],
+        )
+
+        self.mark("docs/a.md:1 claim-words-totalising read the runner")
+        code, out, _ = self.run_cli("--fail-on-unmarked")
+
+        self.assertEqual(code, 0)
+        self.assertEqual(
+            out.splitlines(),
+            ["1 checked, 0 finding(s), 0 gate failure(s), 1 quiet while checked, 0 unmarked"],
+        )
+
+    def test_the_flag_covers_only_the_checks_it_names(self) -> None:
+        self.repo.write("docs/a.md", "Every check runs.\n")
+
+        code, out, _ = self.run_cli("--fail-on-unmarked=restatement")
+
+        self.assertEqual(code, 0)
+        self.assertTrue(out.endswith(", 0 unmarked\n"))
+
+    def test_an_orphaned_mark_fails_under_the_flag_until_its_entry_is_deleted(self) -> None:
+        self.repo.write("docs/a.md", "Every check runs.\n")
+        self.mark("docs/a.md:1 claim-words-totalising read it")
+        self.repo.write("docs/a.md", "Some checks run.\n")
+
+        # Whatever checks the flag names: deleting the entry resolves it.
+        code, out, _ = self.run_cli("--fail-on-unmarked=restatement")
+        self.assertEqual(code, 3)
+        self.assertIn("(checked-mark)", out)
+
+        (self.repo.root / "claims.checked.toml").unlink()
+        self.assertEqual(self.run_cli("--fail-on-unmarked")[0], 0)
+
+    def test_an_advisory_finding_no_mark_can_hold_never_fails_the_run(self) -> None:
+        register_check(
+            "unmarkable",
+            lambda repo_root, diff_range, config: [
+                Finding(file="a.md", line=1, message="fyi", mode="unmarkable", gate=False)
+            ],
+        )
+
+        code, out, _ = self.run_cli("--fail-on-unmarked")
+
+        self.assertEqual(code, 0)
+        self.assertTrue(out.endswith(", 0 unmarked\n"))
+
+    def test_a_gate_finding_exits_1_ahead_of_unmarked_findings(self) -> None:
+        register_check(
+            "gatey",
+            lambda repo_root, diff_range, config: [
+                Finding(file="docs/a.md", line=1, message="bad", mode="gatey", gate=True)
+            ],
+        )
+        self.repo.write("docs/a.md", "Every check runs.\n")
+
+        code, out, _ = self.run_cli("--fail-on-unmarked")
+
+        self.assertEqual(code, 1)
+        self.assertTrue(out.endswith("1 gate failure(s), 1 unmarked\n"))
+
+    def test_the_summary_counts_the_mark_entries_the_range_added(self) -> None:
+        self.repo.write("docs/a.md", "Every check runs.\n\nEvery rule holds.\n")
+        self.assertEqual(self.mark("docs/a.md:1 claim-words-totalising read it")[0], 0)
+        self.repo.commit()
+        base = self.repo.short_head()
+        # Marked over the commit that added both sentences.
+        for entry in ("docs/a.md:1 claim-words-totalising read it again", "docs/a.md:3 claim-words-totalising read it"):
+            self.assertEqual(self.mark(entry, diff_range="HEAD~1")[0], 0)
+        self.repo.write("docs/a.md", "Every check runs.\n\nEvery rule holds.\n\nEvery check passes.\n")
+        self.assertEqual(self.mark("docs/a.md:5 claim-words-totalising read it")[0], 0)
+        self.repo.commit()
+
+        # Re-marking the first finding replaced its entry, which adds none.
+        self.assertEqual(
+            self.run_cli("--diff-range", base)[1].splitlines()[-1],
+            "1 checked, 0 finding(s), 0 gate failure(s), 1 quiet while checked, "
+            "2 mark(s) added in range",
+        )
+
+    def test_a_name_that_is_not_a_markable_check_is_a_usage_error(self) -> None:
+        err = io.StringIO()
+        with self.assertRaises(SystemExit) as raised, contextlib.redirect_stderr(err):
+            main(["--fail-on-unmarked=claim-words,nope", "--repo-root", str(self.repo.root)])
+
+        self.assertEqual(raised.exception.code, 2)
+        self.assertIn("--fail-on-unmarked: nope is not a markable check", err.getvalue())
 
 
     QUIET = ", 1 quiet while checked"

@@ -25,8 +25,9 @@ branch.
 ## Reporting the result
 
 Show the user the CLI's output verbatim — every finding line, then its
-summary line (`N checked, M finding(s), G gate failure(s)`, ending
-`, Q quiet while checked` when checked marks kept findings quiet) —
+summary line (`N checked, M finding(s), G gate failure(s)`, then
+`, Q quiet while checked` when checked marks kept findings quiet and
+`, A mark(s) added in range` when the range added checked marks) —
 rather than summarizing or filtering it yourself. Findings that share a citation,
 message and severity print as one line listing each mode in its
 parentheses, so `M` can exceed the number of finding lines.

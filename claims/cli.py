@@ -22,7 +22,16 @@ import sys
 from pathlib import Path
 
 from . import checks  # noqa: F401
-from .checked import CHECKED_FILENAME, load_marks, new_marks, write_marks
+from .checked import (
+    CHECKED_FILENAME,
+    ORPHAN_MODE,
+    UNITS,
+    load_marks,
+    markable_check,
+    marks_added,
+    new_marks,
+    write_marks,
+)
 from .config import ConfigError, load_config
 from .runner import format_findings, run
 
@@ -40,7 +49,29 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         default="HEAD",
         help="Diff range to check, working tree against this ref (default: HEAD).",
     )
-    return parser.parse_args(argv)
+    parser.add_argument(
+        "--fail-on-unmarked",
+        nargs="?",
+        const=",".join(UNITS),
+        metavar="CHECK,...",
+        help=(
+            "Exit 3 on an advisory finding no checked mark keeps quiet, from "
+            "the named markable checks (default: every one), or on an orphaned mark."
+        ),
+    )
+    args = parser.parse_args(argv)
+    if args.fail_on_unmarked is not None:
+        names = [n.strip() for n in args.fail_on_unmarked.split(",") if n.strip()]
+        unknown = [n for n in names if n not in UNITS]
+        if not names:
+            parser.error(f"--fail-on-unmarked= names no check (one of {', '.join(UNITS)})")
+        if unknown:
+            parser.error(
+                f"--fail-on-unmarked: {', '.join(unknown)} "
+                f"is not a markable check (one of {', '.join(UNITS)})"
+            )
+        args.fail_on_unmarked = frozenset(names)
+    return args
 
 
 def parse_mark_args(argv: list[str]) -> argparse.Namespace:
@@ -126,8 +157,25 @@ def main(argv: list[str] | None = None) -> int:
     )
     if result.quiet:
         summary += f", {len(result.quiet)} quiet while checked"
+    covered: frozenset[str] | None = args.fail_on_unmarked
+    unmarked = []
+    if covered is not None:
+        unmarked = [
+            f
+            for f in result.findings
+            if not f.gate and (f.mode == ORPHAN_MODE or markable_check(f.mode) in covered)
+        ]
+        summary += f", {len(unmarked)} unmarked"
+    added = marks_added(repo_root, args.diff_range)
+    if added:
+        summary += f", {added} mark(s) added in range"
     print(summary)
-    return 1 if gate_findings else 0
+    if gate_findings:
+        return 1
+    if unmarked:
+        print(f"failing: {len(unmarked)} unmarked advisory finding(s); fix or mark each")
+        return 3
+    return 0
 
 
 if __name__ == "__main__":
