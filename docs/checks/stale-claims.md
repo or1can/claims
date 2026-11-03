@@ -78,6 +78,11 @@ Markdown, names the whole file. The finding names such a subject with
 its anchor, and a section linking the same file with and without an
 anchor, or with two anchors, keeps each as its own subject.
 
+A [navigation page](../configuring.md#navigation-pages) named without an
+anchor is not a subject of the section: its history is not counted and
+the finding does not name it. A link with an anchor into one names its
+section as above.
+
 An [append-only](../configuring.md#append-only-files) subject, which
 `CHANGELOG.md` is by default, does not count a commit whose diff for the
 file removes no lines, wherever the lines it adds are: such a commit is
@@ -236,7 +241,9 @@ in the on-demand skill and the CLI, is shared by every check and covered
 on [Configuring `claims`](../configuring.md#silencing-one-check-at-commit-time).
 Which files are append-only is set once for the project, under
 `[subjects]` rather than this check's own section, and is covered there
-too, in [Append-only files](../configuring.md#append-only-files).
+too, in [Append-only files](../configuring.md#append-only-files), as are
+the pages that are no subject when named whole, in [Navigation
+pages](../configuring.md#navigation-pages).
 
 ## Retirement markers
 

@@ -172,6 +172,11 @@ class RunnerTests(RegistryClearingTestCase):
 
         self.assertEqual(result.findings, ())
 
+    def test_navigation_is_a_recognized_subjects_key(self) -> None:
+        result = run(Path("/repo"), "HEAD", {"subjects": {"navigation": ["docs/hub.md"]}})
+
+        self.assertEqual(result.findings, ())
+
     def test_an_unknown_key_in_the_subjects_table_is_a_gate_finding(self) -> None:
         result = run(Path("/repo"), "HEAD", {"subjects": {"foo": 1}})
 

@@ -44,6 +44,10 @@ history, so a rebase or squash still leaves the mark alone. The id is
 never written to the store here: a blob committed is in every clone that
 fetches the commit, where one written for this clone alone would hold
 the mark here and expire it everywhere else.
+
+A navigation page (ADR 0013) named without an anchor is neither recorded
+nor compared, so a mark written before the page was listed keeps its
+entry for it and stops reading it, with no rewrite of the sidecar.
 """
 
 from __future__ import annotations
@@ -59,7 +63,7 @@ from dataclasses import dataclass
 from pathlib import Path, PurePosixPath
 from typing import NamedTuple
 
-from .config import ConfigError, append_only
+from .config import ConfigError, append_only, counts_as_subject
 from .git import DiffLine, blob_id, iter_diff, read_blob, tracked_files
 from .lines import git_lines, tracked_text
 from .markdown import CODE_SPAN_RE, fence_state, prose_lines, section_range, sentences_from
@@ -309,6 +313,14 @@ class _Tree:
             digest += "-" + _words_digest(finding.message)
         return unit, digest
 
+    def counts(self, subject: str) -> bool:
+        """Whether `subject` is one a mark records and compares: anything
+        but a navigation page named without an anchor (ADR 0013), which a
+        mark written before the page was listed may still hold."""
+
+        path, _, anchor = subject.partition("#")
+        return counts_as_subject(self.config, path, anchor)
+
     def subject_hash(self, subject: str) -> str | None:
         """What a mark records for `subject`: an append-only file's blob
         id, anything else's content hash."""
@@ -412,6 +424,7 @@ class _Tree:
         hashes = {
             subject: self.subject_hash(subject)
             for subject in (f"{path}#{anchor}" if anchor else path for path, anchor in found)
+            if self.counts(subject)
         }
         return {subject: h for subject, h in hashes.items() if h is not None}
 
@@ -529,7 +542,7 @@ def _parse_or_none(text: str) -> list[Mark]:
 def _current(tree: _Tree, mark: Mark, rel: str, unit: _Unit) -> bool:
     """Whether everything `mark` was read against is as it was."""
 
-    if not all(tree.subject_holds(s, h) for s, h in mark.subjects.items()):
+    if not all(tree.subject_holds(s, h) for s, h in mark.subjects.items() if tree.counts(s)):
         return False
     return tree.subjects(rel, unit).keys() <= mark.subjects.keys()
 

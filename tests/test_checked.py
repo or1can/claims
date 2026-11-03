@@ -796,6 +796,55 @@ class CheckedMarkTests(RegistryClearingTestCase):
         self.repo.write("CHANGELOG.md", self.LOG.replace("- Next.", "- Later."))
         self.assertEqual(self.summary(), self.SHOWN)
 
+    HUB = "# Hub\n\n## Intro\n\nIntro v0.\n\n## Exit codes\n\nCode v0.\n"
+    NAVIGATION = CONFIG + '\n[subjects]\nnavigation = "docs/hub.md"\n'
+
+    def mark_hub_claim(self, link: str, listed: bool = True) -> None:
+        """A marked sentence in `docs/a.md` linking `link`, a repo-relative
+        path, with `docs/hub.md` committed holding `HUB` and listed in
+        `navigation` when `listed`."""
+
+        if listed:
+            self.repo.write("claims.toml", self.NAVIGATION)
+        self.repo.write("docs/hub.md", self.HUB)
+        self.repo.commit()
+        self.repo.write("docs/a.md", f"Every exit is in [the hub](../{link}).\n")
+        self.assertEqual(self.mark("docs/a.md:1 claim-words-totalising read the hub")[0], 0)
+
+    def test_a_listed_navigation_page_named_whole_is_no_subject(self) -> None:
+        self.mark_hub_claim("docs/hub.md")
+        self.assertNotIn("docs/hub.md", (self.repo.root / "claims.checked.toml").read_text())
+
+        self.repo.write("docs/hub.md", self.HUB.replace("Code v0.", "Code v1."))
+        self.assertTrue(self.summary().endswith(self.QUIET))
+        self.repo.write("docs/a.md", "Every exit is listed in [the hub](../docs/hub.md).\n")
+        out = self.run_cli()[1]
+        self.assertIn("[advisory] docs/a.md:1 (claim-words-totalising)", out)
+        self.assertNotIn("quiet", out)
+
+    def test_an_anchored_link_into_a_navigation_page_reads_its_section(self) -> None:
+        self.mark_hub_claim("docs/hub.md#exit-codes")
+        self.assertIn('"docs/hub.md#exit-codes"', (self.repo.root / "claims.checked.toml").read_text())
+
+        self.repo.write("docs/hub.md", self.HUB.replace("Intro v0.", "Intro v1."))
+        self.assertTrue(self.summary().endswith(self.QUIET))
+        self.repo.write("docs/hub.md", self.HUB.replace("Code v0.", "Code v1."))
+        self.assertEqual(self.summary(), self.SHOWN)
+
+    def test_an_unlisted_page_named_whole_is_still_a_subject(self) -> None:
+        self.mark_hub_claim("docs/hub.md", listed=False)
+
+        self.repo.write("docs/hub.md", self.HUB.replace("Intro v0.", "Intro v1."))
+        self.assertEqual(self.summary(), self.SHOWN)
+
+    def test_a_mark_recording_a_page_before_it_was_listed_ignores_it(self) -> None:
+        self.mark_hub_claim("docs/hub.md", listed=False)
+        self.assertIn('"docs/hub.md"', (self.repo.root / "claims.checked.toml").read_text())
+        self.repo.write("claims.toml", self.NAVIGATION)
+
+        self.repo.write("docs/hub.md", self.HUB.replace("Code v0.", "Code v1."))
+        self.assertTrue(self.summary().endswith(self.QUIET))
+
 
 if __name__ == "__main__":
     unittest.main()

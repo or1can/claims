@@ -609,8 +609,11 @@ class StaleClaimsTests(RegistryClearingTestCase):
 
     OTHER = "# Other\n## a\na v0\n## b\nb v0\n### b1\nb1 v0\n## c\nc v0\n"
 
-    def _findings_after_editing_other(self, doc: str, line: str) -> list[Finding]:
-        """`guide.md` holds `doc`; `ref/other.md` is then edited on `line` alone."""
+    def _findings_after_editing_other(
+        self, doc: str, line: str, claims_toml: str = ""
+    ) -> list[Finding]:
+        """`guide.md` holds `doc`; `ref/other.md` is then edited on `line`
+        alone. Run under `claims_toml`."""
 
         with Repo() as repo:
             repo.write("guide.md", doc)
@@ -618,7 +621,7 @@ class StaleClaimsTests(RegistryClearingTestCase):
             repo.commit(BASE)
             repo.write("ref/other.md", self.OTHER.replace(line, line.replace("v0", "v1")))
             repo.commit(BASE + 100)
-            return self._findings(repo.root)
+            return self._findings_with_toml(repo.root, claims_toml)
 
     def test_an_anchored_link_ignores_edits_outside_its_section(self) -> None:
         doc = "## see\nSee [b](ref/other.md#b).\n"
@@ -693,6 +696,30 @@ class StaleClaimsTests(RegistryClearingTestCase):
         self.assertEqual(len(findings), 1)
         self.assertIn("other.md 1 commit", findings[0].message)
         self.assertIn("other.md#b 1 commit", findings[0].message)
+
+    NAVIGATION = '[subjects]\nnavigation = "ref/other.md"\n'
+
+    def test_a_navigation_page_named_whole_is_not_ranked(self) -> None:
+        findings = self._findings_after_editing_other(
+            "## see\nSee [o](ref/other.md).\n", "a v0", self.NAVIGATION
+        )
+        self.assertEqual(findings, [])
+
+    def test_an_anchor_naming_no_heading_in_a_navigation_page_is_not_ranked(self) -> None:
+        # The anchor names the whole page, as into any page, and named
+        # whole a navigation page is no subject.
+        findings = self._findings_after_editing_other(
+            "## see\nSee [o](ref/other.md#nope).\n", "a v0", self.NAVIGATION
+        )
+        self.assertEqual(findings, [])
+
+    def test_an_anchored_link_into_a_navigation_page_still_ranks(self) -> None:
+        findings = self._findings_after_editing_other(
+            "## see\nSee [o](ref/other.md) and [b](ref/other.md#b).\n", "b v0", self.NAVIGATION
+        )
+        self.assertEqual(len(findings), 1)
+        self.assertIn("other.md#b 1 commit", findings[0].message)
+        self.assertNotIn("other.md 1 commit", findings[0].message)
 
 
 class StaleClaimsCliTests(RegistryClearingTestCase):

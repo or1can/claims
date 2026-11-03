@@ -20,7 +20,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from claims.config import ConfigError, append_only, load_config, load_local_config
+from claims.config import ConfigError, append_only, load_config, load_local_config, navigation
 
 
 class ConfigTests(unittest.TestCase):
@@ -98,6 +98,42 @@ class AppendOnlyTests(unittest.TestCase):
             "[subjects]\nappend_only = [3]\n",
             'subjects = "CHANGELOG.md"\n',
         ):
+            with self.subTest(claims_toml=claims_toml), self.assertRaises(ConfigError):
+                self._load(claims_toml)
+
+
+class NavigationTests(unittest.TestCase):
+    def _load(self, claims_toml: str) -> dict[str, dict[str, object]]:
+        with tempfile.TemporaryDirectory() as repo_root:
+            (Path(repo_root) / "claims.toml").write_text(claims_toml)
+            return load_config(Path(repo_root))
+
+    def test_nothing_is_a_navigation_page_by_default(self) -> None:
+        self.assertFalse(navigation({}, "docs/hub.md"))
+        self.assertFalse(navigation({}, "CHANGELOG.md"))
+
+    def test_a_listed_glob_is_a_navigation_page(self) -> None:
+        config = self._load('[subjects]\nnavigation = ["docs/hub*.md"]\n')
+
+        self.assertTrue(navigation(config, "docs/hub.md"))
+        self.assertFalse(navigation(config, "docs/other.md"))
+
+    def test_a_bare_string_is_a_one_element_list(self) -> None:
+        config = self._load('[subjects]\nnavigation = "docs/hub.md"\n')
+
+        self.assertTrue(navigation(config, "docs/hub.md"))
+        self.assertFalse(navigation(config, "d"))
+
+    def test_a_page_can_be_append_only_and_navigation(self) -> None:
+        config = self._load(
+            '[subjects]\nappend_only = "docs/hub.md"\nnavigation = "docs/hub.md"\n'
+        )
+
+        self.assertTrue(navigation(config, "docs/hub.md"))
+        self.assertTrue(append_only(config, "docs/hub.md"))
+
+    def test_a_wrong_typed_value_is_invalid_config(self) -> None:
+        for claims_toml in ("[subjects]\nnavigation = 3\n", "[subjects]\nnavigation = [3]\n"):
             with self.subTest(claims_toml=claims_toml), self.assertRaises(ConfigError):
                 self._load(claims_toml)
 

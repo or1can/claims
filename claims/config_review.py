@@ -56,8 +56,8 @@ GLOB_CONFIG_KEYS: Mapping[str, Sequence[str]] = {
     "temporal-words": ("files",),
     "judgment-agent": ("historical",),
     # Not a check: `[subjects]`, which `stale-claims` and checked marks read
-    # (ADR 0011). `[hook]`, the other non-check table, has no glob.
-    "subjects": ("append_only",),
+    # (ADRs 0011, 0013). `[hook]`, the other non-check table, has no glob.
+    "subjects": ("append_only", "navigation"),
 }
 
 # `restatement`'s own `extensions`, and `check-file-refs`' own `extensions`

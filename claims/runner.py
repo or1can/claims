@@ -124,7 +124,7 @@ _KNOWN_NON_CHECK_TABLES = frozenset({"hook", "subjects"})
 
 # The keys `[subjects]` takes: it belongs to no check, so no check's own
 # reading of it would notice a misspelt one.
-_SUBJECTS_KEYS = frozenset({"append_only"})
+_SUBJECTS_KEYS = frozenset({"append_only", "navigation"})
 
 # `claims.local.toml`'s counterpart: `[nudge]`, one person's opt-out from
 # the missing-hook nudge in one clone (ticket #132) — see `claims.nudge`.
@@ -207,7 +207,7 @@ def _unrecognized_subjects_key_findings(
         Finding(
             file=CONFIG_FILENAME,
             line=0,
-            message=f"[subjects] {key} is not a recognized key — [subjects] takes append_only",
+            message=f"[subjects] {key} is not a recognized key — [subjects] takes append_only, navigation",
             mode="config",
             gate=True,
         )

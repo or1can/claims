@@ -185,6 +185,20 @@ class ConfigValueMatchesTests(unittest.TestCase):
             ],
         )
 
+    def test_subjects_navigation_globs_are_reviewed(self) -> None:
+        with Repo() as repo:
+            repo.write("docs/hub.md", "prose\n")
+            matches = config_value_matches(
+                repo.root, {"subjects": {"navigation": ["docs/hub.md", "docs/gone.md"]}}
+            )
+        self.assertEqual(
+            [(m.check, m.key, m.value, m.matched_files) for m in matches],
+            [
+                ("subjects", "navigation", "docs/hub.md", ("docs/hub.md",)),
+                ("subjects", "navigation", "docs/gone.md", ()),
+            ],
+        )
+
     def test_every_registered_check_is_accounted_for_exactly_once(self) -> None:
         # A future check adding a glob/extension-shaped key without
         # updating this module's own maps would otherwise just never be

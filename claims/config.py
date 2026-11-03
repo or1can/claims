@@ -56,6 +56,7 @@ def load_config(repo_root: Path) -> dict[str, dict[str, object]]:
 
     config = _load_toml(repo_root / CONFIG_FILENAME)
     _append_only_patterns(config)
+    _navigation_patterns(config)
     return config
 
 
@@ -127,16 +128,24 @@ def path_matches(path: str, patterns: Sequence[str]) -> bool:
     return any(fnmatch.fnmatchcase(path, pattern) for pattern in patterns)
 
 
-def _append_only_patterns(config: Mapping[str, object]) -> Sequence[str]:
+def _subjects_patterns(config: Mapping[str, object], key: str) -> Sequence[str]:
     subjects = config.get("subjects", {})
     if not isinstance(subjects, Mapping):
         raise ConfigError("`[subjects]` must be a table")
-    patterns = subjects.get("append_only", [])
+    patterns = subjects.get(key, [])
     if isinstance(patterns, str):
         return [patterns]
     if not isinstance(patterns, list) or not all(isinstance(p, str) for p in patterns):
-        raise ConfigError("`[subjects] append_only` must be a glob or a list of globs")
+        raise ConfigError(f"`[subjects] {key}` must be a glob or a list of globs")
     return patterns
+
+
+def _append_only_patterns(config: Mapping[str, object]) -> Sequence[str]:
+    return _subjects_patterns(config, "append_only")
+
+
+def _navigation_patterns(config: Mapping[str, object]) -> Sequence[str]:
+    return _subjects_patterns(config, "navigation")
 
 
 def append_only(config: Mapping[str, object], path: str) -> bool:
@@ -149,6 +158,25 @@ def append_only(config: Mapping[str, object], path: str) -> bool:
     return PurePosixPath(path).name.lower() == "changelog.md" or path_matches(
         path, _append_only_patterns(config)
     )
+
+
+def navigation(config: Mapping[str, object], path: str) -> bool:
+    """Whether `path`, a repo-relative POSIX path, is a navigation page
+    under the project's whole `config`
+    (`decisions/0013-a-navigation-page-is-not-a-whole-page-subject.md`): a
+    match for `[subjects] navigation`. Named without an anchor, such a page
+    is no subject of a checked mark or of `stale-claims`."""
+
+    return path_matches(path, _navigation_patterns(config))
+
+
+def counts_as_subject(config: Mapping[str, object], path: str, anchor: str) -> bool:
+    """Whether `path`, named with `anchor` ("" for none, or for one naming
+    no heading), is a subject under the project's whole `config`: anything
+    but a navigation page named whole. Checked marks and `stale-claims`
+    both ask this, so the two can't disagree about it."""
+
+    return bool(anchor) or not navigation(config, path)
 
 
 def numeric_config(
