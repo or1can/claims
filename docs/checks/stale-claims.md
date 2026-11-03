@@ -78,6 +78,16 @@ Markdown, names the whole file. The finding names such a subject with
 its anchor, and a section linking the same file with and without an
 anchor, or with two anchors, keeps each as its own subject.
 
+An [append-only](../configuring.md#append-only-files) subject, which
+`CHANGELOG.md` is by default, does not count a commit whose diff for the
+file removes no lines, wherever the lines it adds are: such a commit is
+left out of both the commits after the section's last touch and the
+file's history. A commit that changes or removes a line counts, cutting
+a release by renaming its heading included. The commit that created the
+file removed nothing either, so it is no part of that history. For a
+subject scoped to one section, a commit is left out on the same test
+over the whole file's diff.
+
 A section and its subject changed in the same commit score zero for that
 subject, because the commit that touched both is the section's own last
 touch and not a change after it. Two separate commits that share a
@@ -224,6 +234,9 @@ exclude = ["docs/legacy/*.md"]
 `enabled`, which takes this check out of the commit gate while leaving it
 in the on-demand skill and the CLI, is shared by every check and covered
 on [Configuring `claims`](../configuring.md#silencing-one-check-at-commit-time).
+Which files are append-only is set once for the project, under
+`[subjects]` rather than this check's own section, and is covered there
+too, in [Append-only files](../configuring.md#append-only-files).
 
 ## Retirement markers
 

@@ -88,6 +88,16 @@ guess, so it still reaches an excluded file. The built-in `CHANGELOG.md`
 exclusion stays out of this — a bare `` `CHANGELOG` `` names that file as
 much as it ever did.
 
+Excluding `CHANGELOG.md` as a place claims are made leaves it as a
+subject, and as one it grows on almost every commit. An append-only file
+(ADR 0011, `config.append_only`) drops each commit whose diff for it
+removes no lines from its history, read from `git log --numstat` of the
+whole file: a section-scoped subject is filtered on that too, rather than
+on `git log -L`'s patch for the section, which would need its own hunk
+parser. A commit removing lines elsewhere in the file still counts for
+the section, which misses less. `[subjects]` is project-wide, so it is
+read from `claims.toml` here rather than from this check's own section.
+
 The root `claims.toml` is left out of the stem index built-in (#100), the
 reverse case: every project running this check has one, and a bare
 `` `claims` `` names the tool, never its config file. Dropping it also
@@ -122,7 +132,14 @@ from collections.abc import Callable, Collection, Mapping
 from pathlib import Path
 from typing import NamedTuple
 
-from ..config import CONFIG_FILENAME, exclude_patterns, path_matches, string_list_config
+from ..config import (
+    CONFIG_FILENAME,
+    append_only,
+    exclude_patterns,
+    load_config,
+    path_matches,
+    string_list_config,
+)
 from ..git import blob_text, changed_paths, tracked_files
 from ..lines import git_lines
 from ..markdown import section_range
@@ -161,6 +178,19 @@ def _git(repo_root: Path, *args: str) -> str:
         text=True,
         errors="replace",
     ).stdout
+
+
+def _appends(repo_root: Path, path: str) -> set[str]:
+    """The commits whose diff for `path` removes no lines: an append-only
+    file's growth, which ADR 0011 doesn't count as its content changing.
+    A commit with no line counts, a binary one, is no append."""
+
+    appends: set[str] = set()
+    for block in _git(repo_root, "log", "--format=%x00%H", "--numstat", "--", path).split("\0")[1:]:
+        commit, *stats = [line for line in block.split("\n") if line]
+        if stats and all(stat.split("\t")[1] == "0" for stat in stats):
+            appends.add(commit)
+    return appends
 
 
 def _module_index(tracked: list[str]) -> dict[str, str]:
@@ -233,6 +263,8 @@ def check(
     citable = set(tracked) | changed
     exclude = exclude_patterns(config)
     modules = module_index(tracked, config)
+    # `[subjects]` belongs to no check, so isn't in this one's `config`.
+    project = load_config(repo_root)
     docs = sorted(
         rel
         for rel in tracked
@@ -253,13 +285,17 @@ def check(
         return sections[path, anchor]
 
     history: dict[tuple[str, str], list[int]] = {}
+    appends: dict[str, set[str]] = {}
 
     def commits(path: str, anchor: str) -> list[int]:
         if (path, anchor) not in history:
             span = section(path, anchor) if anchor else None
             scope = ("-s", "-L", f"{span[0]},{span[1]}:{path}") if span else ("--", path)
+            if path not in appends:
+                appends[path] = _appends(repo_root, path) if append_only(project, path) else set()
+            logged = _git(repo_root, "log", "--format=%H %ct", *scope).split()
             history[path, anchor] = sorted(
-                int(t) for t in _git(repo_root, "log", "--format=%ct", *scope).split()
+                int(t) for h, t in zip(logged[::2], logged[1::2]) if h not in appends[path]
             )
         return history[path, anchor]
 

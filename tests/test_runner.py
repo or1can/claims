@@ -167,6 +167,20 @@ class RunnerTests(RegistryClearingTestCase):
 
         self.assertEqual(result.findings, ())
 
+    def test_the_subjects_table_is_not_flagged_as_unrecognized(self) -> None:
+        result = run(Path("/repo"), "HEAD", {"subjects": {"append_only": ["RELEASES.md"]}})
+
+        self.assertEqual(result.findings, ())
+
+    def test_an_unknown_key_in_the_subjects_table_is_a_gate_finding(self) -> None:
+        result = run(Path("/repo"), "HEAD", {"subjects": {"foo": 1}})
+
+        self.assertEqual(len(result.findings), 1)
+        finding = result.findings[0]
+        self.assertEqual((finding.file, finding.line, finding.mode), ("claims.toml", 0, "config"))
+        self.assertTrue(finding.gate)
+        self.assertIn("[subjects] foo", finding.message)
+
     def test_an_empty_config_produces_no_unrecognized_table_finding(self) -> None:
         register_check("check-a", lambda repo_root, diff_range, config: [])
 

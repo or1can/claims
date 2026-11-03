@@ -216,6 +216,50 @@ class StaleClaimsTests(RegistryClearingTestCase):
 
         self.assertFalse(any(f.file == "CHANGELOG.md" for f in findings))
 
+    def _grow(self, repo: Repo, name: str, claims_toml: str = "") -> list[Finding]:
+        """Ranks `notes.md`'s one section, which names `name`, after `name`
+        has had a line inserted at its top and another appended."""
+
+        repo.write("notes.md", f"## Releases\n\nSee `{name}` for each release.\n")
+        repo.write(name, "# Log\n\n## 1.0\n\n- First.\n")
+        repo.commit(BASE)
+        repo.write(name, "# Log\n\n## Unreleased\n\n- Next.\n\n## 1.0\n\n- First.\n")
+        repo.commit(BASE + 100)
+        repo.write(name, "# Log\n\n## Unreleased\n\n- Next.\n\n## 1.0\n\n- First.\n- Also.\n")
+        repo.commit(BASE + 200)
+        return self._findings_with_toml(repo.root, claims_toml)
+
+    def test_appends_to_a_changelog_subject_are_not_churn(self) -> None:
+        with Repo() as repo:
+            self.assertEqual(self._grow(repo, "CHANGELOG.md"), [])
+
+    def test_an_edited_line_in_a_changelog_subject_is_churn(self) -> None:
+        with Repo() as repo:
+            self._grow(repo, "CHANGELOG.md")
+            text = (repo.root / "CHANGELOG.md").read_text()
+            repo.write("CHANGELOG.md", text.replace("## Unreleased", "## 1.1"))
+            repo.commit(BASE + 300)
+            findings = self._findings_with_toml(repo.root, "")
+
+        self.assertEqual(len(findings), 1)
+        self.assertEqual(findings[0].citation, "notes.md:1")
+        # Creating the file removed no lines either, so the edit is its
+        # whole counted history.
+        self.assertIn("CHANGELOG.md 1 commit (100% of its history)", findings[0].message)
+
+    def test_appends_to_a_listed_append_only_subject_are_not_churn(self) -> None:
+        with Repo() as repo:
+            findings = self._grow(repo, "RELEASES.md", '[subjects]\nappend_only = "RELEASES.md"\n')
+
+        self.assertEqual(findings, [])
+
+    def test_appends_to_an_unlisted_subject_are_churn(self) -> None:
+        with Repo() as repo:
+            findings = self._grow(repo, "RELEASES.md")
+
+        self.assertEqual(len(findings), 1)
+        self.assertIn("RELEASES.md 2 commits (67% of its history)", findings[0].message)
+
     def test_an_excluded_file_is_skipped_entirely(self) -> None:
         with Repo() as repo:
             _build_fixture(repo)

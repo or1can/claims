@@ -37,7 +37,7 @@ from .config import path_matches, string_list_config
 from .git import toplevel as git_toplevel
 from .git import tracked_files
 
-# Every check's own glob-shaped config key, matched against the tracked
+# Every table's own glob-shaped config key, matched against the tracked
 # tree the same way that check itself matches it (`path_matches`, i.e.
 # `fnmatch`). Deliberately not every key in every check's section: e.g.
 # `executable-claims`'s own `permitted_prefixes` is a literal
@@ -55,6 +55,9 @@ GLOB_CONFIG_KEYS: Mapping[str, Sequence[str]] = {
     "stale-claims": ("module_reference_scope", "exclude"),
     "temporal-words": ("files",),
     "judgment-agent": ("historical",),
+    # Not a check: `[subjects]`, which `stale-claims` and checked marks read
+    # (ADR 0011). `[hook]`, the other non-check table, has no glob.
+    "subjects": ("append_only",),
 }
 
 # `restatement`'s own `extensions`, and `check-file-refs`' own `extensions`

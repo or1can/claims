@@ -52,6 +52,12 @@ _Avoid_: Record-like
 The code a claim names.
 _Avoid_: Target, reference
 
+**Append-only file**:
+A file that only grows, such as a changelog, so that as a subject a line
+added to it is not its content changing; only a line changed or removed
+is.
+_Avoid_: Historical, which is how a line *in* a file is judged
+
 **Candidate**:
 A claim in doubt but not yet decided.
 _Avoid_: Suspect, hit

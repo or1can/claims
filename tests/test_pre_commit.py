@@ -230,6 +230,16 @@ class PreCommitTests(RegistryClearingTestCase):
                     stderr,
                 )
 
+    def test_a_wrongly_typed_subjects_table_blocks_naming_it(self) -> None:
+        _register("failing-gate", gate=False)
+        with Repo() as repo:
+            code, stderr = self._run(repo, "[subjects]\nappend_only = 3\n")
+        self.assertEqual(code, 1)
+        self.assertIn(
+            "claims.toml is invalid: `[subjects] append_only` must be a glob or a list of globs",
+            stderr,
+        )
+
     def test_a_hook_table_without_enabled_still_gates(self) -> None:
         _register("failing-gate", gate=True)
         with Repo() as repo:

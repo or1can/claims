@@ -607,5 +607,70 @@ class CheckedMarkTests(RegistryClearingTestCase):
         self.assertTrue(self.summary().endswith(", 1 quiet while checked"))
 
 
+    QUIET = ", 1 quiet while checked"
+    SHOWN = "1 checked, 1 finding(s), 0 gate failure(s)"
+    LOG = "# Log\n\n## Unreleased\n\n- Next.\n\n## 1.0\n\n- First.\n"
+
+    def mark_release_claim(self, cited: str, log: str = "CHANGELOG.md") -> None:
+        """A marked sentence citing `cited`, with `log` committed holding `LOG`."""
+
+        self.repo.write(log, self.LOG)
+        self.repo.commit()
+        self.repo.write("docs/a.md", f"Every release is in {cited}.\n")
+        self.assertEqual(self.mark("docs/a.md:1 claim-words-totalising read the log")[0], 0)
+
+    def test_a_mark_on_a_changelog_holds_after_an_append_at_either_end(self) -> None:
+        self.mark_release_claim("`CHANGELOG.md`")
+
+        self.repo.write("CHANGELOG.md", self.LOG.replace("- Next.", "- Newer.\n- Next."))
+        self.assertTrue(self.summary().endswith(self.QUIET))
+        self.repo.write("CHANGELOG.md", self.LOG + "- Also.\n")
+        self.assertTrue(self.summary().endswith(self.QUIET))
+
+    def test_a_mark_on_a_changelog_expires_when_a_line_changes_or_goes(self) -> None:
+        self.mark_release_claim("`CHANGELOG.md`")
+
+        self.repo.write("CHANGELOG.md", self.LOG.replace("## Unreleased", "## 1.1"))
+        self.assertEqual(self.summary(), self.SHOWN)
+        self.repo.write("CHANGELOG.md", self.LOG.replace("- First.\n", ""))
+        self.assertEqual(self.summary(), self.SHOWN)
+
+    def test_a_mark_whose_recorded_blob_is_not_in_the_store_expires(self) -> None:
+        self.mark_release_claim("`CHANGELOG.md`")
+        # Never staged, so its blob is in no object store.
+        (self.repo.root / "CHANGELOG.md").write_text(self.LOG + "- Unstaged.\n")
+        self.assertEqual(self.mark("docs/a.md:1 claim-words-totalising read the log")[0], 0)
+        self.assertTrue(self.summary().endswith(self.QUIET))
+
+        (self.repo.root / "CHANGELOG.md").write_text(self.LOG + "- Unstaged.\n- More.\n")
+        self.assertEqual(self.summary(), self.SHOWN)
+
+    def test_a_listed_append_only_file_holds_after_an_append(self) -> None:
+        self.repo.write("claims.toml", CONFIG + '\n[subjects]\nappend_only = "RELEASES.md"\n')
+        self.mark_release_claim("`RELEASES.md`", log="RELEASES.md")
+
+        self.repo.write("RELEASES.md", self.LOG + "- Also.\n")
+        self.assertTrue(self.summary().endswith(self.QUIET))
+
+    def test_a_mark_written_before_a_file_was_append_only_expires_on_an_append(self) -> None:
+        self.mark_release_claim("`RELEASES.md`", log="RELEASES.md")
+        self.repo.write("claims.toml", CONFIG + '\n[subjects]\nappend_only = "RELEASES.md"\n')
+        self.assertTrue(self.summary().endswith(self.QUIET))
+
+        self.repo.write("RELEASES.md", self.LOG + "- Also.\n")
+        self.assertEqual(self.summary(), self.SHOWN)
+
+    def test_an_anchored_changelog_subject_reads_only_its_section(self) -> None:
+        self.mark_release_claim("[the log](../CHANGELOG.md#unreleased)")
+        self.assertIn('"CHANGELOG.md#unreleased"', (self.repo.root / "claims.checked.toml").read_text())
+
+        self.repo.write("CHANGELOG.md", self.LOG.replace("- Next.", "- Newer.\n- Next."))
+        self.assertTrue(self.summary().endswith(self.QUIET))
+        self.repo.write("CHANGELOG.md", self.LOG.replace("- First.", "- Second."))
+        self.assertTrue(self.summary().endswith(self.QUIET))
+        self.repo.write("CHANGELOG.md", self.LOG.replace("- Next.", "- Later."))
+        self.assertEqual(self.summary(), self.SHOWN)
+
+
 if __name__ == "__main__":
     unittest.main()

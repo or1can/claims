@@ -29,7 +29,7 @@ from __future__ import annotations
 import fnmatch
 import tomllib
 from collections.abc import Mapping, Sequence
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 
 CONFIG_FILENAME = "claims.toml"
 LOCAL_CONFIG_FILENAME = "claims.local.toml"
@@ -50,7 +50,13 @@ def _load_toml(path: Path) -> dict[str, dict[str, object]]:
 
 
 def load_config(repo_root: Path) -> dict[str, dict[str, object]]:
-    return _load_toml(repo_root / CONFIG_FILENAME)
+    """`claims.toml`'s tables. Raises `ConfigError` for a file that doesn't
+    parse, or whose `[subjects]` is the wrong shape: that table belongs to
+    no one check, so no check's own crash finding would name it."""
+
+    config = _load_toml(repo_root / CONFIG_FILENAME)
+    _append_only_patterns(config)
+    return config
 
 
 def has_config(repo_root: Path) -> bool:
@@ -119,6 +125,30 @@ def path_matches(path: str, patterns: Sequence[str]) -> bool:
     """
 
     return any(fnmatch.fnmatchcase(path, pattern) for pattern in patterns)
+
+
+def _append_only_patterns(config: Mapping[str, object]) -> Sequence[str]:
+    subjects = config.get("subjects", {})
+    if not isinstance(subjects, Mapping):
+        raise ConfigError("`[subjects]` must be a table")
+    patterns = subjects.get("append_only", [])
+    if isinstance(patterns, str):
+        return [patterns]
+    if not isinstance(patterns, list) or not all(isinstance(p, str) for p in patterns):
+        raise ConfigError("`[subjects] append_only` must be a glob or a list of globs")
+    return patterns
+
+
+def append_only(config: Mapping[str, object], path: str) -> bool:
+    """Whether `path`, a repo-relative POSIX path, is an append-only file
+    under the project's whole `config`
+    (`decisions/0011-append-only-is-a-property-of-the-file.md`): any
+    `CHANGELOG.md`, by the same name rule `stale-claims`' built-in
+    exclusion uses, or a match for `[subjects] append_only`."""
+
+    return PurePosixPath(path).name.lower() == "changelog.md" or path_matches(
+        path, _append_only_patterns(config)
+    )
 
 
 def numeric_config(
