@@ -25,6 +25,10 @@ Amended by `decisions/0011-append-only-is-a-property-of-the-file.md`
 default, is compared by git blob id. A mark on it survives an append and
 expires on any change or removal of a line.
 
+Amended by `decisions/0013-a-navigation-page-is-not-a-whole-page-subject.md`
+(#193): a page the project lists as `navigation` is not recorded when a
+unit names it without an anchor, so editing it expires no mark.
+
 ## Context
 
 The advisory checks exist so that a claim gets read. On a real project
