@@ -29,6 +29,11 @@ Amended by `decisions/0013-a-navigation-page-is-not-a-whole-page-subject.md`
 (#193): a page the project lists as `navigation` is not recorded when a
 unit names it without an anchor, so editing it expires no mark.
 
+Amended after or1can/ratect's 0.13.0 milestone (#203): there, many
+marks recorded a spot-check of a long section, said so only in the
+note, and were counted as checked like any other. A mark can now record
+that its reading was partial.
+
 ## Context
 
 The advisory checks exist so that a claim gets read. On a real project
@@ -76,6 +81,15 @@ comes back without anyone lifting the mark.
 - Whoever reads the finding writes the mark, and that can be an agent. A
   `judgment-agent` verdict never writes one by itself, but the agent that
   asked for the verdict may mark the finding.
+- A mark records its reading's **extent**, full or partial
+  (`mark-checked --partial`); a mark that doesn't say is full. Only a
+  `stale-claims` section or a `spliced-docs` doc comment can be partly
+  read, since a sentence or a line is read whole or not at all. A partial
+  mark keeps its finding quiet like a full one and counts as marked, but
+  the summary line counts the partial ones separately, so a narrow
+  reading is never mistaken for a full one. A partial mark can't replace
+  a current full mark of the same unit: that entry is a bad entry. A
+  full mark can always replace a partial one.
 - Marks apply to advisory findings only. Checking a gate finding doesn't
   fix what it reports.
 - A mark whose unit no longer exists in its file is an orphan, and is reported as an advisory finding. A mark

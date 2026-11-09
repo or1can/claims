@@ -6,6 +6,14 @@ Accepted. Issue #188; builds on
 `decisions/0010-checked-marks-expire-on-their-own.md` and
 `decisions/0011-append-only-is-a-property-of-the-file.md`.
 
+Amended (#204): the commit hook can apply it too, for checks a project
+lists under `[hook] fail_on_unmarked`. On or1can/ratect, the findings
+from `claim-words`, `temporal-words` and `restatement` come from the
+commit's own text, so one settled in the commit that brings it in stays
+settled. Overriding the hook's `entry` with the CLI flag instead would
+fail closed on an internal error and would skip the hook's own
+configuration.
+
 ## Context
 
 An advisory finding is surfaced and never fails the run
@@ -22,11 +30,23 @@ A run can be told to fail on **unmarked findings**: advisory findings,
 from a check whose findings can be marked, that no checked mark keeps
 quiet.
 
-- It is a CLI flag only. `--fail-on-unmarked` covers every markable check;
-  `--fail-on-unmarked=restatement,judgment-agent` covers the named ones.
-  No `claims.toml` key sets it, and the commit hook never applies it. A
-  project passes the flag in CI, so a PR resolves the findings it brings
-  in, and local commits stay advisory.
+- In CI it is a CLI flag. `--fail-on-unmarked` covers every markable
+  check; `--fail-on-unmarked=restatement,judgment-agent` covers the
+  named ones. A project passes the flag in CI, so a PR resolves the
+  findings it brings in.
+- At commit time it is `[hook] fail_on_unmarked`, a list of markable
+  checks, and a bare string is a one-element list. Unset or empty,
+  local commits stay advisory. A name that isn't a markable check
+  makes `claims.toml` invalid, which blocks, as a non-boolean `enabled`
+  does. A listed check that is also `enabled = false` reports nothing
+  at commit time, so nothing of it blocks. The hook blocks with exit
+  `1`, the only exit it has, and ends with the same closing line as the
+  CLI. An internal error still lets the commit through.
+- An orphaned mark blocks a commit only when its own check is listed,
+  and one whose mode can't be marked never does. That differs from the
+  CLI flag on purpose: at commit time a reworded sentence's leftover
+  mark would otherwise block whatever the list, where the flag in CI
+  still catches every orphan.
 - An advisory finding from a check that can't be marked never fails the
   run. An orphaned mark does, under the flag, since deleting the entry
   resolves it.
@@ -44,9 +64,11 @@ fails its run.
 
 ## Alternatives considered
 
-- **A `claims.toml` key the hook also honours.** That moves the cost onto
-  every local commit, where nobody chose to read findings. It can be added
-  later if a project wants it.
+- **A `claims.toml` key the hook honours for every markable check.** That
+  moves the cost onto every local commit, including findings like
+  `stale-claims`', which rank other sections by churn and whose marks
+  expire as the files they name move. The hook's list is opt-in per check
+  instead (#204).
 - **A per-check `strict` key.** The flag's list covers per-check choice
   without making the same `claims.toml` read differently in CI and at
   commit time.
