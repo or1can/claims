@@ -189,12 +189,13 @@ def _in_module_scope(rel: str, config: Mapping[str, object]) -> bool:
 
 def _excluded_sections(config: Mapping[str, object]) -> list[tuple[str, str]]:
     """`exclude_sections` as `(path glob, slug)` pairs. Raises
-    `ConfigError` for an entry with no slug after its `#`."""
+    `ConfigError` for an entry with no slug after its `#`, or with one no
+    heading slugs to (`Context`, `prior art`), which could match nothing."""
 
     pairs: list[tuple[str, str]] = []
     for entry in string_list_config(config, "exclude_sections"):
         glob, _, heading = entry.rpartition("#")
-        if not glob or not heading:
+        if not glob or not heading or slug(heading) != heading:
             raise ConfigError(
                 f"[{NAME}] exclude_sections entries must be `<path glob>#<slug>`, got {entry!r}"
             )

@@ -17,7 +17,8 @@ reached you, not just that one was pushed upstream.
   stops one kind of section being ranked, such as an ADR's
   `decisions/*.md#context`, along with the headings nested under it. A
   skipped section still counts as a subject when another section links
-  to it. An entry with no slug is invalid configuration.
+  to it. An entry with no slug, or one no heading could have (`#Context`
+  rather than `#context`), is invalid configuration.
 
 ## [0.24.0] - 2026-11-03
 

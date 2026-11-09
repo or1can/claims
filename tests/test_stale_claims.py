@@ -734,12 +734,14 @@ class StaleClaimsTests(RegistryClearingTestCase):
         "## Decision\nSee src/subject.py.\n"
     )
 
-    def _findings_for_adr(self, claims_toml: str, adr: str = "decisions/0001-x.md") -> list[Finding]:
-        """`adr` holds `ADR`, whose every section names `src/subject.py`,
+    def _findings_for_adr(
+        self, claims_toml: str, adr: str = "decisions/0001-x.md", text: str = ADR
+    ) -> list[Finding]:
+        """`adr` holds `text`, whose every section names `src/subject.py`,
         which then churns. Run under `claims_toml`."""
 
         with Repo() as repo:
-            repo.write(adr, self.ADR)
+            repo.write(adr, text)
             repo.write("src/subject.py", "v0")
             repo.commit(BASE)
             repo.write("src/subject.py", "v1")
@@ -756,15 +758,9 @@ class StaleClaimsTests(RegistryClearingTestCase):
         adr = self.ADR.replace(
             "### Prior art\n", "```sh\n# run it\nSee src/subject.py.\n```\n### Prior art\n"
         )
-        with Repo() as repo:
-            repo.write("decisions/0001-x.md", adr)
-            repo.write("src/subject.py", "v0")
-            repo.commit(BASE)
-            repo.write("src/subject.py", "v1")
-            repo.commit(BASE + 100)
-            findings = self._findings_with_toml(
-                repo.root, '[stale-claims]\nexclude_sections = ["decisions/*.md#context"]\n'
-            )
+        findings = self._findings_for_adr(
+            '[stale-claims]\nexclude_sections = ["decisions/*.md#context"]\n', text=adr
+        )
         self.assertEqual([_heading(f) for f in findings], ["Decision"])
 
     def test_an_excluded_section_in_a_file_the_glob_misses_is_still_ranked(self) -> None:
@@ -781,8 +777,15 @@ class StaleClaimsTests(RegistryClearingTestCase):
         )
         self.assertEqual([_heading(f) for f in findings], ["Decision"])
 
-    def test_an_exclude_sections_entry_without_a_slug_is_invalid_configuration(self) -> None:
-        for entry in ("decisions/*.md", "decisions/*.md#"):
+    def test_an_exclude_sections_entry_with_no_slug_shape_is_invalid_configuration(self) -> None:
+        # `#Context` and `#prior art` are no heading's slug, so could
+        # never match one.
+        for entry in (
+            "decisions/*.md",
+            "decisions/*.md#",
+            "decisions/*.md#Context",
+            "decisions/*.md#prior art",
+        ):
             with self.subTest(entry=entry):
                 findings = self._findings_for_adr(
                     f'[stale-claims]\nexclude_sections = ["{entry}"]\n'
