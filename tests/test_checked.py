@@ -680,6 +680,19 @@ class CheckedMarkTests(RegistryClearingTestCase):
                 self.assertIn(f"(checked-mark) checked mark ({mode})", decision.message)
                 self.assertEqual(decision.block, blocks)
 
+    def test_the_hook_lets_through_an_orphan_of_a_listed_check_silenced_at_commit(self) -> None:
+        self.repo.write(
+            "claims.toml",
+            CONFIG + 'enabled = false\n\n[hook]\nfail_on_unmarked = ["claim-words"]\n',
+        )
+        self.orphan("claim-words-totalising")
+
+        decision = decide_repo(self.repo.root)
+
+        assert decision is not None
+        self.assertIn("(checked-mark)", decision.message)
+        self.assertFalse(decision.block)
+
 
     def test_a_restatement_unit_is_the_surviving_line_and_its_retracted_run(self) -> None:
         register_check(restatement.NAME, restatement.check)

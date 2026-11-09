@@ -212,8 +212,11 @@ When [partial marks](#partial-marks) kept some of those findings quiet,
 it continues `, P of them partly`, as in `12 quiet while checked, 4 of
 them partly`; the clause is left off when `P` is zero. The commit hook prints the
 same count as the last line of its message, including on a commit where
-marks quieted every finding. Gate findings and exit codes are unchanged:
-a mark only ever quiets an advisory finding, which never blocked anything.
+marks quieted every finding. A mark only ever quiets an advisory
+finding, so gate findings are unchanged. Only a run [failing on unmarked
+findings](#failing-a-run-on-unmarked-findings) exits or blocks
+differently for a mark, since quieting a finding is then what lets it
+pass.
 
 The CLI's summary line also ends `, A mark(s) added in range` when the
 range added entries to `claims.checked.toml`. An entry counts when its

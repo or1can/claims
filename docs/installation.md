@@ -143,7 +143,8 @@ For each commit:
 - an unmarked finding from a check listed under
   [`[hook] fail_on_unmarked`](configuring.md#blocking-a-commit-on-unmarked-findings):
   the findings are printed, and the commit is blocked;
-- advisory findings only: they are printed, and the commit goes ahead.
+- any other advisory findings: they are printed, and the commit goes
+  ahead.
 
 An error inside `claims` itself prints a warning and lets the commit go
 ahead, so a broken install does not block every commit.
