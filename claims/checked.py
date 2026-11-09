@@ -593,15 +593,23 @@ def apply_marks(
     return shown, quiet
 
 
+def _orphan_problem(tree: _Tree, mark: Mark) -> str | None:
+    """Why `mark` is an orphan, or `None` when it isn't: the one rule both
+    the orphan finding and `orphaned_marks` read."""
+
+    kind = unit_kind(mark.mode)
+    if kind is None:
+        return f"is for {mark.mode}, which can't be marked"
+    if not tree.copies(mark.file, kind)[_in_file(mark.unit)]:
+        return f"is for a {kind} no longer in {mark.file}"
+    return None
+
+
 def _orphans(tree: _Tree, marks: Iterable[Mark]) -> list[Finding]:
     found = []
     for mark in marks:
-        kind = unit_kind(mark.mode)
-        if kind is None:
-            problem = f"is for {mark.mode}, which can't be marked"
-        elif not tree.copies(mark.file, kind)[_in_file(mark.unit)]:
-            problem = f"is for a {kind} no longer in {mark.file}"
-        else:
+        problem = _orphan_problem(tree, mark)
+        if problem is None:
             continue
         found.append(
             Finding(
@@ -613,6 +621,14 @@ def _orphans(tree: _Tree, marks: Iterable[Mark]) -> list[Finding]:
             )
         )
     return found
+
+
+def orphaned_marks(repo_root: Path, config: Mapping[str, object]) -> list[Mark]:
+    """Every mark in `claims.checked.toml` a run reports as an orphan.
+    Raises `ConfigError` for an invalid file."""
+
+    tree = _Tree(repo_root, config)
+    return [mark for mark in load_marks(repo_root) if _orphan_problem(tree, mark) is not None]
 
 
 ENTRY_RE = re.compile(r"^(?P<file>.+?):(?P<line>\d+)\s+(?P<mode>\S+)(?:\s+(?P<note>.*))?$")
@@ -698,34 +714,41 @@ def _render(mark: Mark) -> str:
     return "\n".join(lines) + "\n"
 
 
-def write_marks(repo_root: Path, marks: Sequence[Mark]) -> None:
+def write_marks(repo_root: Path, marks: Sequence[Mark], pruned: Iterable[Mark] = ()) -> None:
     """Add `marks` to `claims.checked.toml`, each replacing an existing
-    entry with its key. Every other entry's text, comments included, is
-    kept as written."""
+    entry with its key, and drop each entry `pruned` has the key of. Every
+    other entry's text, comments included, is kept as written."""
 
     path = repo_root / CHECKED_FILENAME
     existing = load_marks(repo_root)
     # Read as `load_marks` reads it, so each entry is numbered the same.
     text = path.read_text(encoding="utf-8") if path.is_file() else ""
-    replaced = {mark.key for mark in marks}
+    pruned_keys = {mark.key for mark in pruned}
+    dropped = {mark.key for mark in marks} | pruned_keys
 
     # Numbered as `load_marks` numbers each entry's `line`.
     lines = [line + "\n" for line in git_lines(text)]
     starts = [m.line - 1 for m in existing]
-    kept = "".join(lines[: starts[0]] if starts else lines)
+    out = lines[: starts[0]] if starts else lines
     for mark, start, end in zip(existing, starts, starts[1:] + [len(lines)]):
-        if mark.key not in replaced:
-            kept += "".join(lines[start:end])
+        if mark.key not in dropped:
+            out += lines[start:end]
             continue
-        # A comment closing a replaced entry's lines sits above the next
+        if mark.key in pruned_keys:
+            # A comment directly above a pruned entry is about it, and goes
+            # with it; one above a replaced entry stays where it was.
+            while out and out[-1].lstrip().startswith("#"):
+                out.pop()
+        # A comment closing a dropped entry's lines sits above the next
         # entry, so it is the next entry's and stays; the blank lines
-        # between them go with the replaced entry.
+        # between them go with the dropped entry.
         tail = end
         while tail > start + 1 and (not lines[tail - 1].strip() or lines[tail - 1].lstrip().startswith("#")):
             tail -= 1
         while tail < end and not lines[tail].strip():
             tail += 1
-        kept += "".join(lines[tail:end])
+        out += lines[tail:end]
+    kept = "".join(out)
     blocks = [kept.rstrip("\n")] if kept.strip() else []
     latest = {mark.key: mark for mark in marks}
     blocks.extend(_render(mark).rstrip("\n") for mark in latest.values())

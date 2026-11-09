@@ -30,6 +30,7 @@ from .checked import (
     markable_check,
     marks_added,
     new_marks,
+    orphaned_marks,
     write_marks,
 )
 from .config import ConfigError, load_config
@@ -87,6 +88,14 @@ def parse_mark_args(argv: list[str]) -> argparse.Namespace:
     parser.add_argument("--repo-root", type=Path, default=Path.cwd())
     parser.add_argument("--diff-range", default="HEAD", help="Range to find the findings in (default: HEAD).")
     parser.add_argument("--by", help="Who read the findings, recorded on each mark.")
+    parser.add_argument(
+        "--prune",
+        action="store_true",
+        help=(
+            "Also remove every orphaned mark, one a run reports as checked-mark; "
+            "entries are then optional."
+        ),
+    )
     return parser.parse_args(argv)
 
 
@@ -100,11 +109,15 @@ def mark_checked(argv: list[str]) -> int:
         return 2
     try:
         load_marks(repo_root)
+        pruned = orphaned_marks(repo_root, config) if args.prune else []
     except ConfigError as e:
         print(f"{CHECKED_FILENAME} is invalid: {e}", file=sys.stderr)
         return 2
     # One entry per line, never numbered against a file: `splitlines()` will do.
-    if args.entries == "-":
+    if args.entries == "-" and args.prune and sys.stdin.isatty():
+        # `--prune` alone at a terminal: no entries, rather than a wait for them.
+        entries = []
+    elif args.entries == "-":
         entries = sys.stdin.read().splitlines()
     else:
         try:
@@ -122,11 +135,15 @@ def mark_checked(argv: list[str]) -> int:
             print(problem, file=sys.stderr)
         print(f"nothing marked: {len(problems)} bad entr{'y' if len(problems) == 1 else 'ies'}", file=sys.stderr)
         return 1
-    if not marks:
+    if not marks and not args.prune:
         print("nothing marked: no entries given", file=sys.stderr)
         return 1
-    write_marks(repo_root, marks)
-    print(f"marked {len(marks)} finding(s) in {CHECKED_FILENAME}")
+    if marks or pruned:
+        write_marks(repo_root, marks, pruned)
+    if marks:
+        print(f"marked {len(marks)} finding(s) in {CHECKED_FILENAME}")
+    if args.prune:
+        print(f"pruned {len(pruned)} orphaned mark(s) from {CHECKED_FILENAME}")
     return 0
 
 

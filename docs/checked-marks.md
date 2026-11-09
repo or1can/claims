@@ -119,7 +119,7 @@ Marking the new copy records the larger count and quiets them all.
 `mark-checked` records a batch of marks:
 
 ```sh
-python3 -m claims.cli mark-checked [--repo-root R] [--diff-range RANGE] [--by NAME] [FILE|-]
+python3 -m claims.cli mark-checked [--repo-root R] [--diff-range RANGE] [--by NAME] [--prune] [FILE|-]
 ```
 
 It reads entries one per line from `FILE`, or from standard input when the
@@ -144,9 +144,22 @@ writes nothing. Blank lines are skipped. An entry for a finding that
 already has a mark replaces it, so re-marking after a reading refreshes
 the recorded subjects and copies. Every other entry in the file is kept
 as written, comments included. Exit codes are `0` once the marks are
-written, `1` for a batch with a bad entry or no entries, and `2` when
+written, `1` for a batch with a bad entry or, without `--prune`, no
+entries, and `2` when
 `claims.toml` or `claims.checked.toml` is invalid or `FILE` can't be
 read.
+
+`--prune` also removes every [orphan](#orphans), and only those, in the
+same write as the batch's new marks, so a reworded sentence's old mark
+goes and its new one is recorded in one call. With `--prune`, entries
+are optional: with none, the command only prunes, and it does not wait
+for entries when standard input is a terminal. It reports how many marks
+it pruned, `0` included, and exits `0` even when it pruned and marked
+nothing. A bad entry still fails the batch, and then nothing is pruned
+either. A pruned mark needs no note, since removing an orphan quiets
+nothing. A comment directly above a pruned entry, with no blank line
+between, goes with it. A comment above an entry that stays is kept, even
+where the entry before it is pruned or replaced.
 
 There is no form that marks findings without a note each. Whoever reads
 the finding writes the mark, and that can be an agent, once it has read
@@ -154,12 +167,15 @@ the finding against what it cites.
 
 ## Orphans
 
-A mark whose unit no longer exists anywhere in its file is reported as an
-advisory finding, with the mode `checked-mark`, citing the mark's line in
+A mark whose unit no longer exists anywhere in its file, or whose file
+is gone, is reported as an advisory finding, with the mode `checked-mark`, citing the mark's line in
 `claims.checked.toml`, so a stale entry is seen and removed rather than
-left behind. A mark whose unit still exists but which no finding of the
+left behind: by hand, or with `mark-checked --prune`. So is a mark for a
+mode that can't be marked. A mark whose unit still exists but which no finding of the
 current run matched is not an orphan: a diff-scoped check reports nothing
-about a sentence the diff left alone.
+about a sentence the diff left alone. Nor is an expired mark whose unit
+is still in its file, or one whose file holds fewer copies of its unit
+than it recorded but at least one: `--prune` keeps both.
 
 ## What a run shows
 
