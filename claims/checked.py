@@ -716,6 +716,16 @@ def write_marks(repo_root: Path, marks: Sequence[Mark]) -> None:
     for mark, start, end in zip(existing, starts, starts[1:] + [len(lines)]):
         if mark.key not in replaced:
             kept += "".join(lines[start:end])
+            continue
+        # A comment closing a replaced entry's lines sits above the next
+        # entry, so it is the next entry's and stays; the blank lines
+        # between them go with the replaced entry.
+        tail = end
+        while tail > start + 1 and (not lines[tail - 1].strip() or lines[tail - 1].lstrip().startswith("#")):
+            tail -= 1
+        while tail < end and not lines[tail].strip():
+            tail += 1
+        kept += "".join(lines[tail:end])
     blocks = [kept.rstrip("\n")] if kept.strip() else []
     latest = {mark.key: mark for mark in marks}
     blocks.extend(_render(mark).rstrip("\n") for mark in latest.values())

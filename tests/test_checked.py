@@ -256,6 +256,17 @@ class CheckedMarkTests(RegistryClearingTestCase):
         self.assertNotIn("first", text)
         self.assertIn('note = "second"', text)
 
+    def test_re_marking_keeps_the_comment_above_the_next_entry(self) -> None:
+        self.repo.write("docs/a.md", "Every check runs.\n\nOnly one runs.\n")
+        self.mark("docs/a.md:1 claim-words-totalising first", "docs/a.md:3 claim-words-totalising other")
+        sidecar = self.repo.root / "claims.checked.toml"
+        first, second = sidecar.read_text().split("\n\n")
+        sidecar.write_text(f"{first}\n\n# about the other\n{second}")
+
+        self.mark("docs/a.md:1 claim-words-totalising second")
+
+        self.assertIn(f"# about the other\n{second}", sidecar.read_text())
+
     def test_gate_findings_and_unmarkable_modes_are_refused(self) -> None:
         register_check(
             "gatey",
