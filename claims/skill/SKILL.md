@@ -172,8 +172,10 @@ EOF
 Never mark a finding you didn't read, a false one (fix it instead), or
 one the user hasn't asked you to work through. Gate findings can't be
 marked. One bad entry fails the whole batch and nothing is written; the
-command names each bad entry. Commit `claims.checked.toml` with the rest
-of the change.
+command names each bad entry. Add `--prune` to also remove every orphaned
+mark, one reported as `checked-mark` because its sentence was reworded or
+removed; it needs no entries and no note, and keeps every other mark.
+Commit `claims.checked.toml` with the rest of the change.
 
 ## Coverage
 

@@ -11,6 +11,15 @@ reached you, not just that one was pushed upstream.
 
 ## [Unreleased]
 
+## [0.26.0] - 2026-11-09
+
+- Added: `mark-checked --prune` removes every orphaned checked mark (the
+  ones reported as `checked-mark`) from `claims.checked.toml`, in the same
+  write as any new marks, so a reworded sentence's old mark goes and its
+  new one is recorded in one call. With `--prune`, entries are optional.
+- Fixed: replacing or pruning a mark no longer deletes a comment written
+  above the entry after it.
+
 ## [0.25.0] - 2026-11-09
 
 - Added: `[stale-claims] exclude_sections = ["<path glob>#<slug>"]`

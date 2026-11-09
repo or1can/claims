@@ -256,6 +256,17 @@ class CheckedMarkTests(RegistryClearingTestCase):
         self.assertNotIn("first", text)
         self.assertIn('note = "second"', text)
 
+    def test_re_marking_keeps_the_comment_above_the_next_entry(self) -> None:
+        self.repo.write("docs/a.md", "Every check runs.\n\nOnly one runs.\n")
+        self.mark("docs/a.md:1 claim-words-totalising first", "docs/a.md:3 claim-words-totalising other")
+        sidecar = self.repo.root / "claims.checked.toml"
+        first, second = sidecar.read_text().split("\n\n")
+        sidecar.write_text(f"{first}\n\n# about the other\n{second}")
+
+        self.mark("docs/a.md:1 claim-words-totalising second")
+
+        self.assertIn(f"# about the other\n{second}", sidecar.read_text())
+
     def test_gate_findings_and_unmarkable_modes_are_refused(self) -> None:
         register_check(
             "gatey",
@@ -304,6 +315,148 @@ class CheckedMarkTests(RegistryClearingTestCase):
             "[advisory] claims.checked.toml:1 (checked-mark) checked mark "
             "(claim-words-totalising) is for a sentence no longer in docs/a.md",
             out,
+        )
+
+    def prune(self, *entries: str) -> tuple[int, str, str]:
+        return self.run_cli("mark-checked", "--prune", "-", stdin="".join(e + "\n" for e in entries))
+
+    def test_prune_removes_a_reworded_sentences_mark(self) -> None:
+        self.repo.write("docs/a.md", "Every check runs.\n")
+        self.mark("docs/a.md:1 claim-words-totalising read it")
+        self.repo.write("docs/a.md", "Some checks run.\n")
+
+        code, out, err = self.prune()
+
+        self.assertEqual((code, out, err), (0, "pruned 1 orphaned mark(s) from claims.checked.toml\n", ""))
+        self.assertNotIn("(checked-mark)", self.run_cli()[1])
+
+    def test_one_prune_call_removes_the_orphan_and_marks_the_reworded_sentence(self) -> None:
+        self.repo.write("docs/a.md", "Every check runs.\n")
+        self.mark("docs/a.md:1 claim-words-totalising read it")
+        self.repo.write("docs/a.md", "Every check runs twice.\n")
+
+        code, out, err = self.prune("docs/a.md:1 claim-words-totalising read it again")
+
+        self.assertEqual(
+            (code, out, err),
+            (
+                0,
+                "marked 1 finding(s) in claims.checked.toml\n"
+                "pruned 1 orphaned mark(s) from claims.checked.toml\n",
+                "",
+            ),
+        )
+        text = (self.repo.root / "claims.checked.toml").read_text()
+        self.assertEqual(text.count("[[mark]]"), 1)
+        self.assertIn('note = "read it again"', text)
+        self.assertTrue(self.summary().endswith(", 1 quiet while checked"))
+
+    def test_prune_removes_a_mark_whose_file_is_gone_and_one_with_an_unmarkable_mode(self) -> None:
+        self.repo.write("docs/a.md", "Every check runs.\n")
+        self.mark("docs/a.md:1 claim-words-totalising read it")
+        sidecar = self.repo.root / "claims.checked.toml"
+        sidecar.write_text(
+            sidecar.read_text()
+            + '\n[[mark]]\nfile = "README.md"\nmode = "gatey"\nunit = "x"\ncopies = 1\n'
+            'note = "n"\nsubjects = {}\n'
+        )
+        (self.repo.root / "docs/a.md").unlink()
+
+        code, out, _ = self.prune()
+
+        self.assertEqual((code, out), (0, "pruned 2 orphaned mark(s) from claims.checked.toml\n"))
+        self.assertEqual(sidecar.read_text().count("[[mark]]"), 0)
+
+    def test_prune_keeps_an_expired_mark_whose_sentence_is_still_there(self) -> None:
+        self.repo.write("src/cache.py", "CACHE = 1\n")
+        self.repo.commit()
+        self.repo.write("docs/a.md", "Every read goes through src/cache.py first.\n")
+        self.mark("docs/a.md:1 claim-words-totalising read cache.py")
+        self.repo.write("src/cache.py", "CACHE = 2\n")
+        before = (self.repo.root / "claims.checked.toml").read_text()
+
+        code, out, _ = self.prune()
+
+        self.assertEqual((code, out), (0, "pruned 0 orphaned mark(s) from claims.checked.toml\n"))
+        self.assertEqual((self.repo.root / "claims.checked.toml").read_text(), before)
+
+    def test_prune_keeps_a_mark_whose_file_holds_fewer_copies_than_recorded(self) -> None:
+        self.repo.write("docs/a.md", "Every check runs.\n\nEvery check runs.\n")
+        self.mark("docs/a.md:1 claim-words-totalising read it")
+        self.assertIn("copies = 2", (self.repo.root / "claims.checked.toml").read_text())
+        self.repo.write("docs/a.md", "Every check runs.\n")
+
+        code, out, _ = self.prune()
+
+        self.assertEqual((code, out), (0, "pruned 0 orphaned mark(s) from claims.checked.toml\n"))
+        self.assertIn("[[mark]]", (self.repo.root / "claims.checked.toml").read_text())
+
+    def test_prune_keeps_every_other_entry_and_comment_as_written(self) -> None:
+        self.repo.write("docs/a.md", "Every check runs.\n\nOnly one runs.\n\nNever two.\n")
+        self.mark(
+            "docs/a.md:1 claim-words-totalising a",
+            "docs/a.md:3 claim-words-totalising b",
+            "docs/a.md:5 claim-words-totalising c",
+        )
+        sidecar = self.repo.root / "claims.checked.toml"
+        first, second, third = sidecar.read_text().split("\n\n")
+        sidecar.write_text(
+            f"# audit of docs/a.md\n\n{first}\n\n\n# second\n{second}\n\n# third\n{third}"
+        )
+        self.repo.write("docs/a.md", "Every check runs.\n\nOnly two run.\n\nNever two.\n")
+
+        code, out, _ = self.prune()
+
+        self.assertEqual((code, out), (0, "pruned 1 orphaned mark(s) from claims.checked.toml\n"))
+        # `# second` is the pruned entry's own, and goes with it.
+        self.assertEqual(
+            sidecar.read_text(), f"# audit of docs/a.md\n\n{first}\n\n\n# third\n{third}"
+        )
+
+    def test_pruning_never_takes_the_comment_of_a_replaced_entry_above_it(self) -> None:
+        self.repo.write("docs/a.md", "Every check runs.\n\nOnly one runs.\n")
+        self.mark("docs/a.md:1 claim-words-totalising a", "docs/a.md:3 claim-words-totalising b")
+        sidecar = self.repo.root / "claims.checked.toml"
+        sidecar.write_text("# about the first\n" + sidecar.read_text())
+        self.repo.write("docs/a.md", "Every check runs.\n\nOnly two run.\n")
+
+        code, _, _ = self.prune("docs/a.md:1 claim-words-totalising a again")
+
+        self.assertEqual(code, 0)
+        self.assertIn("# about the first\n", sidecar.read_text())
+
+    def test_a_bad_entry_with_prune_writes_nothing(self) -> None:
+        self.repo.write("docs/a.md", "Every check runs.\n")
+        self.mark("docs/a.md:1 claim-words-totalising read it")
+        self.repo.write("docs/a.md", "Some checks run.\n")
+        before = (self.repo.root / "claims.checked.toml").read_text()
+
+        code, out, err = self.prune("docs/a.md:9 claim-words-totalising read it")
+
+        self.assertEqual((code, out), (1, ""))
+        self.assertIn("nothing marked: 1 bad entry", err)
+        self.assertEqual((self.repo.root / "claims.checked.toml").read_text(), before)
+
+    def test_prune_with_nothing_to_do_succeeds_and_says_so(self) -> None:
+        code, out, err = self.prune()
+
+        self.assertEqual(
+            (code, out, err), (0, "pruned 0 orphaned mark(s) from claims.checked.toml\n", "")
+        )
+        self.assertFalse((self.repo.root / "claims.checked.toml").exists())
+        # Without `--prune`, no entries is still an error.
+        self.assertEqual(self.mark()[0], 1)
+
+    def test_prune_alone_at_a_terminal_does_not_wait_for_entries(self) -> None:
+        stdin = mock.Mock()
+        stdin.isatty.return_value = True
+        stdin.read.side_effect = AssertionError("read stdin")
+        out = io.StringIO()
+        with mock.patch("sys.stdin", stdin), contextlib.redirect_stdout(out):
+            code = main(["mark-checked", "--prune", "--repo-root", str(self.repo.root)])
+
+        self.assertEqual(
+            (code, out.getvalue()), (0, "pruned 0 orphaned mark(s) from claims.checked.toml\n")
         )
 
     def test_an_invalid_sidecar_blocks_at_commit_time(self) -> None:
