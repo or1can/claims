@@ -11,6 +11,13 @@ reached you, not just that one was pushed upstream.
 
 ## [Unreleased]
 
+## [0.28.1] - 2026-11-09
+
+- Fixed: a key `[hook]` doesn't take, such as `enable = false` for
+  `enabled`, is now a gate finding under the mode `config`, as an
+  unknown `[subjects]` key already was. The CLI and skill report it even
+  while the hook is switched off.
+
 ## [0.28.0] - 2026-11-09
 
 - Added: `[hook] fail_on_unmarked = ["claim-words", ...]` makes the

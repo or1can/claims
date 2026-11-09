@@ -90,6 +90,17 @@ class CliTests(RegistryClearingTestCase):
         self.assertEqual(code, 1)
         self.assertIn("a.md:1", output)
 
+    def test_an_unknown_hook_key_fails_the_cli_with_the_hook_switched_off(self) -> None:
+        register_check("clean-check", lambda repo_root, diff_range, config: [])
+        with tempfile.TemporaryDirectory() as repo_root:
+            (Path(repo_root) / "claims.toml").write_text(
+                "[hook]\nenabled = false\nenable = false\n"
+            )
+            code, output = self._run_main(["--repo-root", repo_root])
+
+        self.assertEqual(code, 1)
+        self.assertIn("[hook] enable is not a recognized key", output)
+
     def test_one_sentence_several_modes_match_prints_once_but_counts_each(self) -> None:
         register_check(
             "multi",

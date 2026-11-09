@@ -28,8 +28,10 @@ a single check can be silenced from this decision alone via its own
 decision block on an unmarked advisory finding from a listed check.
 These flags only ever affect this commit-time decision: `python3 -m
 claims.cli` and the `check-claims` skill both call `run()` directly and
-never read `[hook]` or a check's own `enabled` key at all, so a check
-silenced here is still fully visible on demand through either of those.
+never read the value of a `[hook]` key or of a check's own `enabled` —
+`run()` checks only that each `[hook]` key is one `HOOK_KEYS` names
+(#210) — so a check silenced here is still fully visible on demand
+through either of those.
 A check's own `enabled` key sitting alongside its other config (`exclude`,
 `module_reference_scope`, ...) isn't itself an unrecognized table (ticket
 #21's own gate) — it's a key inside an already-recognized table, a
@@ -51,7 +53,13 @@ from .checked import (
     unmarkable_names,
 )
 from .config import ConfigError, has_config, load_config
-from .runner import Finding, format_findings, run
+from .runner import (
+    HOOK_ENABLED,
+    HOOK_FAIL_ON_UNMARKED,
+    Finding,
+    format_findings,
+    run,
+)
 
 
 @dataclass(frozen=True)
@@ -144,7 +152,7 @@ def _fail_on_unmarked(hook: Mapping[str, object]) -> frozenset[str] | str:
     string being one; or, when it isn't that, why `claims.toml` is
     invalid."""
 
-    value = hook.get("fail_on_unmarked", [])
+    value = hook.get(HOOK_FAIL_ON_UNMARKED, [])
     names = [value] if isinstance(value, str) else value
     if not isinstance(names, list) or not all(isinstance(n, str) for n in names):
         return "`[hook] fail_on_unmarked` must be a list of check names"
@@ -203,7 +211,7 @@ def decide_repo(repo_root: Path) -> Decision | None:
         return Decision(
             block=True, message="claims.toml is invalid: `[hook]` must be a table"
         )
-    enabled = hook.get("enabled", True)
+    enabled = hook.get(HOOK_ENABLED, True)
     if not isinstance(enabled, bool):
         return Decision(
             block=True,

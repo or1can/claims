@@ -65,6 +65,12 @@ top-level `hook` that is not a table, such as `hook = false`: the hook
 blocks every commit with the reason until it is fixed, and the plugin
 keeps reminding you if the hook is missing.
 
+A key other than `enabled` and
+[`fail_on_unmarked`](#blocking-a-commit-on-unmarked-findings) in `[hook]`
+is a gate finding under the mode `config`, naming the key. The skill and
+the CLI report it even while the hook is switched off, so `enable =
+false` is caught rather than silently leaving the hook on.
+
 ## Silencing one check at commit time
 
 To keep the commit gate but take one check out of it, set `enabled =

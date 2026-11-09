@@ -128,6 +128,13 @@ _KNOWN_NON_CHECK_TABLES = frozenset({"hook", "subjects"})
 # reading of it would notice a misspelt one.
 _SUBJECTS_KEYS = frozenset({"append_only", "navigation"})
 
+# The keys `[hook]` takes, read by `claims.gate`'s commit-time decision
+# under these names. The gate reads only the keys it knows, so a misspelt
+# one would otherwise silently do nothing (#210).
+HOOK_ENABLED = "enabled"
+HOOK_FAIL_ON_UNMARKED = "fail_on_unmarked"
+HOOK_KEYS = (HOOK_ENABLED, HOOK_FAIL_ON_UNMARKED)
+
 # `claims.local.toml`'s counterpart: `[nudge]`, one person's opt-out from
 # the missing-hook nudge in one clone (ticket #132) — see `claims.nudge`.
 _KNOWN_LOCAL_NON_CHECK_TABLES = frozenset({"nudge"})
@@ -218,6 +225,30 @@ def _unrecognized_subjects_key_findings(
     ]
 
 
+def _unrecognized_hook_key_findings(
+    config: Mapping[str, Mapping[str, object]],
+) -> list[Finding]:
+    """`_unrecognized_subjects_key_findings`'s counterpart for `[hook]`
+    (#210): run here, not by the gate, so a CLI run reports a typo even
+    while `[hook] enabled = false` has the hook off. A `[hook]` that isn't
+    a table is the gate's to refuse, so none is reported here."""
+
+    hook = config.get("hook", {})
+    if not isinstance(hook, Mapping):
+        return []
+    return [
+        Finding(
+            file=CONFIG_FILENAME,
+            line=0,
+            message=f"[hook] {key} is not a recognized key — [hook] takes {', '.join(HOOK_KEYS)}",
+            mode="config",
+            gate=True,
+        )
+        for key in hook
+        if key not in HOOK_KEYS
+    ]
+
+
 def run(
     repo_root: Path, diff_range: str, config: Mapping[str, Mapping[str, object]]
 ) -> RunResult:
@@ -237,8 +268,8 @@ def run(
     ticket #21): a table naming neither a registered check, `[hook]` nor
     `[subjects]` gets its own gate finding rather than silently resolving
     to an empty section for a check that doesn't exist, and so does a key
-    `[subjects]` doesn't take. `repo_root`'s own `claims.local.toml` gets
-    the same check (ticket #86). A local file
+    `[subjects]` or `[hook]` doesn't take. `repo_root`'s own
+    `claims.local.toml` gets the same check (ticket #86). A local file
     that doesn't parse is skipped here rather than raised: each check that
     reads it turns that `ConfigError` into its own crash finding when it
     runs.
@@ -256,6 +287,7 @@ def run(
         config, registered, CONFIG_FILENAME, _KNOWN_NON_CHECK_TABLES
     )
     findings.extend(_unrecognized_subjects_key_findings(config))
+    findings.extend(_unrecognized_hook_key_findings(config))
     try:
         local_config = load_local_config(repo_root)
     except ConfigError:
