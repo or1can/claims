@@ -26,11 +26,13 @@ from .checked import (
     CHECKED_FILENAME,
     ORPHAN_MODE,
     UNITS,
+    failing_unmarked,
     load_marks,
     markable_check,
     marks_added,
     new_marks,
     orphaned_marks,
+    unmarkable_names,
     write_marks,
 )
 from .config import ConfigError, load_config
@@ -63,14 +65,11 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     args = parser.parse_args(argv)
     if args.fail_on_unmarked is not None:
         names = [n.strip() for n in args.fail_on_unmarked.split(",") if n.strip()]
-        unknown = [n for n in names if n not in UNITS]
         if not names:
             parser.error(f"--fail-on-unmarked= names no check (one of {', '.join(UNITS)})")
-        if unknown:
-            parser.error(
-                f"--fail-on-unmarked: {', '.join(unknown)} "
-                f"is not a markable check (one of {', '.join(UNITS)})"
-            )
+        problem = unmarkable_names(names)
+        if problem is not None:
+            parser.error(f"--fail-on-unmarked: {problem}")
         args.fail_on_unmarked = frozenset(names)
     return args
 
@@ -200,7 +199,7 @@ def main(argv: list[str] | None = None) -> int:
     if gate_findings:
         return 1
     if unmarked:
-        print(f"failing: {len(unmarked)} unmarked advisory finding(s); fix or mark each")
+        print(failing_unmarked(len(unmarked)))
         return 3
     return 0
 

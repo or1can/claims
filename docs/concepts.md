@@ -37,10 +37,13 @@ proved false.
 There is one exception, and a run has to ask for it. With
 `--fail-on-unmarked`, the CLI fails on an advisory finding that no
 [checked mark](checked-marks.md#failing-a-run-on-unmarked-findings) keeps
-quiet, so a CI run can require that each one is read. The finding itself
-stays advisory, and the commit hook never applies the flag.
+quiet, so a CI run can require that each one is read. The commit hook
+does the same for the checks a project lists under
+[`[hook] fail_on_unmarked`](configuring.md#blocking-a-commit-on-unmarked-findings).
+The finding itself stays advisory either way.
 [ADR 0012](../decisions/0012-a-ci-run-can-fail-on-unmarked-findings.md)
-records why it is a CLI flag and not a setting.
+records why CI covers every markable check and the hook only the listed
+ones.
 
 Severity belongs to the check, not to the individual finding, and a check
 that departs from its own severity for one kind of finding says so. A

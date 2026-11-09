@@ -11,6 +11,14 @@ reached you, not just that one was pushed upstream.
 
 ## [Unreleased]
 
+## [0.28.0] - 2026-11-09
+
+- Added: `[hook] fail_on_unmarked = ["claim-words", ...]` makes the
+  commit hook block on an unmarked advisory finding from a listed check,
+  and on an orphaned mark only when its own check is listed. The hook
+  still fails open on an internal error and still honours `[hook]
+  enabled` and each check's own `enabled`.
+
 ## [0.27.0] - 2026-11-09
 
 - Added: `mark-checked --partial` records that a `stale-claims` section

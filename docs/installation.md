@@ -140,6 +140,9 @@ For each commit:
 - a gate finding, a `claims.toml` that does not parse, or no check
   registered at all: the findings or the reason are printed, and the
   commit is blocked;
+- an unmarked finding from a check listed under
+  [`[hook] fail_on_unmarked`](configuring.md#blocking-a-commit-on-unmarked-findings):
+  the findings are printed, and the commit is blocked;
 - advisory findings only: they are printed, and the commit goes ahead.
 
 An error inside `claims` itself prints a warning and lets the commit go

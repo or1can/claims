@@ -248,11 +248,14 @@ finding, otherwise `3` when `U` is above zero, and otherwise `0`. A run
 that exits `3` closes with one more line after the summary, starting
 `failing:`, which gives the count again and says to fix or mark each one.
 
-No `claims.toml` key sets the flag, and the commit hook never applies it,
-so local commits stay advisory and the cost of reading lands where a
-project asks for it. A project passes it in CI, over the pull request's
-whole range from its merge base, so that the pull request resolves every
-finding it brings in. On GitHub Actions, with the project's history
+The commit hook applies a version of the flag only for the checks a
+project lists under [`[hook]
+fail_on_unmarked`](configuring.md#blocking-a-commit-on-unmarked-findings),
+and there an orphaned mark blocks only when its own check is listed.
+Otherwise local commits stay advisory, and the cost of reading lands
+where a project asks for it. A project passes the flag in CI, over the
+pull request's whole range from its merge base, so that the pull request
+resolves every finding it brings in. On GitHub Actions, with the project's history
 fetched and `claims` checked out beside it as
 [the command line](installation.md#the-command-line) describes:
 

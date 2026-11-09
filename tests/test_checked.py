@@ -618,6 +618,69 @@ class CheckedMarkTests(RegistryClearingTestCase):
         self.assertNotIn("docs/a.md:1", decision.message)
 
 
+    def hook_lists(self, value: str) -> None:
+        self.repo.write("claims.toml", CONFIG + f"\n[hook]\nfail_on_unmarked = {value}\n")
+
+    def test_the_hook_blocks_on_an_unmarked_finding_from_a_listed_check(self) -> None:
+        self.hook_lists('["claim-words"]')
+        self.repo.write("docs/a.md", "Every check runs.\n")
+
+        decision = decide_repo(self.repo.root)
+
+        assert decision is not None
+        self.assertTrue(decision.block)
+        self.assertIn("docs/a.md:1 (claim-words-totalising)", decision.message)
+        self.assertTrue(
+            decision.message.endswith(
+                "\nfailing: 1 unmarked advisory finding(s); fix or mark each"
+            )
+        )
+
+        self.mark("docs/a.md:1 claim-words-totalising read it")
+        decision = decide_repo(self.repo.root)
+
+        assert decision is not None
+        self.assertFalse(decision.block)
+        self.assertEqual(decision.message, "1 quiet while checked")
+
+
+    def test_the_hook_lets_through_an_unmarked_finding_from_an_unlisted_check(self) -> None:
+        self.hook_lists('["restatement"]')
+        self.repo.write("docs/a.md", "Every check runs.\n")
+
+        decision = decide_repo(self.repo.root)
+
+        assert decision is not None
+        self.assertFalse(decision.block)
+        self.assertNotIn("failing:", decision.message)
+
+    def orphan(self, mode: str) -> None:
+        """An orphaned mark for `mode`, on a sentence since reworded."""
+        self.repo.write("docs/a.md", "Every check runs.\n")
+        self.mark("docs/a.md:1 claim-words-totalising read it")
+        sidecar = self.repo.root / "claims.checked.toml"
+        sidecar.write_text(
+            sidecar.read_text().replace('"claim-words-totalising"', f'"{mode}"')
+        )
+        self.repo.write("docs/a.md", "Some checks run.\n")
+
+    def test_the_hook_blocks_on_an_orphaned_mark_only_for_a_listed_check(self) -> None:
+        self.hook_lists('["claim-words"]')
+        for mode, blocks in (
+            ("claim-words-totalising", True),
+            ("stale-claims", False),
+            ("unmarkable", False),
+        ):
+            with self.subTest(mode=mode):
+                self.orphan(mode)
+
+                decision = decide_repo(self.repo.root)
+
+                assert decision is not None
+                self.assertIn(f"(checked-mark) checked mark ({mode})", decision.message)
+                self.assertEqual(decision.block, blocks)
+
+
     def test_a_restatement_unit_is_the_surviving_line_and_its_retracted_run(self) -> None:
         register_check(restatement.NAME, restatement.check)
         line = "The cache is flushed whenever the configuration file changes on disk.\n"

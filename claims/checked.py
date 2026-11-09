@@ -116,6 +116,24 @@ def markable_check(mode: str) -> str | None:
     return None
 
 
+def unmarkable_names(names: Sequence[str]) -> str | None:
+    """Why `names` can't be a list of markable checks to fail on, or
+    `None`: the one wording `--fail-on-unmarked` and `[hook]
+    fail_on_unmarked` both report."""
+
+    unknown = [n for n in names if n not in UNITS]
+    if not unknown:
+        return None
+    return f"{', '.join(unknown)} is not a markable check (one of {', '.join(UNITS)})"
+
+
+def failing_unmarked(count: int) -> str:
+    """The closing line of a run or commit failing on `count` unmarked
+    findings."""
+
+    return f"failing: {count} unmarked advisory finding(s); fix or mark each"
+
+
 def unit_kind(mode: str) -> str | None:
     name = markable_check(mode)
     return None if name is None else UNITS[name]
