@@ -327,6 +327,26 @@ class CheckedMarkTests(RegistryClearingTestCase):
         assert decision is not None
         self.assertTrue(decision.message.endswith("1 quiet while checked, 1 of them partly"))
 
+    def test_the_hook_takes_a_partial_mark_as_marked_for_a_listed_check(self) -> None:
+        register_check(spliced_docs.NAME, spliced_docs.check)
+        self.hook_lists('["spliced-docs"]')
+        self.repo.write(
+            "src/project.rs",
+            "/// Loads the project, which is what `load_project` reads.\n"
+            "/// The manifest a project is read from.\n"
+            "pub struct Manifest {}\n\n"
+            "pub fn load_project() {}\n",
+        )
+        decision = decide_repo(self.repo.root)
+        assert decision is not None
+        self.assertTrue(decision.block)
+
+        self.mark("src/project.rs:2 spliced-docs-undocumented read line 2 only", partial=True)
+        decision = decide_repo(self.repo.root)
+
+        assert decision is not None
+        self.assertFalse(decision.block)
+
     def test_marking_takes_the_audit_range(self) -> None:
         self.repo.write("docs/a.md", "Every check runs.\n")
         self.repo.commit()
