@@ -100,6 +100,12 @@ def _audit_range(repo_root: Path) -> str:
     return f"{root}..HEAD"
 
 
+def _heading(finding: Finding) -> str:
+    """The heading a finding's message names, between its first quotes."""
+
+    return finding.message.split("'")[1]
+
+
 class StaleClaimsTests(RegistryClearingTestCase):
     def setUp(self) -> None:
         super().setUp()
@@ -720,6 +726,86 @@ class StaleClaimsTests(RegistryClearingTestCase):
         self.assertEqual(len(findings), 1)
         self.assertIn("other.md#b 1 commit", findings[0].message)
         self.assertNotIn("other.md 1 commit", findings[0].message)
+
+    ADR = (
+        "# 0001 X\n"
+        "## Context\nSee src/subject.py.\n"
+        "### Prior art\nSee src/subject.py.\n"
+        "## Decision\nSee src/subject.py.\n"
+    )
+
+    def _findings_for_adr(
+        self, claims_toml: str, adr: str = "decisions/0001-x.md", text: str = ADR
+    ) -> list[Finding]:
+        """`adr` holds `text`, whose every section names `src/subject.py`,
+        which then churns. Run under `claims_toml`."""
+
+        with Repo() as repo:
+            repo.write(adr, text)
+            repo.write("src/subject.py", "v0")
+            repo.commit(BASE)
+            repo.write("src/subject.py", "v1")
+            repo.commit(BASE + 100)
+            return self._findings_with_toml(repo.root, claims_toml)
+
+    def test_an_excluded_section_and_its_subsections_are_not_ranked(self) -> None:
+        findings = self._findings_for_adr(
+            '[stale-claims]\nexclude_sections = ["decisions/*.md#context"]\n'
+        )
+        self.assertEqual([_heading(f) for f in findings], ["Decision"])
+
+    def test_a_fenced_heading_shaped_line_does_not_end_an_excluded_section(self) -> None:
+        adr = self.ADR.replace(
+            "### Prior art\n", "```sh\n# run it\nSee src/subject.py.\n```\n### Prior art\n"
+        )
+        findings = self._findings_for_adr(
+            '[stale-claims]\nexclude_sections = ["decisions/*.md#context"]\n', text=adr
+        )
+        self.assertEqual([_heading(f) for f in findings], ["Decision"])
+
+    def test_an_excluded_section_in_a_file_the_glob_misses_is_still_ranked(self) -> None:
+        findings = self._findings_for_adr(
+            '[stale-claims]\nexclude_sections = ["decisions/*.md#context"]\n', adr="adr/0001-x.md"
+        )
+        self.assertEqual(
+            sorted(_heading(f) for f in findings), ["Context", "Decision", "Prior art"]
+        )
+
+    def test_a_bare_string_exclude_sections_value_is_one_element(self) -> None:
+        findings = self._findings_for_adr(
+            '[stale-claims]\nexclude_sections = "decisions/*.md#context"\n'
+        )
+        self.assertEqual([_heading(f) for f in findings], ["Decision"])
+
+    def test_an_exclude_sections_entry_with_no_slug_shape_is_invalid_configuration(self) -> None:
+        # `#Context` and `#prior art` are no heading's slug, so could
+        # never match one.
+        for entry in (
+            "decisions/*.md",
+            "decisions/*.md#",
+            "decisions/*.md#Context",
+            "decisions/*.md#prior art",
+        ):
+            with self.subTest(entry=entry):
+                findings = self._findings_for_adr(
+                    f'[stale-claims]\nexclude_sections = ["{entry}"]\n'
+                )
+                self.assertEqual(len(findings), 1)
+                self.assertTrue(findings[0].gate)
+                self.assertIn("exclude_sections", findings[0].message)
+
+    def test_an_excluded_section_is_still_a_subject_when_linked(self) -> None:
+        with Repo() as repo:
+            repo.write("decisions/0001-x.md", self.ADR)
+            repo.write("guide.md", "## see\nSee [c](decisions/0001-x.md#context).\n")
+            repo.commit(BASE)
+            repo.write("decisions/0001-x.md", self.ADR.replace("## Context\n", "## Context\nMore.\n"))
+            repo.commit(BASE + 100)
+            findings = self._findings_with_toml(
+                repo.root, '[stale-claims]\nexclude_sections = ["decisions/*.md#context"]\n'
+            )
+        self.assertEqual([f.file for f in findings], ["guide.md"])
+        self.assertIn("0001-x.md#context 1 commit", findings[0].message)
 
 
 class StaleClaimsCliTests(RegistryClearingTestCase):

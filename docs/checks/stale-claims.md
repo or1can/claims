@@ -246,12 +246,14 @@ on everything the range changed too.
 [stale-claims]
 module_reference_scope = ["decisions/*.md", "AGENTS.md"]
 exclude = ["docs/legacy/*.md"]
+exclude_sections = ["decisions/*.md#context"]
 ```
 
 | Key | Shape | Default | Reach for this when |
 | --- | --- | --- | --- |
 | `module_reference_scope` | list of glob strings; a bare string is a one-element list | absent: a bare backticked name counts as a subject in every file | Common file stems double as ordinary words or configuration keys in the tree, so a bare `cache` or `config` in a tutorial names a module the sentence is not about. With the key set, a bare name counts only in a matching file; a name with its file's extension, and an explicit path, count everywhere regardless. |
 | `exclude` | list of glob strings; a bare string is a one-element list | `[]`: nothing excluded beyond the built-in `CHANGELOG.md` | A file's sections should not be ranked at all: prior-art notes about another project, or a directory of inputs written to be broken, like this site's own examples. An excluded file is skipped whole, and a bare backticked name never resolves to it, so a stem it shares with one other file names that other file. An explicit path to it still counts as a subject. |
+| `exclude_sections` | list of `<path glob>#<slug>` strings; a bare string is a one-element list | `[]`: every section of a ranked file is ranked | One kind of section can't go stale, though the rest of its file can: an architecture decision record's Context describes the world before the decision, and stays true of that world however far the code moves. A section is skipped when its file matches the glob, matched as `exclude` matches, and its heading's slug equals the slug exactly, under the slug rule an anchored link uses; the headings nested under it are skipped with it. The slug takes no glob. An entry with no slug after its `#`, or with one no heading could have, such as `Context` or `prior art` for `context` or `prior-art`, is reported as invalid configuration. A skipped section still counts as a subject when another section links to it. |
 
 `enabled`, which takes this check out of the commit gate while leaving it
 in the on-demand skill and the CLI, is shared by every check and covered

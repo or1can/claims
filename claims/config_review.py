@@ -52,13 +52,17 @@ GLOB_CONFIG_KEYS: Mapping[str, Sequence[str]] = {
     "claim-words": ("files",),
     "check-env-vars": ("definition_files", "exclude"),
     "check-cli-flags": ("exclude",),
-    "stale-claims": ("module_reference_scope", "exclude"),
+    "stale-claims": ("module_reference_scope", "exclude", "exclude_sections"),
     "temporal-words": ("files",),
     "judgment-agent": ("historical",),
     # Not a check: `[subjects]`, which `stale-claims` and checked marks read
     # (ADRs 0011, 0013). `[hook]`, the other non-check table, has no glob.
     "subjects": ("append_only", "navigation"),
 }
+
+# Keys whose every value is `<path glob>#<slug>`: only the glob before the
+# last `#` names files, so only it is matched against the tree.
+ANCHORED_GLOB_CONFIG_KEYS = frozenset({("stale-claims", "exclude_sections")})
 
 # `restatement`'s own `extensions`, and `check-file-refs`' own `extensions`
 # (ticket #16, same additive-to-a-built-in-set shape): a dotted suffix
@@ -173,7 +177,10 @@ def config_value_matches(
                 results.append(ConfigValueMatch(check, key, repr(section.get(key)), (), error))
                 continue
             for pattern in values:
-                matched = tuple(f for f in tracked if path_matches(f, [pattern]))
+                glob = pattern
+                if (check, key) in ANCHORED_GLOB_CONFIG_KEYS:
+                    glob = pattern.rpartition("#")[0]
+                matched = tuple(f for f in tracked if path_matches(f, [glob]))
                 results.append(ConfigValueMatch(check, key, pattern, matched))
 
     for check, keys in EXTENSION_CONFIG_KEYS.items():

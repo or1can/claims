@@ -111,6 +111,15 @@ give an explicit-path match; a section about the config format is not
 made stale by a project tuning its own config, which is all that file's
 history records.
 
+`exclude_sections` (#201) is `exclude` for one section of a file, an
+ADR's Context, which describes the world before its decision and so
+can't go stale. It works where this check reads claims and nowhere
+else: a linked section is still a subject. Its slug is compared exactly,
+under `claims.markdown`'s rule, so an entry names the heading an anchored
+link to it would. A skipped heading takes the headings nested under it
+with it, the same span `section_range` gives an anchor, so a Context's
+own subsections aren't ranked in its place.
+
 A `page.md#anchor` subject is scored against that section's history
 alone (#110): whole-file history made every page linking one heading of
 a busy page look stale. The anchor is read as whatever follows the
@@ -139,6 +148,7 @@ from typing import NamedTuple
 
 from ..config import (
     CONFIG_FILENAME,
+    ConfigError,
     append_only,
     counts_as_subject,
     exclude_patterns,
@@ -148,7 +158,7 @@ from ..config import (
 )
 from ..git import blob_text, changed_paths, tracked_files
 from ..lines import git_lines, tracked_text
-from ..markdown import section_range
+from ..markdown import fence_state, section_range, slug
 from ..paths import PATH_RE, citing_relative, host_relative, repo_relative
 from ..runner import Finding, register_check
 
@@ -175,6 +185,22 @@ def _in_module_scope(rel: str, config: Mapping[str, object]) -> bool:
     return "module_reference_scope" not in config or path_matches(
         rel, string_list_config(config, "module_reference_scope")
     )
+
+
+def _excluded_sections(config: Mapping[str, object]) -> list[tuple[str, str]]:
+    """`exclude_sections` as `(path glob, slug)` pairs. Raises
+    `ConfigError` for an entry with no slug after its `#`, or with one no
+    heading slugs to (`Context`, `prior art`), which could match nothing."""
+
+    pairs: list[tuple[str, str]] = []
+    for entry in string_list_config(config, "exclude_sections"):
+        glob, _, heading = entry.rpartition("#")
+        if not glob or not heading or slug(heading) != heading:
+            raise ConfigError(
+                f"[{NAME}] exclude_sections entries must be `<path glob>#<slug>`, got {entry!r}"
+            )
+        pairs.append((glob, heading))
+    return pairs
 
 
 def _git(repo_root: Path, *args: str) -> str:
@@ -263,6 +289,7 @@ def subjects_named(
 def check(
     repo_root: Path, diff_range: str, config: Mapping[str, object]
 ) -> list[Finding]:
+    excluded_sections = _excluded_sections(config)
     changed = changed_paths(repo_root, diff_range)
     if not changed:
         return []
@@ -314,8 +341,22 @@ def check(
         if not lines:
             continue
         starts = [i for i, l in enumerate(lines) if HEADING_RE.match(l)] or [0]
+        excluded_slugs = {s for glob, s in excluded_sections if path_matches(rel, [glob])}
+        in_fence = fence_state(lines)
+        # The level of the excluded heading whose span this loop is in. A
+        # fenced heading-shaped line still starts a section here, but it
+        # neither ends that span nor starts one, as in `section_range`.
+        skipping: int | None = None
         for start, end in zip(starts, starts[1:] + [len(lines)]):
             matched = HEADING_RE.match(lines[start])
+            if matched and not in_fence[start]:
+                level = len(matched.group(1))
+                if skipping is not None and level <= skipping:
+                    skipping = None
+                if skipping is None and slug(matched.group(2)) in excluded_slugs:
+                    skipping = level
+            if skipping is not None:
+                continue
             body = "\n".join(lines[start:end])
             subjects = {
                 (path, anchor)
