@@ -96,6 +96,14 @@ def parse_mark_args(argv: list[str]) -> argparse.Namespace:
             "entries are then optional."
         ),
     )
+    parser.add_argument(
+        "--partial",
+        action="store_true",
+        help=(
+            "Record that only part of each section or doc comment was read "
+            "(stale-claims and spliced-docs findings only)."
+        ),
+    )
     return parser.parse_args(argv)
 
 
@@ -128,7 +136,7 @@ def mark_checked(argv: list[str]) -> int:
 
     result = run(repo_root, args.diff_range, config)
     marks, problems = new_marks(
-        repo_root, result.findings + result.quiet, config, entries, args.by
+        repo_root, result.findings + result.quiet, config, entries, args.by, partial=args.partial
     )
     if problems:
         for problem in problems:
@@ -174,6 +182,8 @@ def main(argv: list[str] | None = None) -> int:
     )
     if result.quiet:
         summary += f", {len(result.quiet)} quiet while checked"
+        if result.quiet_partly:
+            summary += f", {len(result.quiet_partly)} of them partly"
     covered: frozenset[str] | None = args.fail_on_unmarked
     unmarked = []
     if covered is not None:

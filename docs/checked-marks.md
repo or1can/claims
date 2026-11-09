@@ -23,10 +23,12 @@ is what a check's `exclude` key is for.
 | `subjects` | table of path to hash | A content hash of each file, or `page.md#anchor` section, the unit names; for an [append-only file](configuring.md#append-only-files), its git blob id. |
 | `note` | non-empty string | What the reader verified. Required. |
 | `by` | string, optional | Who read it. Nothing reads this key; it is a record. |
+| `extent` | `"full"` or `"partial"`, optional | How much of the unit was read. Written only for a [partial mark](#partial-marks); an entry without it is full. |
 
 A missing file means no marks. A file that does not parse, an entry
 missing a required key or holding one of the wrong shape, an entry with an
-empty note, an entry whose `file` or a subject is an absolute path or
+empty note, an entry whose `extent` is neither `"full"` nor
+`"partial"`, an entry whose `file` or a subject is an absolute path or
 climbs out with `..`, or an entry written other than as a `[[mark]]`
 table is invalid. A path that reaches outside the repository through a
 symlink, or names anything but a regular file, is never read. An invalid file is reported as one gate finding, cited at
@@ -119,7 +121,7 @@ Marking the new copy records the larger count and quiets them all.
 `mark-checked` records a batch of marks:
 
 ```sh
-python3 -m claims.cli mark-checked [--repo-root R] [--diff-range RANGE] [--by NAME] [--prune] [FILE|-]
+python3 -m claims.cli mark-checked [--repo-root R] [--diff-range RANGE] [--by NAME] [--partial] [--prune] [FILE|-]
 ```
 
 It reads entries one per line from `FILE`, or from standard input when the
@@ -161,9 +163,33 @@ nothing. A comment directly above a pruned entry, with no blank line
 between, goes with it. A comment above an entry that stays is kept, even
 where the entry before it is pruned or replaced.
 
+`--partial` writes each of the batch's marks as a [partial
+mark](#partial-marks).
+
 There is no form that marks findings without a note each. Whoever reads
 the finding writes the mark, and that can be an agent, once it has read
 the finding against what it cites.
+
+## Partial marks
+
+A section can be long enough that a reader checks only part of it, or
+reads only what the branch changed. `mark-checked --partial` records
+that, as `extent = "partial"` on each of the batch's marks, so a narrow
+reading is never mistaken for a full one. Only a `stale-claims` section
+or a `spliced-docs` doc comment can be partly read: a sentence or a line
+is read whole or not at all, so a `--partial` entry for any other mode is
+a bad entry.
+
+A partial mark keeps its finding quiet, counts as marked under
+[`--fail-on-unmarked`](#failing-a-run-on-unmarked-findings), and expires,
+exactly as a full mark does. The summary line counts the findings it
+keeps quiet [separately](#what-a-run-shows).
+
+A partial entry for a finding whose full mark is still current, with its
+unit and every recorded subject as they were, is a bad entry, and the
+batch writes nothing: a partial reading can't replace a current full
+one. Once that full mark has expired, the partial entry replaces it like
+any re-mark. A full entry always replaces a partial mark.
 
 ## Orphans
 
@@ -181,7 +207,10 @@ than it recorded but at least one: `--prune` keeps both.
 
 A quieted finding is not printed. The summary line counts it, ending `, Q
 quiet while checked` after the gate failure count, so a quiet run is never
-mistaken for a clean pass. The count is left off when nothing was quieted. The commit hook prints the
+mistaken for a clean pass. The count is left off when nothing was quieted.
+When [partial marks](#partial-marks) kept some of those findings quiet,
+it continues `, P of them partly`, as in `12 quiet while checked, 4 of
+them partly`; the clause is left off when `P` is zero. The commit hook prints the
 same count as the last line of its message, including on a commit where
 marks quieted every finding. Gate findings and exit codes are unchanged:
 a mark only ever quiets an advisory finding, which never blocked anything.

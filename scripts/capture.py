@@ -146,7 +146,7 @@ def _capture_marks() -> str:
             raise SystemExit("\n".join(problems))
         write_marks(repo.root, marks)
         sidecar = (repo.root / CHECKED_FILENAME).read_text(encoding="utf-8")
-        shown, quiet = apply_marks(repo.root, findings, config)
+        shown, quiet, _ = apply_marks(repo.root, findings, config)
     lines = [
         f"# python3 scripts/capture.py: {MARKS_EXAMPLE}, `claim-words` run against a "
         f"throwaway git repository seeded from {example}, marked from its marks.txt",

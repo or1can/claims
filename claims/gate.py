@@ -183,6 +183,7 @@ def decide_repo(repo_root: Path) -> Decision | None:
         f for f in result.findings if _finding_check(f, disabled) is None
     )
     quiet = [f for f in result.quiet if _finding_check(f, disabled) is None]
+    partly = [f for f in result.quiet_partly if _finding_check(f, disabled) is None]
 
     if not findings and not quiet:
         return None
@@ -191,4 +192,6 @@ def decide_repo(repo_root: Path) -> Decision | None:
     lines = [_summarize(findings)] if findings else []
     if quiet:
         lines.append(f"{len(quiet)} quiet while checked")
+        if partly:
+            lines[-1] += f", {len(partly)} of them partly"
     return Decision(block=any(f.gate for f in findings), message="\n".join(lines))

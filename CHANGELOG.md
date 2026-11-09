@@ -11,6 +11,15 @@ reached you, not just that one was pushed upstream.
 
 ## [Unreleased]
 
+## [0.27.0] - 2026-11-09
+
+- Added: `mark-checked --partial` records that a `stale-claims` section
+  or `spliced-docs` doc comment was only partly read. A partial mark
+  keeps its finding quiet like a full one, and the summary line, CLI and
+  commit hook alike, counts it apart: `12 quiet while checked, 4 of them
+  partly`. A partial entry can't replace a current full mark. Existing
+  marks are unchanged and count as full.
+
 ## [0.26.0] - 2026-11-09
 
 - Added: `mark-checked --prune` removes every orphaned checked mark (the
