@@ -4,7 +4,9 @@
   (`min_percent`). Diff-scoping it (#155,
   `decisions/0009-stale-claims-is-diff-scoped.md`) removed the fixed
   per-commit ranking that prompted them; revisit if a wide-range audit
-  is too long to read.
+  is too long to read. A short history ranks high too: "100% of its
+  history" for a file with seven commits (#199,
+  `.out-of-scope/generated-subjects-and-history-weighting.md`).
 - `restatement` reads an extension with no row in its built-in comment
   table (`.ts`, `.go`) whole-line, code included, so a removed line of
   code there is still reported as a retraction. A `claims.toml` key that

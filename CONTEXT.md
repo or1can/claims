@@ -104,6 +104,11 @@ A record that someone read an advisory finding, which keeps it quiet until
 what it depends on changes.
 _Avoid_: Suppression, baseline, ignore
 
+**Partial mark**:
+A checked mark whose reader read only part of its section or doc comment,
+and said so.
+_Avoid_: Spot-check mark, narrow mark
+
 **Unmarked finding**:
 An advisory finding, from a check whose findings can be marked, that no
 checked mark keeps quiet.
