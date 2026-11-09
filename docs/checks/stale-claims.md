@@ -46,6 +46,23 @@ configuration key as it is a module. The `module_reference_scope` key
 narrows where a bare name counts as a subject; by default it counts
 everywhere.
 
+The stem lookup does not distinguish written code from generated
+output. In a project that commits a terminal capture of its `doctor`
+subcommand as `docs/captures/doctor.ansi`, and has no other file with
+that stem, a section mentioning `doctor` in backticks names the capture,
+and every regeneration of the capture counts against it. Listing the
+generated tree under `exclude` keeps a bare name from reaching it:
+
+```toml
+[stale-claims]
+exclude = ["docs/captures/*"]
+```
+
+A section that cites the capture by its path, in prose or in a link,
+still names it, because a path is a deliberate choice of file where a
+bare name is a guess. Since only Markdown files are ranked, excluding a
+tree of non-Markdown output removes nothing from the ranking itself.
+
 The section's **last touch** is the newest commit `git blame` attributes
 to any of its lines, by committer time. For each subject, the check
 reads the file's full commit history and counts the commits strictly
