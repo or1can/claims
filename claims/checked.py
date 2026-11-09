@@ -100,7 +100,7 @@ UNITS = {
 _SECTION_HEADING_RE = re.compile(r"^(#{1,6})\s+(.*)")
 _DOC_RE = re.compile(r"^\s*///")
 _MARK_HEADER_RE = re.compile(r"^\s*\[\[\s*mark\s*\]\]\s*(#.*)?$")
-_KEYS = {"file", "mode", "unit", "copies", "subjects", "note", "by"}
+_KEYS = {"file", "mode", "unit", "copies", "subjects", "note", "by", "extent"}
 # A full SHA-1 or SHA-256 object id: what an append-only subject records.
 # Nothing else is passed to `git cat-file`: the sidecar is committed, so a
 # pull request could otherwise hand it a revision or an option.
@@ -130,6 +130,9 @@ class Mark:
     subjects: Mapping[str, str]
     note: str
     by: str | None = None
+    # Whether the reading was partial (ADR 0010); a sidecar records an
+    # `extent` only for a partial mark, so an entry without one is full.
+    partial: bool = False
     # The 1-based line of this entry's `[[mark]]` header, which an orphan
     # finding cites; 0 for a mark not yet written.
     line: int = 0
@@ -493,6 +496,9 @@ def _parse_marks(text: str) -> list[Mark]:
         by = entry.get("by")
         if by is not None and not isinstance(by, str):
             raise _invalid(line, "has a 'by' that is not a string")
+        extent = entry.get("extent", "full")
+        if extent not in ("full", "partial"):
+            raise _invalid(line, "has an 'extent' that is neither \"full\" nor \"partial\"")
         marks.append(
             Mark(
                 file=entry["file"],
@@ -502,6 +508,7 @@ def _parse_marks(text: str) -> list[Mark]:
                 subjects=dict(subjects),
                 note=entry["note"],
                 by=by,
+                partial=extent == "partial",
                 line=line,
             )
         )
@@ -549,15 +556,16 @@ def _current(tree: _Tree, mark: Mark, rel: str, unit: _Unit) -> bool:
 
 def apply_marks(
     repo_root: Path, findings: Sequence[Finding], config: Mapping[str, object]
-) -> tuple[list[Finding], list[Finding]]:
-    """`(shown, quieted)`: `findings` with every one a current mark keeps
-    quiet moved to `quieted`, and an orphan finding added to `shown` for
-    each mark whose unit is gone from its file. Raises `ConfigError` for
-    an invalid `claims.checked.toml`."""
+) -> tuple[list[Finding], list[Finding], list[Finding]]:
+    """`(shown, quieted, partly)`: `findings` with every one a current mark
+    keeps quiet moved to `quieted`, and an orphan finding added to `shown`
+    for each mark whose unit is gone from its file. `partly` is the part
+    of `quieted` a partial mark keeps quiet. Raises `ConfigError` for an
+    invalid `claims.checked.toml`."""
 
     marks = load_marks(repo_root)
     if not marks:
-        return list(findings), []
+        return list(findings), [], []
     by_key = {mark.key: mark for mark in marks}
     marked_files = {mark.file for mark in marks}
     tree = _Tree(repo_root, config)
@@ -576,6 +584,7 @@ def apply_marks(
             units[key] = found[0]
 
     quiet: list[Finding] = []
+    partly: list[Finding] = []
     for key, group in groups.items():
         mark = by_key[key]
         if not _current(tree, mark, mark.file, units[key]):
@@ -585,12 +594,15 @@ def apply_marks(
         # The file's copies beyond the mark's are unread, and which of the
         # reported ones they are can't be told, so that many stay shown.
         held = tree.copies(mark.file, kind)[_in_file(mark.unit)]
-        quiet.extend(group[: max(0, len(group) - (held - mark.copies))])
+        kept = group[: max(0, len(group) - (held - mark.copies))]
+        quiet.extend(kept)
+        if mark.partial:
+            partly.extend(kept)
 
     quieted = {id(f) for f in quiet}
     shown = [f for f in findings if id(f) not in quieted]
     shown.extend(_orphans(tree, marks))
-    return shown, quiet
+    return shown, quiet, partly
 
 
 def _orphan_problem(tree: _Tree, mark: Mark) -> str | None:
@@ -640,13 +652,17 @@ def new_marks(
     config: Mapping[str, object],
     entries: Iterable[str],
     by: str | None,
+    partial: bool = False,
 ) -> tuple[list[Mark], list[str]]:
     """`(marks, problems)`: a mark for each of `entries`, one
     `<file>:<line> <mode> <note>` per item, looked up among `findings`,
     and a message naming each entry that can't be marked. Blank entries
-    are skipped."""
+    are skipped. With `partial`, each mark records a partial reading, and
+    an entry whose mode has no section or doc comment to read part of, or
+    whose key a current full mark holds, can't be marked."""
 
     tree = _Tree(repo_root, config)
+    full_marks = {m.key: m for m in load_marks(repo_root) if not m.partial} if partial else {}
     marks: list[Mark] = []
     problems: list[str] = []
     for entry in entries:
@@ -664,6 +680,9 @@ def new_marks(
             problems.append(f"{entry}: a gate finding can't be marked")
         elif unit_kind(mode) is None:
             problems.append(f"{entry}: {mode} findings can't be marked")
+        elif partial and unit_kind(mode) not in (HEADING, DOC_COMMENT):
+            # A sentence or a line is read whole or not at all.
+            problems.append(f"{entry}: {mode} findings can't be marked partial")
         elif not matching:
             problems.append(f"{entry}: no advisory finding at {file}:{line} ({mode})")
         elif not note:
@@ -679,6 +698,10 @@ def new_marks(
                     problems.append(f"{entry}: the finding's line is in no {kind}")
                     break
                 unit, digest = found
+                full_mark = full_marks.get((file, mode, digest))
+                if full_mark is not None and _current(tree, full_mark, file, unit):
+                    problems.append(f"{entry}: a partial reading can't replace a current full one")
+                    break
                 marks.append(
                     Mark(
                         file=file,
@@ -688,6 +711,7 @@ def new_marks(
                         subjects=dict(sorted(tree.subjects(file, unit).items())),
                         note=note,
                         by=by,
+                        partial=partial,
                     )
                 )
     return marks, problems
@@ -709,6 +733,8 @@ def _render(mark: Mark) -> str:
     ]
     if mark.by is not None:
         lines.append(f"by = {_toml_string(mark.by)}")
+    if mark.partial:
+        lines.append('extent = "partial"')
     subjects = ", ".join(f"{_toml_string(s)} = {_toml_string(h)}" for s, h in mark.subjects.items())
     lines.append(f"subjects = {{ {subjects} }}" if subjects else "subjects = {}")
     return "\n".join(lines) + "\n"

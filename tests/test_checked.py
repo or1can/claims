@@ -57,10 +57,18 @@ class CheckedMarkTests(RegistryClearingTestCase):
             code = main([*argv, "--repo-root", str(self.repo.root)])
         return code, out.getvalue(), err.getvalue()
 
-    def mark(self, *entries: str, by: str | None = None, diff_range: str | None = None):
+    def mark(
+        self,
+        *entries: str,
+        by: str | None = None,
+        diff_range: str | None = None,
+        partial: bool = False,
+    ):
         argv = ["mark-checked"]
         if by is not None:
             argv += ["--by", by]
+        if partial:
+            argv.append("--partial")
         if diff_range is not None:
             argv += ["--diff-range", diff_range]
         return self.run_cli(*argv, "-", stdin="".join(e + "\n" for e in entries))
@@ -188,6 +196,136 @@ class CheckedMarkTests(RegistryClearingTestCase):
         code, out, _ = self.run_cli("--diff-range", "HEAD~1")
         self.assertIn("[advisory] notes/s.md:1 (stale-claims)", out)
         self.assertNotIn("quiet", out)
+
+    def stale_section(self) -> None:
+        """A `stale-claims` finding at notes/s.md:1 over `HEAD~1`."""
+
+        register_check(stale_claims.NAME, stale_claims.check)
+        self.repo.write("src/cache.py", "CACHE = 1\n")
+        self.repo.write("notes/s.md", "## Caching\n\nReads go through src/cache.py.\n")
+        self.repo.commit(when=1_700_000_000)
+        self.repo.write("src/cache.py", "CACHE = 2\n")
+        self.repo.commit(when=1_700_003_600)
+
+    def test_a_partial_mark_keeps_its_finding_quiet_and_is_counted_apart(self) -> None:
+        self.stale_section()
+
+        code, _, err = self.mark(
+            "notes/s.md:1 stale-claims spot-checked the cache paragraph",
+            diff_range="HEAD~1",
+            partial=True,
+        )
+
+        self.assertEqual((code, err), (0, ""))
+        self.assertIn('extent = "partial"', (self.repo.root / "claims.checked.toml").read_text())
+        out = self.run_cli("--diff-range", "HEAD~1")[1]
+        self.assertNotIn("[advisory] notes/s.md:1", out)
+        self.assertTrue(out.endswith(", 1 quiet while checked, 1 of them partly\n"))
+
+    def test_only_a_section_or_doc_comment_can_be_marked_partial(self) -> None:
+        self.repo.write("docs/a.md", "Every check runs.\n")
+
+        code, _, err = self.mark("docs/a.md:1 claim-words-totalising read half", partial=True)
+
+        self.assertEqual(code, 1)
+        self.assertIn(
+            "docs/a.md:1 claim-words-totalising read half: "
+            "claim-words-totalising findings can't be marked partial",
+            err,
+        )
+        self.assertFalse((self.repo.root / "claims.checked.toml").exists())
+
+    def test_a_partial_mark_can_replace_a_full_one_only_once_it_has_expired(self) -> None:
+        self.stale_section()
+        self.mark("notes/s.md:1 stale-claims read the whole section", diff_range="HEAD~1")
+        sidecar = (self.repo.root / "claims.checked.toml").read_text()
+
+        code, _, err = self.mark(
+            "notes/s.md:1 stale-claims spot-checked", diff_range="HEAD~1", partial=True
+        )
+        self.assertEqual(code, 1)
+        self.assertIn(
+            "notes/s.md:1 stale-claims spot-checked: "
+            "a partial reading can't replace a current full one",
+            err,
+        )
+        self.assertEqual((self.repo.root / "claims.checked.toml").read_text(), sidecar)
+
+        self.repo.write("src/cache.py", "CACHE = 3\n")
+        code, _, err = self.mark(
+            "notes/s.md:1 stale-claims spot-checked", diff_range="HEAD~1", partial=True
+        )
+        self.assertEqual((code, err), (0, ""))
+        self.assertTrue(
+            self.run_cli("--diff-range", "HEAD~1")[1].endswith(
+                ", 1 quiet while checked, 1 of them partly\n"
+            )
+        )
+
+    def test_a_full_mark_replaces_a_partial_one(self) -> None:
+        self.stale_section()
+        self.mark("notes/s.md:1 stale-claims spot-checked", diff_range="HEAD~1", partial=True)
+
+        code, _, err = self.mark("notes/s.md:1 stale-claims read it all", diff_range="HEAD~1")
+
+        self.assertEqual((code, err), (0, ""))
+        sidecar = (self.repo.root / "claims.checked.toml").read_text()
+        self.assertNotIn("extent", sidecar)
+        self.assertEqual(sidecar.count("[[mark]]"), 1)
+        self.assertTrue(
+            self.run_cli("--diff-range", "HEAD~1")[1].endswith(", 1 quiet while checked\n")
+        )
+
+    def test_an_extent_other_than_full_or_partial_makes_the_sidecar_invalid(self) -> None:
+        entry = (
+            '[[mark]]\nfile = "docs/a.md"\nmode = "claim-words-totalising"\nunit = "x"\n'
+            'copies = 1\nnote = "n"\nextent = {extent}\nsubjects = {{}}\n'
+        )
+        for extent, valid in (('"full"', True), ('"partial"', True), ('"half"', False), ("1", False)):
+            with self.subTest(extent=extent):
+                (self.repo.root / "claims.checked.toml").write_text(entry.format(extent=extent))
+                out = self.run_cli()[1]
+                self.assertEqual(
+                    "[GATE] claims.checked.toml:0 (config) is invalid:" in out, not valid, out
+                )
+                if not valid:
+                    self.assertIn("has an 'extent' that is neither \"full\" nor \"partial\"", out)
+
+    def test_a_sidecar_with_no_extent_loads_unchanged_and_counts_as_full(self) -> None:
+        self.stale_section()
+        self.mark("notes/s.md:1 stale-claims read the whole section", diff_range="HEAD~1")
+        sidecar = (self.repo.root / "claims.checked.toml").read_text()
+        self.assertNotIn("extent", sidecar)
+
+        self.assertTrue(
+            self.run_cli("--diff-range", "HEAD~1")[1].endswith(", 1 quiet while checked\n")
+        )
+        self.assertEqual((self.repo.root / "claims.checked.toml").read_text(), sidecar)
+
+    def test_a_partial_mark_counts_as_marked_under_the_flag(self) -> None:
+        self.stale_section()
+        self.mark("notes/s.md:1 stale-claims spot-checked", diff_range="HEAD~1", partial=True)
+
+        code, out, _ = self.run_cli("--diff-range", "HEAD~1", "--fail-on-unmarked")
+
+        self.assertEqual(code, 0)
+        self.assertTrue(out.endswith(", 1 quiet while checked, 1 of them partly, 0 unmarked\n"))
+
+    def test_the_hook_message_counts_partial_marks_apart(self) -> None:
+        register_check(spliced_docs.NAME, spliced_docs.check)
+        self.repo.write(
+            "src/project.rs",
+            "/// Loads the project, which is what `load_project` reads.\n"
+            "/// The manifest a project is read from.\n"
+            "pub struct Manifest {}\n\n"
+            "pub fn load_project() {}\n",
+        )
+        self.mark("src/project.rs:2 spliced-docs-undocumented read line 2 only", partial=True)
+
+        decision = decide_repo(self.repo.root)
+
+        assert decision is not None
+        self.assertTrue(decision.message.endswith("1 quiet while checked, 1 of them partly"))
 
     def test_marking_takes_the_audit_range(self) -> None:
         self.repo.write("docs/a.md", "Every check runs.\n")

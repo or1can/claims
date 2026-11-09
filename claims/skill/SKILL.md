@@ -26,7 +26,8 @@ branch.
 
 Show the user the CLI's output verbatim — every finding line, then its
 summary line (`N checked, M finding(s), G gate failure(s)`, then
-`, Q quiet while checked` when checked marks kept findings quiet and
+`, Q quiet while checked` when checked marks kept findings quiet, with
+`, P of them partly` after it when partial marks kept some of them, and
 `, A mark(s) added in range` when the range added checked marks) —
 rather than summarizing or filtering it yourself. Findings that share a citation,
 message and severity print as one line listing each mode in its
@@ -175,6 +176,10 @@ marked. One bad entry fails the whole batch and nothing is written; the
 command names each bad entry. Add `--prune` to also remove every orphaned
 mark, one reported as `checked-mark` because its sentence was reworded or
 removed; it needs no entries and no note, and keeps every other mark.
+If you read only part of a `stale-claims` section or a `spliced-docs`
+doc comment, say so with `--partial` rather than only in the note; it
+is refused for any other mode, and for a finding whose full mark is
+still current.
 Commit `claims.checked.toml` with the rest of the change.
 
 ## Coverage

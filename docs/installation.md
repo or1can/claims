@@ -239,7 +239,8 @@ python3 -m claims.cli --repo-root <path> --diff-range <range>
 finding, then a summary line of the form `N checked, M finding(s), G gate
 failure(s)`, and exits with the code below. When
 [checked marks](checked-marks.md) kept findings quiet, the summary line
-adds `, Q quiet while checked`, and when the range added checked marks it
+adds `, Q quiet while checked` (then `, P of them partly` when partial
+marks kept some of them quiet), and when the range added checked marks it
 adds `, A mark(s) added in range`. Findings that cite the same
 line with the same message and the same severity print as one line, with
 every mode that reported them in its parentheses; `M` still counts each
