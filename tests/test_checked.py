@@ -413,6 +413,18 @@ class CheckedMarkTests(RegistryClearingTestCase):
             sidecar.read_text(), f"# audit of docs/a.md\n\n{first}\n\n\n# third\n{third}"
         )
 
+    def test_pruning_never_takes_the_comment_of_a_replaced_entry_above_it(self) -> None:
+        self.repo.write("docs/a.md", "Every check runs.\n\nOnly one runs.\n")
+        self.mark("docs/a.md:1 claim-words-totalising a", "docs/a.md:3 claim-words-totalising b")
+        sidecar = self.repo.root / "claims.checked.toml"
+        sidecar.write_text("# about the first\n" + sidecar.read_text())
+        self.repo.write("docs/a.md", "Every check runs.\n\nOnly two run.\n")
+
+        code, _, _ = self.prune("docs/a.md:1 claim-words-totalising a again")
+
+        self.assertEqual(code, 0)
+        self.assertIn("# about the first\n", sidecar.read_text())
+
     def test_a_bad_entry_with_prune_writes_nothing(self) -> None:
         self.repo.write("docs/a.md", "Every check runs.\n")
         self.mark("docs/a.md:1 claim-words-totalising read it")

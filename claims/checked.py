@@ -729,16 +729,12 @@ def write_marks(repo_root: Path, marks: Sequence[Mark], pruned: Iterable[Mark] =
     # Numbered as `load_marks` numbers each entry's `line`.
     lines = [line + "\n" for line in git_lines(text)]
     starts = [m.line - 1 for m in existing]
-    out = lines[: starts[0]] if starts else lines
+    # Which lines go is read off the file as written, never off what is
+    # kept so far, so dropping one entry can't change what goes with another.
+    gone: set[int] = set()
     for mark, start, end in zip(existing, starts, starts[1:] + [len(lines)]):
         if mark.key not in dropped:
-            out += lines[start:end]
             continue
-        if mark.key in pruned_keys:
-            # A comment directly above a pruned entry is about it, and goes
-            # with it; one above a replaced entry stays where it was.
-            while out and out[-1].lstrip().startswith("#"):
-                out.pop()
         # A comment closing a dropped entry's lines sits above the next
         # entry, so it is the next entry's and stays; the blank lines
         # between them go with the dropped entry.
@@ -747,8 +743,15 @@ def write_marks(repo_root: Path, marks: Sequence[Mark], pruned: Iterable[Mark] =
             tail -= 1
         while tail < end and not lines[tail].strip():
             tail += 1
-        out += lines[tail:end]
-    kept = "".join(out)
+        gone.update(range(start, tail))
+        if mark.key in pruned_keys:
+            # A comment directly above a pruned entry is about it, and goes
+            # with it; one above a replaced entry stays where it was.
+            above = start
+            while above > 0 and lines[above - 1].lstrip().startswith("#"):
+                above -= 1
+            gone.update(range(above, start))
+    kept = "".join(line for i, line in enumerate(lines) if i not in gone)
     blocks = [kept.rstrip("\n")] if kept.strip() else []
     latest = {mark.key: mark for mark in marks}
     blocks.extend(_render(mark).rstrip("\n") for mark in latest.values())
