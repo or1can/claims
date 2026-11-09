@@ -105,6 +105,22 @@ class ConfigValueMatchesTests(unittest.TestCase):
         self.assertEqual(matches[0].key, "exclude")
         self.assertEqual(matches[0].matched_files, ())
 
+    def test_stale_claims_exclude_sections_is_reviewed_by_its_path_glob(self) -> None:
+        # The `#slug` after the glob names a heading, not part of a path.
+        with Repo() as repo:
+            repo.write("decisions/0001-x.md", "## Context\n")
+            matches = config_value_matches(
+                repo.root,
+                {"stale-claims": {"exclude_sections": ["decisions/*.md#context", "adr/*.md#context"]}},
+            )
+        self.assertEqual(
+            [(m.key, m.value, m.matched_files) for m in matches],
+            [
+                ("exclude_sections", "decisions/*.md#context", ("decisions/0001-x.md",)),
+                ("exclude_sections", "adr/*.md#context", ()),
+            ],
+        )
+
     def test_historical_key_is_reviewed_for_every_check_that_takes_it(self) -> None:
         # `historical` reached `check-links` (#50) and `check-file-refs`
         # (#57) without either landing here, so a mistyped glob in it
