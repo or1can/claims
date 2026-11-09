@@ -240,6 +240,22 @@ class PreCommitTests(RegistryClearingTestCase):
             stderr,
         )
 
+    def test_an_unknown_hook_key_blocks_naming_it(self) -> None:
+        register_check("clean-check", lambda repo_root, diff_range, config: [])
+        with Repo() as repo:
+            code, stderr = self._run(repo, "[hook]\nenable = false\n")
+        self.assertEqual(code, 1)
+        self.assertIn(
+            "[hook] enable is not a recognized key — [hook] takes enabled, fail_on_unmarked",
+            stderr,
+        )
+
+    def test_an_unknown_hook_key_leaves_a_switched_off_hook_off(self) -> None:
+        register_check("clean-check", lambda repo_root, diff_range, config: [])
+        with Repo() as repo:
+            result = self._run(repo, "[hook]\nenabled = false\nenable = false\n")
+        self.assertEqual(result, (0, ""))
+
     def test_a_hook_table_without_enabled_still_gates(self) -> None:
         _register("failing-gate", gate=True)
         with Repo() as repo:

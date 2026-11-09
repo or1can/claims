@@ -186,6 +186,38 @@ class RunnerTests(RegistryClearingTestCase):
         self.assertTrue(finding.gate)
         self.assertIn("[subjects] foo", finding.message)
 
+    def test_an_unknown_key_in_the_hook_table_is_a_gate_finding(self) -> None:
+        result = run(Path("/repo"), "HEAD", {"hook": {"enable": False}})
+
+        self.assertEqual(len(result.findings), 1)
+        finding = result.findings[0]
+        self.assertEqual((finding.file, finding.line, finding.mode), ("claims.toml", 0, "config"))
+        self.assertTrue(finding.gate)
+        self.assertEqual(
+            finding.message,
+            "[hook] enable is not a recognized key — [hook] takes enabled, fail_on_unmarked",
+        )
+
+    def test_the_keys_the_hook_takes_produce_no_finding(self) -> None:
+        result = run(
+            Path("/repo"), "HEAD", {"hook": {"enabled": False, "fail_on_unmarked": []}}
+        )
+
+        self.assertEqual(result.findings, ())
+
+    def test_each_unknown_hook_key_is_its_own_finding(self) -> None:
+        result = run(Path("/repo"), "HEAD", {"hook": {"enable": False, "fail": [], "enabled": True}})
+
+        self.assertEqual(
+            [f.message.split(" is ")[0] for f in result.findings],
+            ["[hook] enable", "[hook] fail"],
+        )
+
+    def test_a_hook_that_is_not_a_table_gets_no_key_finding(self) -> None:
+        result = run(Path("/repo"), "HEAD", {"hook": False})  # pyright: ignore[reportArgumentType]
+
+        self.assertEqual(result.findings, ())
+
     def test_an_empty_config_produces_no_unrecognized_table_finding(self) -> None:
         register_check("check-a", lambda repo_root, diff_range, config: [])
 
