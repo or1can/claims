@@ -24,7 +24,9 @@ Besides `[hook] enabled = false`, which switches the whole decision off,
 a single check can be silenced from this decision alone via its own
 `enabled = false` (`_disabled_checks`, ticket #44) — e.g.
 `[stale-claims]\nenabled = false`.
-Both flags only ever affect this commit-time decision: `python3 -m
+`[hook] fail_on_unmarked` (#204) works the other way, making this
+decision block on an unmarked advisory finding from a listed check.
+These flags only ever affect this commit-time decision: `python3 -m
 claims.cli` and the `check-claims` skill both call `run()` directly and
 never read `[hook]` or a check's own `enabled` key at all, so a check
 silenced here is still fully visible on demand through either of those.
@@ -41,6 +43,13 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from . import checks  # noqa: F401
+from .checked import (
+    ORPHAN_MODE,
+    failing_unmarked,
+    load_marks,
+    markable_check,
+    unmarkable_names,
+)
 from .config import ConfigError, has_config, load_config
 from .runner import Finding, format_findings, run
 
@@ -130,6 +139,44 @@ def _finding_check(finding: Finding, names: frozenset[str]) -> str | None:
     return None
 
 
+def _fail_on_unmarked(hook: Mapping[str, object]) -> frozenset[str] | str:
+    """`[hook] fail_on_unmarked` as a set of markable check names, a bare
+    string being one; or, when it isn't that, why `claims.toml` is
+    invalid."""
+
+    value = hook.get("fail_on_unmarked", [])
+    names = [value] if isinstance(value, str) else value
+    if not isinstance(names, list) or not all(isinstance(n, str) for n in names):
+        return "`[hook] fail_on_unmarked` must be a list of check names"
+    problem = unmarkable_names(names)
+    if problem is not None:
+        return f"`[hook] fail_on_unmarked`: {problem}"
+    return frozenset(names)
+
+
+def _unmarked(
+    repo_root: Path, findings: Sequence[Finding], listed: frozenset[str]
+) -> list[Finding]:
+    """The advisory findings in `findings` from a `listed` check, plus
+    every orphaned mark whose own mode belongs to one (ADR 0012's
+    amendment, #204) — unlike the CLI flag, which counts every orphan."""
+
+    if not listed:
+        return []
+    unmarked = [
+        f for f in findings if not f.gate and markable_check(f.mode) in listed
+    ]
+    orphans = [f for f in findings if f.mode == ORPHAN_MODE]
+    if orphans:
+        # An orphan finding cites its mark's own line; `run` has already
+        # parsed the file to report it, so this can't raise.
+        modes = {mark.line: mark.mode for mark in load_marks(repo_root)}
+        unmarked += [
+            f for f in orphans if markable_check(modes.get(f.line, "")) in listed
+        ]
+    return unmarked
+
+
 def decide_repo(repo_root: Path) -> Decision | None:
     """The decision for a commit to the repository at `repo_root`, or
     `None` when there is nothing to report: it hasn't opted in with a root
@@ -138,8 +185,10 @@ def decide_repo(repo_root: Path) -> Decision | None:
     quiet either. A `claims.toml` that doesn't parse, whose `[subjects]`
     is the wrong shape (`load_config` refuses it, so even with the hook
     switched off), or whose `[hook]` isn't a table or whose `[hook]
-    enabled` or a registered check's own `enabled` isn't a boolean,
-    blocks as invalid."""
+    enabled` or a registered check's own `enabled` isn't a boolean, or
+    whose `[hook] fail_on_unmarked` names no markable check, blocks as
+    invalid. An unmarked finding from a check `fail_on_unmarked` lists
+    blocks too."""
 
     if not has_config(repo_root):
         return None
@@ -162,6 +211,9 @@ def decide_repo(repo_root: Path) -> Decision | None:
         )
     if not enabled:
         return None
+    listed = _fail_on_unmarked(hook)
+    if isinstance(listed, str):
+        return Decision(block=True, message=f"claims.toml is invalid: {listed}")
 
     result = run(repo_root, "HEAD", config)
 
@@ -194,4 +246,10 @@ def decide_repo(repo_root: Path) -> Decision | None:
         lines.append(f"{len(quiet)} quiet while checked")
         if partly:
             lines[-1] += f", {len(partly)} of them partly"
-    return Decision(block=any(f.gate for f in findings), message="\n".join(lines))
+    unmarked = _unmarked(repo_root, findings, listed - disabled)
+    if unmarked:
+        lines.append(failing_unmarked(len(unmarked)))
+    return Decision(
+        block=any(f.gate for f in findings) or bool(unmarked),
+        message="\n".join(lines),
+    )

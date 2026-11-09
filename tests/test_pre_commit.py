@@ -247,6 +247,59 @@ class PreCommitTests(RegistryClearingTestCase):
         self.assertEqual(code, 1)
         self.assertIn("bad", stderr)
 
+    def test_fail_on_unmarked_reads_a_bare_string_as_one_name(self) -> None:
+        _register("claim-words", gate=False)
+        with Repo() as repo:
+            code, stderr = self._run(repo, '[hook]\nfail_on_unmarked = "claim-words"\n')
+        self.assertEqual(code, 1)
+        self.assertTrue(
+            stderr.endswith("failing: 1 unmarked advisory finding(s); fix or mark each\n")
+        )
+
+    def test_fail_on_unmarked_lets_through_an_unlisted_checks_finding(self) -> None:
+        _register("stale-claims", gate=False)
+        with Repo() as repo:
+            code, stderr = self._run(repo, '[hook]\nfail_on_unmarked = ["claim-words"]\n')
+        self.assertEqual(code, 0)
+        self.assertIn("(stale-claims)", stderr)
+        self.assertNotIn("failing:", stderr)
+
+    def test_fail_on_unmarked_empty_blocks_nothing(self) -> None:
+        _register("claim-words", gate=False)
+        with Repo() as repo:
+            code, stderr = self._run(repo, "[hook]\nfail_on_unmarked = []\n")
+        self.assertEqual(code, 0)
+        self.assertNotIn("failing:", stderr)
+
+    def test_fail_on_unmarked_naming_no_markable_check_blocks_as_invalid(self) -> None:
+        _register("claim-words", gate=False)
+        for value in ('["stale-claim"]', '["check-links"]', "true", "[1]"):
+            with self.subTest(value=value), Repo() as repo:
+                code, stderr = self._run(repo, f"[hook]\nfail_on_unmarked = {value}\n")
+                self.assertEqual(code, 1)
+                self.assertIn(
+                    "claims.toml is invalid: `[hook] fail_on_unmarked`", stderr
+                )
+
+    def test_fail_on_unmarked_listing_a_disabled_check_blocks_nothing(self) -> None:
+        _register("claim-words", gate=False)
+        with Repo() as repo:
+            result = self._run(
+                repo,
+                '[hook]\nfail_on_unmarked = ["claim-words"]\n'
+                "\n[claim-words]\nenabled = false\n",
+            )
+        self.assertEqual(result, (0, ""))
+
+    def test_fail_on_unmarked_still_fails_open_on_an_internal_error(self) -> None:
+        _register("claim-words", gate=False)
+        with Repo() as repo, mock.patch(
+            "claims.gate.run", side_effect=RuntimeError("boom")
+        ):
+            code, stderr = self._run(repo, '[hook]\nfail_on_unmarked = ["claim-words"]\n')
+        self.assertEqual(code, 0)
+        self.assertIn("not checked", stderr)
+
     def test_zero_checks_registered_exits_1(self) -> None:
         with Repo() as repo:
             code, stderr = self._run(repo)

@@ -212,8 +212,11 @@ When [partial marks](#partial-marks) kept some of those findings quiet,
 it continues `, P of them partly`, as in `12 quiet while checked, 4 of
 them partly`; the clause is left off when `P` is zero. The commit hook prints the
 same count as the last line of its message, including on a commit where
-marks quieted every finding. Gate findings and exit codes are unchanged:
-a mark only ever quiets an advisory finding, which never blocked anything.
+marks quieted every finding. A mark only ever quiets an advisory
+finding, so gate findings are unchanged. Only a run [failing on unmarked
+findings](#failing-a-run-on-unmarked-findings) exits or blocks
+differently for a mark, since quieting a finding is then what lets it
+pass.
 
 The CLI's summary line also ends `, A mark(s) added in range` when the
 range added entries to `claims.checked.toml`. An entry counts when its
@@ -248,11 +251,14 @@ finding, otherwise `3` when `U` is above zero, and otherwise `0`. A run
 that exits `3` closes with one more line after the summary, starting
 `failing:`, which gives the count again and says to fix or mark each one.
 
-No `claims.toml` key sets the flag, and the commit hook never applies it,
-so local commits stay advisory and the cost of reading lands where a
-project asks for it. A project passes it in CI, over the pull request's
-whole range from its merge base, so that the pull request resolves every
-finding it brings in. On GitHub Actions, with the project's history
+The commit hook applies a version of the flag only for the checks a
+project lists under [`[hook]
+fail_on_unmarked`](configuring.md#blocking-a-commit-on-unmarked-findings),
+and there an orphaned mark blocks only when its own check is listed.
+Otherwise local commits stay advisory, and the cost of reading lands
+where a project asks for it. A project passes the flag in CI, over the
+pull request's whole range from its merge base, so that the pull request
+resolves every finding it brings in. On GitHub Actions, with the project's history
 fetched and `claims` checked out beside it as
 [the command line](installation.md#the-command-line) describes:
 

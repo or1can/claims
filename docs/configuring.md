@@ -89,6 +89,38 @@ every commit with the reason, naming the check, until it is fixed.
 Neither switch reads the other: the whole-gate toggle and a check's own
 key are independent, and a project can set both.
 
+## Blocking a commit on unmarked findings
+
+An advisory finding never blocks a commit on its own. To make the commit
+gate block on [unmarked findings](checked-marks.md#failing-a-run-on-unmarked-findings)
+from some checks, list them:
+
+```toml
+[hook]
+fail_on_unmarked = ["claim-words", "temporal-words", "restatement"]
+```
+
+The commit is then blocked while an advisory finding from a listed check
+has no checked mark keeping it quiet, or while an orphaned mark is left
+whose own mode belongs to a listed check. An orphaned mark for any other
+check, or for a mode that cannot be marked, does not block. A blocked
+commit prints the findings, then a closing line starting `failing:` that
+counts them and says to fix or mark each one.
+
+`fail_on_unmarked` is a list of checks whose findings can be marked, and
+a bare string is a one-element list. Leaving it out, or an empty list,
+blocks nothing. Any other name, or a value that is not a string or a
+list of strings, makes `claims.toml` invalid: unless the [whole hook is
+switched off](#switching-the-commit-hook-off), it blocks every commit
+with the reason until it is fixed. A listed check that is also
+[silenced at commit time](#silencing-one-check-at-commit-time) blocks
+nothing.
+
+The list suits checks whose findings come from the commit's own text,
+which the commit that brings them in can settle. A check like
+`stale-claims`, which ranks other sections by churn and whose marks
+expire as the files they name move, is better left to CI.
+
 ## Append-only files
 
 Some files only ever grow. A changelog gains an entry on almost every

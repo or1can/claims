@@ -20,8 +20,9 @@ agent-instruction claims against the code they actually describe.
 ## What it checks
 
 Each check has a page of its own. A gate finding blocks the
-commit it is attached to; an advisory finding is surfaced but never fails
-the run — [`docs/concepts.md`](docs/concepts.md) defines both.
+commit it is attached to; an advisory finding is surfaced and fails the
+run only when the run is told to fail on unread ones —
+[`docs/concepts.md`](docs/concepts.md) defines both.
 
 Gate:
 
@@ -53,7 +54,8 @@ Four invocation surfaces, same underlying checks:
 
 - **Automatically, on commit.** A git `pre-commit` hook runs every check
   above on each commit, whoever makes it; a gate finding blocks the
-  commit, an advisory finding is reported alongside it. Installed with
+  commit, an advisory finding is reported alongside it, and blocks only
+  from a check the project lists under `[hook] fail_on_unmarked`. Installed with
   pre-commit.com, lefthook, husky or a plain `.git/hooks` script — see
   [`docs/installation.md`](docs/installation.md)'s "The git `pre-commit`
   hook". The plugin itself never blocks a commit: when a Claude Code
