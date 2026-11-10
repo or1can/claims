@@ -50,7 +50,7 @@ unit = "394dfe528a9008c5"
 copies = 1
 note = "Read against ci.yml with the new Claims job: the required checks named (Typecheck, Test, Signed-off-by) are still the ruleset's three; Claims runs but is not required. The \"section\" is a shell comment inside a sh fence, misread as a heading."
 by = "Kevin Rogers"
-subjects = { ".github/workflows/ci.yml" = "240299439ae5d4a8", ".github/workflows/dco.yml" = "8ed66fb756a4ce0a" }
+subjects = { ".github/workflows/ci.yml" = "287db4c0cf950e73", ".github/workflows/dco.yml" = "8ed66fb756a4ce0a" }
 
 [[mark]]
 file = "docs/checks/stale-claims.md"
@@ -59,4 +59,4 @@ unit = "8652909ce0f49280"
 copies = 1
 note = "ci.yml is cited only as an example of path resolution; nothing in the section depends on its content."
 by = "Kevin Rogers"
-subjects = { ".github/workflows/ci.yml" = "240299439ae5d4a8", "claims/config.py" = "8061ce4e20a17e51", "docs/configuring.md#append-only-files" = "7b641ca9032d95d6", "docs/configuring.md#navigation-pages" = "d761e008a5c92152" }
+subjects = { ".github/workflows/ci.yml" = "287db4c0cf950e73", "claims/config.py" = "8061ce4e20a17e51", "docs/configuring.md#append-only-files" = "7b641ca9032d95d6", "docs/configuring.md#navigation-pages" = "d761e008a5c92152" }

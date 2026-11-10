@@ -75,6 +75,11 @@ jobs:
           [executable-claims]
           allowed = ["PYRIGHT_PYTHON_IGNORE_WARNINGS=1 uv run -q pyright claims tests"]
           TOML
+      # `claims.toml`'s `[check-file-refs] known_untracked` exempts this
+      # git-ignored per-machine file from being tracked, not from existing,
+      # so a clone without one fails the gate on `CHANGELOG.md`'s mention.
+      - name: Create the per-machine Claude Code settings file
+        run: mkdir -p .claude && echo '{}' > .claude/settings.local.json
       - name: Run the claims checks
         env:
           BASE_REF: ${{ github.base_ref }}
