@@ -69,6 +69,15 @@ exclude = ["examples/*"]
 # is additive to this and stays in force.
 [stale-claims]
 exclude = ["examples/*", ".scratch/*"]
+# An ADR's Context and Alternatives considered describe the world the
+# decision was made in and the options weighed then, true of that world
+# however far the code moves, so ranking them only ever asked for a mark:
+# 5 of the 61 findings over `HEAD~30` at 0.28.2. Its Decision and
+# Consequences still describe what the code does, so they stay ranked.
+exclude_sections = [
+    "decisions/*.md#context",
+    "decisions/*.md#alternatives-considered",
+]
 
 # A released `CHANGELOG.md` entry describes a change as it shipped and is
 # never reworded afterwards (`AGENTS.md`, "Versioning"), so prose a later
