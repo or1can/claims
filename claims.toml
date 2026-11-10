@@ -2,6 +2,16 @@
 # (ticket 25). See `claims/config.py` and each check's own page under
 # `docs/checks/` for what a check's defaults are, otherwise.
 
+# The commit gate blocks on an unmarked finding from these three: each is
+# brought in by the commit's own edit, a sentence it added or one it
+# retracted that another file still asserts, so that commit is where it is
+# cheapest to fix or mark. `stale-claims`, `spliced-docs` and
+# `judgment-agent` rank or sweep text the commit didn't write, so they
+# fail only at pre-push and in CI, which pass `--fail-on-unmarked` for
+# every markable check (ADR 0012). The same split `ratect` runs on.
+[hook]
+fail_on_unmarked = ["claim-words", "temporal-words", "restatement"]
+
 # `.scratch/claims-consolidation/` is historical design-notes prior art —
 # it discusses other real projects (`ratect`) and hypothetical example
 # paths by design, not this repo's own current tree, so a bare path
