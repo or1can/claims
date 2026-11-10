@@ -1,0 +1,17 @@
+[[mark]]
+file = "examples/spliced-docs/src/project.rs"
+mode = "spliced-docs-undocumented"
+unit = "06f02d5943c9b5b4"
+copies = 1
+note = "Deliberate splice: docs/checks/spliced-docs.md's worked example, captured by scripts/capture.py; lines 1-2 belong on load_project and must stay stranded above Manifest for the capture to show the finding."
+by = "Kevin Rogers"
+subjects = {}
+
+[[mark]]
+file = "examples/spliced-docs/Sources/Room.swift"
+mode = "spliced-docs-undocumented"
+unit = "77931d6c30a76b1c"
+copies = 1
+note = "Deliberate splice: the Swift half of docs/checks/spliced-docs.md's worked example; lines 2-3 belong on canRestoreInPlace and must stay stranded above restoreBlocker for the capture to show the finding."
+by = "Kevin Rogers"
+subjects = {}
