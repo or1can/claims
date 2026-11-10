@@ -340,16 +340,18 @@ def check(
         lines = git_lines(tracked_text(repo_root / rel, errors="replace"))
         if not lines:
             continue
-        starts = [i for i, l in enumerate(lines) if HEADING_RE.match(l)] or [0]
-        excluded_slugs = {s for glob, s in excluded_sections if path_matches(rel, [glob])}
+        # A heading-shaped line inside a fence, a `# comment` in a shell
+        # block, is code and starts no section, as in `section_range`.
         in_fence = fence_state(lines)
-        # The level of the excluded heading whose span this loop is in. A
-        # fenced heading-shaped line still starts a section here, but it
-        # neither ends that span nor starts one, as in `section_range`.
+        starts = [
+            i for i, l in enumerate(lines) if not in_fence[i] and HEADING_RE.match(l)
+        ] or [0]
+        excluded_slugs = {s for glob, s in excluded_sections if path_matches(rel, [glob])}
+        # The level of the excluded heading whose span this loop is in.
         skipping: int | None = None
         for start, end in zip(starts, starts[1:] + [len(lines)]):
             matched = HEADING_RE.match(lines[start])
-            if matched and not in_fence[start]:
+            if matched:
                 level = len(matched.group(1))
                 if skipping is not None and level <= skipping:
                     skipping = None

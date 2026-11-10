@@ -763,6 +763,17 @@ class StaleClaimsTests(RegistryClearingTestCase):
         )
         self.assertEqual([_heading(f) for f in findings], ["Decision"])
 
+    def test_a_fenced_heading_shaped_line_does_not_start_a_section(self) -> None:
+        # A `# comment` in a shell block is code, not a heading: the lines
+        # after it stay in the section the fence sits in.
+        adr = self.ADR.replace(
+            "### Prior art\n", "```sh\n# run it\nSee src/subject.py.\n```\n### Prior art\n"
+        )
+        findings = self._findings_for_adr("", text=adr)
+        self.assertEqual(
+            sorted(_heading(f) for f in findings), ["Context", "Decision", "Prior art"]
+        )
+
     def test_an_excluded_section_in_a_file_the_glob_misses_is_still_ranked(self) -> None:
         findings = self._findings_for_adr(
             '[stale-claims]\nexclude_sections = ["decisions/*.md#context"]\n', adr="adr/0001-x.md"

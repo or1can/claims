@@ -240,7 +240,14 @@ def _units(kind: str, lines: Sequence[str]) -> list[_Unit]:
         # GitHub, not a second copy of one section: each has its own body.
         # `#` is never in normalised words, so `foo#1` can't be a heading's.
         # A file with no heading is one section, reported at its first line.
-        starts = [i for i, line in enumerate(lines) if _SECTION_HEADING_RE.match(line)]
+        # A heading-shaped line inside a fence starts none, as `stale-claims`
+        # splits sections.
+        in_fence = fence_state(lines)
+        starts = [
+            i
+            for i, line in enumerate(lines)
+            if not in_fence[i] and _SECTION_HEADING_RE.match(line)
+        ]
         if not starts:
             return [_Unit(0, 0, _digest(""), "\n".join(lines))] if lines else []
         seen: Counter[str] = Counter()

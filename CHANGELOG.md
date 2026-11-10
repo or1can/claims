@@ -11,6 +11,17 @@ reached you, not just that one was pushed upstream.
 
 ## [Unreleased]
 
+## [0.28.2] - 2026-11-10
+
+- Fixed: a heading-shaped line inside a fenced code block, such as a `#`
+  comment in a shell or YAML example, no longer starts a `stale-claims`
+  section or a checked-mark unit. The lines below it stay in the section
+  the fence sits in, so that section is ranked on what they name too.
+- A `stale-claims` mark recorded on such a line is now an orphan, and
+  fails a `--fail-on-unmarked` run until `mark-checked --prune` removes
+  it. Marks on the section around it may expire, since its subjects now
+  include what the fence's later lines name.
+
 ## [0.28.1] - 2026-11-09
 
 - Fixed: a key `[hook]` doesn't take, such as `enable = false` for

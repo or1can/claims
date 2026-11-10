@@ -932,6 +932,24 @@ class CheckedMarkTests(RegistryClearingTestCase):
         self.assertEqual((code, err), (0, ""))
         self.assertTrue(self.summary().endswith(", 1 quiet while checked"))
 
+    def test_a_stale_claims_mark_records_subjects_named_below_a_fenced_hash_line(self) -> None:
+        # The section runs past the fence's `# comment`, so `src/a.py`
+        # below it is one of the mark's subjects and changing it expires
+        # the mark.
+        register_check(stale_claims.NAME, stale_claims.check)
+        self.repo.write("src/a.py", "V = 1\n")
+        self.repo.write("notes/s.md", "# Real\n\n```sh\n# comment\n```\n\nsrc/a.py\n")
+        self.repo.commit(when=1_700_000_000)
+        self.repo.write("src/a.py", "V = 2\n")
+        self.repo.commit(when=1_700_003_600)
+        code, _, err = self.mark("notes/s.md:1 stale-claims a read", diff_range="HEAD~1")
+        self.assertEqual((code, err), (0, ""))
+
+        self.repo.write("src/a.py", "V = 3\n")
+        _, out, _ = self.run_cli("--diff-range", "HEAD~1")
+
+        self.assertIn("[advisory] notes/s.md:1 (stale-claims)", out)
+
     def test_a_repeated_heading_never_shares_a_unit_with_a_numbered_one(self) -> None:
         register_check(stale_claims.NAME, stale_claims.check)
         for name in ("a", "b", "c"):
