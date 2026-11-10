@@ -5,6 +5,14 @@
 # the committer's `PATH`, which needs nothing beyond the standard library.
 # `verbose` shows advisory findings, which pre-commit otherwise hides
 # whenever the hook passes.
+#
+# The second entry runs what CI's `Claims` job runs before each push: the
+# whole branch from its merge-base with `origin/main`, failing on an
+# advisory finding from any markable check that no checked mark keeps
+# quiet. The commit hook reads one commit and blocks only on the checks
+# `claims.toml`'s `[hook] fail_on_unmarked` lists, so it can't size a
+# pull request's claims work. `origin/main` is as fresh as the last fetch.
+default_install_hook_types: [pre-commit, pre-push]
 repos:
   - repo: local
     hooks:
@@ -15,3 +23,11 @@ repos:
         pass_filenames: false
         always_run: true
         verbose: true
+        stages: [pre-commit]
+      - id: claims-unmarked
+        name: claims (branch since origin/main, unmarked findings fail)
+        entry: python3 -m claims.cli --repo-root . --diff-range origin/main...HEAD --fail-on-unmarked
+        language: system
+        pass_filenames: false
+        always_run: true
+        stages: [pre-push]

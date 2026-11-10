@@ -37,3 +37,50 @@ jobs:
       # No pytest binary in this repo's own dev environment — same runner
       # every ticket's Answer uses, see .claude/CLAUDE.md memory.
       - run: python3 -m unittest discover -s tests -p 'test_*.py'
+
+  # This repository's own claims checks over the pull request's whole
+  # change, failing on a gate finding or on an advisory finding from any
+  # markable check that is neither fixed nor marked checked (ADR 0012).
+  # Runs the checkout's own `claims`, not a release, for the reason
+  # `.pre-commit-config.yaml` gives for the commit hook: a change is checked
+  # by the code it ships. The `Test` job is what catches a change that
+  # breaks a check and so hides its own findings.
+  #
+  # Pull requests only: `main` takes changes through nothing else, so a
+  # `push` run would re-check what its PR already did.
+  claims:
+    name: Claims
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      # Full history: `stale-claims` reads it, and the base ref the diff is
+      # taken against has to exist.
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.11"
+      # `AGENTS.md`'s `<!-- verify: -->` marker runs pyright through uv.
+      - uses: astral-sh/setup-uv@v10.3.3
+      - run: uv sync
+      # `executable-claims` runs a marker's command only with an exact-string
+      # grant in the git-ignored `claims.local.toml`, which CI has to write
+      # for itself as a contributor does locally. A new marker fails this job
+      # until its command is added here, which is the point: someone has to
+      # look at what it runs.
+      - name: Grant the verify markers' commands
+        run: |
+          cat > claims.local.toml <<'TOML'
+          [executable-claims]
+          allowed = ["PYRIGHT_PYTHON_IGNORE_WARNINGS=1 uv run -q pyright claims tests"]
+          TOML
+      # `claims.toml`'s `[check-file-refs] known_untracked` exempts this
+      # git-ignored per-machine file from being tracked, not from existing,
+      # so a clone without one fails the gate on `CHANGELOG.md`'s mention.
+      - name: Create the per-machine Claude Code settings file
+        run: mkdir -p .claude && echo '{}' > .claude/settings.local.json
+      - name: Run the claims checks
+        env:
+          BASE_REF: ${{ github.base_ref }}
+        run: python3 -m claims.cli --repo-root . --diff-range "origin/$BASE_REF" --fail-on-unmarked

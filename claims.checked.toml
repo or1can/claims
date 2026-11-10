@@ -1,0 +1,80 @@
+[[mark]]
+file = "examples/spliced-docs/src/project.rs"
+mode = "spliced-docs-undocumented"
+unit = "06f02d5943c9b5b4"
+copies = 1
+note = "Deliberate splice: docs/checks/spliced-docs.md's worked example, captured by scripts/capture.py; lines 1-2 belong on load_project and must stay stranded above Manifest for the capture to show the finding."
+by = "Kevin Rogers"
+subjects = {}
+
+[[mark]]
+file = "examples/spliced-docs/Sources/Room.swift"
+mode = "spliced-docs-undocumented"
+unit = "77931d6c30a76b1c"
+copies = 1
+note = "Deliberate splice: the Swift half of docs/checks/spliced-docs.md's worked example; lines 2-3 belong on canRestoreInPlace and must stay stranded above restoreBlocker for the capture to show the finding."
+by = "Kevin Rogers"
+subjects = {}
+
+[[mark]]
+file = "AGENTS.md"
+mode = "claim-words-about-elsewhere"
+unit = "baea593a76f1d957"
+copies = 1
+note = "A rule for future changes, not a description of TODO.md's current content; nothing it names needs to exist for it to hold."
+by = "Kevin Rogers"
+subjects = { "TODO.md" = "57bcd04343ac2af5" }
+
+[[mark]]
+file = "AGENTS.md"
+mode = "claim-words-totalising"
+unit = "ebcd05b50cec821c"
+copies = 1
+note = "Deliberate: \"only ratect\" is the point of the rule, and was true when written — this PR is what makes this repository run the 0.28 features too."
+by = "Kevin Rogers"
+subjects = {}
+
+[[mark]]
+file = "AGENTS.md"
+mode = "claim-words-counts"
+unit = "ebcd05b50cec821c"
+copies = 1
+note = "Same sentence as the totalising mark: \"only\" is the deliberate contrast between ratect and this repository."
+by = "Kevin Rogers"
+subjects = {}
+
+[[mark]]
+file = "AGENTS.md"
+mode = "stale-claims"
+unit = "394dfe528a9008c5"
+copies = 1
+note = "Read against ci.yml with the new Claims job: the section names Typecheck, Test and Claims from it, plus Signed-off-by from dco.yml, matching the ruleset's four required checks. The \"section\" is a shell comment inside a sh fence, misread as a heading."
+by = "Kevin Rogers"
+subjects = { ".github/workflows/ci.yml" = "287db4c0cf950e73", ".github/workflows/dco.yml" = "8ed66fb756a4ce0a" }
+
+[[mark]]
+file = "docs/checks/stale-claims.md"
+mode = "stale-claims"
+unit = "8652909ce0f49280"
+copies = 1
+note = "ci.yml is cited only as an example of path resolution; nothing in the section depends on its content."
+by = "Kevin Rogers"
+subjects = { ".github/workflows/ci.yml" = "287db4c0cf950e73", "claims/config.py" = "8061ce4e20a17e51", "docs/configuring.md#append-only-files" = "7b641ca9032d95d6", "docs/configuring.md#navigation-pages" = "d761e008a5c92152" }
+
+[[mark]]
+file = "AGENTS.md"
+mode = "claim-words-totalising"
+unit = "f5370039df5c5f20"
+copies = 1
+note = "Checked against ruleset 23530440: Claims is added to its required_status_checks with this PR, giving Typecheck, Test, Claims, Signed-off-by; \"any unmarked advisory finding\" matches ci.yml's bare --fail-on-unmarked, which covers every markable check."
+by = "Kevin Rogers"
+subjects = { ".github/workflows/ci.yml" = "287db4c0cf950e73", ".github/workflows/dco.yml" = "8ed66fb756a4ce0a", "docs/checked-marks.md" = "73248f46bb8dd976" }
+
+[[mark]]
+file = "AGENTS.md"
+mode = "claim-words-counts"
+unit = "f5370039df5c5f20"
+copies = 1
+note = "\"four\" and \"all three from ci.yml\" checked against ruleset 23530440's required_status_checks and ci.yml's jobs (typecheck, test, claims)."
+by = "Kevin Rogers"
+subjects = { ".github/workflows/ci.yml" = "287db4c0cf950e73", ".github/workflows/dco.yml" = "8ed66fb756a4ce0a", "docs/checked-marks.md" = "73248f46bb8dd976" }
