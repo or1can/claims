@@ -48,7 +48,7 @@ file = "AGENTS.md"
 mode = "stale-claims"
 unit = "394dfe528a9008c5"
 copies = 1
-note = "Read against ci.yml with the new Claims job: the required checks named (Typecheck, Test, Signed-off-by) are still the ruleset's three; Claims runs but is not required. The \"section\" is a shell comment inside a sh fence, misread as a heading."
+note = "Read against ci.yml with the new Claims job: the section names Typecheck, Test and Claims from it, plus Signed-off-by from dco.yml, matching the ruleset's four required checks. The \"section\" is a shell comment inside a sh fence, misread as a heading."
 by = "Kevin Rogers"
 subjects = { ".github/workflows/ci.yml" = "287db4c0cf950e73", ".github/workflows/dco.yml" = "8ed66fb756a4ce0a" }
 
@@ -60,3 +60,21 @@ copies = 1
 note = "ci.yml is cited only as an example of path resolution; nothing in the section depends on its content."
 by = "Kevin Rogers"
 subjects = { ".github/workflows/ci.yml" = "287db4c0cf950e73", "claims/config.py" = "8061ce4e20a17e51", "docs/configuring.md#append-only-files" = "7b641ca9032d95d6", "docs/configuring.md#navigation-pages" = "d761e008a5c92152" }
+
+[[mark]]
+file = "AGENTS.md"
+mode = "claim-words-totalising"
+unit = "f5370039df5c5f20"
+copies = 1
+note = "Checked against ruleset 23530440: Claims is added to its required_status_checks with this PR, giving Typecheck, Test, Claims, Signed-off-by; \"any unmarked advisory finding\" matches ci.yml's bare --fail-on-unmarked, which covers every markable check."
+by = "Kevin Rogers"
+subjects = { ".github/workflows/ci.yml" = "287db4c0cf950e73", ".github/workflows/dco.yml" = "8ed66fb756a4ce0a", "docs/checked-marks.md" = "73248f46bb8dd976" }
+
+[[mark]]
+file = "AGENTS.md"
+mode = "claim-words-counts"
+unit = "f5370039df5c5f20"
+copies = 1
+note = "\"four\" and \"all three from ci.yml\" checked against ruleset 23530440's required_status_checks and ci.yml's jobs (typecheck, test, claims)."
+by = "Kevin Rogers"
+subjects = { ".github/workflows/ci.yml" = "287db4c0cf950e73", ".github/workflows/dco.yml" = "8ed66fb756a4ce0a", "docs/checked-marks.md" = "73248f46bb8dd976" }
