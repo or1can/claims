@@ -1,0 +1,51 @@
+$ git add README.md spec.md
+[exit 0]
+
+$ git commit -m "Document releasing"
+[GATE] README.md:10 (check-file-refs) `scripts/deploy.sh` does not resolve to a tracked file
+[advisory] spec.md:3 (claim-words-totalising) Every release is tagged before it is pushed.
+[exit 1]
+
+$ sed -i.bak 's/deploy.sh/release.sh/' README.md && rm README.md.bak && git add README.md
+[exit 0]
+
+$ git commit -m "Document releasing"
+[advisory] spec.md:3 (claim-words-totalising) Every release is tagged before it is pushed.
+[main e6f396a] Document releasing
+ 2 files changed, 4 insertions(+)
+[exit 0]
+
+$ git push
+[advisory] spec.md:3 (claim-words-totalising) Every release is tagged before it is pushed.
+13 checked, 1 finding(s), 0 gate failure(s), 1 unmarked
+failing: 1 unmarked advisory finding(s); fix or mark each
+error: failed to push some refs to '../remote.git'
+[exit 1]
+
+$ echo 'spec.md:3 claim-words-totalising scripts/release.sh tags before pushing' | python3 -P -m claims.cli mark-checked --diff-range origin/main --by Reader
+marked 1 finding(s) in claims.checked.toml
+[exit 0]
+
+$ cat claims.checked.toml
+[[mark]]
+file = "spec.md"
+mode = "claim-words-totalising"
+unit = "b498eb80b8408ec9"
+copies = 1
+note = "scripts/release.sh tags before pushing"
+by = "Reader"
+subjects = {}
+[exit 0]
+
+$ git add claims.checked.toml && git commit -m 'Mark the release claim checked'
+[main a92e086] Mark the release claim checked
+ 1 file changed, 8 insertions(+)
+ create mode 100644 claims.checked.toml
+[exit 0]
+
+$ git push
+13 checked, 0 finding(s), 0 gate failure(s), 1 quiet while checked, 0 unmarked, 1 mark(s) added in range
+To ../remote.git
+   0f375cb..a92e086  main -> main
+[exit 0]
+
