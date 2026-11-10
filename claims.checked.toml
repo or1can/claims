@@ -15,3 +15,48 @@ copies = 1
 note = "Deliberate splice: the Swift half of docs/checks/spliced-docs.md's worked example; lines 2-3 belong on canRestoreInPlace and must stay stranded above restoreBlocker for the capture to show the finding."
 by = "Kevin Rogers"
 subjects = {}
+
+[[mark]]
+file = "AGENTS.md"
+mode = "claim-words-about-elsewhere"
+unit = "baea593a76f1d957"
+copies = 1
+note = "A rule for future changes, not a description of TODO.md's current content; nothing it names needs to exist for it to hold."
+by = "Kevin Rogers"
+subjects = { "TODO.md" = "57bcd04343ac2af5" }
+
+[[mark]]
+file = "AGENTS.md"
+mode = "claim-words-totalising"
+unit = "ebcd05b50cec821c"
+copies = 1
+note = "Deliberate: \"only ratect\" is the point of the rule, and was true when written — this PR is what makes this repository run the 0.28 features too."
+by = "Kevin Rogers"
+subjects = {}
+
+[[mark]]
+file = "AGENTS.md"
+mode = "claim-words-counts"
+unit = "ebcd05b50cec821c"
+copies = 1
+note = "Same sentence as the totalising mark: \"only\" is the deliberate contrast between ratect and this repository."
+by = "Kevin Rogers"
+subjects = {}
+
+[[mark]]
+file = "AGENTS.md"
+mode = "stale-claims"
+unit = "394dfe528a9008c5"
+copies = 1
+note = "Read against ci.yml with the new Claims job: the required checks named (Typecheck, Test, Signed-off-by) are still the ruleset's three; Claims runs but is not required. The \"section\" is a shell comment inside a sh fence, misread as a heading."
+by = "Kevin Rogers"
+subjects = { ".github/workflows/ci.yml" = "240299439ae5d4a8", ".github/workflows/dco.yml" = "8ed66fb756a4ce0a" }
+
+[[mark]]
+file = "docs/checks/stale-claims.md"
+mode = "stale-claims"
+unit = "8652909ce0f49280"
+copies = 1
+note = "ci.yml is cited only as an example of path resolution; nothing in the section depends on its content."
+by = "Kevin Rogers"
+subjects = { ".github/workflows/ci.yml" = "240299439ae5d4a8", "claims/config.py" = "8061ce4e20a17e51", "docs/configuring.md#append-only-files" = "7b641ca9032d95d6", "docs/configuring.md#navigation-pages" = "d761e008a5c92152" }

@@ -211,3 +211,11 @@ files = [
     "docs/index.md",
     "docs/installation.md",
 ]
+
+# `AGENTS.md` is what the rest of this tree points contributors at, "see
+# `AGENTS.md`'s Typechecking section", rather than a page whose content a
+# sentence summarises. Named whole it was a subject of every such section,
+# so any edit to it ranked nine unrelated sections in `stale-claims` and
+# would expire their marks. A link with an anchor into it still counts.
+[subjects]
+navigation = ["AGENTS.md"]

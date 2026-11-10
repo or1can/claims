@@ -188,6 +188,14 @@ would otherwise be blocked from merging their own work), so a green PR is
 sufficient — merge it yourself once CI passes, the same way any other
 merge lands.
 
+### Adopting what ships
+
+This repository runs `claims` on itself, and adopts a feature in the
+release that ships it: a new config key, mode or CLI flag that a
+consuming project would set is set here too, in the same pull request, or
+`TODO.md` says why it isn't. A feature only `ratect` runs is one whose
+cost the people shaping it haven't paid.
+
 ### Check severity: recall over precision
 
 When a check is genuinely torn between two thresholds — a duplication
