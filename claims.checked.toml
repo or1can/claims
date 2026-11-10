@@ -44,15 +44,6 @@ by = "Kevin Rogers"
 subjects = {}
 
 [[mark]]
-file = "AGENTS.md"
-mode = "stale-claims"
-unit = "394dfe528a9008c5"
-copies = 1
-note = "Read against ci.yml with the new Claims job: the section names Typecheck, Test and Claims from it, plus Signed-off-by from dco.yml, matching the ruleset's four required checks. The \"section\" is a shell comment inside a sh fence, misread as a heading."
-by = "Kevin Rogers"
-subjects = { ".github/workflows/ci.yml" = "287db4c0cf950e73", ".github/workflows/dco.yml" = "8ed66fb756a4ce0a" }
-
-[[mark]]
 file = "docs/checks/stale-claims.md"
 mode = "stale-claims"
 unit = "8652909ce0f49280"
@@ -78,3 +69,75 @@ copies = 1
 note = "\"four\" and \"all three from ci.yml\" checked against ruleset 23530440's required_status_checks and ci.yml's jobs (typecheck, test, claims)."
 by = "Kevin Rogers"
 subjects = { ".github/workflows/ci.yml" = "287db4c0cf950e73", ".github/workflows/dco.yml" = "8ed66fb756a4ce0a", "docs/checked-marks.md" = "73248f46bb8dd976" }
+
+[[mark]]
+file = "AGENTS.md"
+mode = "stale-claims"
+unit = "8e4f8ea8f0f2e26d"
+copies = 1
+note = "Re-read for the 0.28.2 bump: plugin.json and pyproject.toml both move to 0.28.2 with a CHANGELOG entry, and test_plugin_manifest.py still pins them equal."
+by = "Kevin Rogers"
+subjects = { ".claude-plugin/plugin.json" = "45aeb93c99b49e81", "decisions/0004-docs-is-the-user-facing-tree.md" = "d65bd4ae8cb8b4ac", "pyproject.toml" = "1a475caf288a0dd4", "tests/test_plugin_manifest.py" = "f9e134c1ddb47151" }
+
+[[mark]]
+file = "AGENTS.md"
+mode = "stale-claims"
+unit = "c4e83690fc1a828d"
+copies = 1
+note = "pyproject.toml and uv.lock changed only by the claims version bump; the dev-group pyright pin and the exact-match output are unchanged."
+by = "Kevin Rogers"
+subjects = { "decisions/0008-a-command-names-its-own-environment.md" = "ce9132a4784be55c", "pyproject.toml" = "1a475caf288a0dd4", "uv.lock" = "69e37862fbdb46d8" }
+
+[[mark]]
+file = "decisions/0008-a-command-names-its-own-environment.md"
+mode = "stale-claims"
+unit = "86ae35d58a6aa3b5"
+copies = 1
+note = "pyproject.toml changed only by the version bump; nothing here depends on the version string."
+by = "Kevin Rogers"
+subjects = { "pyproject.toml" = "1a475caf288a0dd4" }
+
+[[mark]]
+file = "agents/docs.md"
+mode = "stale-claims"
+unit = "f2571114ef32d2be"
+copies = 1
+note = "SUMMARY.md, book.toml and CHANGELOG.md unchanged in role: docs/ is still the published root, SUMMARY.md still gates publication, CHANGELOG.md still the release record."
+by = "Kevin Rogers"
+subjects = { "CHANGELOG.md" = "4294e28672bc81911294fb0930b84b047849f691", "book.toml" = "1944223542e98ac8", "decisions/0004-docs-is-the-user-facing-tree.md" = "d65bd4ae8cb8b4ac", "docs/SUMMARY.md" = "12a8a71191633987" }
+
+[[mark]]
+file = "agents/docs.md"
+mode = "stale-claims"
+unit = "992ac522673fcb80"
+copies = 1
+note = "The rules read true against the docs/checks/stale-claims.md edit, which is present tense with no version or \"not yet\"."
+by = "Kevin Rogers"
+subjects = { "CHANGELOG.md" = "4294e28672bc81911294fb0930b84b047849f691", "README.md" = "db4586aaa4c1126a", "docs/SUMMARY.md" = "12a8a71191633987", "docs/index.md" = "82762e1e81e9b3a5" }
+
+[[mark]]
+file = "docs/SUMMARY.md"
+mode = "stale-claims"
+unit = "52cdd6fcab22cbf9"
+copies = 1
+note = "Navigation list; every linked check page still exists, and the stale-claims.md edit adds no page."
+by = "Kevin Rogers"
+subjects = { "docs/checks/check-cli-flags.md" = "44bda96325c02db3", "docs/checks/check-config-defaults.md" = "1d9bf9a74d0896b3", "docs/checks/check-env-vars.md" = "319716cdb042161c", "docs/checks/claim-words.md" = "312be6f331b007a3", "docs/checks/judgment-agent.md" = "58930e45fddd97e1", "docs/checks/restatement.md" = "e553f0df72626846", "docs/checks/spliced-docs.md" = "e819a2b0f35f4571", "docs/checks/stale-claims.md" = "edaf624c22b69b89", "docs/checks/temporal-words.md" = "f68e411131bc8006" }
+
+[[mark]]
+file = "decisions/0004-docs-is-the-user-facing-tree.md"
+mode = "stale-claims"
+unit = "de00163e80311042"
+copies = 1
+note = "Only plugin.json's version moved. \"For as long as check-file-refs has no historical mode\" is dated (historical shipped since), left as the ADR's record of its own date."
+by = "Kevin Rogers"
+subjects = { ".claude-plugin/plugin.json" = "45aeb93c99b49e81", "claims/checks/check_file_refs.py" = "c2ac8d9562a70f4d", "claims/checks/executable_claims.py" = "967e49ef7ed3d693", "claims/skill/SKILL.md" = "bd62349c28ccf511" }
+
+[[mark]]
+file = "README.md"
+mode = "stale-claims"
+unit = "8652909ce0f49280"
+copies = 1
+note = "The gate/advisory definitions and the check list are unchanged by this fix."
+by = "Kevin Rogers"
+subjects = { "docs/checked-marks.md" = "73248f46bb8dd976", "docs/checks/check-citations.md" = "ecb243a4acd27885", "docs/checks/check-cli-flags.md" = "44bda96325c02db3", "docs/checks/check-config-defaults.md" = "1d9bf9a74d0896b3", "docs/checks/check-env-vars.md" = "319716cdb042161c", "docs/checks/check-file-refs.md" = "db3236482a102adf", "docs/checks/check-links.md" = "2c6b3ddee6785686", "docs/checks/claim-words.md" = "312be6f331b007a3", "docs/checks/executable-claims.md" = "9a2ec8a527566d4d", "docs/checks/judgment-agent.md" = "58930e45fddd97e1", "docs/checks/restatement.md" = "e553f0df72626846", "docs/checks/spliced-docs.md" = "e819a2b0f35f4571", "docs/checks/stale-claims.md" = "edaf624c22b69b89", "docs/checks/temporal-words.md" = "f68e411131bc8006", "docs/concepts.md" = "41f674d1abc601da", "docs/configuring.md" = "a27fc69a3e4bf5b5" }

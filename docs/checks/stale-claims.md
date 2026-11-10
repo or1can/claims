@@ -15,7 +15,9 @@ has not changed at all.
 ## What it checks
 
 A **section** is a heading and everything below it to the next heading,
-at any level, or the whole file when it has no heading. In a file with
+at any level, or the whole file when it has no heading. A line inside a
+fenced code block is never a heading, so a `# comment` in a shell example
+stays part of the section it sits in. In a file with
 headings, lines above the first belong to no section and are not
 ranked. The section is the unit because a claim about a file is rarely
 one sentence, and the heading is what the finding names.
