@@ -5,3 +5,6 @@ __pycache__/
 .claude/settings.local.json
 /claims.local.toml
 /book
+
+# The tutorial practice repository scripts/tutorial.py builds.
+/.tutorial/

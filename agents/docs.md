@@ -65,6 +65,20 @@ adding a page means adding it there too.
    what was actually done instead. That is the exception, not a second
    equal option.
 
+   [`docs/tutorial.md`](../docs/tutorial.md)'s output goes through
+   [`scripts/tutorial.py`](../scripts/tutorial.py) instead, because it
+   drives the real hooks through real `git` commands rather than calling
+   a check through its seam. A step's commands are the lines of
+   `examples/tutorial/steps.sh` between that step's mdBook anchors,
+   which the page includes, and `scripts/tutorial.py capture` runs
+   those same lines against a
+   practice repository built from `examples/tutorial/`, copying each
+   step's `states/<step>/` in first as the edit the reader makes by
+   hand, and writes `docs/captures/tutorial/<step>.txt`.
+   [`tests/test_tutorial.py`](../tests/test_tutorial.py) re-runs it,
+   failing when a committed capture no longer matches, and holds the
+   steps, the captures and the page's includes to each other.
+
    There is no ANSI handling here and none is needed: `claims` emits no
    colour, so a plain fenced block is the whole requirement.
 2. **Show, then clarify.** Where the capture shows it, prose does not

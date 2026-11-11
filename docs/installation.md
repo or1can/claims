@@ -319,6 +319,5 @@ execute, are on [Configuring `claims`](configuring.md).
 
 ## Next
 
-[Concepts](concepts.md) defines the vocabulary the rest of the site uses:
-gate versus advisory, mode, candidate versus verdict, and what makes a
-claim live or dated.
+[Tutorial: documenting a release](tutorial.md) has you commit a wrong doc
+in a practice project and watch the real commit hook refuse it.

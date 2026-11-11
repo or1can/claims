@@ -1,0 +1,2 @@
+#!/bin/sh
+exec uv run -q python -m claims.cli --fail-on-unmarked --diff-range origin/main...HEAD

@@ -264,3 +264,12 @@ unit = "53f9fac61c746451"
 copies = 1
 note = "scripts/capture.py still writes docs/captures/<check>.txt from examples/<check>/ with history/, local/ and claims.toml seeded as described, and tests/test_captures.py still re-runs it; #221 changed only main()'s loop to registered checks plus checked-marks"
 subjects = { "docs/installation.md" = "4f2d6232dc1b90f9", "scripts/capture.py" = "38abb2886bfbfbdf", "tests/test_captures.py" = "7193d8987d213229" }
+
+[[mark]]
+file = "agents/docs.md"
+mode = "claim-words-about-elsewhere"
+unit = "a9a5f9c4e4eb7024"
+copies = 1
+note = "scripts/tutorial.py runs steps.sh through sh -c with the real hooks installed, and docs/tutorial.md includes its captures; neither goes through scripts/capture.py's check seam"
+by = "Kevin Rogers"
+subjects = { "claims/git.py" = "7e8123bf113f89cf", "docs/tutorial.md" = "ef69ddf71a4e69b7", "scripts/tutorial.py" = "bfaf8d0fb5331ef9" }
