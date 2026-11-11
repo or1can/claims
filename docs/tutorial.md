@@ -215,7 +215,7 @@ then what you verified; `mark-checked` refuses an entry without a note.
 
 `mark-checked` runs the checks itself and marks only a finding of that
 run. By default it runs over `HEAD`, the changes not yet committed, and
-the sentence was committed in the last step, so
+the sentence was committed when you fixed the doc, so
 [claim-words](checks/claim-words.md), which reads only what a diff
 added, would find nothing there to mark. `--diff-range origin/main`
 compares with the remote's tip instead, so the run covers the commits
@@ -225,8 +225,12 @@ The mark is written to `claims.checked.toml`, which the `cat` shows. Its
 `unit` is a fingerprint of the marked sentence, not something to read or
 write by hand: the mark follows the sentence rather than its line, and
 stops applying once a word of it changes, as
-[Units](checked-marks.md#units) sets out. The file is committed like any
-other, and the commit hook has nothing to say about it.
+[Units](checked-marks.md#units) sets out. `subjects` is empty because the
+sentence names no file: a mark also [stops
+applying](checked-marks.md#when-a-mark-stops-applying) when a file its
+sentence names changes, so this one does not expire if
+`scripts/release.sh` <!-- example --> does. The file is committed like
+any other, and the commit hook has nothing to say about it.
 
 ## Pushing again
 
@@ -253,8 +257,8 @@ shows](checked-marks.md#what-a-run-shows) explains.
 
 ## Going further
 
-- [`[hook] fail_on_unmarked`](configuring.md#blocking-a-commit-on-unmarked-findings) blocks the commit itself, not only the push, on unmarked findings from the checks it lists.
-- The [Claude Code plugin](installation.md#install) adds the `check-claims` skill, and [judgment-agent](checks/judgment-agent.md), whose subagent reads the code a claim cites.
+- [`[hook] fail_on_unmarked`](configuring.md#blocking-a-commit-on-unmarked-findings) has the commit hook itself block on unmarked findings from the checks it lists.
+- The Claude Code plugin adds the [`check-claims`](installation.md#install) skill and the [judgment-agent](checks/judgment-agent.md) subagent, which reads the code a claim cites.
 
 ## Next
 
