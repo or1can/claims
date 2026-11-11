@@ -240,3 +240,27 @@ copies = 1
 note = "The gate/advisory definitions and the check list are unchanged by a sentence on subject shapes."
 by = "Kevin Rogers"
 subjects = { "docs/checked-marks.md" = "73248f46bb8dd976", "docs/checks/check-citations.md" = "ecb243a4acd27885", "docs/checks/check-cli-flags.md" = "44bda96325c02db3", "docs/checks/check-config-defaults.md" = "1d9bf9a74d0896b3", "docs/checks/check-env-vars.md" = "319716cdb042161c", "docs/checks/check-file-refs.md" = "db3236482a102adf", "docs/checks/check-links.md" = "2c6b3ddee6785686", "docs/checks/claim-words.md" = "312be6f331b007a3", "docs/checks/executable-claims.md" = "9a2ec8a527566d4d", "docs/checks/judgment-agent.md" = "58930e45fddd97e1", "docs/checks/restatement.md" = "e553f0df72626846", "docs/checks/spliced-docs.md" = "e819a2b0f35f4571", "docs/checks/stale-claims.md" = "45b9e694c964e927", "docs/checks/temporal-words.md" = "f68e411131bc8006", "docs/concepts.md" = "41f674d1abc601da", "docs/configuring.md" = "a27fc69a3e4bf5b5" }
+
+[[mark]]
+file = "docs/checks/executable-claims.md"
+mode = "stale-claims"
+unit = "50d858e0985ecc7f"
+copies = 1
+note = "scripts/capture.py still writes an example's local/ into the throwaway repository's working tree unstaged, executable bit carried; #221 changed only which names main() regenerates"
+subjects = { "docs/captures/executable-claims.txt" = "286fe731e65db64a", "examples/executable-claims/README.md" = "6a19528942bde738", "examples/executable-claims/local/claims.local.toml" = "89f958645c8a445d", "scripts/capture.py" = "38abb2886bfbfbdf" }
+
+[[mark]]
+file = "AGENTS.md"
+mode = "stale-claims"
+unit = "6715f004a7dd6c85"
+copies = 1
+note = "tests/test_captures.py still holds every registered check to a capture under docs/captures/; #221 added a test for main()'s regenerate loop, nothing about pages, SUMMARY.md or README.md's index"
+subjects = { ".github/workflows/docs.yml" = "9174303cf04e3b3d", "README.md" = "db4586aaa4c1126a", "agents/docs.md" = "002fdf0a74c305d9", "book.toml" = "1944223542e98ac8", "docs/SUMMARY.md" = "12a8a71191633987", "tests/test_captures.py" = "7193d8987d213229", "tests/test_check_pages.py" = "c472fae497911ddf" }
+
+[[mark]]
+file = "agents/docs.md"
+mode = "stale-claims"
+unit = "53f9fac61c746451"
+copies = 1
+note = "scripts/capture.py still writes docs/captures/<check>.txt from examples/<check>/ with history/, local/ and claims.toml seeded as described, and tests/test_captures.py still re-runs it; #221 changed only main()'s loop to registered checks plus checked-marks"
+subjects = { "docs/installation.md" = "4f2d6232dc1b90f9", "scripts/capture.py" = "38abb2886bfbfbdf", "tests/test_captures.py" = "7193d8987d213229" }
