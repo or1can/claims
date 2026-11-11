@@ -225,23 +225,6 @@ subjects = { "docs/captures/executable-claims.txt" = "286fe731e65db64a", "exampl
 [[mark]]
 file = "agents/docs.md"
 mode = "stale-claims"
-unit = "53f9fac61c746451"
-copies = 1
-note = "scripts/capture.py still writes docs/captures/<check>.txt from examples/<check>/ with history/, local/ and claims.toml seeded as described, and tests/test_captures.py still re-runs it; #221 changed only main()'s loop to registered checks plus checked-marks"
-subjects = { "docs/installation.md" = "4f2d6232dc1b90f9", "scripts/capture.py" = "38abb2886bfbfbdf", "tests/test_captures.py" = "7193d8987d213229" }
-
-[[mark]]
-file = "agents/docs.md"
-mode = "claim-words-about-elsewhere"
-unit = "a9a5f9c4e4eb7024"
-copies = 1
-note = "scripts/tutorial.py runs steps.sh through sh -c with the real hooks installed, and docs/tutorial.md includes its captures; neither goes through scripts/capture.py's check seam"
-by = "Kevin Rogers"
-subjects = { "claims/git.py" = "7e8123bf113f89cf", "docs/tutorial.md" = "ef69ddf71a4e69b7", "scripts/tutorial.py" = "bfaf8d0fb5331ef9" }
-
-[[mark]]
-file = "agents/docs.md"
-mode = "stale-claims"
 unit = "f2571114ef32d2be"
 copies = 1
 note = "docs/SUMMARY.md still decides what is published; #222 added docs/tutorial.md to it, which is that rule followed, and book.toml and CHANGELOG.md are unchanged in role"
@@ -301,3 +284,21 @@ copies = 1
 note = "docs/installation.md changed only its Next section for #222; the hook, skill, subagent and CLI surfaces this section lists are unchanged"
 by = "Kevin Rogers"
 subjects = { "docs/installation.md" = "29af6d8fd7f44bac" }
+
+[[mark]]
+file = "agents/docs.md"
+mode = "claim-words-about-elsewhere"
+unit = "a9a5f9c4e4eb7024"
+copies = 1
+note = "scripts/tutorial.py runs steps.sh through sh -c with the real hooks installed, and docs/tutorial.md includes its captures; neither goes through scripts/capture.py's check seam"
+by = "Kevin Rogers"
+subjects = { "claims/git.py" = "7e8123bf113f89cf", "docs/tutorial.md" = "43f6b9cf132d7742", "scripts/tutorial.py" = "475d3d5b7635e75c" }
+
+[[mark]]
+file = "agents/docs.md"
+mode = "stale-claims"
+unit = "53f9fac61c746451"
+copies = 1
+note = "re-read after the review edits: scripts/tutorial.py still runs steps.sh's lines against its own Acme, copies states/<step>/ first and writes docs/captures/tutorial/<step>.txt, and docs/tutorial.md still includes them"
+by = "Kevin Rogers"
+subjects = { "claims/git.py" = "7e8123bf113f89cf", "docs/installation.md" = "29af6d8fd7f44bac", "docs/tutorial.md" = "43f6b9cf132d7742", "examples/tutorial/steps.sh" = "8e74f8272c310711", "scripts/capture.py" = "38abb2886bfbfbdf", "scripts/tutorial.py" = "475d3d5b7635e75c", "tests/test_captures.py" = "7193d8987d213229", "tests/test_tutorial.py" = "0648a0f0d960676a" }

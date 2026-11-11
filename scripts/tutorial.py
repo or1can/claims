@@ -118,7 +118,7 @@ def capture() -> dict[str, str]:
     transcripts: dict[str, str] = {}
     with tempfile.TemporaryDirectory(dir=WORKSPACE) as temp:
         acme = Path(temp) / "acme"
-        shown = str(acme.relative_to(REPO_ROOT))
+        temp_acme = str(acme.relative_to(REPO_ROOT))
         env = _isolated_env(acme)
         for step, commands in steps():
             if (EXAMPLE / "states" / step).is_dir():
@@ -134,7 +134,7 @@ def capture() -> dict[str, str]:
                     stderr=subprocess.STDOUT,
                     text=True,
                 )
-                output = ran.stdout.replace(shown, str(ACME.relative_to(REPO_ROOT)))
+                output = ran.stdout.replace(temp_acme, str(ACME.relative_to(REPO_ROOT)))
                 if output and not output.endswith("\n"):
                     output += "\n"
                 exit_line = f"[exit {ran.returncode}]\n" if ran.returncode else ""
@@ -204,12 +204,12 @@ def _git(*args: str) -> str:
     return ran.stdout
 
 
-def main(argv: list[str] | None = None) -> int:
+def main() -> int:
     parser = argparse.ArgumentParser(prog="scripts/tutorial.py")
     command = parser.add_subparsers(dest="command", required=True)
     command.add_parser("setup", help="Delete and rebuild .tutorial/acme.")
     command.add_parser("capture", help="Rewrite docs/captures/tutorial/.")
-    args = parser.parse_args(argv)
+    args = parser.parse_args()
     if args.command == "setup":
         acme = Path(os.environ.get(ACME_ENV, ACME))
         setup(acme)

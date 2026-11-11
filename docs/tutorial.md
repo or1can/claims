@@ -1,8 +1,8 @@
 # Tutorial: documenting a release
 
 In this tutorial you document how to cut a release of a small practice
-project, get a doc wrong in two ways, and watch the real commit hook
-refuse the commit. You type every command yourself, and every block of
+project, make a mistake in the doc, and watch the real commit hook refuse
+the commit. You type every command yourself, and every block of
 output on this page is what those same commands print.
 
 ## Setting up
@@ -113,10 +113,10 @@ page, as your identity, dates and git version differ. The `claims` lines,
 the ones starting `[GATE]` and `[advisory]`, should match.
 
 The commit is refused by the first of them, a gate finding from
-[check-file-refs](checks/check-file-refs.md): `scripts/deploy.sh` <!-- example -->
-names no file Acme tracks. A gate finding is a claim `claims` has proved
-false, and it blocks the commit until the doc is fixed. The second line
-is an advisory finding from claim-words: "Every release" is a sweeping
+[check-file-refs](checks/check-file-refs.md). A gate finding is a claim
+`claims` has proved false, and it blocks the commit until the doc is
+fixed. The second line is an advisory finding from
+[claim-words](checks/claim-words.md): "Every release" is a sweeping
 claim that may well be true, so it is printed for someone to check, and
 it blocks nothing.
 
