@@ -114,10 +114,12 @@ class StaleClaimsTests(RegistryClearingTestCase):
     def _findings(self, repo_root: Path) -> list[Finding]:
         return list(run(repo_root, _audit_range(repo_root), {}).findings)
 
-    def _findings_with_toml(self, repo_root: Path, claims_toml: str) -> list[Finding]:
+    def _findings_with_toml(
+        self, repo_root: Path, claims_toml: str, diff_range: str | None = None
+    ) -> list[Finding]:
         (repo_root / "claims.toml").write_text(claims_toml)
         config = load_config(repo_root)
-        return list(run(repo_root, _audit_range(repo_root), config).findings)
+        return list(run(repo_root, diff_range or _audit_range(repo_root), config).findings)
 
     def test_the_most_churned_subject_ranks_first(self) -> None:
         with Repo() as repo:
@@ -225,7 +227,9 @@ class StaleClaimsTests(RegistryClearingTestCase):
 
     def _grow(self, repo: Repo, name: str, claims_toml: str = "") -> list[Finding]:
         """Ranks `notes.md`'s one section, which names `name`, after `name`
-        has had a line inserted at its top and another appended."""
+        has had a line inserted at its top and another appended. A staged
+        rewrite of one of its lines, in no commit yet, brings the section
+        into the range, so its score is what the history alone gives."""
 
         repo.write("notes.md", f"## Releases\n\nSee `{name}` for each release.\n")
         repo.write(name, "# Log\n\n## 1.0\n\n- First.\n")
@@ -234,7 +238,9 @@ class StaleClaimsTests(RegistryClearingTestCase):
         repo.commit(BASE + 100)
         repo.write(name, "# Log\n\n## Unreleased\n\n- Next.\n\n## 1.0\n\n- First.\n- Also.\n")
         repo.commit(BASE + 200)
-        return self._findings_with_toml(repo.root, claims_toml)
+        text = (repo.root / name).read_text()
+        repo.write(name, text.replace("- First.", "- Initial."))
+        return self._findings_with_toml(repo.root, claims_toml, "HEAD")
 
     def test_appends_to_a_changelog_subject_are_not_churn(self) -> None:
         with Repo() as repo:
@@ -290,8 +296,11 @@ class StaleClaimsTests(RegistryClearingTestCase):
                 capture_output=True, text=True, check=True,
             ).stdout.split()
             self.assertEqual(len(parents), 2, "the merge must be in the file's history")
+            # Staged, so the range ranks the section and the history scores it.
+            text = (repo.root / "CHANGELOG.md").read_text()
+            repo.write("CHANGELOG.md", text.replace("- Main.", "- Mainline."))
 
-            self.assertEqual(self._findings_with_toml(repo.root, ""), [])
+            self.assertEqual(self._findings_with_toml(repo.root, "", "HEAD"), [])
 
     def test_appends_to_a_listed_append_only_subject_are_not_churn(self) -> None:
         with Repo() as repo:
@@ -305,6 +314,150 @@ class StaleClaimsTests(RegistryClearingTestCase):
 
         self.assertEqual(len(findings), 1)
         self.assertIn("RELEASES.md 2 commits (67% of its history)", findings[0].message)
+
+    def _releasing(self, repo: Repo, name: str = "CHANGELOG.md") -> None:
+        """`guide.md` names `name`, whose second commit edits a line in
+        place, so its counted history is that one edit."""
+
+        repo.write("guide.md", f"## Releasing\n\nRecord each change in `{name}`.\n")
+        name = name.removeprefix("./")
+        repo.write(name, "# Log\n\n## Unreleased\n\n- First.\n")
+        repo.commit(BASE)
+        repo.write(name, "# Log\n\n## Unreleased\n\n- Initial.\n")
+        repo.commit(BASE + 100)
+
+    def _append(self, repo: Repo, name: str = "CHANGELOG.md") -> None:
+        text = (repo.root / name).read_text()
+        repo.write(name, text + "\n## [0.1.0]\n")
+
+    def test_a_range_only_growing_a_changelog_subject_ranks_nothing(self) -> None:
+        with Repo() as repo:
+            self._releasing(repo)
+            self.assertEqual(len(self._findings_with_toml(repo.root, "", "HEAD~1")), 1)
+            self._append(repo)
+            repo.commit(BASE + 200)
+            self.assertEqual(self._findings_with_toml(repo.root, "", "HEAD~1"), [])
+
+    def test_a_range_rewriting_a_changelog_line_ranks_its_section(self) -> None:
+        with Repo() as repo:
+            self._releasing(repo)
+            text = (repo.root / "CHANGELOG.md").read_text()
+            repo.write("CHANGELOG.md", text.replace("## Unreleased", "## [0.1.0]"))
+            repo.commit(BASE + 200)
+            findings = self._findings_with_toml(repo.root, "", "HEAD~1")
+        self.assertEqual([f.citation for f in findings], ["guide.md:1"])
+        self.assertIn("CHANGELOG.md 2 commits (100% of its history)", findings[0].message)
+
+    def test_a_line_added_and_rewritten_inside_the_range_ranks_its_section(self) -> None:
+        with Repo() as repo:
+            self._releasing(repo)
+            self._append(repo)
+            repo.commit(BASE + 200)
+            text = (repo.root / "CHANGELOG.md").read_text()
+            repo.write("CHANGELOG.md", text.replace("## [0.1.0]", "## [0.1.0] - 2026-11-11"))
+            repo.commit(BASE + 300)
+            # Over both commits the file only grew; the second rewrote a line.
+            findings = self._findings_with_toml(repo.root, "", "HEAD~2")
+        self.assertEqual([f.citation for f in findings], ["guide.md:1"])
+        self.assertIn("CHANGELOG.md 2 commits (100% of its history)", findings[0].message)
+
+    def test_a_staged_rewrite_of_a_line_the_range_added_ranks_its_section(self) -> None:
+        with Repo() as repo:
+            self._releasing(repo)
+            self._append(repo)
+            repo.commit(BASE + 200)
+            text = (repo.root / "CHANGELOG.md").read_text()
+            repo.write("CHANGELOG.md", text.replace("## [0.1.0]", "## [0.1.0] - 2026-11-11"))
+            findings = self._findings_with_toml(repo.root, "", "HEAD~1")
+        self.assertEqual([f.citation for f in findings], ["guide.md:1"])
+
+    def test_growth_beside_another_changed_subject_still_ranks_the_section(self) -> None:
+        with Repo() as repo:
+            repo.write("guide.md", "## Releasing\n\nRun `release.sh`, then record it in `CHANGELOG.md`.\n")
+            repo.write("CHANGELOG.md", "# Log\n\n## Unreleased\n\n- First.\n")
+            repo.write("release.sh", "v0\n")
+            repo.commit(BASE)
+            repo.write("release.sh", "v1\n")
+            repo.commit(BASE + 100)
+            before = self._findings_with_toml(repo.root, "", "HEAD~1")
+            self._append(repo)
+            repo.write("release.sh", "v2\n")
+            repo.commit(BASE + 200)
+            findings = self._findings_with_toml(repo.root, "", "HEAD~1")
+        self.assertEqual([f.citation for f in before], ["guide.md:1"])
+        self.assertEqual([f.citation for f in findings], ["guide.md:1"])
+        self.assertIn("release.sh 2 commits (67% of its history)", findings[0].message)
+        self.assertNotIn("CHANGELOG.md", findings[0].message)
+
+    def test_a_range_only_growing_a_listed_append_only_subject_ranks_nothing(self) -> None:
+        toml = '[subjects]\nappend_only = "RELEASES.md"\n'
+        with Repo() as repo:
+            self._releasing(repo, "RELEASES.md")
+            self._append(repo, "RELEASES.md")
+            repo.commit(BASE + 200)
+            self.assertEqual(self._findings_with_toml(repo.root, toml, "HEAD~1"), [])
+            # Unlisted, the same growth still ranks it, as it always did.
+            self.assertEqual(len(self._findings_with_toml(repo.root, "", "HEAD~1")), 1)
+
+    def test_a_staged_change_only_growing_the_changelog_ranks_nothing(self) -> None:
+        with Repo() as repo:
+            self._releasing(repo)
+            self._append(repo)
+            self.assertEqual(self._findings_with_toml(repo.root, "", "HEAD"), [])
+
+    def test_deleting_a_changelog_subject_ranks_its_section(self) -> None:
+        with Repo() as repo:
+            # An explicit path: a bare name resolves through the stem
+            # index, which a deleted file has already left.
+            self._releasing(repo, "./CHANGELOG.md")
+            repo.rm("CHANGELOG.md")
+            self.assertEqual([f.citation for f in self._findings_with_toml(repo.root, "", "HEAD")], ["guide.md:1"])
+
+    def test_deleting_an_empty_changelog_subject_ranks_its_section(self) -> None:
+        with Repo() as repo:
+            repo.write("guide.md", "## Releasing\n\nRecord each change in `./CHANGELOG.md`.\n")
+            repo.write("CHANGELOG.md", "# Log\n")
+            repo.commit(BASE)
+            repo.write("CHANGELOG.md", "")
+            repo.commit(BASE + 100)
+            # Deleting a file with no lines removes none.
+            repo.rm("CHANGELOG.md")
+            findings = self._findings_with_toml(repo.root, "", "HEAD")
+        self.assertEqual([f.citation for f in findings], ["guide.md:1"])
+
+    def test_merging_a_base_that_rewrote_the_changelog_ranks_nothing(self) -> None:
+        with Repo() as repo:
+            self._releasing(repo)
+            git = ["git", "-C", str(repo.root)]
+            subprocess.run([*git, "checkout", "-q", "-b", "feature"], check=True)
+            self._append(repo)
+            repo.commit(BASE + 200)
+            subprocess.run([*git, "checkout", "-q", "-"], check=True)
+            text = (repo.root / "CHANGELOG.md").read_text()
+            repo.write("CHANGELOG.md", text.replace("## Unreleased", "## [0.0.9]"))
+            repo.commit(BASE + 300)
+            base = subprocess.run(
+                [*git, "rev-parse", "HEAD"], capture_output=True, text=True, check=True
+            ).stdout.strip()
+            subprocess.run([*git, "checkout", "-q", "feature"], check=True)
+            date = {**os.environ, "GIT_AUTHOR_DATE": f"{BASE + 400} +0000", "GIT_COMMITTER_DATE": f"{BASE + 400} +0000"}
+            subprocess.run([*git, "merge", "-q", "--no-edit", base], check=True, env=date)
+            # The branch only grew the file; the rewrite is the base's own.
+            self.assertEqual(self._findings_with_toml(repo.root, "", base), [])
+
+    def test_a_revision_naming_no_single_commit_ranks_any_change(self) -> None:
+        with Repo() as repo:
+            self._releasing(repo)
+            findings = self._findings_with_toml(repo.root, "", "HEAD^!")
+        self.assertEqual([f.citation for f in findings], ["guide.md:1"])
+
+    def test_a_two_commit_range_reads_the_file_at_its_end_not_the_working_tree(self) -> None:
+        with Repo() as repo:
+            self._releasing(repo)
+            self._append(repo)
+            repo.commit(BASE + 200)
+            (repo.root / "CHANGELOG.md").unlink()
+            self.assertEqual(self._findings_with_toml(repo.root, "", "HEAD~1..HEAD"), [])
 
     def test_an_excluded_file_is_skipped_entirely(self) -> None:
         with Repo() as repo:

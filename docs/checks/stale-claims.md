@@ -112,6 +112,16 @@ file removed nothing either, so it is no part of that history. For a
 subject scoped to one section, a commit is left out on the same test
 over the whole file's diff.
 
+The same test decides whether such a subject brings its section into the
+range: it does only when a commit in the range, or the uncommitted
+change, removes a line from the file. Growth alone brings nothing in, a
+newly created file included, while a deletion, a rename, a binary change
+or a rewritten line still does, even a line added earlier in the same
+range. A merge in the range is not tested itself, only the commits it
+brings in, so bringing a branch up to date with a base that rewrote the
+file brings nothing in. A section is still ranked when another of its subjects changed,
+with the same score.
+
 A section and its subject changed in the same commit score zero for that
 subject, because the commit that touched both is the section's own last
 touch and not a change after it. Two separate commits that share a

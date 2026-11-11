@@ -7,6 +7,11 @@ Accepted. Issue #187; amends how
 `decisions/0010-checked-marks-expire-on-their-own.md`'s subject hashes
 treat such a file.
 
+Amended by #230: the range trigger applies the same growth test. An
+append-only subject brings a section into the range only when a commit
+in the range, or the uncommitted change, removes a line from the file,
+as a commit counts in its history only when its diff does.
+
 ## Context
 
 A changelog grows on almost every pull request, and two places read that
