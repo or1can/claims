@@ -40,7 +40,9 @@ written extension must match that file's own, letter case included, so
 is dropped rather than guessed at. The repository's own `claims.toml` is
 never named this way: `claims` names the tool, and a page about the
 configuration format does not go stale because the project tuned its
-own configuration. A section naming no subject is not ranked.
+own configuration. Neither shape takes a space, so a file whose path
+contains one is never a subject. A section naming no subject is not
+ranked.
 
 The bare form is ambiguous in a way the path form is not, because a
 word such as `cache` or `config` is as often ordinary prose or a
