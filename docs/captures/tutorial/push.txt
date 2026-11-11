@@ -1,0 +1,6 @@
+$ git push
+[advisory] RELEASING.md:12 (claim-words-totalising) Every release is tagged before it is pushed.
+13 checked, 1 finding(s), 0 gate failure(s), 1 unmarked
+failing: 1 unmarked advisory finding(s); fix or mark each
+error: failed to push some refs to '../remote.git'
+[exit 1]

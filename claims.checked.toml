@@ -241,15 +241,6 @@ by = "Kevin Rogers"
 subjects = { "CHANGELOG.md" = "aab858f0e66af8f14c707c0788cc4d2c8077814b", "README.md" = "db4586aaa4c1126a", "docs/SUMMARY.md" = "ab62590848f45867", "docs/index.md" = "82762e1e81e9b3a5" }
 
 [[mark]]
-file = "README.md"
-mode = "stale-claims"
-unit = "427ab7d67f9acf9c"
-copies = 1
-note = "docs/installation.md changed only its Next section for #222; the plugin, hook and CI setup this section summarises are unchanged"
-by = "Kevin Rogers"
-subjects = { "docs/installation.md" = "29af6d8fd7f44bac" }
-
-[[mark]]
 file = "AGENTS.md"
 mode = "stale-claims"
 unit = "6715f004a7dd6c85"
@@ -277,15 +268,6 @@ by = "Kevin Rogers"
 subjects = { ".github/workflows/ci.yml" = "efae98309a62124e", "claims/config.py" = "8061ce4e20a17e51", "docs/configuring.md#append-only-files" = "7b641ca9032d95d6", "docs/configuring.md#navigation-pages" = "d761e008a5c92152" }
 
 [[mark]]
-file = "README.md"
-mode = "stale-claims"
-unit = "4abe336640ffcdc1"
-copies = 1
-note = "docs/installation.md changed only its Next section for #222; the hook, skill, subagent and CLI surfaces this section lists are unchanged"
-by = "Kevin Rogers"
-subjects = { "docs/installation.md" = "29af6d8fd7f44bac" }
-
-[[mark]]
 file = "agents/docs.md"
 mode = "claim-words-about-elsewhere"
 unit = "a9a5f9c4e4eb7024"
@@ -295,10 +277,46 @@ by = "Kevin Rogers"
 subjects = { "claims/git.py" = "7e8123bf113f89cf", "docs/tutorial.md" = "43f6b9cf132d7742", "scripts/tutorial.py" = "475d3d5b7635e75c" }
 
 [[mark]]
+file = "README.md"
+mode = "stale-claims"
+unit = "4abe336640ffcdc1"
+copies = 1
+note = "Read against #223: installation.md changed only in its Next line, and the hook and command-line sections this cites are unchanged."
+by = "Kevin Rogers"
+subjects = { "docs/installation.md" = "e744191be03229f0" }
+
+[[mark]]
+file = "README.md"
+mode = "stale-claims"
+unit = "427ab7d67f9acf9c"
+copies = 1
+note = "Read against #223: installation.md changed only in its Next line; the install, opt-in and disable steps summarised here are unchanged."
+by = "Kevin Rogers"
+subjects = { "docs/installation.md" = "e744191be03229f0" }
+
+[[mark]]
 file = "agents/docs.md"
 mode = "stale-claims"
 unit = "53f9fac61c746451"
 copies = 1
-note = "re-read after the review edits: scripts/tutorial.py still runs steps.sh's lines against its own Acme, copies states/<step>/ first and writes docs/captures/tutorial/<step>.txt, and docs/tutorial.md still includes them"
+note = "Read against #223: tutorial.md gains the fix and push sections through the same steps.sh anchors, states/<step>/ copies and captures this describes; tutorial.py is unchanged."
 by = "Kevin Rogers"
-subjects = { "claims/git.py" = "7e8123bf113f89cf", "docs/installation.md" = "29af6d8fd7f44bac", "docs/tutorial.md" = "43f6b9cf132d7742", "examples/tutorial/steps.sh" = "8e74f8272c310711", "scripts/capture.py" = "38abb2886bfbfbdf", "scripts/tutorial.py" = "475d3d5b7635e75c", "tests/test_captures.py" = "7193d8987d213229", "tests/test_tutorial.py" = "0648a0f0d960676a" }
+subjects = { "claims/git.py" = "7e8123bf113f89cf", "docs/installation.md" = "e744191be03229f0", "docs/tutorial.md" = "4b5d55359621cd15", "examples/tutorial/steps.sh" = "fbb678e3435d6906", "scripts/capture.py" = "38abb2886bfbfbdf", "scripts/tutorial.py" = "475d3d5b7635e75c", "tests/test_captures.py" = "7193d8987d213229", "tests/test_tutorial.py" = "0648a0f0d960676a" }
+
+[[mark]]
+file = "docs/tutorial.md"
+mode = "stale-claims"
+unit = "6ae46cb7870f12d1"
+copies = 1
+note = "Read against #223: steps.sh gained only the fix and push anchors; the setup anchor this section includes is unchanged."
+by = "Kevin Rogers"
+subjects = { "docs/captures/tutorial/setup.txt" = "7faa4273bf1a080f", "docs/checks/claim-words.md" = "312be6f331b007a3", "docs/checks/executable-claims.md" = "9a2ec8a527566d4d", "examples/tutorial/start/RELEASING.md" = "e01339a3ebd32f1e", "examples/tutorial/start/claims.toml" = "cd5a281197f64651", "examples/tutorial/start/scripts/release.sh" = "fc0532d805206c82", "examples/tutorial/steps.sh" = "fbb678e3435d6906" }
+
+[[mark]]
+file = "docs/tutorial.md"
+mode = "stale-claims"
+unit = "741ad6f8e4e6d148"
+copies = 1
+note = "Read against #223: steps.sh gained only the fix and push anchors; the commit anchor this section includes is unchanged."
+by = "Kevin Rogers"
+subjects = { "docs/captures/tutorial/commit.txt" = "0305347ccd1fd713", "docs/checks/check-file-refs.md" = "db3236482a102adf", "docs/checks/claim-words.md" = "312be6f331b007a3", "examples/tutorial/states/commit/RELEASING.md" = "68c12144274c1c45", "examples/tutorial/steps.sh" = "fbb678e3435d6906" }

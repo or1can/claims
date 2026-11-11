@@ -320,4 +320,5 @@ execute, are on [Configuring `claims`](configuring.md).
 ## Next
 
 [Tutorial: documenting a release](tutorial.md) has you commit a wrong doc
-in a practice project and watch the real commit hook refuse it.
+in a practice project, have the real commit hook refuse it, fix it, and
+have the push refused on the advisory finding nobody has marked as read.
