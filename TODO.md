@@ -7,6 +7,13 @@
   is too long to read. A short history ranks high too: "100% of its
   history" for a file with seven commits (#199,
   `.out-of-scope/generated-subjects-and-history-weighting.md`).
+- `stale-claims` scores a subject on `git log` of its current path,
+  without `--follow`. A section naming a file by bare name (`` `a` ``,
+  `` `notes.txt` ``) resolves to the new path of an uncommitted rename,
+  which has no history yet, so the commit hook brings the section in and
+  reports nothing; once the rename is committed, CI ranks it. An
+  explicit path names the old path too, and is unaffected. Following
+  renames would change every subject's score. Found reviewing #230.
 - `restatement` reads an extension with no row in its built-in comment
   table (`.ts`, `.go`) whole-line, code included, so a removed line of
   code there is still reported as a retraction. A `claims.toml` key that

@@ -195,3 +195,48 @@ copies = 1
 note = "The reasoning stands; this change touches only append-only subjects, and ADR 0009's ranking rule it cites still holds for version files."
 by = "Kevin Rogers"
 subjects = { ".claude-plugin/plugin.json" = "8e0b1eb07c7c354b", ".out-of-scope/adr-status-notes-as-churn.md" = "7bc84c78d3c4041e", ".out-of-scope/comment-only-churn.md" = "a8fc5351b734ef48", ".out-of-scope/generated-subjects-and-history-weighting.md" = "01bbf99406bf555f", "pyproject.toml" = "1cfac2230fa13a09", "tests/fixtures/judgment_agent_golden/count_consistency_known_false/repo/ROADMAP.md" = "24be61be2e348715" }
+
+[[mark]]
+file = "TODO.md"
+mode = "claim-words-about-elsewhere"
+unit = "9a173c19d7820f2d"
+copies = 1
+note = "Read claims/checks/stale_claims.py commits(): history is git log --format=%H %ct -- path (or -L for a section), no --follow; reproduced the uncommitted bare-name rename giving no finding and the committed one ranking."
+by = "Kevin Rogers"
+subjects = {}
+
+[[mark]]
+file = "AGENTS.md"
+mode = "stale-claims"
+unit = "3413ae0523a5bc76"
+copies = 1
+note = "TODO.md gained one open item; the gardening rule's account of TODO.md as where unfinishable work is noted still holds."
+by = "Kevin Rogers"
+subjects = { "TODO.md" = "68990a6ccf72dd07" }
+
+[[mark]]
+file = "decisions/0005-live-and-dated-claims.md"
+mode = "stale-claims"
+unit = "86ae35d58a6aa3b5"
+copies = 1
+note = "TODO.md gained one live claim, which is what the ADR says its claims are; CONTEXT.md is unchanged."
+by = "Kevin Rogers"
+subjects = { "CONTEXT.md" = "aa0b19e4363c94e1", "TODO.md" = "68990a6ccf72dd07" }
+
+[[mark]]
+file = ".out-of-scope/generated-subjects-and-history-weighting.md"
+mode = "stale-claims"
+unit = "dd656ffcd24a40a1"
+copies = 1
+note = "TODO.md still tracks the caps-and-floors entry this points at; the change only adds an unrelated stale-claims rename item."
+by = "Kevin Rogers"
+subjects = { "TODO.md" = "68990a6ccf72dd07" }
+
+[[mark]]
+file = "AGENTS.md"
+mode = "stale-claims"
+unit = "a24aa63faff14f27"
+copies = 1
+note = "TODO.md's new item records a known gap, not an unadopted config key, mode or flag; the rule is unaffected."
+by = "Kevin Rogers"
+subjects = { "TODO.md" = "68990a6ccf72dd07" }
