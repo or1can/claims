@@ -78,7 +78,6 @@ from collections.abc import Iterator
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
-EXAMPLES_DIR = REPO_ROOT / "examples"
 CAPTURES_DIR = REPO_ROOT / "docs" / "captures"
 
 # Run as a script, neither the repo root nor `tests/` is on `sys.path` yet.
@@ -91,7 +90,7 @@ from claims.checks import claim_words  # noqa: E402
 from claims.config import load_config  # noqa: E402
 from claims.git import tracked_files  # noqa: E402
 from claims.runner import format_findings  # noqa: E402
-from support import Repo  # noqa: E402
+from support import Repo, every_check_name  # noqa: E402
 
 # Fixed rather than wall-clock, so a check that ranks by commit age sees
 # the same history on every run and every machine.
@@ -210,9 +209,12 @@ def _seeded(example: str) -> Iterator[Repo]:
 
 def main() -> int:
     CAPTURES_DIR.mkdir(exist_ok=True)
-    for example in sorted(p for p in EXAMPLES_DIR.iterdir() if p.is_dir()):
-        target = CAPTURES_DIR / f"{example.name}.txt"
-        target.write_text(capture(example.name), encoding="utf-8")
+    # The registered checks plus `checked-marks`, not every directory under
+    # `examples/`: a fixture directory there that is no check (#220's
+    # tutorial) would otherwise be imported as one.
+    for name in sorted(every_check_name() | {MARKS_EXAMPLE}):
+        target = CAPTURES_DIR / f"{name}.txt"
+        target.write_text(capture(name), encoding="utf-8")
         print(f"wrote {target.relative_to(REPO_ROOT)}")
     return 0
 
