@@ -277,46 +277,57 @@ by = "Kevin Rogers"
 subjects = { "claims/git.py" = "7e8123bf113f89cf", "docs/tutorial.md" = "43f6b9cf132d7742", "scripts/tutorial.py" = "475d3d5b7635e75c" }
 
 [[mark]]
-file = "README.md"
-mode = "stale-claims"
-unit = "4abe336640ffcdc1"
-copies = 1
-note = "Read against #223: installation.md changed only in its Next line, and the hook and command-line sections this cites are unchanged."
-by = "Kevin Rogers"
-subjects = { "docs/installation.md" = "e744191be03229f0" }
-
-[[mark]]
-file = "README.md"
-mode = "stale-claims"
-unit = "427ab7d67f9acf9c"
-copies = 1
-note = "Read against #223: installation.md changed only in its Next line; the install, opt-in and disable steps summarised here are unchanged."
-by = "Kevin Rogers"
-subjects = { "docs/installation.md" = "e744191be03229f0" }
-
-[[mark]]
 file = "agents/docs.md"
 mode = "stale-claims"
 unit = "53f9fac61c746451"
 copies = 1
-note = "Read against #223: tutorial.md gains the fix and push sections through the same steps.sh anchors, states/<step>/ copies and captures this describes; tutorial.py is unchanged."
-by = "Kevin Rogers"
-subjects = { "claims/git.py" = "7e8123bf113f89cf", "docs/installation.md" = "e744191be03229f0", "docs/tutorial.md" = "4b5d55359621cd15", "examples/tutorial/steps.sh" = "fbb678e3435d6906", "scripts/capture.py" = "38abb2886bfbfbdf", "scripts/tutorial.py" = "475d3d5b7635e75c", "tests/test_captures.py" = "7193d8987d213229", "tests/test_tutorial.py" = "0648a0f0d960676a" }
+note = "The tutorial capture route is unchanged: the mark and push-again steps are steps.sh anchors captured by scripts/tutorial.py like the earlier ones, with no states directory, which the route copies only where one exists"
+subjects = { "claims/git.py" = "7e8123bf113f89cf", "docs/installation.md" = "b90939e42afb2dff", "docs/tutorial.md" = "9f21e7a8a5076f47", "examples/tutorial/steps.sh" = "48ecb8d10295eb50", "scripts/capture.py" = "38abb2886bfbfbdf", "scripts/tutorial.py" = "475d3d5b7635e75c", "tests/test_captures.py" = "7193d8987d213229", "tests/test_tutorial.py" = "0648a0f0d960676a" }
 
 [[mark]]
 file = "docs/tutorial.md"
 mode = "stale-claims"
 unit = "6ae46cb7870f12d1"
 copies = 1
-note = "Read against #223: steps.sh gained only the fix and push anchors; the setup anchor this section includes is unchanged."
-by = "Kevin Rogers"
-subjects = { "docs/captures/tutorial/setup.txt" = "7faa4273bf1a080f", "docs/checks/claim-words.md" = "312be6f331b007a3", "docs/checks/executable-claims.md" = "9a2ec8a527566d4d", "examples/tutorial/start/RELEASING.md" = "e01339a3ebd32f1e", "examples/tutorial/start/claims.toml" = "cd5a281197f64651", "examples/tutorial/start/scripts/release.sh" = "fc0532d805206c82", "examples/tutorial/steps.sh" = "fbb678e3435d6906" }
+note = "steps.sh gained only the mark and push-again anchors; the setup step this section includes is unchanged"
+subjects = { "docs/captures/tutorial/setup.txt" = "7faa4273bf1a080f", "docs/checks/claim-words.md" = "312be6f331b007a3", "docs/checks/executable-claims.md" = "9a2ec8a527566d4d", "examples/tutorial/start/RELEASING.md" = "e01339a3ebd32f1e", "examples/tutorial/start/claims.toml" = "cd5a281197f64651", "examples/tutorial/start/scripts/release.sh" = "fc0532d805206c82", "examples/tutorial/steps.sh" = "48ecb8d10295eb50" }
 
 [[mark]]
 file = "docs/tutorial.md"
 mode = "stale-claims"
 unit = "741ad6f8e4e6d148"
 copies = 1
-note = "Read against #223: steps.sh gained only the fix and push anchors; the commit anchor this section includes is unchanged."
-by = "Kevin Rogers"
-subjects = { "docs/captures/tutorial/commit.txt" = "0305347ccd1fd713", "docs/checks/check-file-refs.md" = "db3236482a102adf", "docs/checks/claim-words.md" = "312be6f331b007a3", "examples/tutorial/states/commit/RELEASING.md" = "68c12144274c1c45", "examples/tutorial/steps.sh" = "fbb678e3435d6906" }
+note = "steps.sh gained only the mark and push-again anchors; the commit step this section includes is unchanged"
+subjects = { "docs/captures/tutorial/commit.txt" = "0305347ccd1fd713", "docs/checks/check-file-refs.md" = "db3236482a102adf", "docs/checks/claim-words.md" = "312be6f331b007a3", "examples/tutorial/states/commit/RELEASING.md" = "68c12144274c1c45", "examples/tutorial/steps.sh" = "48ecb8d10295eb50" }
+
+[[mark]]
+file = "docs/tutorial.md"
+mode = "stale-claims"
+unit = "de7af9d67f54c752"
+copies = 1
+note = "steps.sh gained only the mark and push-again anchors; the fix step this section includes is unchanged"
+subjects = { "docs/captures/tutorial/fix.txt" = "4467a8c86ce6d181", "docs/checks/check-file-refs.md" = "db3236482a102adf", "docs/checks/claim-words.md" = "312be6f331b007a3", "examples/tutorial/states/fix/RELEASING.md" = "f52d505b8f15b03e", "examples/tutorial/steps.sh" = "48ecb8d10295eb50" }
+
+[[mark]]
+file = "docs/tutorial.md"
+mode = "stale-claims"
+unit = "4cea37fadf072aab"
+copies = 1
+note = "steps.sh gained only the mark and push-again anchors; the push step this section includes is unchanged"
+subjects = { "docs/captures/tutorial/push.txt" = "2f175ca18c3b0246", "examples/tutorial/steps.sh" = "48ecb8d10295eb50" }
+
+[[mark]]
+file = "README.md"
+mode = "stale-claims"
+unit = "427ab7d67f9acf9c"
+copies = 1
+note = "installation.md changed only its Next paragraph, which this section does not describe"
+subjects = { "docs/installation.md" = "b90939e42afb2dff" }
+
+[[mark]]
+file = "README.md"
+mode = "stale-claims"
+unit = "4abe336640ffcdc1"
+copies = 1
+note = "installation.md changed only its Next paragraph, which this section's pointer to its hook section does not depend on"
+subjects = { "docs/installation.md" = "b90939e42afb2dff" }

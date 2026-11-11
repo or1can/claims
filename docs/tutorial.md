@@ -2,9 +2,10 @@
 
 In this tutorial you document how to cut a release of a small practice
 project, make a mistake in the doc, watch the real commit hook refuse
-the commit, fix it, and watch the push hook refuse the push. You type
-every command yourself, and every block of output on this page is what
-those same commands print.
+the commit, fix it, watch the push hook refuse the push, then check the
+claim, mark it checked and push again. You type every command yourself,
+and every block of output on this page is what those same commands
+print.
 
 ## Setting up
 
@@ -188,6 +189,76 @@ it is printed only when unmarked findings fail the run.
 [the command line](installation.md#the-command-line) lists. git reports
 any refusing pre-push hook as its own failure, so the exit code you see
 from `git push` is `1`.
+
+## Marking the claim checked
+
+Now you read the script the sentence is about, and, finding the sentence
+true, record a checked mark that says so.
+
+Run:
+
+```sh
+{{#include ../examples/tutorial/steps.sh:mark}}
+```
+
+Captured from a fresh `.tutorial/acme` after the steps above:
+
+```
+{{#include captures/tutorial/mark.txt}}
+```
+
+`scripts/release.sh` <!-- example --> runs `git tag` before `git push
+--follow-tags`, so a release cut with it is tagged before it is pushed,
+and the note in the entry piped to `mark-checked` records that. An entry
+is the finding's citation and mode, as the finding line printed them,
+then what you verified; `mark-checked` refuses an entry without a note.
+
+`mark-checked` runs the checks itself and marks only a finding of that
+run. By default it runs over `HEAD`, the changes not yet committed, and
+the sentence was committed when you fixed the doc, so
+[claim-words](checks/claim-words.md), which reads only what a diff
+added, would find nothing there to mark. `--diff-range origin/main`
+compares with the remote's tip instead, so the run covers the commits
+not yet pushed, where the push found the finding.
+
+The mark is written to `claims.checked.toml`, which the `cat` shows. Its
+`unit` is a fingerprint of the marked sentence, not something to read or
+write by hand: the mark follows the sentence rather than its line, and
+stops applying once a word of it changes, as
+[Units](checked-marks.md#units) sets out. `subjects` is empty because the
+sentence names no file: a mark also [stops
+applying](checked-marks.md#when-a-mark-stops-applying) when a file its
+sentence names changes, so this one does not expire if
+`scripts/release.sh` <!-- example --> does. The file is committed like
+any other, and the commit hook has nothing to say about it.
+
+## Pushing again
+
+Now you push again.
+
+Run:
+
+```sh
+{{#include ../examples/tutorial/steps.sh:push-again}}
+```
+
+Captured from a fresh `.tutorial/acme` after the steps above:
+
+```
+{{#include captures/tutorial/push-again.txt}}
+```
+
+The push lands. The `claim-words` finding is still there, but the mark
+keeps it quiet, so the summary line counts it as `1 quiet while checked`
+rather than printing it, and `0 unmarked` lets the push through. `1
+mark(s) added in range` says the push carries a new mark, which is the
+thing for a reviewer to read, as [What a run
+shows](checked-marks.md#what-a-run-shows) explains.
+
+## Going further
+
+- [`[hook] fail_on_unmarked`](configuring.md#blocking-a-commit-on-unmarked-findings) has the commit hook itself block on unmarked findings from the checks it lists.
+- The Claude Code plugin adds the [`check-claims`](installation.md#install) skill and the [judgment-agent](checks/judgment-agent.md) subagent, which reads the code a claim cites.
 
 ## Next
 
