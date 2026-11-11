@@ -11,6 +11,13 @@ reached you, not just that one was pushed upstream.
 
 ## [Unreleased]
 
+## [0.28.3] - 2026-11-11
+
+- Fixed: a change that only adds lines to an append-only file, such as
+  `CHANGELOG.md`, no longer makes `stale-claims` report the sections
+  that name it. A change that edits, removes or renames a line there
+  still does, as does a change to any other file the section names.
+
 ## [0.28.2] - 2026-11-10
 
 - Fixed: a heading-shaped line inside a fenced code block, such as a `#`

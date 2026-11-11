@@ -97,6 +97,12 @@ on `git log -L`'s patch for the section, which would need its own hunk
 parser. A commit removing lines elsewhere in the file still counts for
 the section, which misses less. `[subjects]` is project-wide, so it is
 read from `claims.toml` here rather than from this check's own section.
+The range trigger takes the same test (#230): an append-only path
+brings a section in only when one of the range's commits, or the
+uncommitted change, removes a line from it. Per commit, not over the
+range's net diff, which over a wide range is all growth: from the root
+every line was added inside it, so a rewrite the score counts would
+never bring the section in to be scored.
 
 A navigation page (ADR 0013, `config.navigation`) named without an anchor
 is no subject of the section: a link to a hub page is usually there to
@@ -212,20 +218,35 @@ def _git(repo_root: Path, *args: str) -> str:
     ).stdout
 
 
-def _appends(repo_root: Path, path: str) -> set[str]:
-    """The commits whose diff for `path` removes no lines: an append-only
-    file's growth, which ADR 0011 doesn't count as its content changing.
-    A commit with no line counts, a binary one, is no append. A merge is
-    read against its first parent, as what it brought to the branch it
-    landed on: `git log` gives a merge no line counts otherwise."""
+def _appends(repo_root: Path, path: str, *revs: str) -> dict[str, bool]:
+    """Each commit `git log` selects by `revs` (all of history when none)
+    that touched `path`, mapped to whether its diff for it removes no
+    lines: an append-only file's growth, which ADR 0011 doesn't count as
+    its content changing. A commit with no line counts, a binary one, is no
+    append. A merge is read against its first parent, as what it brought
+    to the branch it landed on: `git log` gives a merge no line counts
+    otherwise."""
 
-    log = ("log", "--format=%x00%H", "--numstat", "--diff-merges=first-parent", "--", path)
-    appends: set[str] = set()
+    log = ("log", "--format=%x00%H", "--numstat", "--diff-merges=first-parent", *revs, "--", path)
+    appends: dict[str, bool] = {}
     for block in _git(repo_root, *log).split("\0")[1:]:
         commit, *stats = [line for line in block.split("\n") if line]
-        if stats and all(stat.split("\t")[1] == "0" for stat in stats):
-            appends.add(commit)
+        appends[commit] = bool(stats) and all(stat.split("\t")[1] == "0" for stat in stats)
     return appends
+
+
+def _removing(repo_root: Path, rev: str) -> set[str]:
+    """The paths `git diff <rev>` shows removing a line, a binary path,
+    whose line counts are `-`, included."""
+
+    numstat = _git(repo_root, "diff", "--numstat", "-z", "--no-renames", rev)
+    return {
+        path
+        for _, removed, path in (
+            entry.split("\t", 2) for entry in numstat.split("\0") if entry
+        )
+        if removed != "0"
+    }
 
 
 def _module_index(tracked: list[str]) -> dict[str, str]:
@@ -309,6 +330,44 @@ def check(
         and not path_matches(rel, exclude)
     )
 
+    # An append-only subject brings a section in only when a commit in
+    # the range, or the uncommitted change, removes a line from it (ADR
+    # 0011): `_appends`' test, so the range and the score agree on what
+    # counts. `git diff X` reaches the working tree, `A..B` stops at B.
+    # Read by `git log`, `A...B` takes both sides' commits, which misses
+    # less. A revision naming no single commit (`X^!`) is left to the
+    # pre-#230 rule, any change counting, rather than read wrongly.
+    rev = diff_range or "HEAD"
+    range_end: str | None = None
+    uncommitted: set[str] = set()
+    if ".." in rev:
+        range_commits: str | None = rev
+        range_end = rev.rpartition("..")[2] or "HEAD"
+    elif _git(repo_root, "rev-parse", "--verify", "--quiet", f"{rev}^{{commit}}"):
+        range_commits = f"{rev}..HEAD"
+        uncommitted = _removing(repo_root, "HEAD")
+    else:
+        range_commits = None
+
+    def rewritten(path: str) -> bool:
+        if range_commits is None:
+            return True
+        # A deleted empty file removes no lines, so is caught by absence.
+        present = (
+            (repo_root / path).exists()
+            if range_end is None
+            else blob_text(repo_root, range_end, path) is not None
+        )
+        # No merges: each branch's own commits are in the range, and a
+        # merge's first-parent diff would carry in a rewrite the base made.
+        return (
+            path in uncommitted
+            or not present
+            or not all(_appends(repo_root, path, "--no-merges", range_commits).values())
+        )
+
+    triggers = {path for path in changed if not append_only(project, path) or rewritten(path)}
+
     sections: dict[tuple[str, str], tuple[int, int] | None] = {}
 
     def section(path: str, anchor: str) -> tuple[int, int] | None:
@@ -328,7 +387,11 @@ def check(
             span = section(path, anchor) if anchor else None
             scope = ("-s", "-L", f"{span[0]},{span[1]}:{path}") if span else ("--", path)
             if path not in appends:
-                appends[path] = _appends(repo_root, path) if append_only(project, path) else set()
+                appends[path] = (
+                    {c for c, grew in _appends(repo_root, path).items() if grew}
+                    if append_only(project, path)
+                    else set()
+                )
             logged = _git(repo_root, "log", "--format=%H %ct", *scope).split()
             history[path, anchor] = sorted(
                 int(t) for h, t in zip(logged[::2], logged[1::2]) if h not in appends[path]
@@ -365,7 +428,7 @@ def check(
                 for path, anchor in subjects_named(rel, body, config, citable, modules, section)
                 if counts_as_subject(project, path, anchor)
             }
-            if not any(path in changed for path, _ in subjects):
+            if not any(path in triggers for path, _ in subjects):
                 continue
 
             blame = _git(
