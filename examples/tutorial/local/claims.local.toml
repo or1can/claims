@@ -1,0 +1,5 @@
+# Per-machine and never committed: a grant in a claims.local.toml git
+# tracks is ignored. Granting the command lets the verify block in
+# RELEASING.md be checked on every commit.
+[executable-claims]
+allowed = ["cat VERSION"]

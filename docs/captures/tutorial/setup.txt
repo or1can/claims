@@ -1,0 +1,2 @@
+$ uv run -q scripts/tutorial.py setup
+Acme is ready: cd .tutorial/acme

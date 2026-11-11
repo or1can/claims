@@ -3,6 +3,7 @@
 [Introduction](index.md)
 
 - [Installation](installation.md)
+- [Tutorial](tutorial.md)
 - [Concepts](concepts.md)
 - [Configuring `claims`](configuring.md)
 - [Checked marks](checked-marks.md)

@@ -1,0 +1,20 @@
+$ git add RELEASING.md
+
+$ git diff --cached
+diff --git a/RELEASING.md b/RELEASING.md
+index 6513644..8c61af9 100644
+--- a/RELEASING.md
++++ b/RELEASING.md
+@@ -6,3 +6,7 @@ Current version:
+ ```
+ 1.0.0
+ ```
++
++To cut a release, run `scripts/deploy.sh`.
++
++Every release is tagged before it is pushed.
+
+$ git commit -m "Document releasing"
+[GATE] RELEASING.md:10 (check-file-refs) `scripts/deploy.sh` does not resolve to a tracked file
+[advisory] RELEASING.md:12 (claim-words-totalising) Every release is tagged before it is pushed.
+[exit 1]

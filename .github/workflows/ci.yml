@@ -34,6 +34,9 @@ jobs:
       - uses: actions/setup-python@v7
         with:
           python-version: "3.11"
+      # `tests/test_tutorial.py` drives the tutorial's real hooks, which
+      # run `claims` through `uv run -q`.
+      - uses: astral-sh/setup-uv@v10.3.3
       # No pytest binary in this repo's own dev environment — same runner
       # every ticket's Answer uses, see .claude/CLAUDE.md memory.
       - run: python3 -m unittest discover -s tests -p 'test_*.py'
