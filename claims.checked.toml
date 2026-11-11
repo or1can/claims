@@ -44,15 +44,6 @@ by = "Kevin Rogers"
 subjects = {}
 
 [[mark]]
-file = "docs/checks/stale-claims.md"
-mode = "stale-claims"
-unit = "8652909ce0f49280"
-copies = 1
-note = "ci.yml is cited only as an example of path resolution; nothing in the section depends on its content."
-by = "Kevin Rogers"
-subjects = { ".github/workflows/ci.yml" = "287db4c0cf950e73", "claims/config.py" = "8061ce4e20a17e51", "docs/configuring.md#append-only-files" = "7b641ca9032d95d6", "docs/configuring.md#navigation-pages" = "d761e008a5c92152" }
-
-[[mark]]
 file = "AGENTS.md"
 mode = "claim-words-totalising"
 unit = "f5370039df5c5f20"
@@ -69,24 +60,6 @@ copies = 1
 note = "\"four\" and \"all three from ci.yml\" checked against ruleset 23530440's required_status_checks and ci.yml's jobs (typecheck, test, claims)."
 by = "Kevin Rogers"
 subjects = { ".github/workflows/ci.yml" = "287db4c0cf950e73", ".github/workflows/dco.yml" = "8ed66fb756a4ce0a", "docs/checked-marks.md" = "73248f46bb8dd976" }
-
-[[mark]]
-file = "agents/docs.md"
-mode = "stale-claims"
-unit = "f2571114ef32d2be"
-copies = 1
-note = "SUMMARY.md, book.toml and CHANGELOG.md unchanged in role: docs/ is still the published root, SUMMARY.md still gates publication, CHANGELOG.md still the release record."
-by = "Kevin Rogers"
-subjects = { "CHANGELOG.md" = "4294e28672bc81911294fb0930b84b047849f691", "book.toml" = "1944223542e98ac8", "decisions/0004-docs-is-the-user-facing-tree.md" = "d65bd4ae8cb8b4ac", "docs/SUMMARY.md" = "12a8a71191633987" }
-
-[[mark]]
-file = "agents/docs.md"
-mode = "stale-claims"
-unit = "992ac522673fcb80"
-copies = 1
-note = "The rules read true against the docs/checks/stale-claims.md edit, which is present tense with no version or \"not yet\"."
-by = "Kevin Rogers"
-subjects = { "CHANGELOG.md" = "4294e28672bc81911294fb0930b84b047849f691", "README.md" = "db4586aaa4c1126a", "docs/SUMMARY.md" = "12a8a71191633987", "docs/index.md" = "82762e1e81e9b3a5" }
 
 [[mark]]
 file = "AGENTS.md"
@@ -250,14 +223,6 @@ note = "scripts/capture.py still writes an example's local/ into the throwaway r
 subjects = { "docs/captures/executable-claims.txt" = "286fe731e65db64a", "examples/executable-claims/README.md" = "6a19528942bde738", "examples/executable-claims/local/claims.local.toml" = "89f958645c8a445d", "scripts/capture.py" = "38abb2886bfbfbdf" }
 
 [[mark]]
-file = "AGENTS.md"
-mode = "stale-claims"
-unit = "6715f004a7dd6c85"
-copies = 1
-note = "tests/test_captures.py still holds every registered check to a capture under docs/captures/; #221 added a test for main()'s regenerate loop, nothing about pages, SUMMARY.md or README.md's index"
-subjects = { ".github/workflows/docs.yml" = "9174303cf04e3b3d", "README.md" = "db4586aaa4c1126a", "agents/docs.md" = "002fdf0a74c305d9", "book.toml" = "1944223542e98ac8", "docs/SUMMARY.md" = "12a8a71191633987", "tests/test_captures.py" = "7193d8987d213229", "tests/test_check_pages.py" = "c472fae497911ddf" }
-
-[[mark]]
 file = "agents/docs.md"
 mode = "stale-claims"
 unit = "53f9fac61c746451"
@@ -273,3 +238,66 @@ copies = 1
 note = "scripts/tutorial.py runs steps.sh through sh -c with the real hooks installed, and docs/tutorial.md includes its captures; neither goes through scripts/capture.py's check seam"
 by = "Kevin Rogers"
 subjects = { "claims/git.py" = "7e8123bf113f89cf", "docs/tutorial.md" = "ef69ddf71a4e69b7", "scripts/tutorial.py" = "bfaf8d0fb5331ef9" }
+
+[[mark]]
+file = "agents/docs.md"
+mode = "stale-claims"
+unit = "f2571114ef32d2be"
+copies = 1
+note = "docs/SUMMARY.md still decides what is published; #222 added docs/tutorial.md to it, which is that rule followed, and book.toml and CHANGELOG.md are unchanged in role"
+by = "Kevin Rogers"
+subjects = { "CHANGELOG.md" = "aab858f0e66af8f14c707c0788cc4d2c8077814b", "book.toml" = "1944223542e98ac8", "decisions/0004-docs-is-the-user-facing-tree.md" = "d65bd4ae8cb8b4ac", "docs/SUMMARY.md" = "ab62590848f45867" }
+
+[[mark]]
+file = "agents/docs.md"
+mode = "stale-claims"
+unit = "992ac522673fcb80"
+copies = 1
+note = "docs/tutorial.md keeps the voice rules: present tense, no drift-tool framing, and a Next that hands off to Concepts, while Installation's Next now hands to the tutorial in SUMMARY.md's order"
+by = "Kevin Rogers"
+subjects = { "CHANGELOG.md" = "aab858f0e66af8f14c707c0788cc4d2c8077814b", "README.md" = "db4586aaa4c1126a", "docs/SUMMARY.md" = "ab62590848f45867", "docs/index.md" = "82762e1e81e9b3a5" }
+
+[[mark]]
+file = "README.md"
+mode = "stale-claims"
+unit = "427ab7d67f9acf9c"
+copies = 1
+note = "docs/installation.md changed only its Next section for #222; the plugin, hook and CI setup this section summarises are unchanged"
+by = "Kevin Rogers"
+subjects = { "docs/installation.md" = "29af6d8fd7f44bac" }
+
+[[mark]]
+file = "AGENTS.md"
+mode = "stale-claims"
+unit = "6715f004a7dd6c85"
+copies = 1
+note = "every registered check still has a page, summary entry, README line and capture held by tests/test_check_pages.py and tests/test_captures.py; the tutorial is no check and is held by tests/test_tutorial.py instead"
+by = "Kevin Rogers"
+subjects = { ".github/workflows/docs.yml" = "9174303cf04e3b3d", "README.md" = "db4586aaa4c1126a", "agents/docs.md" = "365765872050be38", "book.toml" = "1944223542e98ac8", "docs/SUMMARY.md" = "ab62590848f45867", "tests/test_captures.py" = "7193d8987d213229", "tests/test_check_pages.py" = "c472fae497911ddf" }
+
+[[mark]]
+file = "AGENTS.md"
+mode = "stale-claims"
+unit = "138cc67997c9136e"
+copies = 1
+note = "ci.yml only gained a setup-uv step in the Test job for #222; the jobs and the four required checks this section names are unchanged"
+by = "Kevin Rogers"
+subjects = { ".github/workflows/ci.yml" = "efae98309a62124e", ".github/workflows/dco.yml" = "8ed66fb756a4ce0a", "docs/checked-marks.md" = "73248f46bb8dd976" }
+
+[[mark]]
+file = "docs/checks/stale-claims.md"
+mode = "stale-claims"
+unit = "8652909ce0f49280"
+copies = 1
+note = "ci.yml is named here only as an example of a path-shaped subject; #222's added setup-uv step changes nothing the section says"
+by = "Kevin Rogers"
+subjects = { ".github/workflows/ci.yml" = "efae98309a62124e", "claims/config.py" = "8061ce4e20a17e51", "docs/configuring.md#append-only-files" = "7b641ca9032d95d6", "docs/configuring.md#navigation-pages" = "d761e008a5c92152" }
+
+[[mark]]
+file = "README.md"
+mode = "stale-claims"
+unit = "4abe336640ffcdc1"
+copies = 1
+note = "docs/installation.md changed only its Next section for #222; the hook, skill, subagent and CLI surfaces this section lists are unchanged"
+by = "Kevin Rogers"
+subjects = { "docs/installation.md" = "29af6d8fd7f44bac" }
