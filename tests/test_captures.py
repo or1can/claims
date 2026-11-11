@@ -24,9 +24,15 @@ asserting output the tool no longer produces.
 
 from __future__ import annotations
 
+import contextlib
+import io
+import tempfile
 import unittest
+from pathlib import Path
+from unittest import mock
 
-from scripts.capture import CAPTURES_DIR, capture
+from scripts import capture as capture_script
+from scripts.capture import CAPTURES_DIR, MARKS_EXAMPLE, capture
 from support import every_check_name
 
 
@@ -38,6 +44,27 @@ class CaptureFreshnessTests(unittest.TestCase):
         for name in sorted(every_check_name()):
             with self.subTest(check=name):
                 self.assertTrue((CAPTURES_DIR / f"{name}.txt").is_file())
+
+    def test_regenerating_ignores_a_directory_under_examples_that_is_no_check(self) -> None:
+        # A directory under `examples/` that is no check (#220's tutorial
+        # fixtures, once they land) gets no capture: regenerating writes one
+        # per registered check plus `checked-marks`. The stray directory is
+        # real, empty and untracked, since what the test rules out is the
+        # loop reading `examples/` itself. `capture` is stubbed so no check
+        # runs; what it pins is which names the loop hands it.
+        examples = capture_script.REPO_ROOT / "examples"
+        with (
+            tempfile.TemporaryDirectory(dir=examples, prefix="not-a-check-") as stray,
+            tempfile.TemporaryDirectory() as out,
+            mock.patch.object(capture_script, "REPO_ROOT", Path(out)),
+            mock.patch.object(capture_script, "CAPTURES_DIR", Path(out) / "captures"),
+            mock.patch.object(capture_script, "capture", side_effect=lambda name: f"{name}\n"),
+            contextlib.redirect_stdout(io.StringIO()),
+        ):
+            capture_script.main()
+            written = {p.stem for p in (Path(out) / "captures").glob("*.txt")}
+        self.assertNotIn(Path(stray).name, written)
+        self.assertEqual(written, every_check_name() | {MARKS_EXAMPLE})
 
     def test_every_committed_capture_matches_a_fresh_run(self) -> None:
         captures = sorted(CAPTURES_DIR.glob("*.txt"))
