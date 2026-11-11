@@ -1,0 +1,27 @@
+$ cat scripts/release.sh
+#!/bin/sh
+# Tags the current commit with the version in VERSION, then pushes the
+# branch and the tag together.
+set -e
+version=$(cat VERSION)
+git tag -a "v$version" -m "Acme $version"
+git push --follow-tags
+
+$ echo 'RELEASING.md:12 claim-words-totalising scripts/release.sh runs git tag before git push' | uv run -q python -m claims.cli mark-checked --diff-range origin/main
+marked 1 finding(s) in claims.checked.toml
+
+$ cat claims.checked.toml
+[[mark]]
+file = "RELEASING.md"
+mode = "claim-words-totalising"
+unit = "b498eb80b8408ec9"
+copies = 1
+note = "scripts/release.sh runs git tag before git push"
+subjects = {}
+
+$ git add claims.checked.toml
+
+$ git commit -m "Mark the release claim checked"
+[main eb29022] Mark the release claim checked
+ 1 file changed, 7 insertions(+)
+ create mode 100644 claims.checked.toml
