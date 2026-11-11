@@ -13,3 +13,13 @@ git add RELEASING.md
 git diff --cached
 git commit -m "Document releasing"
 # ANCHOR_END: commit
+
+# ANCHOR: fix
+git diff
+git add RELEASING.md
+git commit -m "Document releasing"
+# ANCHOR_END: fix
+
+# ANCHOR: push
+git push
+# ANCHOR_END: push

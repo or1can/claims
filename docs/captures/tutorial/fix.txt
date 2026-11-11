@@ -1,0 +1,20 @@
+$ git diff
+diff --git a/RELEASING.md b/RELEASING.md
+index 8c61af9..1c732d0 100644
+--- a/RELEASING.md
++++ b/RELEASING.md
+@@ -7,6 +7,6 @@ Current version:
+ 1.0.0
+ ```
+ 
+-To cut a release, run `scripts/deploy.sh`.
++To cut a release, run `scripts/release.sh`.
+ 
+ Every release is tagged before it is pushed.
+
+$ git add RELEASING.md
+
+$ git commit -m "Document releasing"
+[advisory] RELEASING.md:12 (claim-words-totalising) Every release is tagged before it is pushed.
+[main a5a1fdd] Document releasing
+ 1 file changed, 4 insertions(+)

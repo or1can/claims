@@ -1,9 +1,10 @@
 # Tutorial: documenting a release
 
 In this tutorial you document how to cut a release of a small practice
-project, make a mistake in the doc, and watch the real commit hook refuse
-the commit. You type every command yourself, and every block of
-output on this page is what those same commands print.
+project, make a mistake in the doc, watch the real commit hook refuse
+the commit, fix it, and watch the push hook refuse the push. You type
+every command yourself, and every block of output on this page is what
+those same commands print.
 
 ## Setting up
 
@@ -119,6 +120,74 @@ fixed. The second line is an advisory finding from
 [claim-words](checks/claim-words.md): "Every release" is a sweeping
 claim that may well be true, so it is printed for someone to check, and
 it blocks nothing.
+
+## Fixing it
+
+Now you correct the script's name to the one Acme has, and commit again.
+
+`RELEASING.md` now reads:
+
+```markdown
+{{#include ../examples/tutorial/states/fix/RELEASING.md}}
+```
+
+Run:
+
+```sh
+{{#include ../examples/tutorial/steps.sh:fix}}
+```
+
+Captured from a fresh `.tutorial/acme` after the steps above:
+
+```
+{{#include captures/tutorial/fix.txt}}
+```
+
+`git diff`, without `--cached`, compares your copy with what you staged
+in the last step, so it shows only the correction. The refused commit
+staged the rest, and nothing has been committed since.
+
+With `scripts/release.sh` <!-- example --> tracked,
+[check-file-refs](checks/check-file-refs.md) has nothing to report, and
+the commit lands. The [claim-words](checks/claim-words.md) advisory
+finding prints again, because the sentence is unchanged, and this time
+it is the only finding, so nothing stops the commit. That is the
+difference between the two severities, which
+[Concepts](concepts.md#gate-versus-advisory) sets out in full.
+
+## Pushing
+
+Now you push the commit to Acme's remote.
+
+Run:
+
+```sh
+{{#include ../examples/tutorial/steps.sh:push}}
+```
+
+Captured from a fresh `.tutorial/acme` after the steps above:
+
+```
+{{#include captures/tutorial/push.txt}}
+```
+
+The push is refused. The pre-push hook runs `claims` with
+`--fail-on-unmarked`, over `origin/main...HEAD`, the commits the push
+would send, and that switch fails the run on an [unmarked
+finding](checked-marks.md#failing-a-run-on-unmarked-findings): an
+advisory finding, from a check whose findings can be marked, that no
+checked mark keeps quiet. The `claim-words` finding the commit let
+through is one.
+
+The summary line counts, in order, the checks that ran, the findings
+they reported, how many of those are gate findings, and, because of
+`--fail-on-unmarked`, how many are unmarked. The `failing:` line after
+it is printed only when unmarked findings fail the run.
+
+`claims` itself exits `3` on a run that fails this way, as
+[the command line](installation.md#the-command-line) lists. git reports
+any refusing pre-push hook as its own failure, so the exit code you see
+from `git push` is `1`.
 
 ## Next
 
