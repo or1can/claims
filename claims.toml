@@ -158,6 +158,14 @@ enabled = false
 # steady-state cost is the per-commit number (9 over `HEAD~1`), not the
 # fifteen-commit one. Narrow them if a later pass finds no defect.
 #
+# `docs/tutorial.md` was measured on its own, over its whole history
+# (`--diff-range e7af269~1` at d95e9dc, e7af269 being the commit that
+# added the page, so every line counts as added): 28 findings, nearly all
+# counts and absolutes about what setup, the two hooks and the commands
+# do. Those are live claims about this tree that drift when the
+# tutorial's script or hooks change, and one was already false — "Setup
+# writes three git settings", when the third was an option to `git init`.
+#
 # `*` spans `/` here (`fnmatch`, not path-segment globbing), so `docs/`'s
 # top-level pages are named individually rather than as `docs/*.md`,
 # which would pull `docs/checks/` back in.
@@ -173,6 +181,7 @@ files = [
     "docs/configuring.md",
     "docs/index.md",
     "docs/installation.md",
+    "docs/tutorial.md",
 ]
 
 # `temporal-words` is opt-in by omission the same way `claim-words` above
@@ -207,6 +216,13 @@ files = [
 #   contributor and agent instructions, not a description of the binary a
 #   reader installed. Every hit measured across them was a rule about
 #   temporal wording rather than an instance of one.
+# - `docs/tutorial.md`: 5 findings over its whole history
+#   (`--diff-range e7af269~1` at d95e9dc), none actionable. Three are its
+#   narrative "Now you add…" and "`RELEASING.md` now reads:", and two are
+#   "not yet committed" and "not yet pushed", definitions of `HEAD` and
+#   of `origin/main` that are correct by nature: `agents/docs.md`'s ban
+#   on "not yet" is aimed at feature status, which these are not. A
+#   tutorial's "now" is a step in its sequence, not a dated claim.
 #
 # `docs/concepts.md` supplies all three of the findings above and is kept
 # anyway, for the reason `claim-words` keeps it: it is where this
