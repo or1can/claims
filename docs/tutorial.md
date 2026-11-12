@@ -77,15 +77,15 @@ no release installed. They are not the hook
 project to install, which pins a tagged release; don't copy them into
 one.
 
-Setup writes three git settings, all in Acme's own configuration and
-none in yours:
+Setup leaves your own git configuration alone. It creates Acme with
+`-b main`, so its branch is `main` whatever your `init.defaultBranch`
+says, pushes Acme's first commit to a bare remote, `origin`, beside it
+in `.tutorial/`, and sets two options of its own with `git config`:
 
 - `core.hooksPath` points git at the two hooks above, where they sit in
   your clone.
 - `commit.gpgsign=false`, so that a global setting to sign every commit
   doesn't stop a practice commit to ask for a key.
-- The repository is created with `-b main`, so its branch is `main`
-  whatever your `init.defaultBranch` says.
 
 ## Committing a wrong doc
 
@@ -145,8 +145,9 @@ Captured from a fresh `.tutorial/acme` after the steps above:
 ```
 
 `git diff`, without `--cached`, compares your copy with what you staged
-in the last step, so it shows only the correction. The refused commit
-staged the rest, and nothing has been committed since.
+in the last step, so it shows only the correction. The `git add` before
+the refused commit staged the rest, and nothing has been committed
+since.
 
 With `scripts/release.sh` <!-- example --> tracked,
 [check-file-refs](checks/check-file-refs.md) has nothing to report, and

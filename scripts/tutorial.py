@@ -26,9 +26,10 @@ too:
   `examples/tutorial/local/` copied in, and last a repo-local
   `core.hooksPath` naming `examples/tutorial/hooks/` by absolute path. The
   initial push comes before the hooks, so during every later pre-push
-  `origin/main` still names the remote's old tip. Those three settings are
-  the only git configuration it writes; it forces no identity or dates on
-  a reader's machine, and the initial commit and push pass `--no-verify`
+  `origin/main` still names the remote's old tip. Those two settings,
+  plus the `origin` remote and `main`'s upstream, are the only git
+  configuration it writes, all of it in Acme's own; it forces no identity
+  or dates on a reader's machine, and the initial commit and push pass `--no-verify`
   so a hook in the reader's own global configuration doesn't run either.
   Its only output is one line naming `.tutorial/acme`.
 
