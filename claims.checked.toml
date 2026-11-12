@@ -277,14 +277,6 @@ by = "Kevin Rogers"
 subjects = { "claims/git.py" = "7e8123bf113f89cf", "docs/tutorial.md" = "43f6b9cf132d7742", "scripts/tutorial.py" = "475d3d5b7635e75c" }
 
 [[mark]]
-file = "agents/docs.md"
-mode = "stale-claims"
-unit = "53f9fac61c746451"
-copies = 1
-note = "The tutorial capture route is unchanged: the mark and push-again steps are steps.sh anchors captured by scripts/tutorial.py like the earlier ones, with no states directory, which the route copies only where one exists"
-subjects = { "claims/git.py" = "7e8123bf113f89cf", "docs/installation.md" = "b90939e42afb2dff", "docs/tutorial.md" = "9f21e7a8a5076f47", "examples/tutorial/steps.sh" = "48ecb8d10295eb50", "scripts/capture.py" = "38abb2886bfbfbdf", "scripts/tutorial.py" = "475d3d5b7635e75c", "tests/test_captures.py" = "7193d8987d213229", "tests/test_tutorial.py" = "0648a0f0d960676a" }
-
-[[mark]]
 file = "docs/tutorial.md"
 mode = "stale-claims"
 unit = "6ae46cb7870f12d1"
@@ -331,3 +323,19 @@ unit = "4abe336640ffcdc1"
 copies = 1
 note = "installation.md changed only its Next paragraph, which this section's pointer to its hook section does not depend on"
 subjects = { "docs/installation.md" = "b90939e42afb2dff" }
+
+[[mark]]
+file = "docs/tutorial.md"
+mode = "claim-words-counts"
+unit = "5fbee4fc42c6f4e0"
+copies = 1
+note = "scripts/tutorial.py's setup runs git init -b main, commits Start Acme and pushes it to a bare ../remote.git added as origin, and its only git config calls set commit.gpgsign and core.hooksPath"
+subjects = {}
+
+[[mark]]
+file = "agents/docs.md"
+mode = "stale-claims"
+unit = "53f9fac61c746451"
+copies = 1
+note = "scripts/tutorial.py capture, steps.sh's anchors, the states/<step>/ copy and tests/test_tutorial.py work as this section says; the tutorial's recent edits reworded prose and the setup docstring only"
+subjects = { "claims/git.py" = "7e8123bf113f89cf", "docs/installation.md" = "b90939e42afb2dff", "docs/tutorial.md" = "50050ae296cd3136", "examples/tutorial/steps.sh" = "48ecb8d10295eb50", "scripts/capture.py" = "38abb2886bfbfbdf", "scripts/tutorial.py" = "4127a928e43432f6", "tests/test_captures.py" = "7193d8987d213229", "tests/test_tutorial.py" = "0648a0f0d960676a" }
