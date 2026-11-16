@@ -12,6 +12,13 @@ append-only subject brings a section into the range only when a commit
 in the range, or the uncommitted change, removes a line from the file,
 as a commit counts in its history only when its diff does.
 
+Amended by #242: a checked mark's recorded blob counts only while it is
+the file's blob in a commit reachable from `HEAD`, or is staged for the
+file in the index. A blob anywhere else in the object store, such as
+one a rebase or amend left dangling, expires the mark as a blob the
+store doesn't hold does. The store is per clone, so a dangling blob kept
+a mark alive locally that CI, which never had the blob, expired.
+
 ## Context
 
 A changelog grows on almost every pull request, and two places read that

@@ -91,14 +91,16 @@ applies. Otherwise the recorded blob is read from git's object store,
 and the mark applies while every one of its lines is still in the file,
 in the same order: lines added anywhere keep the mark, and a line
 changed or removed expires it. A subject naming one section of such a
-file is compared the same way over that section's lines. A blob the
-store does not hold expires the mark, which is what happens to one
-recorded against content that was never staged or committed, or that
-was only ever in another clone. Content staged but never committed is
-in this clone's store alone, so a mark recorded against it holds here
-and expires everywhere else. A mark recorded before a file was
-append-only holds that file's content hash, and goes on expiring on any
-change to it until it is marked again.
+file is compared the same way over that section's lines. The recorded
+blob counts only while it is the file's content in a commit `HEAD`
+reaches, or is staged for the file in the index; anywhere else it
+expires the mark, even if git's object store still holds it. That is
+what happens to one recorded against content that was never staged or
+committed, that was only ever in another clone, or that is no longer in
+`HEAD`'s history because a rebase or amend rewrote the commit holding
+it, so a mark that would expire in CI expires in your clone too. A mark
+recorded before a file was append-only holds that file's content hash,
+and goes on expiring on any change to it until it is marked again.
 
 A [navigation page](configuring.md#navigation-pages) named without an
 anchor is not recorded, and an edit to it expires no mark. A link with

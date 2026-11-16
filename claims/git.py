@@ -350,6 +350,44 @@ def read_blob(repo_root: Path, oid: str) -> bytes | None:
     return result.stdout if result.returncode == 0 else None
 
 
+_NULL_OID_RE = re.compile(r"0+")
+"""The id `--raw` gives a side that has no blob, all zeros at either
+hash length, unlike `UNCOMMITTED`, which is SHA-1's alone."""
+
+
+def path_blobs(repo_root: Path, rel: str) -> set[str]:
+    """Every blob id `rel` has had in a commit reachable from `HEAD`, plus
+    any staged for it in the index — the blobs every clone that fetched
+    `HEAD` holds, unlike a store that may also keep one a rewritten
+    commit left dangling. `--full-history -m` keeps the blobs a side
+    branch or a merge's own resolution gave `rel`, which the default
+    history simplification would drop; `--no-follow` keeps a
+    `log.follow` setting from widening it to another path's."""
+
+    def run(*args: str) -> list[str]:
+        result = subprocess.run(
+            ["git", *QUOTEPATH_OFF, "--literal-pathspecs", "-C", str(repo_root), *args],
+            capture_output=True,
+            text=True,
+            errors="replace",
+        )
+        return git_lines(result.stdout) if result.returncode == 0 else []
+
+    # `:<mode> <mode> <old> <new> <status>\t<path>`: `<new>` is the blob
+    # that commit gave `rel`; `<old>` is its parent's, listed in turn.
+    logged = [
+        line.split("\t", 1)[0].split()[3]
+        for line in run(
+            "log", "--full-history", "-m", "--no-renames", "--no-follow",
+            "--no-abbrev", "--raw", "--format=", "--", rel,
+        )
+        if line.startswith(":")
+    ]
+    # `<mode> <oid> <stage>\t<path>`
+    staged = [line.split()[1] for line in run("ls-files", "-s", "--", rel) if line]
+    return {oid for oid in logged + staged if not _NULL_OID_RE.fullmatch(oid)}
+
+
 def _object_type_at(repo_root: Path, commit: str, rel: str) -> str | None:
     """The type of `commit`'s object at `rel` (`blob`, `tree`, ...), or
     `None` if it has none — asks for the type rather than reading the

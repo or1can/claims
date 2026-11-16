@@ -1160,6 +1160,45 @@ class CheckedMarkTests(RegistryClearingTestCase):
         (self.repo.root / "CHANGELOG.md").write_text(self.LOG + "- Unstaged.\n- More.\n")
         self.assertEqual(self.summary(), self.SHOWN)
 
+    def test_a_mark_whose_recorded_blob_a_rewrite_left_dangling_expires(self) -> None:
+        self.mark_release_claim("`CHANGELOG.md`")
+        # Amending the commit away leaves the recorded blob in this
+        # clone's store, but in no commit `HEAD` reaches: a clone that
+        # fetched the branch never had it.
+        self.repo.write("CHANGELOG.md", self.LOG.replace("- First.", "- Initial."))
+        subprocess.run(
+            ["git", "-C", str(self.repo.root), "commit", "-q", "--amend", "--no-edit", "--", "CHANGELOG.md"],
+            check=True,
+        )
+        (self.repo.root / "CHANGELOG.md").write_text(self.LOG + "- Also.\n")
+
+        self.assertEqual(self.summary(), self.SHOWN)
+
+    def test_a_mark_whose_recorded_blob_is_in_an_ancestor_holds_after_an_append(self) -> None:
+        self.mark_release_claim("`CHANGELOG.md`")
+        self.repo.write("CHANGELOG.md", self.LOG + "- Also.\n")
+        subprocess.run(
+            ["git", "-C", str(self.repo.root), "commit", "-q", "-m", "log", "--", "CHANGELOG.md"],
+            check=True,
+        )
+
+        (self.repo.root / "CHANGELOG.md").write_text(self.LOG + "- Also.\n- More.\n")
+        self.assertTrue(self.summary().endswith(self.QUIET))
+
+    def test_a_mark_whose_recorded_blob_is_staged_holds_after_an_append(self) -> None:
+        self.mark_release_claim("`CHANGELOG.md`")
+        self.repo.write("CHANGELOG.md", self.LOG + "- Staged.\n")
+        self.assertEqual(self.mark("docs/a.md:1 claim-words-totalising read the log")[0], 0)
+
+        (self.repo.root / "CHANGELOG.md").write_text(self.LOG + "- Staged.\n- More.\n")
+        self.assertTrue(self.summary().endswith(self.QUIET))
+
+    def test_an_unchanged_append_only_file_holds_without_reading_its_history(self) -> None:
+        self.mark_release_claim("`CHANGELOG.md`")
+
+        with mock.patch("claims.checked.path_blobs", side_effect=AssertionError("read history")):
+            self.assertTrue(self.summary().endswith(self.QUIET))
+
     def test_a_mark_on_a_changelog_checked_out_with_crlf_holds_after_an_append(self) -> None:
         # Stored with `\n`, checked out with `\r\n`: the recorded blob has
         # to be the one git stored, not the bytes on disk.
