@@ -145,7 +145,12 @@ cannot be marked, or has no note, the command prints each bad entry and
 writes nothing. Blank lines are skipped. An entry for a finding that
 already has a mark replaces it, so re-marking after a reading refreshes
 the recorded subjects and copies. Every other entry in the file is kept
-as written, comments included. Exit codes are `0` once the marks are
+as written, comments included. Each write puts the entries in order of
+file, then mode, then unit, so branches that mark findings in different
+files edit different parts of the file and merge cleanly. A comment
+directly above an entry moves with it. The order only matters when the
+file is written: a file edited out of order by hand reads the same, and
+the next write sorts it. Exit codes are `0` once the marks are
 written, `1` for a batch with a bad entry or, without `--prune`, no
 entries, and `2` when
 `claims.toml` or `claims.checked.toml` is invalid or `FILE` can't be

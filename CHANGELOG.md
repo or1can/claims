@@ -11,6 +11,16 @@ reached you, not just that one was pushed upstream.
 
 ## [Unreleased]
 
+## [0.28.4] - 2026-11-16
+
+- Changed: `mark-checked` now writes `claims.checked.toml` with its
+  entries sorted by file, mode and unit, so two branches that mark
+  findings in different files no longer conflict when merged or rebased.
+  A comment directly above an entry moves with it.
+- The first `mark-checked` after upgrading reorders the whole file. Land
+  any in-flight branches that touch `claims.checked.toml` first, or
+  expect one conflict while they catch up.
+
 ## [0.28.3] - 2026-11-11
 
 - Fixed: a change that only adds lines to an append-only file, such as

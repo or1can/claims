@@ -40,3 +40,12 @@
   line's number against git's. The fix is decoding git's bytes without
   translation. Files in the working tree are read through
   `claims.lines.tracked_text` since #191. Found working on #185.
+- A git merge driver for `claims.checked.toml`, deferred from #241.
+  Sorting the file by key keeps two branches marking different files
+  from conflicting; one is worth building if ratect's next milestone
+  still shows marks-file conflicts after sorting. Known design points:
+  it is installed per clone with `git config merge.<name>.driver`, since
+  `.gitattributes` alone can only name one; it merges three-way against
+  the base, so an entry one side pruned stays deleted; and a mark has no
+  timestamp to decide which is newer when both sides marked the same
+  key.

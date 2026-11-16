@@ -22,11 +22,13 @@ import contextlib
 import io
 import json
 import os
+import subprocess
 import tempfile
 import unittest
 from pathlib import Path
 from unittest import mock
 
+from claims.checked import Mark, _render, load_marks, write_marks
 from claims.checks import claim_words, restatement, spliced_docs, stale_claims
 from claims.cli import main
 from claims.gate import decide_repo
@@ -409,21 +411,22 @@ class CheckedMarkTests(RegistryClearingTestCase):
         self.mark("docs/a.md:1 claim-words-totalising second")
 
         text = sidecar.read_text()
-        self.assertTrue(text.startswith("# audit of docs/a.md\n"))
         self.assertEqual(text.count("[[mark]]"), 2)
         self.assertNotIn("first", text)
-        self.assertIn('note = "second"', text)
+        # The comment stays directly above the entry that replaced the one
+        # it was above.
+        self.assertIn('note = "second"', text.split("# audit of docs/a.md\n")[1].split("\n\n")[0])
 
     def test_re_marking_keeps_the_comment_above_the_next_entry(self) -> None:
         self.repo.write("docs/a.md", "Every check runs.\n\nOnly one runs.\n")
         self.mark("docs/a.md:1 claim-words-totalising first", "docs/a.md:3 claim-words-totalising other")
         sidecar = self.repo.root / "claims.checked.toml"
-        first, second = sidecar.read_text().split("\n\n")
-        sidecar.write_text(f"{first}\n\n# about the other\n{second}")
+        (other,) = [e for e in sidecar.read_text().split("\n\n") if 'note = "other"' in e]
+        sidecar.write_text(sidecar.read_text().replace(other, f"# about the other\n{other}"))
 
         self.mark("docs/a.md:1 claim-words-totalising second")
 
-        self.assertIn(f"# about the other\n{second}", sidecar.read_text())
+        self.assertIn(f"# about the other\n{other}", sidecar.read_text())
 
     def test_gate_findings_and_unmarkable_modes_are_refused(self) -> None:
         register_check(
@@ -557,7 +560,11 @@ class CheckedMarkTests(RegistryClearingTestCase):
             "docs/a.md:5 claim-words-totalising c",
         )
         sidecar = self.repo.root / "claims.checked.toml"
-        first, second, third = sidecar.read_text().split("\n\n")
+        first, second, third = sorted(
+            sidecar.read_text().rstrip("\n").split("\n\n"), key=lambda e: e.split("note = ")[1]
+        )
+        third += "\n"
+        # Out of key order, as a hand edit might leave it: `b` sorts first.
         sidecar.write_text(
             f"# audit of docs/a.md\n\n{first}\n\n\n# second\n{second}\n\n# third\n{third}"
         )
@@ -575,7 +582,8 @@ class CheckedMarkTests(RegistryClearingTestCase):
         self.repo.write("docs/a.md", "Every check runs.\n\nOnly one runs.\n")
         self.mark("docs/a.md:1 claim-words-totalising a", "docs/a.md:3 claim-words-totalising b")
         sidecar = self.repo.root / "claims.checked.toml"
-        sidecar.write_text("# about the first\n" + sidecar.read_text())
+        (first,) = [e for e in sidecar.read_text().split("\n\n") if 'note = "a"' in e]
+        sidecar.write_text(sidecar.read_text().replace(first, f"# about the first\n{first}"))
         self.repo.write("docs/a.md", "Every check runs.\n\nOnly two run.\n")
 
         code, _, _ = self.prune("docs/a.md:1 claim-words-totalising a again")
@@ -1249,6 +1257,97 @@ class CheckedMarkTests(RegistryClearingTestCase):
 
         self.repo.write("docs/hub.md", self.HUB.replace("Code v0.", "Code v1."))
         self.assertTrue(self.summary().endswith(self.QUIET))
+
+
+def a_mark(file: str, note: str = "n", unit: str = "u") -> Mark:
+    return Mark(file=file, mode="claim-words-totalising", unit=unit, copies=1, subjects={}, note=note)
+
+
+class SortedSidecarTests(unittest.TestCase):
+    """`write_marks` keeps `claims.checked.toml` sorted by key, so two
+    branches marking findings in different files merge cleanly (#241)."""
+
+    def setUp(self) -> None:
+        self.repo = Repo().__enter__()
+        self.addCleanup(self.repo.__exit__)
+        self.sidecar = self.repo.root / "claims.checked.toml"
+
+    def files(self) -> list[str]:
+        return [m.file for m in load_marks(self.repo.root)]
+
+    def test_entries_are_written_in_key_order(self) -> None:
+        write_marks(self.repo.root, [a_mark("docs/c.md"), a_mark("docs/a.md")])
+        write_marks(self.repo.root, [a_mark("docs/b.md")])
+
+        self.assertEqual(self.files(), ["docs/a.md", "docs/b.md", "docs/c.md"])
+
+    def test_a_replacement_takes_its_sorted_slot_with_the_comment_above_it(self) -> None:
+        # Hand-edited out of order; reading doesn't care.
+        self.sidecar.write_text(
+            "# about c\n" + _render(a_mark("docs/c.md", "old")) + "\n" + _render(a_mark("docs/a.md"))
+        )
+        self.assertEqual(self.files(), ["docs/c.md", "docs/a.md"])
+
+        write_marks(self.repo.root, [a_mark("docs/c.md", "new")])
+
+        self.assertEqual(
+            self.sidecar.read_text(),
+            _render(a_mark("docs/a.md")) + "\n# about c\n" + _render(a_mark("docs/c.md", "new")),
+        )
+
+    def test_writing_a_sorted_file_with_nothing_new_changes_no_byte(self) -> None:
+        text = (
+            "# audit\n\n"
+            + _render(a_mark("docs/a.md"))
+            + "\n\n# about b\n"
+            + _render(a_mark("docs/b.md"))
+            + _render(a_mark("docs/c.md"))
+            + "\n# trailing\n"
+        )
+        self.sidecar.write_text(text)
+
+        write_marks(self.repo.root, [])
+
+        self.assertEqual(self.sidecar.read_text(), text)
+
+    def test_a_pruned_entry_leaves_a_comment_not_directly_above_it(self) -> None:
+        self.sidecar.write_text(
+            _render(a_mark("docs/a.md"))
+            + "\n# note\n\n# about b\n"
+            + _render(a_mark("docs/b.md"))
+            + "\n"
+            + _render(a_mark("docs/c.md"))
+        )
+
+        write_marks(self.repo.root, [], pruned=[a_mark("docs/b.md")])
+
+        self.assertEqual(
+            self.sidecar.read_text(),
+            _render(a_mark("docs/a.md")) + "\n# note\n\n" + _render(a_mark("docs/c.md")),
+        )
+
+    def git(self, *args: str) -> subprocess.CompletedProcess[str]:
+        return subprocess.run(
+            ["git", "-C", str(self.repo.root), *args], capture_output=True, text=True
+        )
+
+    def test_two_branches_marking_different_files_merge_without_conflict(self) -> None:
+        write_marks(self.repo.root, [a_mark(f"docs/{n}.md") for n in "bcdefghijklmnop"])
+        self.repo.commit()
+        base = self.git("rev-parse", "--abbrev-ref", "HEAD").stdout.strip()
+        self.git("checkout", "-q", "-b", "other")
+        write_marks(self.repo.root, [a_mark("docs/z.md")])
+        self.repo.commit()
+        self.git("checkout", "-q", base)
+        write_marks(self.repo.root, [a_mark("docs/a.md")])
+        self.repo.commit()
+
+        merge = self.git("merge", "-q", "--no-edit", "other")
+
+        self.assertEqual(merge.returncode, 0, merge.stdout + merge.stderr)
+        self.assertEqual(
+            self.files(), ["docs/a.md", *(f"docs/{n}.md" for n in "bcdefghijklmnop"), "docs/z.md"]
+        )
 
 
 if __name__ == "__main__":

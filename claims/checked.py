@@ -767,43 +767,85 @@ def _render(mark: Mark) -> str:
 
 def write_marks(repo_root: Path, marks: Sequence[Mark], pruned: Iterable[Mark] = ()) -> None:
     """Add `marks` to `claims.checked.toml`, each replacing an existing
-    entry with its key, and drop each entry `pruned` has the key of. Every
-    other entry's text, comments included, is kept as written."""
+    entry with its key, drop each entry `pruned` has the key of, and write
+    every entry sorted by key, so branches marking different findings edit
+    different places in the file. Every other entry's text, comments
+    included, is kept as written; a comment directly above an entry moves
+    with it."""
 
     path = repo_root / CHECKED_FILENAME
     existing = load_marks(repo_root)
     # Read as `load_marks` reads it, so each entry is numbered the same.
     text = path.read_text(encoding="utf-8") if path.is_file() else ""
+    latest = {mark.key: mark for mark in marks}
     pruned_keys = {mark.key for mark in pruned}
-    dropped = {mark.key for mark in marks} | pruned_keys
+
+    def is_comment(line: str) -> bool:
+        return line.lstrip().startswith("#")
+
+    def comments_above(region: list[str]) -> int:
+        """Where the comments directly above the end of `region` start."""
+        i = len(region)
+        while i and is_comment(region[i - 1]):
+            i -= 1
+        return i
 
     # Numbered as `load_marks` numbers each entry's `line`.
     lines = [line + "\n" for line in git_lines(text)]
     starts = [m.line - 1 for m in existing]
-    # Which lines go is read off the file as written, never off what is
-    # kept so far, so dropping one entry can't change what goes with another.
-    gone: set[int] = set()
+    # Each entry as `(mark, gap, lead, body)`: the blank lines above it,
+    # which stay with its place in the file (`None` when it has none of
+    # its own, as the first entry hasn't); then the rest of what lies
+    # between it and the entry before, which moves with it; then its own
+    # lines. A comment closing an entry's lines sits above the next one,
+    # so is the next one's.
+    entries: list[tuple[Mark, str | None, str, str]] = []
+    head = ""
+    end_of_last = 0
     for mark, start, end in zip(existing, starts, starts[1:] + [len(lines)]):
-        if mark.key not in dropped:
-            continue
-        # A comment closing a dropped entry's lines sits above the next
-        # entry, so it is the next entry's and stays; the blank lines
-        # between them go with the dropped entry.
         tail = end
-        while tail > start + 1 and (not lines[tail - 1].strip() or lines[tail - 1].lstrip().startswith("#")):
+        while tail > start + 1 and (not lines[tail - 1].strip() or is_comment(lines[tail - 1])):
             tail -= 1
-        while tail < end and not lines[tail].strip():
-            tail += 1
-        gone.update(range(start, tail))
-        if mark.key in pruned_keys:
-            # A comment directly above a pruned entry is about it, and goes
-            # with it; one above a replaced entry stays where it was.
-            above = start
-            while above > 0 and lines[above - 1].lstrip().startswith("#"):
-                above -= 1
-            gone.update(range(above, start))
-    kept = "".join(line for i, line in enumerate(lines) if i not in gone)
-    blocks = [kept.rstrip("\n")] if kept.strip() else []
-    latest = {mark.key: mark for mark in marks}
-    blocks.extend(_render(mark).rstrip("\n") for mark in latest.values())
-    path.write_text("\n\n".join(blocks) + "\n", encoding="utf-8")
+        region = lines[end_of_last:start]
+        if entries:
+            blank = 0
+            while blank < len(region) and not region[blank].strip():
+                blank += 1
+            gap, lead = "".join(region[:blank]), "".join(region[blank:])
+        else:
+            # Above the first entry only the comments directly above it are
+            # its own; the rest heads the file, and stays there.
+            split = comments_above(region)
+            head, gap, lead = "".join(region[:split]), None, "".join(region[split:])
+        entries.append((mark, gap, lead, "".join(lines[start:tail])))
+        end_of_last = tail
+    foot = "".join(lines[end_of_last:])
+
+    kept: list[tuple[tuple[str, str, str], str | None, str, str]] = []
+    # What a pruned entry leaves to the next one kept: its gap, and any
+    # comments above it that aren't directly above it. Those directly above
+    # it are about it, and go with it.
+    left: tuple[str | None, str] | None = None
+    for mark, gap, lead, body in entries:
+        if left is not None:
+            gap, lead = left[0], left[1] + lead
+            left = None
+        if mark.key in pruned_keys and mark.key not in latest:
+            region = lead.splitlines(keepends=True)
+            left = (gap, "".join(region[: comments_above(region)]))
+            continue
+        if mark.key in latest:
+            body = _render(latest.pop(mark.key))
+        kept.append((mark.key, gap, lead, body))
+    if left is not None:
+        foot = left[1] + foot
+    kept.extend((mark.key, None, "", _render(mark)) for mark in latest.values())
+    kept.sort(key=lambda entry: entry[0])
+
+    out = [head]
+    for slot, (_, gap, lead, body) in enumerate(kept):
+        if slot:
+            out.append("\n" if gap is None else gap)
+        out.append(lead + body)
+    out.append(foot)
+    path.write_text("".join(out).rstrip("\n") + "\n", encoding="utf-8")
