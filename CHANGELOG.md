@@ -15,7 +15,8 @@ reached you, not just that one was pushed upstream.
 
 - Changed: `mark-checked` now writes `claims.checked.toml` with its
   entries sorted by file, mode and unit, so two branches that mark
-  findings in different files no longer conflict when merged or rebased.
+  findings in different files no longer conflict when merged or rebased,
+  unless their new entries land next to each other.
   A comment directly above an entry moves with it.
 - The first `mark-checked` after upgrading reorders the whole file. Land
   any in-flight branches that touch `claims.checked.toml` first, or

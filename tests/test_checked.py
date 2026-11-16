@@ -1310,6 +1310,13 @@ class SortedSidecarTests(unittest.TestCase):
 
         self.assertEqual(self.sidecar.read_text(), text)
 
+    def test_a_file_of_only_comments_keeps_them_above_its_first_entry(self) -> None:
+        self.sidecar.write_text("# audit\n")
+
+        write_marks(self.repo.root, [a_mark("docs/a.md")])
+
+        self.assertEqual(self.sidecar.read_text(), "# audit\n\n" + _render(a_mark("docs/a.md")))
+
     def test_a_pruned_entry_leaves_a_comment_not_directly_above_it(self) -> None:
         self.sidecar.write_text(
             _render(a_mark("docs/a.md"))
@@ -1328,10 +1335,16 @@ class SortedSidecarTests(unittest.TestCase):
 
     def git(self, *args: str) -> subprocess.CompletedProcess[str]:
         return subprocess.run(
-            ["git", "-C", str(self.repo.root), *args], capture_output=True, text=True
+            ["git", "-C", str(self.repo.root), *args],
+            capture_output=True,
+            text=True,
+            check=args[0] != "merge",
         )
 
     def test_two_branches_marking_different_files_merge_without_conflict(self) -> None:
+        # Enough entries between the two new ones that git sees their
+        # insertions as separate hunks; keys that sort next to each other
+        # can still conflict.
         write_marks(self.repo.root, [a_mark(f"docs/{n}.md") for n in "bcdefghijklmnop"])
         self.repo.commit()
         base = self.git("rev-parse", "--abbrev-ref", "HEAD").stdout.strip()

@@ -793,12 +793,13 @@ def write_marks(repo_root: Path, marks: Sequence[Mark], pruned: Iterable[Mark] =
     # Numbered as `load_marks` numbers each entry's `line`.
     lines = [line + "\n" for line in git_lines(text)]
     starts = [m.line - 1 for m in existing]
-    # Each entry as `(mark, gap, lead, body)`: the blank lines above it,
-    # which stay with its place in the file (`None` when it has none of
-    # its own, as the first entry hasn't); then the rest of what lies
-    # between it and the entry before, which moves with it; then its own
-    # lines. A comment closing an entry's lines sits above the next one,
-    # so is the next one's.
+    # Each entry as `(mark, gap, lead, body)`: the blank lines above it
+    # (`None` when it has none of its own, as the first entry hasn't),
+    # written above it wherever it lands except first, where none are;
+    # then the rest of what lies between it and the entry before; then its
+    # own lines. All three move with it, so a sorted file is rewritten
+    # byte for byte. A comment closing an entry's lines sits above the
+    # next one, so is the next one's.
     entries: list[tuple[Mark, str | None, str, str]] = []
     head = ""
     end_of_last = 0
@@ -820,6 +821,9 @@ def write_marks(repo_root: Path, marks: Sequence[Mark], pruned: Iterable[Mark] =
         entries.append((mark, gap, lead, "".join(lines[start:tail])))
         end_of_last = tail
     foot = "".join(lines[end_of_last:])
+    if not entries and foot.strip():
+        # A file of only comments heads the file, above the entries added.
+        head, foot = foot.rstrip("\n") + "\n\n", ""
 
     kept: list[tuple[tuple[str, str, str], str | None, str, str]] = []
     # What a pruned entry leaves to the next one kept: its gap, and any
