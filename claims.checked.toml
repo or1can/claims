@@ -14,7 +14,6 @@ unit = "d892c3a16ef8ce1a"
 copies = 1
 note = "Re-read after the 0.29.0 bump: this bump is itself an instance of what it describes (a version-only change ranks sections naming pyproject.toml)."
 by = "Claude (agent)"
-review = "pending"
 subjects = { "pyproject.toml" = "fd6950706c8b9043" }
 
 [[mark]]
@@ -24,7 +23,6 @@ unit = "dd656ffcd24a40a1"
 copies = 1
 note = "Re-read after the 0.29.0 bump: the reasoning still holds; the bump ranked the same sections it lists, each a quick re-read."
 by = "Claude (agent)"
-review = "pending"
 subjects = { ".claude-plugin/plugin.json" = "fb4ded4d22a7a7bb", ".out-of-scope/adr-status-notes-as-churn.md" = "7bc84c78d3c4041e", ".out-of-scope/comment-only-churn.md" = "a8fc5351b734ef48", ".out-of-scope/generated-subjects-and-history-weighting.md" = "01bbf99406bf555f", "pyproject.toml" = "fd6950706c8b9043", "tests/fixtures/judgment_agent_golden/count_consistency_known_false/repo/ROADMAP.md" = "24be61be2e348715" }
 
 [[mark]]
@@ -43,7 +41,6 @@ unit = "00511baf91c2b812"
 copies = 1
 note = "\"four\" and \"all three from ci.yml\" checked against ruleset 23530440's required_status_checks and ci.yml's jobs (Typecheck, Test, Claims); Signed-off-by is dco.yml's job, on pull_request only."
 by = "Claude (agent)"
-review = "pending"
 subjects = { ".github/workflows/ci.yml" = "9a3f40dc08547d3e", ".github/workflows/dco.yml" = "8ed66fb756a4ce0a", "docs/checked-marks.md" = "e2b6412ad5f4b01f" }
 
 [[mark]]
@@ -62,7 +59,6 @@ unit = "00511baf91c2b812"
 copies = 1
 note = "Checked against ruleset 23530440 (gh api): its required_status_checks are Typecheck, Test, Claims, Signed-off-by; ci.yml's Claims job runs a bare --fail-on-unmarked, covering every markable check, then pending-marks, which exits 1 while any mark is pending."
 by = "Claude (agent)"
-review = "pending"
 subjects = { ".github/workflows/ci.yml" = "9a3f40dc08547d3e", ".github/workflows/dco.yml" = "8ed66fb756a4ce0a", "docs/checked-marks.md" = "e2b6412ad5f4b01f" }
 
 [[mark]]
@@ -108,7 +104,6 @@ unit = "8e4f8ea8f0f2e26d"
 copies = 1
 note = "Re-read after the 0.29.0 bump: plugin.json, pyproject.toml and uv.lock move together, test_plugin_manifest.py still pins them equal, and CHANGELOG.md has the matching entry; a minor bump suits a new CLI command and sidecar key."
 by = "Claude (agent)"
-review = "pending"
 subjects = { ".claude-plugin/plugin.json" = "fb4ded4d22a7a7bb", "decisions/0004-docs-is-the-user-facing-tree.md" = "d65bd4ae8cb8b4ac", "pyproject.toml" = "fd6950706c8b9043", "tests/test_plugin_manifest.py" = "f9e134c1ddb47151" }
 
 [[mark]]
@@ -127,7 +122,6 @@ unit = "c4e83690fc1a828d"
 copies = 1
 note = "Re-read after the 0.29.0 bump: only the project version moved in pyproject.toml and uv.lock; the pyright pin and ADR 0008's uv run -q convention are unchanged, and pyright reports 0 errors, 0 warnings, 0 informations."
 by = "Claude (agent)"
-review = "pending"
 subjects = { "decisions/0008-a-command-names-its-own-environment.md" = "ce9132a4784be55c", "pyproject.toml" = "fd6950706c8b9043", "uv.lock" = "f934a09e77469370" }
 
 [[mark]]
@@ -137,7 +131,6 @@ unit = "f22baeb2d42ae875"
 copies = 1
 note = "Re-read after #245's CONTEXT.md edit: the single-context layout, root CONTEXT.md and decisions/ directory are unchanged; ADR 0014 lands in decisions/."
 by = "Claude (agent)"
-review = "pending"
 subjects = { "CONTEXT.md" = "1e4da3ec5d4540c7", "agents/domain.md" = "b6a1dc40c62adb9a", "decisions/0004-docs-is-the-user-facing-tree.md" = "d65bd4ae8cb8b4ac" }
 
 [[mark]]
@@ -163,7 +156,6 @@ unit = "8652909ce0f49280"
 copies = 1
 note = "Re-read: the check index is unchanged (#245 adds no check), and docs/checked-marks.md still covers recording that a finding was read, now with pending marks too."
 by = "Claude (agent)"
-review = "pending"
 subjects = { "docs/checked-marks.md" = "e2b6412ad5f4b01f", "docs/checks/check-citations.md" = "ecb243a4acd27885", "docs/checks/check-cli-flags.md" = "44bda96325c02db3", "docs/checks/check-config-defaults.md" = "1d9bf9a74d0896b3", "docs/checks/check-env-vars.md" = "319716cdb042161c", "docs/checks/check-file-refs.md" = "db3236482a102adf", "docs/checks/check-links.md" = "2c6b3ddee6785686", "docs/checks/claim-words.md" = "312be6f331b007a3", "docs/checks/executable-claims.md" = "9a2ec8a527566d4d", "docs/checks/judgment-agent.md" = "58930e45fddd97e1", "docs/checks/restatement.md" = "e553f0df72626846", "docs/checks/spliced-docs.md" = "e819a2b0f35f4571", "docs/checks/stale-claims.md" = "45b9e694c964e927", "docs/checks/temporal-words.md" = "f68e411131bc8006", "docs/concepts.md" = "41f674d1abc601da", "docs/configuring.md" = "a27fc69a3e4bf5b5" }
 
 [[mark]]
@@ -209,7 +201,6 @@ unit = "53f9fac61c746451"
 copies = 1
 note = "Re-read: #245 changes scripts/capture.py only to unpack apply_marks' new fourth value; the capture flow, the tutorial and the examples it names are unchanged, and test_captures passes."
 by = "Claude (agent)"
-review = "pending"
 subjects = { "claims/git.py" = "dff521c8f61640c5", "docs/installation.md" = "b90939e42afb2dff", "docs/tutorial.md" = "50050ae296cd3136", "examples/tutorial/steps.sh" = "48ecb8d10295eb50", "scripts/capture.py" = "14d2b4164af212d6", "scripts/tutorial.py" = "4127a928e43432f6", "tests/test_captures.py" = "7193d8987d213229", "tests/test_tutorial.py" = "0648a0f0d960676a" }
 
 [[mark]]
@@ -237,7 +228,6 @@ unit = "57c8e234debc95bb"
 copies = 1
 note = "Re-read after #245's CONTEXT.md edit: CONTEXT.md is still the root glossary, there is no CONTEXT-MAP.md, and decisions/ holds the ADRs; the edit only adds the Pending mark and Approve entries."
 by = "Claude (agent)"
-review = "pending"
 subjects = { "CONTEXT.md" = "1e4da3ec5d4540c7" }
 
 [[mark]]
@@ -247,7 +237,6 @@ unit = "b1dea1bb81163f11"
 copies = 1
 note = "Re-read after #245's CONTEXT.md edit: the new Pending mark and Approve entries are used as defined, and none of their _Avoid_ synonyms appear in this branch's docs or code."
 by = "Claude (agent)"
-review = "pending"
 subjects = { "CONTEXT.md" = "1e4da3ec5d4540c7" }
 
 [[mark]]
@@ -257,7 +246,6 @@ unit = "8f126c44411a691b"
 copies = 1
 note = "the CLI summary it describes is the one claims/cli.py main prints, read with the pending clauses added in this change"
 by = "Claude (agent)"
-review = "pending"
 subjects = {}
 
 [[mark]]
@@ -267,7 +255,6 @@ unit = "0b108faadd5a0706"
 copies = 1
 note = "an instruction to the agent; --pending writes review = \"pending\" (claims/checked.py _render) and pending-marks lists those entries (claims/checked.py pending_marks)"
 by = "Claude (agent)"
-review = "pending"
 subjects = {}
 
 [[mark]]
@@ -277,7 +264,6 @@ unit = "760a1ee42bea0fb4"
 copies = 1
 note = "an instruction to the agent, matching ADR 0014: approving is a person's act"
 by = "Claude (agent)"
-review = "pending"
 subjects = {}
 
 [[mark]]
@@ -287,7 +273,6 @@ unit = "8f126c44411a691b"
 copies = 1
 note = "instructs showing every line verbatim; the summary clauses listed match the order claims/cli.py main appends them (partly, pending, then added in range with its own pending count)"
 by = "Claude (agent)"
-review = "pending"
 subjects = {}
 
 [[mark]]
@@ -297,7 +282,6 @@ unit = "6812babe573c34f1"
 copies = 1
 note = "Re-read after #245's docs/checked-marks.md edit: this section now says to mark with --pending, as docs/checked-marks.md's Pending marks section describes; its --prune and --partial guidance is unchanged."
 by = "Claude (agent)"
-review = "pending"
 subjects = { "docs/checked-marks.md" = "e2b6412ad5f4b01f" }
 
 [[mark]]
@@ -307,7 +291,6 @@ unit = "de00163e80311042"
 copies = 1
 note = "Re-read after the 0.29.0 bump and #245's SKILL.md edit: the consequences are about where ADRs and docs live; neither changes any of them."
 by = "Claude (agent)"
-review = "pending"
 subjects = { ".claude-plugin/plugin.json" = "fb4ded4d22a7a7bb", "claims/checks/check_file_refs.py" = "c2ac8d9562a70f4d", "claims/checks/executable_claims.py" = "967e49ef7ed3d693", "claims/skill/SKILL.md" = "e91e06695f0ab60f" }
 
 [[mark]]
@@ -317,7 +300,6 @@ unit = "86ae35d58a6aa3b5"
 copies = 1
 note = "Re-read after #245's CONTEXT.md edit: Claim still carries the live and dated qualifiers, both with _Avoid_: Record-like; the edit only adds two checked-mark entries."
 by = "Claude (agent)"
-review = "pending"
 subjects = { "CONTEXT.md" = "1e4da3ec5d4540c7", "TODO.md" = "8f39d345b1f25563" }
 
 [[mark]]
@@ -327,7 +309,6 @@ unit = "86ae35d58a6aa3b5"
 copies = 1
 note = "Re-read after the 0.29.0 bump: only the project version moved in pyproject.toml; the decision about naming a command's environment is unchanged."
 by = "Claude (agent)"
-review = "pending"
 subjects = { "pyproject.toml" = "fd6950706c8b9043" }
 
 [[mark]]
@@ -346,7 +327,6 @@ unit = "073c1634c496cdb6"
 copies = 1
 note = "Re-read after #245's amendment line in ADR 0010: this status's amendments (#230, #242) and what it amends are unchanged."
 by = "Claude (agent)"
-review = "pending"
 subjects = { "decisions/0009-stale-claims-is-diff-scoped.md" = "7f0eee6df1fe054c", "decisions/0010-checked-marks-expire-on-their-own.md" = "ef5f4f59b63853a1" }
 
 [[mark]]
@@ -365,7 +345,6 @@ unit = "073c1634c496cdb6"
 copies = 1
 note = "Re-read after #245's amendment line in ADR 0010: this status still describes what ADR 0013 amends and extends; the new line is about pending marks."
 by = "Claude (agent)"
-review = "pending"
 subjects = { "decisions/0009-stale-claims-is-diff-scoped.md" = "7f0eee6df1fe054c", "decisions/0010-checked-marks-expire-on-their-own.md" = "ef5f4f59b63853a1", "decisions/0011-append-only-is-a-property-of-the-file.md" = "ae108d5ef5184ffc" }
 
 [[mark]]
@@ -393,7 +372,6 @@ unit = "8652909ce0f49280"
 copies = 1
 note = "Re-read: #245 adds only resolve_commit to claims/git.py; how check-cli-flags finds claims, builds and runs commands is unchanged."
 by = "Claude (agent)"
-review = "pending"
 subjects = { "claims/git.py" = "dff521c8f61640c5", "decisions/0008-a-command-names-its-own-environment.md" = "ce9132a4784be55c", "docs/configuring.md#the-grant-file" = "b34c8248c7423f51" }
 
 [[mark]]
@@ -403,7 +381,6 @@ unit = "8652909ce0f49280"
 copies = 1
 note = "Re-read: claims/cli.py is only the example of a non-Markdown link target with #L10, and still exists; #245's new subcommands don't touch link checking."
 by = "Claude (agent)"
-review = "pending"
 subjects = { "CLAUDE.md" = "43283aa041b65d67", "claims/cli.py" = "e69fbbd58feef5d5" }
 
 [[mark]]
@@ -413,7 +390,6 @@ unit = "50d858e0985ecc7f"
 copies = 1
 note = "Re-read: #245's capture.py change only unpacks apply_marks' new fourth value; the executable-claims example and its capture are unchanged."
 by = "Claude (agent)"
-review = "pending"
 subjects = { "docs/captures/executable-claims.txt" = "286fe731e65db64a", "examples/executable-claims/README.md" = "6a19528942bde738", "examples/executable-claims/local/claims.local.toml" = "89f958645c8a445d", "scripts/capture.py" = "14d2b4164af212d6" }
 
 [[mark]]
@@ -423,7 +399,6 @@ unit = "8652909ce0f49280"
 copies = 1
 note = "Re-read: .github/workflows/ci.yml is only the example path a subject resolves to, and still exists; #245's added CI step doesn't change how sections or subjects are read."
 by = "Claude (agent)"
-review = "pending"
 subjects = { ".github/workflows/ci.yml" = "9a3f40dc08547d3e", "claims/config.py" = "8061ce4e20a17e51", "docs/configuring.md#append-only-files" = "7b641ca9032d95d6", "docs/configuring.md#navigation-pages" = "d761e008a5c92152" }
 
 [[mark]]
@@ -433,7 +408,6 @@ unit = "3dd631da55c55c4f"
 copies = 1
 note = "Re-read after ADR 0012's #245 amendment: a pending mark counts as a mark, so the one exception, --fail-on-unmarked and [hook] fail_on_unmarked, reads as before and findings stay advisory."
 by = "Claude (agent)"
-review = "pending"
 subjects = { "claims/config.py" = "8061ce4e20a17e51", "decisions/0012-a-ci-run-can-fail-on-unmarked-findings.md" = "8040e41e5a0442f3" }
 
 [[mark]]
