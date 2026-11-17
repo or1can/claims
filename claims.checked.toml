@@ -37,6 +37,16 @@ subjects = { "TODO.md" = "57bcd04343ac2af5" }
 [[mark]]
 file = "AGENTS.md"
 mode = "claim-words-counts"
+unit = "00511baf91c2b812"
+copies = 1
+note = "\"four\" and \"all three from ci.yml\" checked against ruleset 23530440's required_status_checks and ci.yml's jobs (Typecheck, Test, Claims); Signed-off-by is dco.yml's job, on pull_request only."
+by = "Claude (agent)"
+review = "pending"
+subjects = { ".github/workflows/ci.yml" = "9a3f40dc08547d3e", ".github/workflows/dco.yml" = "8ed66fb756a4ce0a", "docs/checked-marks.md" = "e2b6412ad5f4b01f" }
+
+[[mark]]
+file = "AGENTS.md"
+mode = "claim-words-counts"
 unit = "ebcd05b50cec821c"
 copies = 1
 note = "Same sentence as the totalising mark: \"only\" is the deliberate contrast between ratect and this repository."
@@ -45,12 +55,13 @@ subjects = {}
 
 [[mark]]
 file = "AGENTS.md"
-mode = "claim-words-counts"
-unit = "f5370039df5c5f20"
+mode = "claim-words-totalising"
+unit = "00511baf91c2b812"
 copies = 1
-note = "\"four\" and \"all three from ci.yml\" checked against ruleset 23530440's required_status_checks and ci.yml's jobs (typecheck, test, claims)."
-by = "Kevin Rogers"
-subjects = { ".github/workflows/ci.yml" = "287db4c0cf950e73", ".github/workflows/dco.yml" = "8ed66fb756a4ce0a", "docs/checked-marks.md" = "73248f46bb8dd976" }
+note = "Checked against ruleset 23530440 (gh api): its required_status_checks are Typecheck, Test, Claims, Signed-off-by; ci.yml's Claims job runs a bare --fail-on-unmarked, covering every markable check, then pending-marks, which exits 1 while any mark is pending."
+by = "Claude (agent)"
+review = "pending"
+subjects = { ".github/workflows/ci.yml" = "9a3f40dc08547d3e", ".github/workflows/dco.yml" = "8ed66fb756a4ce0a", "docs/checked-marks.md" = "e2b6412ad5f4b01f" }
 
 [[mark]]
 file = "AGENTS.md"
@@ -60,15 +71,6 @@ copies = 1
 note = "Deliberate: \"only ratect\" is the point of the rule, and was true when written — this PR is what makes this repository run the 0.28 features too."
 by = "Kevin Rogers"
 subjects = {}
-
-[[mark]]
-file = "AGENTS.md"
-mode = "claim-words-totalising"
-unit = "f5370039df5c5f20"
-copies = 1
-note = "Checked against ruleset 23530440: Claims is added to its required_status_checks with this PR, giving Typecheck, Test, Claims, Signed-off-by; \"any unmarked advisory finding\" matches ci.yml's bare --fail-on-unmarked, which covers every markable check."
-by = "Kevin Rogers"
-subjects = { ".github/workflows/ci.yml" = "287db4c0cf950e73", ".github/workflows/dco.yml" = "8ed66fb756a4ce0a", "docs/checked-marks.md" = "73248f46bb8dd976" }
 
 [[mark]]
 file = "AGENTS.md"
