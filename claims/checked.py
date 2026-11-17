@@ -64,7 +64,7 @@ from pathlib import Path, PurePosixPath
 from typing import NamedTuple
 
 from .config import ConfigError, append_only, counts_as_subject
-from .git import DiffLine, blob_id, iter_diff, read_blob, tracked_files
+from .git import DiffLine, blob_id, iter_diff, path_blobs, read_blob, tracked_files
 from .lines import git_lines, tracked_text
 from .markdown import CODE_SPAN_RE, fence_state, prose_lines, section_range, sentences_from
 from .runner import Finding
@@ -290,6 +290,7 @@ class _Tree:
         self._resolver: tuple[set[str], dict[str, str]] | None = None
         self._hashes: dict[tuple[str, bool], str | None] = {}
         self._grown: dict[tuple[str, str], bool] = {}
+        self._blobs: dict[str, set[str]] = {}
 
     def lines(self, rel: str) -> list[str] | None:
         if rel not in self._lines:
@@ -382,7 +383,8 @@ class _Tree:
     def subject_holds(self, subject: str, recorded: str) -> bool:
         """Whether `subject` is as it was when a mark recorded `recorded`
         for it. An append-only file's blob id holds while the recorded
-        blob's lines, or its section's, are all still there (ADR 0011).
+        blob is in `HEAD`'s history of the file or in the index, and its
+        lines, or its section's, are all still there (ADR 0011).
         Any other value has to equal the content hash, which is how a mark
         written before a file was append-only goes on being compared."""
 
@@ -399,6 +401,13 @@ class _Tree:
         return self._grown[subject, recorded]
 
     def _grew(self, path: str, anchor: str, recorded: str) -> bool:
+        # Only a blob `HEAD`'s history or the index gives `path` counts: a
+        # dangling one a rewrite left in this clone's store is in no other
+        # clone's, so it would hold here and expire in CI (#242).
+        if path not in self._blobs:
+            self._blobs[path] = path_blobs(self.repo_root, path)
+        if recorded not in self._blobs[path]:
+            return False
         old = read_blob(self.repo_root, recorded)
         resolved = _regular_file(self.repo_root, path)
         if old is None or resolved is None:

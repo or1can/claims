@@ -12,18 +12,18 @@ file = ".out-of-scope/version-only-churn.md"
 mode = "stale-claims"
 unit = "d892c3a16ef8ce1a"
 copies = 1
-note = "Re-read after the 0.28.4 bump: still accurate, this bump is itself an instance of what it describes (version-only change ranks sections naming pyproject.toml)."
-by = "Kevin Rogers"
-subjects = { "pyproject.toml" = "348aebeb7fa38c67" }
+note = "Re-read after the 0.28.5 bump: this bump is itself an instance of what it describes (a version-only change ranks sections naming pyproject.toml)."
+by = "Claude (agent)"
+subjects = { "pyproject.toml" = "4f0b439b9505907f" }
 
 [[mark]]
 file = ".out-of-scope/version-only-churn.md"
 mode = "stale-claims"
 unit = "dd656ffcd24a40a1"
 copies = 1
-note = "Re-read after the 0.28.4 bump: the reasoning still holds; the bump ranked the same sections it lists, each a quick re-read."
-by = "Kevin Rogers"
-subjects = { ".claude-plugin/plugin.json" = "539a96e080b1d271", ".out-of-scope/adr-status-notes-as-churn.md" = "7bc84c78d3c4041e", ".out-of-scope/comment-only-churn.md" = "a8fc5351b734ef48", ".out-of-scope/generated-subjects-and-history-weighting.md" = "01bbf99406bf555f", "pyproject.toml" = "348aebeb7fa38c67", "tests/fixtures/judgment_agent_golden/count_consistency_known_false/repo/ROADMAP.md" = "24be61be2e348715" }
+note = "Re-read after the 0.28.5 bump: the reasoning still holds; the bump ranked the same sections it lists, each a quick re-read."
+by = "Claude (agent)"
+subjects = { ".claude-plugin/plugin.json" = "d529432389fb63a1", ".out-of-scope/adr-status-notes-as-churn.md" = "7bc84c78d3c4041e", ".out-of-scope/comment-only-churn.md" = "a8fc5351b734ef48", ".out-of-scope/generated-subjects-and-history-weighting.md" = "01bbf99406bf555f", "pyproject.toml" = "4f0b439b9505907f", "tests/fixtures/judgment_agent_golden/count_consistency_known_false/repo/ROADMAP.md" = "24be61be2e348715" }
 
 [[mark]]
 file = "AGENTS.md"
@@ -75,9 +75,9 @@ file = "AGENTS.md"
 mode = "stale-claims"
 unit = "138cc67997c9136e"
 copies = 1
-note = "Re-read: the Claims check still fails on unmarked advisory findings and docs/checked-marks.md still documents marking; #241 only added how the marks file is ordered."
-by = "Kevin Rogers"
-subjects = { ".github/workflows/ci.yml" = "efae98309a62124e", ".github/workflows/dco.yml" = "8ed66fb756a4ce0a", "docs/checked-marks.md" = "3420fd877a583feb" }
+note = "Re-read: the Claims check still fails on unmarked advisory findings and docs/checked-marks.md still documents marking; #242 only changed when an append-only mark's blob counts."
+by = "Claude (agent)"
+subjects = { ".github/workflows/ci.yml" = "efae98309a62124e", ".github/workflows/dco.yml" = "8ed66fb756a4ce0a", "docs/checked-marks.md" = "c1242144aade2e44" }
 
 [[mark]]
 file = "AGENTS.md"
@@ -102,9 +102,9 @@ file = "AGENTS.md"
 mode = "stale-claims"
 unit = "8e4f8ea8f0f2e26d"
 copies = 1
-note = "Re-read after the 0.28.3 to 0.28.4 bump: plugin.json and pyproject.toml move together, test_plugin_manifest.py still pins them equal, and CHANGELOG.md gained the matching entry, as the section says."
-by = "Kevin Rogers"
-subjects = { ".claude-plugin/plugin.json" = "539a96e080b1d271", "decisions/0004-docs-is-the-user-facing-tree.md" = "d65bd4ae8cb8b4ac", "pyproject.toml" = "348aebeb7fa38c67", "tests/test_plugin_manifest.py" = "f9e134c1ddb47151" }
+note = "Re-read after the 0.28.4 to 0.28.5 bump: plugin.json, pyproject.toml and uv.lock move together, test_plugin_manifest.py still pins them equal, and CHANGELOG.md gained the matching entry, as the section says."
+by = "Claude (agent)"
+subjects = { ".claude-plugin/plugin.json" = "d529432389fb63a1", "decisions/0004-docs-is-the-user-facing-tree.md" = "d65bd4ae8cb8b4ac", "pyproject.toml" = "4f0b439b9505907f", "tests/test_plugin_manifest.py" = "f9e134c1ddb47151" }
 
 [[mark]]
 file = "AGENTS.md"
@@ -120,9 +120,9 @@ file = "AGENTS.md"
 mode = "stale-claims"
 unit = "c4e83690fc1a828d"
 copies = 1
-note = "Re-read after the 0.28.4 bump: only the project version moved in pyproject.toml and uv.lock; the pyright pin in the dev group and ADR 0008's uv run -q convention are unchanged, and pyright reports 0 errors, 0 warnings, 0 informations."
-by = "Kevin Rogers"
-subjects = { "decisions/0008-a-command-names-its-own-environment.md" = "ce9132a4784be55c", "pyproject.toml" = "348aebeb7fa38c67", "uv.lock" = "8fe8340c2ee161ac" }
+note = "Re-read after the 0.28.5 bump: only the project version moved in pyproject.toml and uv.lock; the pyright pin and ADR 0008's uv run -q convention are unchanged, and pyright reports 0 errors, 0 warnings, 0 informations."
+by = "Claude (agent)"
+subjects = { "decisions/0008-a-command-names-its-own-environment.md" = "ce9132a4784be55c", "pyproject.toml" = "4f0b439b9505907f", "uv.lock" = "c7537093cec6e277" }
 
 [[mark]]
 file = "README.md"
@@ -145,9 +145,9 @@ file = "README.md"
 mode = "stale-claims"
 unit = "8652909ce0f49280"
 copies = 1
-note = "Re-read: the section is the check index plus a pointer to docs/concepts.md; #241's changes to docs/checked-marks.md add no check and change no gate/advisory definition."
-by = "Kevin Rogers"
-subjects = { "docs/checked-marks.md" = "3420fd877a583feb", "docs/checks/check-citations.md" = "ecb243a4acd27885", "docs/checks/check-cli-flags.md" = "44bda96325c02db3", "docs/checks/check-config-defaults.md" = "1d9bf9a74d0896b3", "docs/checks/check-env-vars.md" = "319716cdb042161c", "docs/checks/check-file-refs.md" = "db3236482a102adf", "docs/checks/check-links.md" = "2c6b3ddee6785686", "docs/checks/claim-words.md" = "312be6f331b007a3", "docs/checks/executable-claims.md" = "9a2ec8a527566d4d", "docs/checks/judgment-agent.md" = "58930e45fddd97e1", "docs/checks/restatement.md" = "e553f0df72626846", "docs/checks/spliced-docs.md" = "e819a2b0f35f4571", "docs/checks/stale-claims.md" = "45b9e694c964e927", "docs/checks/temporal-words.md" = "f68e411131bc8006", "docs/concepts.md" = "41f674d1abc601da", "docs/configuring.md" = "a27fc69a3e4bf5b5" }
+note = "Re-read: the section is the check index plus a pointer to docs/concepts.md; #242 adds no check and changes no gate/advisory definition."
+by = "Claude (agent)"
+subjects = { "docs/checked-marks.md" = "c1242144aade2e44", "docs/checks/check-citations.md" = "ecb243a4acd27885", "docs/checks/check-cli-flags.md" = "44bda96325c02db3", "docs/checks/check-config-defaults.md" = "1d9bf9a74d0896b3", "docs/checks/check-env-vars.md" = "319716cdb042161c", "docs/checks/check-file-refs.md" = "db3236482a102adf", "docs/checks/check-links.md" = "2c6b3ddee6785686", "docs/checks/claim-words.md" = "312be6f331b007a3", "docs/checks/executable-claims.md" = "9a2ec8a527566d4d", "docs/checks/judgment-agent.md" = "58930e45fddd97e1", "docs/checks/restatement.md" = "e553f0df72626846", "docs/checks/spliced-docs.md" = "e819a2b0f35f4571", "docs/checks/stale-claims.md" = "45b9e694c964e927", "docs/checks/temporal-words.md" = "f68e411131bc8006", "docs/concepts.md" = "41f674d1abc601da", "docs/configuring.md" = "a27fc69a3e4bf5b5" }
 
 [[mark]]
 file = "TODO.md"
@@ -190,8 +190,9 @@ file = "agents/docs.md"
 mode = "stale-claims"
 unit = "53f9fac61c746451"
 copies = 1
-note = "scripts/tutorial.py capture, steps.sh's anchors, the states/<step>/ copy and tests/test_tutorial.py work as this section says; the tutorial's recent edits reworded prose and the setup docstring only"
-subjects = { "claims/git.py" = "7e8123bf113f89cf", "docs/installation.md" = "b90939e42afb2dff", "docs/tutorial.md" = "50050ae296cd3136", "examples/tutorial/steps.sh" = "48ecb8d10295eb50", "scripts/capture.py" = "38abb2886bfbfbdf", "scripts/tutorial.py" = "4127a928e43432f6", "tests/test_captures.py" = "7193d8987d213229", "tests/test_tutorial.py" = "0648a0f0d960676a" }
+note = "Re-read: the section is about captured output and scripts/capture.py; #242 changes no capture, tutorial or example it names."
+by = "Claude (agent)"
+subjects = { "claims/git.py" = "e51e753c9c69a62d", "docs/installation.md" = "b90939e42afb2dff", "docs/tutorial.md" = "50050ae296cd3136", "examples/tutorial/steps.sh" = "48ecb8d10295eb50", "scripts/capture.py" = "38abb2886bfbfbdf", "scripts/tutorial.py" = "4127a928e43432f6", "tests/test_captures.py" = "7193d8987d213229", "tests/test_tutorial.py" = "0648a0f0d960676a" }
 
 [[mark]]
 file = "agents/docs.md"
@@ -216,18 +217,18 @@ file = "claims/skill/SKILL.md"
 mode = "stale-claims"
 unit = "6812babe573c34f1"
 copies = 1
-note = "Re-read against docs/checked-marks.md after #241's paragraph on sorted order: the skill's instructions (read before marking, one note each, --prune, --partial, commit the file) are unchanged by the sort and still accurate."
-by = "Kevin Rogers"
-subjects = { "docs/checked-marks.md" = "3420fd877a583feb" }
+note = "Re-read after #242's checked-marks.md edit: how to write a mark, --prune and --partial are unchanged; the edit only narrows when an append-only mark's recorded blob counts."
+by = "Claude (agent)"
+subjects = { "docs/checked-marks.md" = "c1242144aade2e44" }
 
 [[mark]]
 file = "decisions/0004-docs-is-the-user-facing-tree.md"
 mode = "stale-claims"
 unit = "de00163e80311042"
 copies = 1
-note = "Re-read after the 0.28.4 bump: plugin.json changed only its version and moved no path; the consequences listed concern the docs/ move and still describe it."
-by = "Kevin Rogers"
-subjects = { ".claude-plugin/plugin.json" = "539a96e080b1d271", "claims/checks/check_file_refs.py" = "c2ac8d9562a70f4d", "claims/checks/executable_claims.py" = "967e49ef7ed3d693", "claims/skill/SKILL.md" = "bd62349c28ccf511" }
+note = "Re-read after the 0.28.5 bump: the consequences are about where ADRs and docs live; a version bump in plugin.json changes none of them."
+by = "Claude (agent)"
+subjects = { ".claude-plugin/plugin.json" = "d529432389fb63a1", "claims/checks/check_file_refs.py" = "c2ac8d9562a70f4d", "claims/checks/executable_claims.py" = "967e49ef7ed3d693", "claims/skill/SKILL.md" = "bd62349c28ccf511" }
 
 [[mark]]
 file = "decisions/0005-live-and-dated-claims.md"
@@ -243,36 +244,36 @@ file = "decisions/0008-a-command-names-its-own-environment.md"
 mode = "stale-claims"
 unit = "86ae35d58a6aa3b5"
 copies = 1
-note = "Re-read after the 0.28.4 bump: pyproject.toml's change is the release version only; the decision about commands naming their environment does not depend on it."
-by = "Kevin Rogers"
-subjects = { "pyproject.toml" = "348aebeb7fa38c67" }
+note = "Re-read after the 0.28.5 bump: only the project version moved in pyproject.toml; the decision about uv run -q and the dev group is unchanged."
+by = "Claude (agent)"
+subjects = { "pyproject.toml" = "4f0b439b9505907f" }
 
 [[mark]]
 file = "decisions/0010-checked-marks-expire-on-their-own.md"
 mode = "stale-claims"
 unit = "073c1634c496cdb6"
 copies = 1
-note = "ADR 0011's new note covers the stale-claims range trigger only; its blob-id rule for checked marks, which this status line describes, is unchanged."
-by = "Kevin Rogers"
-subjects = { "decisions/0009-stale-claims-is-diff-scoped.md" = "7f0eee6df1fe054c", "decisions/0011-append-only-is-a-property-of-the-file.md" = "76aa38fc61a32134", "decisions/0013-a-navigation-page-is-not-a-whole-page-subject.md" = "425cadf4a7bea0e3" }
+note = "Re-read after #242 amended ADR 0011: the Status summary of the 0011 amendment (blob id compare, survives an append, expires on a changed or removed line) is still true; #242 adds a further expiry reason recorded in 0011 itself."
+by = "Claude (agent)"
+subjects = { "decisions/0009-stale-claims-is-diff-scoped.md" = "7f0eee6df1fe054c", "decisions/0011-append-only-is-a-property-of-the-file.md" = "ae108d5ef5184ffc", "decisions/0013-a-navigation-page-is-not-a-whole-page-subject.md" = "425cadf4a7bea0e3" }
 
 [[mark]]
 file = "decisions/0012-a-ci-run-can-fail-on-unmarked-findings.md"
 mode = "stale-claims"
 unit = "073c1634c496cdb6"
 copies = 1
-note = "Builds-on pointer to ADR 0011 still holds; the amendment note added there concerns the stale-claims range trigger, not CI failing on unmarked findings."
-by = "Kevin Rogers"
-subjects = { "decisions/0010-checked-marks-expire-on-their-own.md" = "08cbb81a5f6a1f4a", "decisions/0011-append-only-is-a-property-of-the-file.md" = "76aa38fc61a32134" }
+note = "Re-read after #242 amended ADR 0011: Status only cites 0011 as a basis, which still stands."
+by = "Claude (agent)"
+subjects = { "decisions/0010-checked-marks-expire-on-their-own.md" = "08cbb81a5f6a1f4a", "decisions/0011-append-only-is-a-property-of-the-file.md" = "ae108d5ef5184ffc" }
 
 [[mark]]
 file = "decisions/0013-a-navigation-page-is-not-a-whole-page-subject.md"
 mode = "stale-claims"
 unit = "073c1634c496cdb6"
 copies = 1
-note = "ADR 0011 still defines the [subjects] table this extends; its new note adds the range trigger and no key."
-by = "Kevin Rogers"
-subjects = { "decisions/0009-stale-claims-is-diff-scoped.md" = "7f0eee6df1fe054c", "decisions/0010-checked-marks-expire-on-their-own.md" = "08cbb81a5f6a1f4a", "decisions/0011-append-only-is-a-property-of-the-file.md" = "76aa38fc61a32134" }
+note = "Re-read after #242 amended ADR 0011: Status says 0013 extends 0011's [subjects] table, which #242 does not touch."
+by = "Claude (agent)"
+subjects = { "decisions/0009-stale-claims-is-diff-scoped.md" = "7f0eee6df1fe054c", "decisions/0010-checked-marks-expire-on-their-own.md" = "08cbb81a5f6a1f4a", "decisions/0011-append-only-is-a-property-of-the-file.md" = "ae108d5ef5184ffc" }
 
 [[mark]]
 file = "docs/SUMMARY.md"
@@ -291,6 +292,15 @@ copies = 1
 note = "Deliberate survivor: write_marks still drops the comments directly above a pruned entry (#241 kept that rule); the removed line was the old docstring comment stating the same rule, now restated in the new code comment."
 by = "Kevin Rogers"
 subjects = {}
+
+[[mark]]
+file = "docs/checks/check-cli-flags.md"
+mode = "stale-claims"
+unit = "8652909ce0f49280"
+copies = 1
+note = "Re-read: the section defines claim, script and flag; #242 only added path_blobs to claims/git.py, which the check does not use for that."
+by = "Claude (agent)"
+subjects = { "claims/git.py" = "e51e753c9c69a62d", "decisions/0008-a-command-names-its-own-environment.md" = "ce9132a4784be55c", "docs/configuring.md#the-grant-file" = "b34c8248c7423f51" }
 
 [[mark]]
 file = "docs/checks/executable-claims.md"
@@ -314,9 +324,9 @@ file = "docs/configuring.md"
 mode = "stale-claims"
 unit = "822fa03f0c97d80e"
 copies = 1
-note = "\"Growth does not make stale-claims rank the section\" is now true of the range trigger too, which is what this change fixed; changing or removing a line still ranks it."
-by = "Kevin Rogers"
-subjects = { "claims/config.py" = "8061ce4e20a17e51", "claims/historical.py" = "5872b17e8a5f0f74", "decisions/0011-append-only-is-a-property-of-the-file.md" = "76aa38fc61a32134" }
+note = "Re-read after #242: the section defines which files are append-only and that growth expires no mark; still true, and the history rule is stated on docs/checked-marks.md."
+by = "Claude (agent)"
+subjects = { "claims/config.py" = "8061ce4e20a17e51", "claims/historical.py" = "5872b17e8a5f0f74", "decisions/0011-append-only-is-a-property-of-the-file.md" = "ae108d5ef5184ffc" }
 
 [[mark]]
 file = "docs/tutorial.md"

@@ -11,6 +11,13 @@ reached you, not just that one was pushed upstream.
 
 ## [Unreleased]
 
+## [0.28.5] - 2026-11-16
+
+- Fixed: a checked mark on an append-only file, such as `CHANGELOG.md`,
+  recorded before a rebase or amend rewrote the commit it was read
+  against now expires in your clone, as it already did in CI, so you
+  see the finding before you push rather than when CI fails.
+
 ## [0.28.4] - 2026-11-16
 
 - Changed: `mark-checked` now writes `claims.checked.toml` with its

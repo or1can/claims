@@ -27,6 +27,7 @@ from claims.git import (
     exists_at,
     is_file_at,
     iter_diff,
+    path_blobs,
     tracked_files,
 )
 
@@ -507,6 +508,69 @@ class ExistsAtTests(unittest.TestCase):
             repo.commit()
 
             self.assertFalse(exists_at(repo.root, self._head(repo), "scripts"))
+
+
+class PathBlobsTests(unittest.TestCase):
+    def _blob(self, repo: Repo, spec: str) -> str:
+        return subprocess.run(
+            ["git", "-C", str(repo.root), "rev-parse", spec],
+            capture_output=True,
+            text=True,
+            check=True,
+        ).stdout.strip()
+
+    def _git(self, repo: Repo, *args: str) -> None:
+        subprocess.run(["git", "-C", str(repo.root), *args], check=True, capture_output=True)
+
+    def test_a_side_branchs_blob_counts_after_a_merge_keeps_the_other_side(self) -> None:
+        with Repo() as repo:
+            repo.write("log.md", "one\n")
+            repo.commit()
+            self._git(repo, "checkout", "-q", "-b", "side")
+            repo.write("log.md", "one\nside\n")
+            repo.commit()
+            side = self._blob(repo, "HEAD:log.md")
+            self._git(repo, "checkout", "-q", "-")
+            repo.write("other.md", "x\n")
+            repo.commit()
+            self._git(repo, "merge", "-q", "-s", "ours", "--no-edit", "side")
+
+            self.assertIn(side, path_blobs(repo.root, "log.md"))
+
+    def test_a_merges_own_resolution_counts(self) -> None:
+        with Repo() as repo:
+            repo.write("log.md", "one\n")
+            repo.commit()
+            self._git(repo, "checkout", "-q", "-b", "side")
+            repo.write("log.md", "one\nside\n")
+            repo.commit()
+            self._git(repo, "checkout", "-q", "-")
+            repo.write("log.md", "one\nmain\n")
+            repo.commit()
+            subprocess.run(
+                ["git", "-C", str(repo.root), "merge", "-q", "side"], capture_output=True
+            )
+            repo.write("log.md", "one\nmain\nside\n")
+            self._git(repo, "commit", "-q", "--no-edit")
+            resolved = self._blob(repo, "HEAD:log.md")
+            repo.write("log.md", "one\nmain\nside\nmore\n")
+
+            self.assertIn(resolved, path_blobs(repo.root, "log.md"))
+
+    def test_a_staged_blob_counts_and_an_amended_away_one_does_not(self) -> None:
+        with Repo() as repo:
+            repo.write("log.md", "one\n")
+            repo.commit()
+            gone = self._blob(repo, "HEAD:log.md")
+            repo.write("log.md", "two\n")
+            self._git(repo, "commit", "-q", "--amend", "--no-edit")
+            repo.write("log.md", "three\n")
+
+            blobs = path_blobs(repo.root, "log.md")
+
+            self.assertNotIn(gone, blobs)
+            self.assertIn(self._blob(repo, "HEAD:log.md"), blobs)
+            self.assertIn(self._blob(repo, ":log.md"), blobs)
 
 
 if __name__ == "__main__":
