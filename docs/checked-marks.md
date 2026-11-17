@@ -272,7 +272,7 @@ mistaken for a clean pass. The count is left off when nothing was quieted.
 When [partial marks](#partial-marks) kept some of those findings quiet,
 it continues `, P of them partly`, as in `12 quiet while checked, 4 of
 them partly`; the clause is left off when `P` is zero. When [pending
-marks](#pending-marks) kept some quiet, it continues `, M of them
+marks](#pending-marks) kept some quiet, it continues `, K of them
 pending` after that. The commit hook prints the
 same count as the last line of its message, including on a commit where
 marks quieted every finding. A mark only ever quiets an advisory
@@ -285,7 +285,7 @@ The CLI's summary line also ends `, A mark(s) added in range` when the
 range added entries to `claims.checked.toml`. An entry counts when its
 `file`, `mode` and `unit` are on the range's new side and not its old one,
 so re-marking a finding that already has an entry adds nothing. When
-some of those entries are pending, `, M of them pending` follows. A batch
+some of those entries are pending, `, K of them pending` follows. A batch
 of new marks is the thing for a reviewer to read: the count is the only
 sign that marks were written without a reading. The CLI reads the range
 from git, so a `claims.checked.toml` git does not track yet adds nothing.

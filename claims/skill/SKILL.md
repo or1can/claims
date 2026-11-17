@@ -28,9 +28,9 @@ Show the user the CLI's output verbatim — every finding line, then its
 summary line (`N checked, M finding(s), G gate failure(s)`, then
 `, Q quiet while checked` when checked marks kept findings quiet, with
 `, P of them partly` after it when partial marks kept some of them,
-`, M of them pending` when pending marks did, and
+`, K of them pending` when pending marks did, and
 `, A mark(s) added in range` when the range added checked marks, with its
-own `, M of them pending` when some of those are pending) —
+own `, K of them pending` when some of those are pending) —
 rather than summarizing or filtering it yourself. Findings that share a citation,
 message and severity print as one line listing each mode in its
 parentheses, so `M` can exceed the number of finding lines.
