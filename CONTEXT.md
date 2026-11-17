@@ -109,6 +109,16 @@ A checked mark whose reader read only part of its section or doc comment,
 and said so.
 _Avoid_: Spot-check mark, narrow mark
 
+**Pending mark**:
+A checked mark written without a person's review, which keeps its finding
+quiet until a person approves it or it expires.
+_Avoid_: Unapproved mark, provisional mark, draft mark
+
+**Approve**:
+What a person does to a pending mark they have reviewed, ending its
+pending state.
+_Avoid_: Sign off, confirm
+
 **Unmarked finding**:
 An advisory finding, from a check whose findings can be marked, that no
 checked mark keeps quiet.

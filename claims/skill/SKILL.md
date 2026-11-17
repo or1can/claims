@@ -27,8 +27,10 @@ branch.
 Show the user the CLI's output verbatim — every finding line, then its
 summary line (`N checked, M finding(s), G gate failure(s)`, then
 `, Q quiet while checked` when checked marks kept findings quiet, with
-`, P of them partly` after it when partial marks kept some of them, and
-`, A mark(s) added in range` when the range added checked marks) —
+`, P of them partly` after it when partial marks kept some of them,
+`, K of them pending` when pending marks did, and
+`, A mark(s) added in range` when the range added checked marks, with its
+own `, K of them pending` when some of those are pending) —
 rather than summarizing or filtering it yourself. Findings that share a citation,
 message and severity print as one line listing each mode in its
 parentheses, so `M` can exceed the number of finding lines.
@@ -165,7 +167,7 @@ Mark a batch, one entry per line, each with a note saying what you
 verified, over the same `--diff-range` the findings were reported for:
 
 ```bash
-PYTHONPATH="${CLAUDE_PLUGIN_ROOT}" python3 -m claims.cli mark-checked --repo-root <path> --diff-range <range> --by <who read them> - <<'EOF'
+PYTHONPATH="${CLAUDE_PLUGIN_ROOT}" python3 -m claims.cli mark-checked --pending --repo-root <path> --diff-range <range> --by <who read them> - <<'EOF'
 docs/guide.md:3 claim-words-totalising src/cache.py has one reader, get, and nothing else reads the store
 EOF
 ```
@@ -180,6 +182,12 @@ If you read only part of a `stale-claims` section or a `spliced-docs`
 doc comment, say so with `--partial` rather than only in the note; it
 is refused for any other mode, and for a finding whose full mark is
 still current.
+Always pass `--pending`, as above, unless the user tells you the reading
+is theirs: it records the mark as awaiting a person's review, which they
+give with `approve-marks` once they have read it (`pending-marks` lists
+what awaits them). A pending mark quiets its finding just the same, so it
+doesn't hold you up. Never run `approve-marks` yourself unless the user
+asks you to.
 Commit `claims.checked.toml` with the rest of the change.
 
 ## Coverage

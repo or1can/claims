@@ -24,11 +24,12 @@ is what a check's `exclude` key is for.
 | `note` | non-empty string | What the reader verified. Required. |
 | `by` | string, optional | Who read it. Nothing reads this key; it is a record. |
 | `extent` | `"full"` or `"partial"`, optional | How much of the unit was read. Written only for a [partial mark](#partial-marks); an entry without it is full. |
+| `review` | `"pending"`, optional | That no person has reviewed the reading yet. Written only for a [pending mark](#pending-marks); an entry without it is reviewed. |
 
 A missing file means no marks. A file that does not parse, an entry
 missing a required key or holding one of the wrong shape, an entry with an
 empty note, an entry whose `extent` is neither `"full"` nor
-`"partial"`, an entry whose `file` or a subject is an absolute path or
+`"partial"`, an entry whose `review` is anything but `"pending"`, an entry whose `file` or a subject is an absolute path or
 climbs out with `..`, or an entry written other than as a `[[mark]]`
 table is invalid. A path that reaches outside the repository through a
 symlink, or names anything but a regular file, is never read. An invalid file is reported as one gate finding, cited at
@@ -123,7 +124,7 @@ Marking the new copy records the larger count and quiets them all.
 `mark-checked` records a batch of marks:
 
 ```sh
-python3 -m claims.cli mark-checked [--repo-root R] [--diff-range RANGE] [--by NAME] [--partial] [--prune] [FILE|-]
+python3 -m claims.cli mark-checked [--repo-root R] [--diff-range RANGE] [--by NAME] [--partial] [--pending] [--prune] [FILE|-]
 ```
 
 It reads entries one per line from `FILE`, or from standard input when the
@@ -172,7 +173,8 @@ between, goes with it. A comment above an entry that stays is kept, even
 where the entry before it is pruned or replaced.
 
 `--partial` writes each of the batch's marks as a [partial
-mark](#partial-marks).
+mark](#partial-marks), and `--pending` as a [pending
+mark](#pending-marks); the two combine.
 
 There is no form that marks findings without a note each. Whoever reads
 the finding writes the mark, and that can be an agent, once it has read
@@ -199,6 +201,57 @@ batch writes nothing: a partial reading can't replace a current full
 one. Once that full mark has expired, the partial entry replaces it like
 any re-mark. A full entry always replaces a partial mark.
 
+## Pending marks
+
+Where agents write marks, a person may want to review each one later
+without holding the agent up. `mark-checked --pending` records each of
+the batch's marks with `review = "pending"`: written, and not yet
+reviewed. A pending mark keeps its finding quiet, counts as marked under
+[`--fail-on-unmarked`](#failing-a-run-on-unmarked-findings) and the
+commit hook, and expires, exactly as any other mark does. The summary
+line counts the findings it keeps quiet, and the pending marks a range
+added, [separately](#what-a-run-shows). A plain `mark-checked` over a
+pending entry replaces it as a reviewed mark, recording the subjects
+afresh.
+
+The review cycle has two more commands. Neither runs any check.
+
+```sh
+python3 -m claims.cli pending-marks [--repo-root R] [--at REV]
+```
+
+`pending-marks` prints each pending entry as `<file>:<line> <mode>
+<note>`, then `N pending mark(s)`, and exits `1` while any exist, `0`
+when none do, so CI can fail a pull request until its marks are
+reviewed. The line is where the first copy of the mark's unit starts in
+`<file>`, or `0` when the unit is gone; expired and
+[orphaned](#orphans) pending marks are listed too. Without `--at` it
+reads the working tree. With `--at REV` it reads `claims.checked.toml`,
+and each marked file, as committed at `REV`, and a commit without the
+file has no pending marks.
+
+```sh
+python3 -m claims.cli approve-marks [--repo-root R] REV
+```
+
+`approve-marks` approves the marks a reviewer read at commit `REV`: it
+removes `review` from every entry that is pending in the working tree
+and was pending at `REV` with every other key identical. Each approved
+entry is rewritten as `mark-checked` writes it; every other entry keeps
+its text and comments. It prints `approved <entry>` for each, and
+`left pending <entry>: <why>` for each pending entry it left: `changed
+since REV` when the entry at `REV` differs, including one that was
+reviewed there and is pending now, or `not in REV`. A closing line gives
+both counts. It exits `0` even when it approved nothing; commit the file
+afterwards. Re-running `mark-checked` is no substitute, since it records
+the subjects as they are now, which the reviewer may not have read.
+
+So the cycle is: an agent marks with `--pending` and commits; a person
+reads the marks `pending-marks --at <commit>` lists and runs
+`approve-marks <commit>`; the approval is a commit of its own. Both
+commands exit `2` for a `REV` git can't resolve to a commit, or a
+`claims.checked.toml` invalid at `REV` or in the working tree.
+
 ## Orphans
 
 A mark whose unit no longer exists anywhere in its file, or whose file
@@ -218,7 +271,9 @@ quiet while checked` after the gate failure count, so a quiet run is never
 mistaken for a clean pass. The count is left off when nothing was quieted.
 When [partial marks](#partial-marks) kept some of those findings quiet,
 it continues `, P of them partly`, as in `12 quiet while checked, 4 of
-them partly`; the clause is left off when `P` is zero. The commit hook prints the
+them partly`; the clause is left off when `P` is zero. When [pending
+marks](#pending-marks) kept some quiet, it continues `, K of them
+pending` after that. The commit hook prints the
 same count as the last line of its message, including on a commit where
 marks quieted every finding. A mark only ever quiets an advisory
 finding, so gate findings are unchanged. Only a run [failing on unmarked
@@ -229,7 +284,8 @@ pass.
 The CLI's summary line also ends `, A mark(s) added in range` when the
 range added entries to `claims.checked.toml`. An entry counts when its
 `file`, `mode` and `unit` are on the range's new side and not its old one,
-so re-marking a finding that already has an entry adds nothing. A batch
+so re-marking a finding that already has an entry adds nothing. When
+some of those entries are pending, `, K of them pending` follows. A batch
 of new marks is the thing for a reviewer to read: the count is the only
 sign that marks were written without a reading. The CLI reads the range
 from git, so a `claims.checked.toml` git does not track yet adds nothing.

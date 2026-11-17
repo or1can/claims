@@ -11,6 +11,18 @@ reached you, not just that one was pushed upstream.
 
 ## [Unreleased]
 
+## [0.29.0] - 2026-11-17
+
+- Added: a checked mark can be pending a person's review.
+  `mark-checked --pending` writes `review = "pending"` on each mark; the
+  mark quiets its finding as any other does, and the summary line counts
+  them as `, M of them pending`. `pending-marks [--at REV]` lists pending
+  marks and exits 1 while any exist, for a CI step, and `approve-marks
+  REV` approves those unchanged since the commit a reviewer read. A
+  script that reads `pending review by` out of `by` can move to these.
+- Changed: the plugin skill now tells an agent to mark with `--pending`
+  unless you say the reading is yours.
+
 ## [0.28.5] - 2026-11-16
 
 - Fixed: a checked mark on an append-only file, such as `CHANGELOG.md`,

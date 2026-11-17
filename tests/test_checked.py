@@ -65,12 +65,15 @@ class CheckedMarkTests(RegistryClearingTestCase):
         by: str | None = None,
         diff_range: str | None = None,
         partial: bool = False,
+        pending: bool = False,
     ):
         argv = ["mark-checked"]
         if by is not None:
             argv += ["--by", by]
         if partial:
             argv.append("--partial")
+        if pending:
+            argv.append("--pending")
         if diff_range is not None:
             argv += ["--diff-range", diff_range]
         return self.run_cli(*argv, "-", stdin="".join(e + "\n" for e in entries))
@@ -1296,6 +1299,250 @@ class CheckedMarkTests(RegistryClearingTestCase):
 
         self.repo.write("docs/hub.md", self.HUB.replace("Code v0.", "Code v1."))
         self.assertTrue(self.summary().endswith(self.QUIET))
+
+    # Pending marks (#245, ADR 0014).
+
+    def test_a_review_other_than_pending_makes_the_sidecar_invalid(self) -> None:
+        entry = (
+            '[[mark]]\nfile = "docs/a.md"\nmode = "claim-words-totalising"\nunit = "x"\n'
+            'copies = 1\nnote = "n"\nreview = {review}\nsubjects = {{}}\n'
+        )
+        for review, valid in (('"pending"', True), ('"approved"', False), ("true", False)):
+            with self.subTest(review=review):
+                (self.repo.root / "claims.checked.toml").write_text(entry.format(review=review))
+                out = self.run_cli()[1]
+                self.assertEqual(
+                    "[GATE] claims.checked.toml:0 (config) is invalid:" in out, not valid, out
+                )
+                if not valid:
+                    self.assertIn("has a 'review' that is not \"pending\"", out)
+
+    def test_a_pending_mark_is_written_with_its_review_and_quiets_its_finding(self) -> None:
+        self.repo.write("docs/a.md", "Every check runs.\n\nEvery rule holds.\n")
+        self.mark("docs/a.md:1 claim-words-totalising read the runner")
+
+        code, out, err = self.mark("docs/a.md:3 claim-words-totalising read the rules", pending=True)
+
+        self.assertEqual((code, err), (0, ""))
+        marks = load_marks(self.repo.root)
+        self.assertEqual(
+            {m.note: m.pending for m in marks}, {"read the runner": False, "read the rules": True}
+        )
+        sidecar = (self.repo.root / "claims.checked.toml").read_text()
+        self.assertEqual(sidecar.count('review = "pending"'), 1)
+        self.assertEqual(
+            self.summary(),
+            "1 checked, 0 finding(s), 0 gate failure(s), 2 quiet while checked, 1 of them pending",
+        )
+
+    def test_a_pending_partial_mark_records_both_and_is_counted_both_ways(self) -> None:
+        self.stale_section()
+
+        code, _, err = self.mark(
+            "notes/s.md:1 stale-claims spot-checked", diff_range="HEAD~1", partial=True, pending=True
+        )
+
+        self.assertEqual((code, err), (0, ""))
+        sidecar = (self.repo.root / "claims.checked.toml").read_text()
+        self.assertIn('extent = "partial"', sidecar)
+        self.assertIn('review = "pending"', sidecar)
+        self.assertTrue(
+            self.run_cli("--diff-range", "HEAD~1")[1].endswith(
+                ", 1 quiet while checked, 1 of them partly, 1 of them pending\n"
+            )
+        )
+
+    def test_a_plain_mark_replaces_a_pending_one_as_reviewed(self) -> None:
+        self.repo.write("docs/a.md", "Every check runs.\n")
+        self.mark("docs/a.md:1 claim-words-totalising read it", pending=True)
+
+        self.mark("docs/a.md:1 claim-words-totalising read it myself")
+
+        self.assertEqual([m.pending for m in load_marks(self.repo.root)], [False])
+
+    def test_a_pending_mark_never_blocks_the_hook_and_is_counted(self) -> None:
+        self.hook_lists('["claim-words"]')
+        self.repo.write("docs/a.md", "Every check runs.\n")
+        self.mark("docs/a.md:1 claim-words-totalising read it", pending=True)
+
+        decision = decide_repo(self.repo.root)
+
+        assert decision is not None
+        self.assertFalse(decision.block)
+        self.assertTrue(decision.message.endswith("1 quiet while checked, 1 of them pending"))
+
+    def test_a_pending_mark_counts_as_marked_under_the_flag(self) -> None:
+        self.repo.write("docs/a.md", "Every check runs.\n")
+        self.mark("docs/a.md:1 claim-words-totalising read it", pending=True)
+
+        code, out, _ = self.run_cli("--fail-on-unmarked")
+
+        self.assertEqual(code, 0)
+        self.assertTrue(out.endswith(", 1 quiet while checked, 1 of them pending, 0 unmarked\n"))
+
+    def test_the_marks_added_count_says_how_many_are_pending(self) -> None:
+        base = self.repo.short_head()
+        self.repo.write("docs/a.md", "Every check runs.\n\nEvery rule holds.\n")
+        self.mark("docs/a.md:1 claim-words-totalising read it")
+        self.mark("docs/a.md:3 claim-words-totalising read it", pending=True)
+        self.repo.commit()
+
+        self.assertEqual(
+            self.run_cli("--diff-range", base)[1].splitlines()[-1],
+            "1 checked, 0 finding(s), 0 gate failure(s), 2 quiet while checked, "
+            "1 of them pending, 2 mark(s) added in range, 1 of them pending",
+        )
+
+    def two_marks_one_pending(self) -> None:
+        self.repo.write("docs/a.md", "Every check runs.\n\nEvery rule holds.\n")
+        self.mark("docs/a.md:1 claim-words-totalising read the runner")
+        self.mark("docs/a.md:3 claim-words-totalising read the rules", pending=True)
+
+    def test_pending_marks_lists_each_pending_mark_and_fails(self) -> None:
+        self.two_marks_one_pending()
+
+        code, out, err = self.run_cli("pending-marks")
+
+        self.assertEqual((code, err), (1, ""))
+        self.assertEqual(
+            out, "docs/a.md:3 claim-words-totalising read the rules\n1 pending mark(s)\n"
+        )
+
+    def test_pending_marks_passes_with_none_pending(self) -> None:
+        self.assertEqual(self.run_cli("pending-marks"), (0, "0 pending mark(s)\n", ""))
+        self.repo.write("docs/a.md", "Every check runs.\n")
+        self.mark("docs/a.md:1 claim-words-totalising read it")
+        self.assertEqual(self.run_cli("pending-marks"), (0, "0 pending mark(s)\n", ""))
+
+    def test_pending_marks_lists_an_orphaned_pending_mark_at_line_0(self) -> None:
+        self.two_marks_one_pending()
+        self.repo.write("docs/a.md", "Every check runs.\n")
+
+        code, out, _ = self.run_cli("pending-marks")
+
+        self.assertEqual(code, 1)
+        self.assertIn("docs/a.md:0 claim-words-totalising read the rules\n", out)
+
+    def test_pending_marks_at_a_commit_reads_that_commits_file(self) -> None:
+        base = self.repo.short_head()
+        self.two_marks_one_pending()
+        self.repo.commit()
+        # Moved down a line and approved since, in the working tree only.
+        self.repo.write("docs/a.md", "Intro.\n\nEvery check runs.\n\nEvery rule holds.\n")
+        self.assertEqual(
+            self.mark("docs/a.md:5 claim-words-totalising read the rules myself", diff_range=base)[0], 0
+        )
+
+        self.assertEqual(self.run_cli("pending-marks")[0], 0)
+        code, out, _ = self.run_cli("pending-marks", "--at", "HEAD")
+        self.assertEqual(code, 1)
+        self.assertIn("docs/a.md:3 claim-words-totalising read the rules\n", out)
+        self.assertEqual(self.run_cli("pending-marks", "--at", base), (0, "0 pending mark(s)\n", ""))
+
+    def test_pending_marks_with_a_bad_commit_or_an_invalid_file_exits_2(self) -> None:
+        code, _, err = self.run_cli("pending-marks", "--at", "no-such-rev")
+        self.assertEqual(code, 2)
+        self.assertIn("no-such-rev", err)
+
+        (self.repo.root / "claims.checked.toml").write_text("[[mark]\n")
+        code, _, err = self.run_cli("pending-marks")
+        self.assertEqual(code, 2)
+        self.assertIn("claims.checked.toml is invalid", err)
+
+    def test_approve_marks_approves_only_marks_unchanged_and_pending_since_the_commit(self) -> None:
+        base = self.repo.short_head()
+        self.repo.write(
+            "docs/a.md", "Every check runs.\n\nEvery rule holds.\n\nEvery test passes.\n"
+        )
+        self.mark("docs/a.md:1 claim-words-totalising read the runner", pending=True)
+        self.mark("docs/a.md:3 claim-words-totalising read the rules", pending=True)
+        self.mark("docs/a.md:5 claim-words-totalising read the tests")
+        self.repo.commit()
+        reviewed = self.repo.short_head()
+        # Since the review: one re-marked, one added, one reviewed then made pending.
+        for entry in (
+            "docs/a.md:3 claim-words-totalising read the rules again",
+            "docs/a.md:5 claim-words-totalising read the tests again",
+        ):
+            self.assertEqual(self.mark(entry, diff_range=base, pending=True)[0], 0)
+        self.repo.write(
+            "docs/a.md",
+            "Every check runs.\n\nEvery rule holds.\n\nEvery test passes.\n\nEvery doc builds.\n",
+        )
+        self.assertEqual(
+            self.mark("docs/a.md:7 claim-words-totalising read the build", pending=True)[0], 0
+        )
+        sidecar = self.repo.root / "claims.checked.toml"
+        sidecar.write_text("# reviewed in batches\n" + sidecar.read_text())
+        before = sidecar.read_text()
+
+        code, out, err = self.run_cli("approve-marks", reviewed)
+
+        self.assertEqual((code, err), (0, ""))
+        self.assertEqual(
+            sorted(out.splitlines()),
+            sorted(
+                [
+                    "approved docs/a.md:1 claim-words-totalising read the runner",
+                    f"left pending docs/a.md:3 claim-words-totalising read the rules again: changed since {reviewed}",
+                    f"left pending docs/a.md:5 claim-words-totalising read the tests again: changed since {reviewed}",
+                    f"left pending docs/a.md:7 claim-words-totalising read the build: not in {reviewed}",
+                    "approved 1 mark(s), left 3 pending",
+                ]
+            ),
+        )
+        self.assertEqual(
+            {m.note: m.pending for m in load_marks(self.repo.root)},
+            {
+                "read the runner": False,
+                "read the rules again": True,
+                "read the tests again": True,
+                "read the build": True,
+            },
+        )
+        # Only the approved entry's `review` line is gone; every other
+        # line, the comment heading the file included, is as it was.
+        after = sidecar.read_text()
+        self.assertEqual(after.count('review = "pending"'), 3)
+        self.assertEqual(
+            [line for line in before.splitlines() if line != 'review = "pending"'],
+            [line for line in after.splitlines() if line != 'review = "pending"'],
+        )
+
+    def test_approve_marks_with_nothing_to_approve_exits_0(self) -> None:
+        base = self.repo.short_head()
+        self.repo.write("docs/a.md", "Every check runs.\n")
+        self.mark("docs/a.md:1 claim-words-totalising read it", pending=True)
+
+        code, out, _ = self.run_cli("approve-marks", base)
+
+        self.assertEqual(code, 0)
+        self.assertTrue(out.endswith("approved 0 mark(s), left 1 pending\n"))
+        self.assertEqual([m.pending for m in load_marks(self.repo.root)], [True])
+
+    def test_approve_marks_with_a_bad_commit_or_an_invalid_file_exits_2(self) -> None:
+        self.repo.write("docs/a.md", "Every check runs.\n")
+        self.mark("docs/a.md:1 claim-words-totalising read it", pending=True)
+        self.repo.commit()
+        sidecar = self.repo.root / "claims.checked.toml"
+        good = sidecar.read_text()
+
+        code, _, err = self.run_cli("approve-marks", "no-such-rev")
+        self.assertEqual(code, 2)
+        self.assertIn("no-such-rev", err)
+
+        sidecar.write_text("[[mark]\n")
+        code, _, err = self.run_cli("approve-marks", "HEAD")
+        self.assertEqual(code, 2)
+        self.assertIn("claims.checked.toml is invalid", err)
+
+        self.repo.commit()
+        sidecar.write_text(good)
+        self.repo.commit()
+        code, _, err = self.run_cli("approve-marks", "HEAD~1")
+        self.assertEqual(code, 2)
+        self.assertIn("claims.checked.toml is invalid at HEAD~1", err)
+        self.assertEqual(sidecar.read_text(), good)
 
 
 def a_mark(file: str, note: str = "n", unit: str = "u") -> Mark:

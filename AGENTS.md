@@ -182,7 +182,9 @@ The PR can't merge until its own commit — not a stale earlier one, the
 branch must be up to date with `main` — has four required status checks
 green: `Typecheck`, `Test`, `Claims` (all three from
 `.github/workflows/ci.yml`; `Claims` fails on any unmarked advisory
-finding the PR brings in, see `docs/checked-marks.md`), and
+finding the PR brings in, and on any checked mark still pending a
+person's review until they run `approve-marks`, see
+`docs/checked-marks.md`), and
 `Signed-off-by` (`.github/workflows/dco.yml`, the DCO check — fires on
 `pull_request` only, never on a plain push, so it never shows up outside
 a PR). No required-reviewer count is set (this project's sole maintainer

@@ -14,6 +14,11 @@ settled. Overriding the hook's `entry` with the CLI flag instead would
 fail closed on an internal error and would skip the hook's own
 configuration.
 
+Amended by `decisions/0014-a-pending-mark-quiets-until-a-person-approves-it.md`
+(#245): a pending mark counts as a mark here, so neither the flag nor
+the hook fails on its finding; `pending-marks` is the step that fails
+while any mark awaits review.
+
 ## Context
 
 An advisory finding is surfaced and never fails the run

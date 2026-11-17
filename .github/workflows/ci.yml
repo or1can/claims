@@ -87,3 +87,7 @@ jobs:
         env:
           BASE_REF: ${{ github.base_ref }}
         run: python3 -m claims.cli --repo-root . --diff-range "origin/$BASE_REF" --fail-on-unmarked
+      # A pending mark quiets its finding above; this fails until a person
+      # has approved each one (`approve-marks`, docs/checked-marks.md).
+      - name: Fail while any checked mark awaits review
+        run: python3 -m claims.cli pending-marks --repo-root .

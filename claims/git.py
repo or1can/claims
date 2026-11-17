@@ -451,6 +451,20 @@ def parent_commits(repo_root: Path, commit: str) -> list[str]:
     return result.stdout.split() if result.returncode == 0 else []
 
 
+def resolve_commit(repo_root: Path, rev: str) -> str | None:
+    """The commit `rev` names, or `None` when git can't resolve it to one.
+    `--end-of-options` keeps a `rev` starting with `-` from being read as
+    an option."""
+
+    result = subprocess.run(
+        ["git", "-C", str(repo_root), "rev-parse", "--verify", "-q", "--end-of-options", f"{rev}^{{commit}}"],
+        capture_output=True,
+        text=True,
+        errors="replace",
+    )
+    return result.stdout.strip() if result.returncode == 0 else None
+
+
 def head_commit(repo_root: Path) -> str | None:
     """The commit `HEAD` names, or `None` in a repository with none yet."""
 
