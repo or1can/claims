@@ -85,6 +85,8 @@ class RunResult:
     quiet: tuple[Finding, ...] = ()
     # The part of `quiet` a partial mark keeps quiet.
     quiet_partly: tuple[Finding, ...] = ()
+    # The part of `quiet` a pending mark keeps quiet (ADR 0014).
+    quiet_pending: tuple[Finding, ...] = ()
 
 
 _registry: dict[str, CheckFn] = {}
@@ -276,7 +278,8 @@ def run(
 
     After every check, `claims.checked.toml`'s marks are applied
     (`claims.checked`): an advisory finding a current mark covers moves to
-    `RunResult.quiet` (and `quiet_partly` too, for a partial mark), and a
+    `RunResult.quiet` (and `quiet_partly` too, for a partial mark, and
+    `quiet_pending` for a pending one), and a
     mark whose unit is gone is reported. A sidecar that doesn't parse is
     one gate finding, so it blocks a commit the way an invalid
     `claims.toml` does.
@@ -309,8 +312,9 @@ def run(
 
     quiet: list[Finding] = []
     partly: list[Finding] = []
+    pending: list[Finding] = []
     try:
-        findings, quiet, partly = apply_marks(repo_root, findings, config)
+        findings, quiet, partly, pending = apply_marks(repo_root, findings, config)
     except ConfigError as e:
         findings.append(
             Finding(file=CHECKED_FILENAME, line=0, message=f"is invalid: {e}", mode="config", gate=True)
@@ -323,4 +327,5 @@ def run(
         findings=tuple(findings),
         quiet=tuple(quiet),
         quiet_partly=tuple(partly),
+        quiet_pending=tuple(pending),
     )

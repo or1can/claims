@@ -13,7 +13,9 @@
 # limitations under the License.
 
 """Minimal CLI adapter over `claims.runner.run`, plus `mark-checked`,
-which writes checked marks (`claims.checked`) for findings of one run."""
+which writes checked marks (`claims.checked`) for findings of one run,
+and `pending-marks` and `approve-marks`, which list and approve the
+marks no person has reviewed yet."""
 
 from __future__ import annotations
 
@@ -26,16 +28,20 @@ from .checked import (
     CHECKED_FILENAME,
     ORPHAN_MODE,
     UNITS,
+    approve_marks,
     failing_unmarked,
     load_marks,
     markable_check,
     marks_added,
+    marks_at,
     new_marks,
     orphaned_marks,
+    pending_marks,
     unmarkable_names,
     write_marks,
 )
 from .config import ConfigError, load_config
+from .git import resolve_commit
 from .runner import format_findings, run
 
 
@@ -103,6 +109,11 @@ def parse_mark_args(argv: list[str]) -> argparse.Namespace:
             "(stale-claims and spliced-docs findings only)."
         ),
     )
+    parser.add_argument(
+        "--pending",
+        action="store_true",
+        help="Record each mark as pending a person's review (see approve-marks).",
+    )
     return parser.parse_args(argv)
 
 
@@ -135,7 +146,7 @@ def mark_checked(argv: list[str]) -> int:
 
     result = run(repo_root, args.diff_range, config)
     marks, problems = new_marks(
-        repo_root, result.findings + result.quiet, config, entries, args.by, partial=args.partial
+        repo_root, result.findings + result.quiet, config, entries, args.by, partial=args.partial, pending=args.pending
     )
     if problems:
         for problem in problems:
@@ -154,10 +165,87 @@ def mark_checked(argv: list[str]) -> int:
     return 0
 
 
+def _commit_or_error(repo_root: Path, rev: str) -> str | None:
+    """The commit `rev` names, its file valid there, or `None` once the
+    reason it can't be read is printed."""
+
+    commit = resolve_commit(repo_root, rev)
+    if commit is None:
+        print(f"{rev} names no commit", file=sys.stderr)
+        return None
+    try:
+        marks_at(repo_root, commit)
+    except ConfigError as e:
+        print(f"{CHECKED_FILENAME} is invalid at {rev}: {e}", file=sys.stderr)
+        return None
+    return commit
+
+
+def list_pending(argv: list[str]) -> int:
+    parser = argparse.ArgumentParser(
+        prog="python3 -m claims.cli pending-marks",
+        description=(
+            "List every pending checked mark as `<file>:<line> <mode> <note>`; "
+            "exit 1 while any exist. Runs no checks."
+        ),
+    )
+    parser.add_argument("--repo-root", type=Path, default=Path.cwd())
+    parser.add_argument("--at", metavar="REV", help="Read the file as committed at REV (default: the working tree).")
+    args = parser.parse_args(argv)
+    repo_root: Path = args.repo_root.resolve()
+    commit = None
+    if args.at is not None:
+        commit = _commit_or_error(repo_root, args.at)
+        if commit is None:
+            return 2
+    try:
+        pending = pending_marks(repo_root, commit)
+    except ConfigError as e:
+        print(f"{CHECKED_FILENAME} is invalid: {e}", file=sys.stderr)
+        return 2
+    for line in pending:
+        print(line)
+    print(f"{len(pending)} pending mark(s)")
+    return 1 if pending else 0
+
+
+def approve(argv: list[str]) -> int:
+    parser = argparse.ArgumentParser(
+        prog="python3 -m claims.cli approve-marks",
+        description=(
+            "Approve every pending checked mark that was pending, and otherwise "
+            "the same, in the file as committed at REV."
+        ),
+    )
+    parser.add_argument("rev", metavar="REV", help="The commit whose pending marks were reviewed.")
+    parser.add_argument("--repo-root", type=Path, default=Path.cwd())
+    args = parser.parse_args(argv)
+    repo_root: Path = args.repo_root.resolve()
+    commit = _commit_or_error(repo_root, args.rev)
+    if commit is None:
+        return 2
+    try:
+        load_marks(repo_root)
+    except ConfigError as e:
+        print(f"{CHECKED_FILENAME} is invalid: {e}", file=sys.stderr)
+        return 2
+    approved, left = approve_marks(repo_root, commit, args.rev)
+    for line in approved:
+        print(f"approved {line}")
+    for line in left:
+        print(f"left pending {line}")
+    print(f"approved {len(approved)} mark(s), left {len(left)} pending")
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     argv = sys.argv[1:] if argv is None else argv
     if argv[:1] == ["mark-checked"]:
         return mark_checked(argv[1:])
+    if argv[:1] == ["pending-marks"]:
+        return list_pending(argv[1:])
+    if argv[:1] == ["approve-marks"]:
+        return approve(argv[1:])
     args = parse_args(argv)
     repo_root: Path = args.repo_root.resolve()
     try:
@@ -183,6 +271,8 @@ def main(argv: list[str] | None = None) -> int:
         summary += f", {len(result.quiet)} quiet while checked"
         if result.quiet_partly:
             summary += f", {len(result.quiet_partly)} of them partly"
+        if result.quiet_pending:
+            summary += f", {len(result.quiet_pending)} of them pending"
     covered: frozenset[str] | None = args.fail_on_unmarked
     unmarked = []
     if covered is not None:
@@ -192,9 +282,11 @@ def main(argv: list[str] | None = None) -> int:
             if not f.gate and (f.mode == ORPHAN_MODE or markable_check(f.mode) in covered)
         ]
         summary += f", {len(unmarked)} unmarked"
-    added = marks_added(repo_root, args.diff_range)
+    added, added_pending = marks_added(repo_root, args.diff_range)
     if added:
         summary += f", {added} mark(s) added in range"
+        if added_pending:
+            summary += f", {added_pending} of them pending"
     print(summary)
     if gate_findings:
         return 1

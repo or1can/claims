@@ -58,13 +58,13 @@ import re
 import subprocess
 import tomllib
 from collections import Counter
-from collections.abc import Iterable, Mapping, Sequence
-from dataclasses import dataclass
+from collections.abc import Callable, Iterable, Mapping, Sequence
+from dataclasses import dataclass, replace
 from pathlib import Path, PurePosixPath
 from typing import NamedTuple
 
 from .config import ConfigError, append_only, counts_as_subject
-from .git import DiffLine, blob_id, iter_diff, path_blobs, read_blob, tracked_files
+from .git import DiffLine, blob_id, blob_text, iter_diff, path_blobs, read_blob, tracked_files
 from .lines import git_lines, tracked_text
 from .markdown import CODE_SPAN_RE, fence_state, prose_lines, section_range, sentences_from
 from .runner import Finding
@@ -100,7 +100,7 @@ UNITS = {
 _SECTION_HEADING_RE = re.compile(r"^(#{1,6})\s+(.*)")
 _DOC_RE = re.compile(r"^\s*///")
 _MARK_HEADER_RE = re.compile(r"^\s*\[\[\s*mark\s*\]\]\s*(#.*)?$")
-_KEYS = {"file", "mode", "unit", "copies", "subjects", "note", "by", "extent"}
+_KEYS = {"file", "mode", "unit", "copies", "subjects", "note", "by", "extent", "review"}
 # A full SHA-1 or SHA-256 object id: what an append-only subject records.
 # Nothing else is passed to `git cat-file`: the sidecar is committed, so a
 # pull request could otherwise hand it a revision or an option.
@@ -151,6 +151,9 @@ class Mark:
     # Whether the reading was partial (ADR 0010); a sidecar records an
     # `extent` only for a partial mark, so an entry without one is full.
     partial: bool = False
+    # Whether no person has reviewed the reading yet (ADR 0014); a sidecar
+    # records `review = "pending"` only for a pending mark.
+    pending: bool = False
     # The 1-based line of this entry's `[[mark]]` header, which an orphan
     # finding cites; 0 for a mark not yet written.
     line: int = 0
@@ -533,6 +536,8 @@ def _parse_marks(text: str) -> list[Mark]:
         extent = entry.get("extent", "full")
         if extent not in ("full", "partial"):
             raise _invalid(line, "has an 'extent' that is neither \"full\" nor \"partial\"")
+        if "review" in entry and entry["review"] != "pending":
+            raise _invalid(line, "has a 'review' that is not \"pending\"")
         marks.append(
             Mark(
                 file=entry["file"],
@@ -543,24 +548,26 @@ def _parse_marks(text: str) -> list[Mark]:
                 note=entry["note"],
                 by=by,
                 partial=extent == "partial",
+                pending="review" in entry,
                 line=line,
             )
         )
     return marks
 
 
-def marks_added(repo_root: Path, diff_range: str) -> int:
-    """How many entries `claims.checked.toml` holds on `diff_range`'s new
-    side and not its old one, each entry known by its file, mode and unit.
-    A side that doesn't parse holds none: the run reports the file. No
-    range git can diff, outside a repository included, adds none."""
+def marks_added(repo_root: Path, diff_range: str) -> tuple[int, int]:
+    """`(added, pending)`: how many entries `claims.checked.toml` holds on
+    `diff_range`'s new side and not its old one, each entry known by its
+    file, mode and unit, and how many of those are pending. A side that
+    doesn't parse holds none: the run reports the file. No range git can
+    diff, outside a repository included, adds none."""
 
     old_lines: list[str] = []
     new_lines: list[str] = []
     try:
         diffs = list(iter_diff(repo_root, diff_range, whole_files=True, paths=[CHECKED_FILENAME]))
     except subprocess.CalledProcessError:
-        return 0
+        return 0, 0
     for diff in diffs:
         for line in diff.body:
             if isinstance(line, DiffLine):
@@ -569,8 +576,8 @@ def marks_added(repo_root: Path, diff_range: str) -> int:
                 if line.sign in " +":
                     new_lines.append(line.text)
     old = {m.key for m in _parse_or_none("\n".join(old_lines))}
-    new = {m.key for m in _parse_or_none("\n".join(new_lines))}
-    return len(new - old)
+    added = [m for m in _parse_or_none("\n".join(new_lines)) if m.key not in old]
+    return len(added), sum(m.pending for m in added)
 
 
 def _parse_or_none(text: str) -> list[Mark]:
@@ -578,6 +585,87 @@ def _parse_or_none(text: str) -> list[Mark]:
         return _parse_marks(text)
     except ConfigError:
         return []
+
+
+def marks_at(repo_root: Path, commit: str) -> list[Mark]:
+    """Every mark in `claims.checked.toml` as committed at `commit`, `[]`
+    when the commit has no such file. Raises `ConfigError` as
+    `load_marks` does."""
+
+    text = blob_text(repo_root, commit, CHECKED_FILENAME)
+    return [] if text is None else _parse_marks(text)
+
+
+def _unit_line(mark: Mark, lines: Sequence[str] | None) -> int:
+    """The 1-based first line, in `lines`, of the first copy of `mark`'s
+    unit, or 0 when it has none there: an orphan's unit is gone."""
+
+    kind = unit_kind(mark.mode)
+    if kind is None or lines is None:
+        return 0
+    return next((u.start + 1 for u in _units(kind, lines) if u.digest == _in_file(mark.unit)), 0)
+
+
+def _describe(marks: Iterable[Mark], lines_of: Callable[[str], Sequence[str] | None]) -> list[str]:
+    """Each of `marks` as a `mark-checked` entry, `file:line mode note`,
+    its line looked up in what `lines_of` gives for its file."""
+
+    cache: dict[str, Sequence[str] | None] = {}
+    described = []
+    for mark in marks:
+        if mark.file not in cache:
+            cache[mark.file] = lines_of(mark.file)
+        described.append(f"{mark.file}:{_unit_line(mark, cache[mark.file])} {mark.mode} {mark.note}")
+    return described
+
+
+def pending_marks(repo_root: Path, commit: str | None = None) -> list[str]:
+    """Every pending mark in `claims.checked.toml`, expired and orphaned
+    ones included, as `file:line mode note`: from the working tree, or
+    with `commit`, from the file and the marked files as committed there.
+    Raises `ConfigError` for an invalid file."""
+
+    if commit is None:
+        tree = _Tree(repo_root, {})
+        return _describe((m for m in load_marks(repo_root) if m.pending), tree.lines)
+
+    def lines_at(rel: str) -> list[str] | None:
+        text = blob_text(repo_root, commit, rel)
+        return None if text is None else git_lines(text)
+
+    return _describe((m for m in marks_at(repo_root, commit) if m.pending), lines_at)
+
+
+def approve_marks(repo_root: Path, commit: str, rev: str) -> tuple[list[str], list[str]]:
+    """`(approved, left)`: approve every mark pending in the working tree
+    and, with every other key the same, pending at `commit` too, writing
+    the file through `write_marks`; describe each approved mark, and each
+    left pending with why, naming `commit` as `rev`. Raises `ConfigError`
+    for a file invalid at either side, writing nothing."""
+
+    reviewed = {m.key: replace(m, line=0) for m in marks_at(repo_root, commit)}
+    approving: list[Mark] = []
+    left: list[tuple[Mark, str]] = []
+    for mark in load_marks(repo_root):
+        if not mark.pending:
+            continue
+        seen = reviewed.get(mark.key)
+        if seen is None:
+            left.append((mark, f"not in {rev}"))
+        elif seen != replace(mark, line=0):
+            left.append((mark, f"changed since {rev}"))
+        else:
+            approving.append(replace(mark, pending=False))
+    if approving:
+        write_marks(repo_root, approving)
+    lines_of = _Tree(repo_root, {}).lines
+    return (
+        _describe(approving, lines_of),
+        [
+            f"{entry}: {why}"
+            for entry, (_, why) in zip(_describe((m for m, _ in left), lines_of), left)
+        ],
+    )
 
 
 def _current(tree: _Tree, mark: Mark, rel: str, unit: _Unit) -> bool:
@@ -590,16 +678,17 @@ def _current(tree: _Tree, mark: Mark, rel: str, unit: _Unit) -> bool:
 
 def apply_marks(
     repo_root: Path, findings: Sequence[Finding], config: Mapping[str, object]
-) -> tuple[list[Finding], list[Finding], list[Finding]]:
-    """`(shown, quieted, partly)`: `findings` with every one a current mark
-    keeps quiet moved to `quieted`, and an orphan finding added to `shown`
-    for each mark whose unit is gone from its file. `partly` is the part
-    of `quieted` a partial mark keeps quiet. Raises `ConfigError` for an
+) -> tuple[list[Finding], list[Finding], list[Finding], list[Finding]]:
+    """`(shown, quieted, partly, pending)`: `findings` with every one a
+    current mark keeps quiet moved to `quieted`, and an orphan finding
+    added to `shown` for each mark whose unit is gone from its file.
+    `partly` is the part of `quieted` a partial mark keeps quiet, and
+    `pending` the part a pending one does. Raises `ConfigError` for an
     invalid `claims.checked.toml`."""
 
     marks = load_marks(repo_root)
     if not marks:
-        return list(findings), [], []
+        return list(findings), [], [], []
     by_key = {mark.key: mark for mark in marks}
     marked_files = {mark.file for mark in marks}
     tree = _Tree(repo_root, config)
@@ -619,6 +708,7 @@ def apply_marks(
 
     quiet: list[Finding] = []
     partly: list[Finding] = []
+    pending: list[Finding] = []
     for key, group in groups.items():
         mark = by_key[key]
         if not _current(tree, mark, mark.file, units[key]):
@@ -632,11 +722,13 @@ def apply_marks(
         quiet.extend(kept)
         if mark.partial:
             partly.extend(kept)
+        if mark.pending:
+            pending.extend(kept)
 
     quieted = {id(f) for f in quiet}
     shown = [f for f in findings if id(f) not in quieted]
     shown.extend(_orphans(tree, marks))
-    return shown, quiet, partly
+    return shown, quiet, partly, pending
 
 
 def _orphan_problem(tree: _Tree, mark: Mark) -> str | None:
@@ -687,13 +779,15 @@ def new_marks(
     entries: Iterable[str],
     by: str | None,
     partial: bool = False,
+    pending: bool = False,
 ) -> tuple[list[Mark], list[str]]:
     """`(marks, problems)`: a mark for each of `entries`, one
     `<file>:<line> <mode> <note>` per item, looked up among `findings`,
     and a message naming each entry that can't be marked. Blank entries
     are skipped. With `partial`, each mark records a partial reading, and
     an entry whose mode has no section or doc comment to read part of, or
-    whose key a current full mark holds, can't be marked."""
+    whose key a current full mark holds, can't be marked. With `pending`,
+    each mark awaits a person's review."""
 
     tree = _Tree(repo_root, config)
     full_marks = {m.key: m for m in load_marks(repo_root) if not m.partial} if partial else {}
@@ -746,6 +840,7 @@ def new_marks(
                         note=note,
                         by=by,
                         partial=partial,
+                        pending=pending,
                     )
                 )
     return marks, problems
@@ -769,6 +864,8 @@ def _render(mark: Mark) -> str:
         lines.append(f"by = {_toml_string(mark.by)}")
     if mark.partial:
         lines.append('extent = "partial"')
+    if mark.pending:
+        lines.append('review = "pending"')
     subjects = ", ".join(f"{_toml_string(s)} = {_toml_string(h)}" for s, h in mark.subjects.items())
     lines.append(f"subjects = {{ {subjects} }}" if subjects else "subjects = {}")
     return "\n".join(lines) + "\n"

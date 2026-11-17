@@ -244,6 +244,7 @@ def decide_repo(repo_root: Path) -> Decision | None:
     )
     quiet = [f for f in result.quiet if _finding_check(f, disabled) is None]
     partly = [f for f in result.quiet_partly if _finding_check(f, disabled) is None]
+    pending = [f for f in result.quiet_pending if _finding_check(f, disabled) is None]
 
     if not findings and not quiet:
         return None
@@ -254,6 +255,8 @@ def decide_repo(repo_root: Path) -> Decision | None:
         lines.append(f"{len(quiet)} quiet while checked")
         if partly:
             lines[-1] += f", {len(partly)} of them partly"
+        if pending:
+            lines[-1] += f", {len(pending)} of them pending"
     unmarked = _unmarked(repo_root, findings, listed - disabled)
     if unmarked:
         lines.append(failing_unmarked(len(unmarked)))

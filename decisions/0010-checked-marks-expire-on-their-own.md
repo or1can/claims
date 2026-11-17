@@ -34,6 +34,10 @@ marks recorded a spot-check of a long section, said so only in the
 note, and were counted as checked like any other. A mark can now record
 that its reading was partial.
 
+Amended by `decisions/0014-a-pending-mark-quiets-until-a-person-approves-it.md`
+(#245): a mark can be pending a person's review. It quiets and expires
+as any other mark, until `approve-marks` approves it.
+
 ## Context
 
 The advisory checks exist so that a claim gets read. On a real project

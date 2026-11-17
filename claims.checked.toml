@@ -214,6 +214,46 @@ subjects = { "CHANGELOG.md" = "aab858f0e66af8f14c707c0788cc4d2c8077814b", "book.
 
 [[mark]]
 file = "claims/skill/SKILL.md"
+mode = "claim-words-about-elsewhere"
+unit = "156ba435caf330a0"
+copies = 1
+note = "the CLI summary it describes is the one claims/cli.py main prints, read with the pending clauses added in this change"
+by = "Claude (agent)"
+review = "pending"
+subjects = {}
+
+[[mark]]
+file = "claims/skill/SKILL.md"
+mode = "claim-words-totalising"
+unit = "0b108faadd5a0706"
+copies = 1
+note = "an instruction to the agent; --pending writes review = \"pending\" (claims/checked.py _render) and pending-marks lists those entries (claims/checked.py pending_marks)"
+by = "Claude (agent)"
+review = "pending"
+subjects = {}
+
+[[mark]]
+file = "claims/skill/SKILL.md"
+mode = "claim-words-totalising"
+unit = "156ba435caf330a0"
+copies = 1
+note = "instructs showing every line verbatim; the summary clauses listed match the order claims/cli.py main appends them (partly, pending, then added in range with its own pending count)"
+by = "Claude (agent)"
+review = "pending"
+subjects = {}
+
+[[mark]]
+file = "claims/skill/SKILL.md"
+mode = "claim-words-totalising"
+unit = "760a1ee42bea0fb4"
+copies = 1
+note = "an instruction to the agent, matching ADR 0014: approving is a person's act"
+by = "Claude (agent)"
+review = "pending"
+subjects = {}
+
+[[mark]]
+file = "claims/skill/SKILL.md"
 mode = "stale-claims"
 unit = "6812babe573c34f1"
 copies = 1
