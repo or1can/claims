@@ -6,6 +6,12 @@ Accepted. Issue #245; amends
 `decisions/0010-checked-marks-expire-on-their-own.md` and
 `decisions/0012-a-ci-run-can-fail-on-unmarked-findings.md`.
 
+Amended by `decisions/0015-an-approval-holds-for-content-not-for-a-commit.md`
+(#247): an approval holds for the entry's content, not for the commit
+`REV`. A rewrite that leaves approved entries identical needs no
+re-approval, and the approval may be folded into the commit holding the
+marks rather than being a commit of its own.
+
 ## Context
 
 A project where agents write checked marks needs a mark to say whether a
@@ -73,4 +79,8 @@ Mark parsing and writing stay private.
   agent wrote with `pending-marks`.
 - A project that runs `pending-marks` in CI can't merge until a person
   has approved, and approving is a commit of its own on the branch.
-- Who approved is recorded by git history, not in the file.
+  ADR 0015 qualifies this: the approval may instead be folded into the
+  commit holding the marks.
+- Who approved is recorded by git history, not in the file. ADR 0015
+  qualifies this: `claims` doesn't record who approved, so that rests on
+  the project's own convention, such as a commit message naming them.
