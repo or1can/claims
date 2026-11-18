@@ -19,7 +19,12 @@ against changes (`decisions/0010-checked-marks-expire-on-their-own.md`).
 expiry rules; this docstring is why the code is shaped the way it is.
 
 Applied by the runner after every check has run, never inside one, so
-`Finding` keeps its contract and no check knows marks exist.
+`Finding` keeps its contract. One check reads marks, and none applies
+them: `restatement` asks `retractions_held` which committed marks record
+a retraction whose surviving line a pending change rewords (#250). That
+mark is the only record left of a retraction an earlier commit made, and
+without it the commit doing the rewording raises nothing where the
+branch run raises a finding no commit's own run showed.
 
 A mark is keyed by a hash of the finding's **unit**, not its line, so it
 follows the text. `UNITS` is the fixed table of what that unit is per
@@ -176,6 +181,14 @@ def _digest(text: str) -> str:
 
 def _words_digest(text: str) -> str:
     return _digest(" ".join(normalise(text)))
+
+
+def message_hash(message: str) -> str:
+    """The second half of a `LINE` unit: the hash of the finding's
+    message, since the same line surviving a different retraction is a
+    different finding."""
+
+    return _words_digest(message)
 
 
 def _blob_lines(data: bytes) -> list[str]:
@@ -342,7 +355,7 @@ class _Tree:
         )
         digest = unit.digest
         if kind == LINE:
-            digest += "-" + _words_digest(finding.message)
+            digest += "-" + message_hash(finding.message)
         return unit, digest
 
     def counts(self, subject: str) -> bool:
@@ -759,6 +772,31 @@ def _orphans(tree: _Tree, marks: Iterable[Mark]) -> list[Finding]:
             )
         )
     return found
+
+
+def retractions_held(repo_root: Path, mode: str) -> dict[str, set[str]]:
+    """`{file: {message hash}}`, one per mark of `mode`, a `LINE` mode,
+    committed at `HEAD` whose line is no longer in its file in the working
+    tree: a retraction an earlier commit made, read before the change
+    being made reworded the line that still held it.
+
+    Read at `HEAD`, not from the working tree, so pruning the orphan the
+    rewording leaves doesn't erase the one record of the retraction. A
+    sidecar at `HEAD` that doesn't parse holds none: the working tree's is
+    what a run reports as invalid."""
+
+    try:
+        marks = marks_at(repo_root, "HEAD")
+    except ConfigError:
+        return {}
+    # Only line hashes are read, never a subject, so no config is needed.
+    tree = _Tree(repo_root, {})
+    held: dict[str, set[str]] = {}
+    for mark in marks:
+        line, _, message = mark.unit.partition("-")
+        if mark.mode == mode and message and not tree.copies(mark.file, LINE)[line]:
+            held.setdefault(mark.file, set()).add(message)
+    return held
 
 
 def orphaned_marks(repo_root: Path, config: Mapping[str, object]) -> list[Mark]:

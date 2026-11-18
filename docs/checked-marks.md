@@ -285,6 +285,13 @@ about a sentence the diff left alone. Nor is an expired mark whose unit
 is still in its file, or one whose file holds fewer copies of its unit
 than it recorded but at least one: `--prune` keeps both.
 
+A `restatement-ngram` mark orphaned by a change that rewords its line
+and keeps the quoted words leaves a finding behind as well as the
+orphan: the same words reported on the reworded line, a new unit to
+mark in that commit. The finding comes from the mark as committed, so
+it stays when `--prune` removes the orphan
+([restatement](checks/restatement.md#what-it-checks)).
+
 ## What a run shows
 
 A quieted finding is not printed. The summary line counts it, ending `, Q

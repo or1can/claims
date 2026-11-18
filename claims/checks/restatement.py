@@ -84,6 +84,24 @@ matched text) — no extra git-history walk.
 entirely, not just from candidate extraction, so it neither counts toward
 nor is reported as another file's duplication.
 
+**A reworded survivor** (#250). A commit that rewords a line still
+holding a run an earlier commit retracted, and keeps the run, removes
+and re-adds it in one file, so its own diff subtracts it. The branch
+run, which still sees the earlier retraction, reports the run on the
+new line: a finding no commit's own run raised, so none could mark it.
+A committed `restatement-ngram` mark whose line is gone from its file
+is the record of that retraction, its message hash naming the run:
+`checked.retractions_held` reads them at `HEAD`, so pruning the orphan
+doesn't erase it, and every run in that file with that hash is wanted
+again. Only for a range reaching the working tree, where the commit
+being made is the one that can mark it. Added to the wanted runs rather
+than reported straight from the file, so the sweep's own rules (added
+lines, `historical`, the duplication threshold, one run per line) apply
+unchanged and a range that also sees the retraction reports it once.
+The mark holds one run, the longest on its line, so a rewording that
+breaks that run but keeps a shorter one the earlier commit retracted is
+still raised by the branch run alone.
+
 `historical` (#174) skips a line in a matching file that the diff didn't
 add, and a run starting on one: it is a shipped entry the project's rules
 forbid editing. A run starting on an added line, an `[Unreleased]` entry,
@@ -100,8 +118,9 @@ from collections.abc import Mapping, Sequence
 from pathlib import Path
 from typing import NamedTuple
 
+from ..checked import message_hash, retractions_held
 from ..config import exclude_patterns, numeric_config, path_matches, string_list_config
-from ..git import DiffLine, added_lines_by_file, iter_diff, tracked_files
+from ..git import DiffLine, added_lines_by_file, iter_diff, resolve_commit, tracked_files
 from ..lines import git_lines, tracked_text
 from ..runner import Finding, register_check
 from ..words import normalise
@@ -408,6 +427,39 @@ def _survivors(
     return ngram_hits, whole_line_hits
 
 
+def _ngram_message(run: str) -> str:
+    return f"still says: ...{run}..."
+
+
+def _held_runs(
+    repo_root: Path, diff_range: str, extensions: set[str], exclude: Sequence[str]
+) -> set[str]:
+    """The runs committed marks record as retracted by an earlier commit,
+    each still in the file whose reworded line held it, when `diff_range`
+    reaches the working tree: see "A reworded survivor" in the module
+    docstring."""
+
+    # A single commit is diffed against the working tree; a range, or a
+    # revision naming no one commit (`X^!`), ends at a commit.
+    if resolve_commit(repo_root, diff_range) is None:
+        return set()
+    runs: set[str] = set()
+    for name, messages in retractions_held(repo_root, MODE_NGRAM).items():
+        if not _in_scope(name, extensions, exclude):
+            continue
+        try:
+            text = tracked_text(repo_root / name)
+        except (OSError, UnicodeDecodeError):
+            continue
+        words = [word for line in _prose_lines(name, git_lines(text)) for word in normalise(line)]
+        runs |= {
+            run
+            for run in _runs(words, NGRAM_WORDS)
+            if message_hash(_ngram_message(run)) in messages
+        }
+    return runs
+
+
 def _wanted_whole_lines(removed_lines: Sequence[str], added_words: Sequence[str]) -> set[str]:
     """Removed lines (>= `MIN_LINE_WORDS`) whose exact word sequence doesn't
     also occur, as a contiguous run, in the diff's added words.
@@ -448,6 +500,7 @@ def check(
         wanted_ngrams |= _runs(removed_words, NGRAM_WORDS) - _runs(added_words, NGRAM_WORDS)
         wanted_lines |= _wanted_whole_lines(removed_lines, added_words)
 
+    wanted_ngrams |= _held_runs(repo_root, diff_range, extensions, exclude)
     if not wanted_ngrams and not wanted_lines:
         return []
 
@@ -464,7 +517,7 @@ def check(
         Finding(
             file=name,
             line=line,
-            message=f"still says: ...{run}...",
+            message=_ngram_message(run),
             mode=MODE_NGRAM,
             gate=False,
         )

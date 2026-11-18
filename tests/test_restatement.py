@@ -27,6 +27,7 @@ from __future__ import annotations
 import unittest
 from pathlib import Path
 
+from claims.checked import ORPHAN_MODE, load_marks, new_marks, orphaned_marks, write_marks
 from claims.checks.restatement import MODE_NGRAM, MODE_WHOLE_LINE, NAME, check
 from claims.config import load_config
 from claims.runner import Finding, register_check, run
@@ -825,35 +826,138 @@ class RestatementTests(RegistryClearingTestCase):
             {"b.ts:1"},
         )
 
-    def test_a_reworded_survivor_is_raised_by_the_branch_and_not_its_own_commit(self) -> None:
-        # #248's second mechanism, reproduced and not fixed: commit A
-        # retracts a phrase that `guide.md` still asserts, wrapping from
-        # line 1 onto line 2. Commit B rewords line 1 and keeps the phrase.
-        # B's own run sees the phrase both removed and re-added in one
-        # file, so raises nothing; the branch run still sees A's retraction
-        # and reports the phrase on B's new line 1, a unit no commit's own
-        # run ever raised, so no mark made at commit time can hold it.
-        retracted = "the cache evicts entries after one hour of idle time.\n"
-        tail = "one hour of idle time, as configured.\n"
+    def _mark(self, repo_root: Path, findings: list[Finding], citation: str) -> None:
+        """Mark the `restatement-ngram` finding at `citation`, as
+        `mark-checked` would, keeping every mark already in the file."""
+
+        config: dict[str, object] = {NAME: {}}
+        marks, problems = new_marks(
+            repo_root, findings, config, [f"{citation} {MODE_NGRAM} read it"], None
+        )
+        self.assertEqual(problems, [])
+        write_marks(repo_root, [*load_marks(repo_root), *marks])
+
+    def _prune(self, repo_root: Path) -> None:
+        orphans = orphaned_marks(repo_root, {})
+        keys = {m.key for m in orphans}
+        write_marks(
+            repo_root, [m for m in load_marks(repo_root) if m.key not in keys], pruned=orphans
+        )
+
+    RETRACTED = "the cache evicts entries after one hour of idle time.\n"
+    TAIL = "one hour of idle time, as configured.\n"
+    REWORDED = "These days we know that the cache evicts entries after"
+
+    def _retract_and_mark(self, repo: Repo) -> str:
+        """Commit A: `notes.md` retracts a phrase `guide.md` still asserts
+        in a run wrapping from line 1 onto line 2, its own run's finding
+        marked in the same commit. Returns the commit before A."""
+
+        repo.write("notes.md", self.RETRACTED)
+        repo.write("guide.md", "Today we know that the cache evicts entries after\n" + self.TAIL)
+        repo.commit()
+        base = repo.short_head()
+        repo.write("notes.md", "Entries now persist.\n")
+        own_a = self._findings(repo.root)
+        self.assertEqual([f.citation for f in own_a], ["guide.md:1"])
+        self._mark(repo.root, own_a, "guide.md:1")
+        self.assertEqual(self._findings(repo.root), [])
+        repo.commit()
+        return base
+
+    def test_a_reworded_survivor_is_raised_by_its_own_commit_as_the_branch_raises_it(
+        self,
+    ) -> None:
+        # #250: commit B rewords line 1 and keeps the phrase. B's own run
+        # sees it removed and re-added in one file, but A's mark records
+        # A's retraction of it, so B raises what the branch run will.
         with Repo() as repo:
-            repo.write("notes.md", retracted)
-            repo.write("guide.md", "Today we know that the cache evicts entries after\n" + tail)
+            base = self._retract_and_mark(repo)
+            repo.write("guide.md", self.REWORDED + "\n" + self.TAIL)
+            own_b = self._findings(repo.root)
+            raised = [f for f in own_b if f.mode == MODE_NGRAM]
+            self._prune(repo.root)
+            after_prune = [f for f in self._findings(repo.root) if f.mode == MODE_NGRAM]
+            self._mark(repo.root, after_prune, "guide.md:1")
             repo.commit()
-            base = repo.short_head()
+            branch = list(run(repo.root, f"{base}..HEAD", {NAME: {}}).findings)
+            quiet = list(run(repo.root, f"{base}..HEAD", {NAME: {}}).quiet)
+
+        self.assertEqual(
+            [(f.citation, f.mode, f.message) for f in raised],
+            [(f.citation, f.mode, f.message) for f in quiet],
+        )
+        self.assertEqual([f.citation for f in raised], ["guide.md:1"])
+        self.assertEqual(
+            sorted(f.mode for f in own_b), sorted([MODE_NGRAM, ORPHAN_MODE])
+        )
+        self.assertEqual(
+            [(f.citation, f.message) for f in after_prune],
+            [(f.citation, f.message) for f in raised],
+        )
+        self.assertEqual(branch, [])
+
+    def test_a_reworded_survivor_that_drops_the_retracted_words_raises_nothing(self) -> None:
+        with Repo() as repo:
+            self._retract_and_mark(repo)
+            repo.write("guide.md", "These days entries persist.\nAs configured.\n")
+            findings = self._findings(repo.root)
+
+        self.assertEqual([f.mode for f in findings], [ORPHAN_MODE])
+
+    def test_a_marked_survivor_whose_line_is_still_there_raises_nothing_new(self) -> None:
+        # Red omitted: no rewording, so this pins behaviour the fix
+        # leaves alone rather than any it adds.
+        with Repo() as repo:
+            self._retract_and_mark(repo)
+            repo.write("other.md", "An unrelated page.\n")
+            findings = self._findings(repo.root)
+
+        self.assertEqual(findings, [])
+
+    def test_an_unmarked_retraction_is_not_raised_on_a_reworded_survivor(self) -> None:
+        with Repo() as repo:
+            repo.write("notes.md", self.RETRACTED)
+            repo.write("guide.md", "Today we know that the cache evicts entries after\n" + self.TAIL)
+            repo.commit()
             repo.write("notes.md", "Entries now persist.\n")
-            own_a = self._findings(repo.root)
             repo.commit()
-            reworded = "These days we know that the cache evicts entries after"
-            repo.write("guide.md", reworded + "\n" + tail)
+            repo.write("guide.md", self.REWORDED + "\n" + self.TAIL)
+            findings = self._findings(repo.root)
+
+        self.assertEqual(findings, [])
+
+    def test_a_range_reaching_the_working_tree_raises_a_held_run_once(self) -> None:
+        # The diff from before A to the working tree still sees A's
+        # retraction, and A's mark holds it too: one finding, not two.
+        with Repo() as repo:
+            base = self._retract_and_mark(repo)
+            repo.write("guide.md", self.REWORDED + "\n" + self.TAIL)
+            findings = list(run(repo.root, base, {NAME: {}}).findings)
+
+        self.assertEqual(
+            [f.citation for f in findings if f.mode == MODE_NGRAM], ["guide.md:1"]
+        )
+
+    def test_a_rewording_that_breaks_the_marked_run_is_raised_by_the_branch_alone(
+        self,
+    ) -> None:
+        # #250's known residual, pinned: the mark holds one 6-word run,
+        # the longest starting on the line. A rewording that breaks that
+        # run but keeps a shorter one A also retracted raises nothing in
+        # its own commit, while the branch run reports the shorter one.
+        with Repo() as repo:
+            base = self._retract_and_mark(repo)
+            repo.write("guide.md", "These days we know that the store evicts entries after\n" + self.TAIL)
             own_b = self._findings(repo.root)
             repo.commit()
             branch = list(run(repo.root, f"{base}..HEAD", {NAME: {}}).findings)
-            line_1 = (repo.root / "guide.md").read_text().splitlines()[0]
 
-        self.assertEqual([f.citation for f in own_a], ["guide.md:1"])
-        self.assertEqual(own_b, [])
-        self.assertEqual([f.citation for f in branch], ["guide.md:1"])
-        self.assertEqual(line_1, reworded)
+        self.assertEqual([f.mode for f in own_b], [ORPHAN_MODE])
+        self.assertEqual(
+            [(f.citation, f.message) for f in branch if f.mode == MODE_NGRAM],
+            [("guide.md:1", "still says: ...evicts entries after one hour of...")],
+        )
 
 
 if __name__ == "__main__":

@@ -11,6 +11,14 @@ reached you, not just that one was pushed upstream.
 
 ## [Unreleased]
 
+## [0.29.3] - 2026-11-18
+
+- Fixed: rewording a line that holds a marked `restatement-ngram`
+  survivor, while keeping the quoted words, is now reported by the
+  commit hook on the reworded line, as well as orphaning the old mark.
+  It used to raise nothing until the branch run in CI, too late to mark
+  in the commit that made it (`docs/checks/restatement.md`).
+
 ## [0.29.2] - 2026-11-18
 
 - Fixed: `stale-claims` in the commit hook, and in `mark-checked`'s
