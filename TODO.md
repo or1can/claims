@@ -14,6 +14,16 @@
   reports nothing; once the rename is committed, CI ranks it. An
   explicit path names the old path too, and is unaffected. Following
   renames would change every subject's score. Found reviewing #230.
+- `restatement`: a finding the branch range raises that no commit's own
+  run raised (#248's second mechanism). Commit A retracts a phrase that
+  another file still asserts, wrapping from one line onto the next.
+  Commit B rewords the first line and keeps the phrase. B's own run sees
+  the phrase removed and re-added, so it reports nothing. The branch run
+  reports the phrase on B's new line, which a mark made at A no longer
+  matches. Pinned by `tests/test_restatement.py`'s
+  `test_a_reworded_survivor_is_raised_by_the_branch_and_not_its_own_commit`.
+  The fix is not local: B's run would have to see a retraction an
+  earlier commit made. Wants its own issue.
 - `restatement` reads an extension with no row in its built-in comment
   table (`.ts`, `.go`) whole-line, code included, so a removed line of
   code there is still reported as a retraction. A `claims.toml` key that

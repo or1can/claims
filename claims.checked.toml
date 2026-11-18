@@ -3,9 +3,10 @@ file = ".out-of-scope/generated-subjects-and-history-weighting.md"
 mode = "stale-claims"
 unit = "dd656ffcd24a40a1"
 copies = 1
-note = "Re-read: the section is about captures and bare-name lookup; #241's TODO.md entry changes nothing it says about TODO.md."
-by = "Kevin Rogers"
-subjects = { "TODO.md" = "8f39d345b1f25563" }
+note = "TODO.md still tracks the stale-claims output cap/churn floor beside ADR 0009's deferral, as the section says"
+by = "Claude Opus 5.5 (agent)"
+review = "pending"
+subjects = { "TODO.md" = "d97b809657bb22f2" }
 
 [[mark]]
 file = ".out-of-scope/version-only-churn.md"
@@ -102,9 +103,10 @@ file = "AGENTS.md"
 mode = "stale-claims"
 unit = "3413ae0523a5bc76"
 copies = 1
-note = "Re-read after #241 appended the deferred merge-driver entry to TODO.md: the section's rule (note unfinishable work in TODO.md) is what that entry does; nothing it says about TODO.md changed."
-by = "Kevin Rogers"
-subjects = { "TODO.md" = "8f39d345b1f25563" }
+note = "TODO.md is still where unfinishable or unverifiable gardening is noted; this commit adds such an entry (the restatement gap)"
+by = "Claude Opus 5.5 (agent)"
+review = "pending"
+subjects = { "TODO.md" = "d97b809657bb22f2" }
 
 [[mark]]
 file = "AGENTS.md"
@@ -129,9 +131,10 @@ file = "AGENTS.md"
 mode = "stale-claims"
 unit = "a24aa63faff14f27"
 copies = 1
-note = "Re-read after #241: no config key, mode or CLI flag was added, so there is nothing to adopt; the re-sort of claims.checked.toml is the adoption of the new write order."
-by = "Kevin Rogers"
-subjects = { "TODO.md" = "8f39d345b1f25563" }
+note = "TODO.md is still the named place to say why a shipped feature isn't adopted here; no adoption entry changed"
+by = "Claude Opus 5.5 (agent)"
+review = "pending"
+subjects = { "TODO.md" = "d97b809657bb22f2" }
 
 [[mark]]
 file = "AGENTS.md"
@@ -334,9 +337,10 @@ file = "decisions/0005-live-and-dated-claims.md"
 mode = "stale-claims"
 unit = "86ae35d58a6aa3b5"
 copies = 1
-note = "Re-read after #245's CONTEXT.md edit: Claim still carries the live and dated qualifiers, both with _Avoid_: Record-like; the edit only adds two checked-mark entries."
-by = "Claude (agent)"
-subjects = { "CONTEXT.md" = "1e4da3ec5d4540c7", "TODO.md" = "8f39d345b1f25563" }
+note = "TODO.md's claims are still live with temporal phrasing; CONTEXT.md still has Live claim and Dated claim, each with _Avoid_: Record-like"
+by = "Claude Opus 5.5 (agent)"
+review = "pending"
+subjects = { "CONTEXT.md" = "1e4da3ec5d4540c7", "TODO.md" = "d97b809657bb22f2" }
 
 [[mark]]
 file = "decisions/0008-a-command-names-its-own-environment.md"
