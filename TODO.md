@@ -14,6 +14,12 @@
   reports nothing; once the rename is committed, CI ranks it. An
   explicit path names the old path too, and is unaffected. Following
   renames would change every subject's score. Found reviewing #230.
+- `stale-claims` counts an uncommitted insertion just after a linked
+  section's last line as a change to that section, even when the
+  inserted lines open with a heading of their own. Once committed, those
+  lines belong to the new section, so `git log -L` over the linked one
+  doesn't count them. The pre-commit run over-counts by one, which is the
+  direction that misses less. Found reviewing #248.
 - `restatement`: a finding the branch range raises that no commit's own
   run raised (#248's second mechanism). Commit A retracts a phrase that
   another file still asserts, wrapping from one line onto the next.

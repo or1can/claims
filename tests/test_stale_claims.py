@@ -229,7 +229,8 @@ class StaleClaimsTests(RegistryClearingTestCase):
         """Ranks `notes.md`'s one section, which names `name`, after `name`
         has had a line inserted at its top and another appended. A staged
         rewrite of one of its lines, in no commit yet, brings the section
-        into the range, so its score is what the history alone gives."""
+        into the range and counts as one commit after it (#248), so any
+        more than that one is what the history gives."""
 
         repo.write("notes.md", f"## Releases\n\nSee `{name}` for each release.\n")
         repo.write(name, "# Log\n\n## 1.0\n\n- First.\n")
@@ -244,7 +245,10 @@ class StaleClaimsTests(RegistryClearingTestCase):
 
     def test_appends_to_a_changelog_subject_are_not_churn(self) -> None:
         with Repo() as repo:
-            self.assertEqual(self._grow(repo, "CHANGELOG.md"), [])
+            findings = self._grow(repo, "CHANGELOG.md")
+
+        self.assertEqual(len(findings), 1)
+        self.assertIn("CHANGELOG.md 1 commit (100% of its history)", findings[0].message)
 
     def test_an_edited_line_in_a_changelog_subject_is_churn(self) -> None:
         with Repo() as repo:
@@ -296,24 +300,28 @@ class StaleClaimsTests(RegistryClearingTestCase):
                 capture_output=True, text=True, check=True,
             ).stdout.split()
             self.assertEqual(len(parents), 2, "the merge must be in the file's history")
-            # Staged, so the range ranks the section and the history scores it.
+            # Staged, so the range ranks the section, the staged rewrite
+            # its one counted commit and the history the rest of its score.
             text = (repo.root / "CHANGELOG.md").read_text()
             repo.write("CHANGELOG.md", text.replace("- Main.", "- Mainline."))
+            findings = self._findings_with_toml(repo.root, "", "HEAD")
 
-            self.assertEqual(self._findings_with_toml(repo.root, "", "HEAD"), [])
+        self.assertEqual(len(findings), 1)
+        self.assertIn("CHANGELOG.md 1 commit (100% of its history)", findings[0].message)
 
     def test_appends_to_a_listed_append_only_subject_are_not_churn(self) -> None:
         with Repo() as repo:
             findings = self._grow(repo, "RELEASES.md", '[subjects]\nappend_only = "RELEASES.md"\n')
 
-        self.assertEqual(findings, [])
+        self.assertEqual(len(findings), 1)
+        self.assertIn("RELEASES.md 1 commit (100% of its history)", findings[0].message)
 
     def test_appends_to_an_unlisted_subject_are_churn(self) -> None:
         with Repo() as repo:
             findings = self._grow(repo, "RELEASES.md")
 
         self.assertEqual(len(findings), 1)
-        self.assertIn("RELEASES.md 2 commits (67% of its history)", findings[0].message)
+        self.assertIn("RELEASES.md 3 commits (75% of its history)", findings[0].message)
 
     def _releasing(self, repo: Repo, name: str = "CHANGELOG.md") -> None:
         """`guide.md` names `name`, whose second commit edits a line in
@@ -970,6 +978,113 @@ class StaleClaimsTests(RegistryClearingTestCase):
             )
         self.assertEqual([f.file for f in findings], ["guide.md"])
         self.assertIn("0001-x.md#context 1 commit", findings[0].message)
+
+
+class PendingChangeTests(RegistryClearingTestCase):
+    """A range reaching the working tree counts the uncommitted change as
+    one more commit to each subject it touches (#248), so a run before
+    committing raises what the commit, once made, will raise."""
+
+    def setUp(self) -> None:
+        super().setUp()
+        register_check(NAME, check)
+
+    def _messages(self, repo: Repo, diff_range: str = "HEAD") -> list[str]:
+        return [f.message for f in run(repo.root, diff_range, {}).findings]
+
+    def test_a_pending_change_to_a_subject_counts_as_one_more_commit(self) -> None:
+        with Repo() as repo:
+            for n in range(3):
+                repo.write("src/a.py", f"v{n}\n")
+                repo.commit(BASE + 100 * n)
+            repo.write("README.md", "## Part\n\nSee src/a.py for details.\n")
+            repo.commit(BASE + 300)
+            repo.write("src/a.py", "v3\n")
+            before = self._messages(repo)
+            repo.commit(BASE + 400)
+            after = self._messages(repo, "HEAD~1..HEAD")
+        self.assertEqual(
+            before,
+            ["'Part' names code 25% changed since last touched — a.py 1 commit (25% of its history)"],
+        )
+        self.assertEqual(before, after)
+
+    def test_a_pending_change_after_a_same_commit_edit_is_reported(self) -> None:
+        with Repo() as repo:
+            repo.write("doc.md", "## Part\n\nSee src/a.py for details.\n")
+            repo.write("src/a.py", "v0\n")
+            repo.commit(BASE)
+            repo.write("doc.md", "## Part\n\nSee src/a.py for the details.\n")
+            repo.write("src/a.py", "v1\n")
+            repo.commit(BASE + 100)
+            self.assertEqual(self._messages(repo, "HEAD~1..HEAD"), [])
+            repo.write("src/a.py", "v2\n")
+            messages = self._messages(repo)
+        self.assertEqual(len(messages), 1)
+        self.assertIn("a.py 1 commit (33% of its history)", messages[0])
+
+    def test_a_pending_change_to_the_section_and_its_subject_scores_zero(self) -> None:
+        with Repo() as repo:
+            repo.write("doc.md", "## Part\n\nSee src/a.py for details.\n")
+            repo.write("src/a.py", "v0\n")
+            repo.commit(BASE)
+            repo.write("src/a.py", "v1\n")
+            repo.commit(BASE + 100)
+            repo.write("src/a.py", "v2\n")
+            self.assertEqual(len(self._messages(repo)), 1)
+            repo.write("doc.md", "## Part\n\nSee src/a.py for the details.\n")
+            self.assertEqual(self._messages(repo), [])
+
+    def test_a_pending_append_to_an_append_only_subject_adds_nothing(self) -> None:
+        with Repo() as repo:
+            repo.write("guide.md", "## Releasing\n\nRecord each change in `CHANGELOG.md`.\n")
+            repo.write("CHANGELOG.md", "# Log\n\n## Unreleased\n\n- First.\n")
+            repo.commit(BASE)
+            # Rewrites a line, so the range `HEAD~1` brings the section in.
+            repo.write("CHANGELOG.md", "# Log\n\n## Unreleased\n\n- Initial.\n")
+            repo.commit(BASE + 100)
+            repo.write("CHANGELOG.md", "# Log\n\n## Unreleased\n\n- Initial.\n- Next.\n")
+            appended = self._messages(repo, "HEAD~1")
+            repo.write("CHANGELOG.md", "# Log\n\n## Unreleased\n\n- Next.\n")
+            removed = self._messages(repo, "HEAD~1")
+        self.assertEqual(len(appended), 1)
+        self.assertIn("CHANGELOG.md 1 commit (100% of its history)", appended[0])
+        self.assertEqual(len(removed), 1)
+        self.assertIn("CHANGELOG.md 2 commits (100% of its history)", removed[0])
+
+    OTHER = "# Other\n## a\na v0\n## b\nb v0\n### b1\nb1 v0\n## c\nc v0\n"
+
+    def test_a_pending_change_counts_for_a_section_subject_only_inside_it(self) -> None:
+        cases = {
+            "an edit above it": (self.OTHER.replace("a v0", "a v1"), 0),
+            "an insertion before its heading": (self.OTHER.replace("a v0\n", "a v0\nnew\n"), 0),
+            "an edit below it": (self.OTHER.replace("c v0", "c v1"), 0),
+            "an edit inside it": (self.OTHER.replace("b v0", "b v1"), 1),
+            "an edit in its subsection": (self.OTHER.replace("b1 v0", "b1 v1"), 1),
+            "an insertion after its last line": (self.OTHER.replace("## c", "new\n## c"), 1),
+        }
+        for case, (text, expected) in cases.items():
+            with self.subTest(case), Repo() as repo:
+                repo.write("guide.md", "## see\nSee [b](ref/other.md#b).\n")
+                repo.write("ref/other.md", self.OTHER)
+                repo.commit(BASE)
+                repo.write("ref/other.md", text)
+                messages = self._messages(repo)
+                self.assertEqual(len(messages), expected)
+                if expected:
+                    self.assertIn("other.md#b 1 commit (50% of its history)", messages[0])
+
+    def test_a_range_ending_at_a_commit_ignores_the_pending_change(self) -> None:
+        with Repo() as repo:
+            repo.write("doc.md", "## Part\n\nSee src/a.py for details.\n")
+            repo.write("src/a.py", "v0\n")
+            repo.commit(BASE)
+            repo.write("src/a.py", "v1\n")
+            repo.commit(BASE + 100)
+            repo.write("src/a.py", "v2\n")
+            messages = self._messages(repo, "HEAD~1..HEAD")
+        self.assertEqual(len(messages), 1)
+        self.assertIn("a.py 1 commit (50% of its history)", messages[0])
 
 
 class StaleClaimsCliTests(RegistryClearingTestCase):

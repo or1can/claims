@@ -31,6 +31,17 @@ whichever range brings it in. An explicit path the range deleted or
 renamed away still names a subject, though no longer tracked: a section
 citing a file that just went is the one most worth reading.
 
+A range reaching the working tree counts the uncommitted change as one
+more commit to each subject it changes (#248), so the hook's own run
+raises what a range over the commit, once made, will: otherwise a
+subject whose only change since the section is the commit being made
+scored zero, and its finding first appeared unmarked on the branch. The
+change is tested the way `commits` tests a commit, against the section's
+lines at `HEAD` and, for an append-only file, `_removing`'s test, so the
+two agree. A section with an uncommitted line has that change as its
+last touch, after every commit, so it is skipped: the blind spot below,
+reached before the commit rather than after.
+
 **Known blind spot, not a silently accepted gap:** a claim and its subject
 edited in the same commit score zero for that subject — the commit that
 touched both isn't counted as "after" the claim, since it *is* the claim's
@@ -162,7 +173,7 @@ from ..config import (
     path_matches,
     string_list_config,
 )
-from ..git import blob_text, changed_paths, tracked_files
+from ..git import UNCOMMITTED, blob_text, changed_paths, tracked_files
 from ..lines import git_lines, tracked_text
 from ..markdown import fence_state, section_range, slug
 from ..paths import PATH_RE, citing_relative, host_relative, repo_relative
@@ -180,6 +191,7 @@ class _Candidate(NamedTuple):
 MODULE_RE = re.compile(r"`([A-Za-z_][A-Za-z0-9_-]*)(\.[A-Za-z0-9]+)?`")
 HEADING_RE = re.compile(r"^(#{1,6})\s+(.*)")
 ANCHOR_RE = re.compile(r"#([\w-]+)")
+HUNK_RE = re.compile(r"^@@ -(\d+)(?:,(\d+))? ", re.MULTILINE)
 
 
 def _in_module_scope(rel: str, config: Mapping[str, object]) -> bool:
@@ -247,6 +259,18 @@ def _removing(repo_root: Path, rev: str) -> set[str]:
         )
         if removed != "0"
     }
+
+
+def _pending_hunks(repo_root: Path, path: str) -> list[tuple[int, int]]:
+    """Each hunk of `git diff HEAD` for `path` as `(start, count)` on the
+    `HEAD` side: `count` lines from `start` replaced or removed, or, with
+    `count` 0, lines inserted after line `start`."""
+
+    diff = _git(repo_root, "diff", "--unified=0", "--no-color", "--no-renames", "HEAD", "--", path)
+    return [
+        (int(m.group(1)), 1 if m.group(2) is None else int(m.group(2)))
+        for m in HUNK_RE.finditer(diff)
+    ]
 
 
 def _module_index(tracked: list[str]) -> dict[str, str]:
@@ -340,12 +364,16 @@ def check(
     rev = diff_range or "HEAD"
     range_end: str | None = None
     uncommitted: set[str] = set()
+    # Every path the uncommitted change touches, when the range reaches
+    # the working tree: what the commit being made will add to history.
+    pending: set[str] = set()
     if ".." in rev:
         range_commits: str | None = rev
         range_end = rev.rpartition("..")[2] or "HEAD"
     elif _git(repo_root, "rev-parse", "--verify", "--quiet", f"{rev}^{{commit}}"):
         range_commits = f"{rev}..HEAD"
         uncommitted = _removing(repo_root, "HEAD")
+        pending = changed_paths(repo_root, "HEAD")
     else:
         range_commits = None
 
@@ -398,6 +426,25 @@ def check(
             )
         return history[path, anchor]
 
+    def pending_commit(path: str, anchor: str) -> bool:
+        """Whether the uncommitted change is one more commit to the
+        subject, as it will be once committed: on `commits`' tests, an
+        append-only file's growth left out and a section's history read
+        from the lines it spans at `HEAD`."""
+
+        if path not in pending or (append_only(project, path) and path not in uncommitted):
+            return False
+        span = section(path, anchor) if anchor else None
+        if span is None:
+            return True
+        first, last = span
+        # A line inserted after the section's last line lands inside it,
+        # where one inserted before its heading lands in the section above.
+        return any(
+            start <= last and start + count - 1 >= first if count else first <= start <= last
+            for start, count in _pending_hunks(repo_root, path)
+        )
+
     ranked: list[_Candidate] = []
     for rel in docs:
         lines = git_lines(tracked_text(repo_root / rel, errors="replace"))
@@ -434,27 +481,28 @@ def check(
             blame = _git(
                 repo_root, "blame", "-L", f"{start + 1},{end}", "--line-porcelain", "--", rel
             )
-            stamps = [
-                int(l.split()[1])
-                for l in git_lines(blame)
-                if l.startswith("committer-time ")
-            ]
+            blamed = git_lines(blame)
+            stamps = [int(l.split()[1]) for l in blamed if l.startswith("committer-time ")]
             if not stamps:
+                continue
+            # A line in no commit yet makes the pending change the
+            # section's last touch, after every commit to every subject:
+            # the same-commit blind spot, before the commit is made.
+            if any(l.startswith(UNCOMMITTED + " ") for l in blamed):
                 continue
             touched = max(stamps)
 
             moved: dict[tuple[str, str], tuple[int, float]] = {}
             for subject in sorted(subjects):
                 times = commits(*subject)
-                if not times:
-                    continue
+                after = int(pending_commit(*subject))
                 # Strictly-after: a commit that also touched the claim (same
                 # timestamp) is the claim's own last touch, not drift since
                 # it — this is the same-commit-move blind spot documented
                 # above, not an oversight here.
-                since = len(times) - bisect.bisect_right(times, touched)
+                since = len(times) - bisect.bisect_right(times, touched) + after
                 if since:
-                    moved[subject] = (since, since / len(times))
+                    moved[subject] = (since, since / (len(times) + after))
             if not moved:
                 continue
 

@@ -11,6 +11,16 @@ reached you, not just that one was pushed upstream.
 
 ## [Unreleased]
 
+## [0.29.2] - 2026-11-18
+
+- Fixed: `stale-claims` in the commit hook, and in `mark-checked`'s
+  default run, now counts the commit you are about to make. A section
+  whose subject's only change since the section was written is that
+  commit used to score zero, then show up unmarked once the commit
+  landed. It is now reported before you commit, with the score the
+  commit will give it, so you can mark it in that same commit
+  (`docs/checks/stale-claims.md`).
+
 ## [0.29.1] - 2026-11-18
 
 - Changed: an approval holds for a mark's content, not for the commit
