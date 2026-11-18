@@ -825,6 +825,36 @@ class RestatementTests(RegistryClearingTestCase):
             {"b.ts:1"},
         )
 
+    def test_a_reworded_survivor_is_raised_by_the_branch_and_not_its_own_commit(self) -> None:
+        # #248's second mechanism, reproduced and not fixed: commit A
+        # retracts a phrase that `guide.md` still asserts, wrapping from
+        # line 1 onto line 2. Commit B rewords line 1 and keeps the phrase.
+        # B's own run sees the phrase both removed and re-added in one
+        # file, so raises nothing; the branch run still sees A's retraction
+        # and reports the phrase on B's new line 1, a unit no commit's own
+        # run ever raised, so no mark made at commit time can hold it.
+        retracted = "the cache evicts entries after one hour of idle time.\n"
+        tail = "one hour of idle time, as configured.\n"
+        with Repo() as repo:
+            repo.write("notes.md", retracted)
+            repo.write("guide.md", "Today we know that the cache evicts entries after\n" + tail)
+            repo.commit()
+            base = repo.short_head()
+            repo.write("notes.md", "Entries now persist.\n")
+            own_a = self._findings(repo.root)
+            repo.commit()
+            reworded = "These days we know that the cache evicts entries after"
+            repo.write("guide.md", reworded + "\n" + tail)
+            own_b = self._findings(repo.root)
+            repo.commit()
+            branch = list(run(repo.root, f"{base}..HEAD", {NAME: {}}).findings)
+            line_1 = (repo.root / "guide.md").read_text().splitlines()[0]
+
+        self.assertEqual([f.citation for f in own_a], ["guide.md:1"])
+        self.assertEqual(own_b, [])
+        self.assertEqual([f.citation for f in branch], ["guide.md:1"])
+        self.assertEqual(line_1, reworded)
+
 
 if __name__ == "__main__":
     unittest.main()

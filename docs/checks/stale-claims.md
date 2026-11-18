@@ -84,9 +84,21 @@ its old and its new path. A section whose subjects the range leaves
 alone is not reported, however stale its score would be, and an edit to
 the section itself is not a change to a subject. The score is the same
 whichever range brings a section in, since it is read from the whole
-history of each subject, not from the range. At commit time the range is
-the pending change, so a commit hears about the sections that name what
-it changed.
+history of each subject, not from the range.
+
+When the range reaches the working tree, as the commit hook's does, the
+uncommitted change counts as one more commit after the section's last
+touch to each subject it changes: in the count, and in the subject's
+history. A run before committing therefore reports each section with the
+score a run over that commit will give it once it is made. A range
+ending at a commit, `A..B` or `A...B`, leaves the working tree out, and
+so leaves the uncommitted change out of the score too. The uncommitted
+change counts on the same tests as a commit: for a subject scoped to one
+section, only when it touches that section's lines, and for an
+append-only subject, only when it removes a line. A section with
+uncommitted edits of its own has the uncommitted change as its last
+touch, so the same-commit rule below applies to it before the commit is
+made, and it scores zero for every subject.
 
 A path to a Markdown file followed directly by `#` and an anchor, in a
 link such as `[text](page.md#anchor)` or bare in prose, names one
