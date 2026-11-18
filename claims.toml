@@ -2,15 +2,20 @@
 # (ticket 25). See `claims/config.py` and each check's own page under
 # `docs/checks/` for what a check's defaults are, otherwise.
 
-# The commit gate blocks on an unmarked finding from these three: each is
-# brought in by the commit's own edit, a sentence it added or one it
-# retracted that another file still asserts, so that commit is where it is
-# cheapest to fix or mark. `stale-claims`, `spliced-docs` and
-# `judgment-agent` rank or sweep text the commit didn't write, so they
-# fail only at pre-push and in CI, which pass `--fail-on-unmarked` for
-# every markable check (ADR 0012). The same split `ratect` runs on.
+# The commit gate blocks on an unmarked finding from these four. The
+# first three are brought in by the commit's own edit, a sentence it
+# added or one it retracted that another file still asserts, so that
+# commit is where it is cheapest to fix or mark. `stale-claims` ranks
+# sections the commit didn't write, but an agent marks what its own
+# pre-commit run shows in that same commit rather than in a marks commit
+# at the end of the branch (ADR 0015), so the gate holds it to that; a
+# `--pending` mark is enough to let the commit through. A pre-commit run
+# can't count the commit being made, so some of its findings still
+# surface only at pre-push or in CI. `spliced-docs` and `judgment-agent` fail only
+# at pre-push and in CI, which pass `--fail-on-unmarked` for every
+# markable check (ADR 0012).
 [hook]
-fail_on_unmarked = ["claim-words", "temporal-words", "restatement"]
+fail_on_unmarked = ["claim-words", "temporal-words", "restatement", "stale-claims"]
 
 # `.scratch/claims-consolidation/` is historical design-notes prior art —
 # it discusses other real projects (`ratect`) and hypothetical example

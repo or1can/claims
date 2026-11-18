@@ -188,7 +188,12 @@ give with `approve-marks` once they have read it (`pending-marks` lists
 what awaits them). A pending mark quiets its finding just the same, so it
 doesn't hold you up. Never run `approve-marks` yourself unless the user
 asks you to.
-Commit `claims.checked.toml` with the rest of the change.
+Settle every finding your own pre-commit run shows before you commit,
+fixing a false one and reading and marking a true one, and commit
+`claims.checked.toml` in that same commit, with the change that raises
+them, not in a separate marks commit at the end of a branch: the
+mark then sits beside the edit it is about, and a person can fold their
+approval into that one commit.
 
 ## Coverage
 

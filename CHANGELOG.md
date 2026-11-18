@@ -11,6 +11,17 @@ reached you, not just that one was pushed upstream.
 
 ## [Unreleased]
 
+## [0.29.1] - 2026-11-18
+
+- Changed: an approval holds for a mark's content, not for the commit
+  you read it at. A rebase, amend or squash that leaves an approved
+  entry unchanged no longer needs re-approval, and the approval may be
+  folded into the commit that holds the marks instead of being a commit
+  of its own (`docs/checked-marks.md`, "Pending marks").
+- Changed: the plugin skill now tells an agent to mark the findings its
+  own pre-commit run shows in that same commit, not in a separate marks
+  commit at the end of a branch.
+
 ## [0.29.0] - 2026-11-17
 
 - Added: a checked mark can be pending a person's review.

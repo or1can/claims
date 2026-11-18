@@ -246,11 +246,32 @@ both counts. It exits `0` even when it approved nothing; commit the file
 afterwards. Re-running `mark-checked` is no substitute, since it records
 the subjects as they are now, which the reviewer may not have read.
 
-So the cycle is: an agent marks with `--pending` and commits; a person
-reads the marks `pending-marks --at <commit>` lists and runs
-`approve-marks <commit>`; the approval is a commit of its own. Both
-commands exit `2` for a `REV` git can't resolve to a commit, or a
-`claims.checked.toml` invalid at `REV` or in the working tree.
+So the cycle is: an agent marks with `--pending` in the commit that
+brings the findings in; a person reads the marks `pending-marks --at
+<commit>` lists and runs `approve-marks <commit>`, then commits the
+result. Both commands exit `2` for a `REV` git can't resolve to a
+commit, or a `claims.checked.toml` invalid at `REV` or in the working
+tree.
+
+What `approve-marks` guarantees is the entry's content: each approved
+entry is exactly the one the reviewer read at `REV`, compared when the
+command runs. Nothing records `REV` afterwards, so it can't later prove
+which commit was read, or that a person rather than an agent ran it.
+That rests on the project's own process, and a forge rule such as a
+required pull request review is set up outside `claims`.
+
+Because the approval holds for content, a rebase, amend or squash that
+leaves each approved entry with every key identical needs no re-approval. Only a
+pending entry `approve-marks` would leave pending, `changed since REV`
+or `not in REV`, needs reading again.
+
+How the approval shows in history is up to the project. It can be a
+commit of its own, or folded into the commit that holds the marks, for
+example with `git commit --fixup=amend:<commit>` and `git rebase
+--autosquash <base>`. Folding loses only the record that one party
+marked and another approved; a line naming the approver in the folded
+commit's message can keep it, which `--fixup=amend:` lets you write and
+a plain `--fixup` would discard.
 
 ## Orphans
 

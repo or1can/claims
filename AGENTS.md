@@ -192,6 +192,18 @@ would otherwise be blocked from merging their own work), so a green PR is
 sufficient — merge it yourself once CI passes, the same way any other
 merge lands.
 
+An agent marks the findings a commit raises with `--pending`, in that
+same commit (the plugin skill's "Marking a finding as checked"). The
+maintainer's approval is folded into the commit that holds the marks,
+not left as a commit of its own: run `approve-marks <commit>`, commit
+the result with `git commit --fixup=amend:<commit>`, adding a line
+naming the approver, `Marks approved by: <name>`, to the message it
+opens, then `git rebase --autosquash main`. A plain `--fixup` would
+drop that line when it squashes, and `claims` records who approved nowhere
+(`decisions/0015-an-approval-holds-for-content-not-for-a-commit.md`). A
+rebase that leaves the approved entries unchanged needs no second
+approval.
+
 ### Adopting what ships
 
 This repository runs `claims` on itself, and adopts a feature in the
