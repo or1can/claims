@@ -118,6 +118,21 @@ is found. It reads each file as it is on disk, so a `--diff-range` that
 does not end at the checked-out files can misplace or miss a survivor.
 The check runs no command.
 
+One survivor comes from a mark rather than the diff. When a change
+rewords a line that held a marked `restatement-ngram` survivor and keeps
+the quoted run, the change both removes and re-adds the run in that
+file, so the diff alone retracts nothing. The mark committed at `HEAD`
+still records the earlier retraction, so a run whose range reaches the
+working tree, the commit hook's included, searches for that run again
+and reports it on the reworded line, with the line and message a range
+over both commits reports. Marking it in the commit that rewords the
+line quiets both. The old mark is reported as an
+[orphan](../checked-marks.md#orphans) too, and pruning it does not lose
+the finding, since the mark is read as committed. A rewording that
+drops one of the quoted run's words raises nothing here, even where a
+shorter run the earlier commit also retracted survives: a range over
+both commits reports that run, and only there.
+
 ## Why it exists
 
 A fact that lives in two files is corrected in one. The edit that
