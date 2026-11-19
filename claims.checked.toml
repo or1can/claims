@@ -12,18 +12,18 @@ file = ".out-of-scope/version-only-churn.md"
 mode = "stale-claims"
 unit = "d892c3a16ef8ce1a"
 copies = 1
-note = "This commit is a release bump of the kind the note describes; pyproject.toml changes only its version"
+note = "re-read: pyproject.toml changed only version = \"0.30.0\" to \"0.30.1\", exactly the version-only change described, still out of scope"
 by = "Kevin Rogers"
-subjects = { "pyproject.toml" = "f089a5b02b74287c" }
+subjects = { "pyproject.toml" = "ce394f1bfd7953a1" }
 
 [[mark]]
 file = ".out-of-scope/version-only-churn.md"
 mode = "stale-claims"
 unit = "dd656ffcd24a40a1"
 copies = 1
-note = "This commit is a release bump of the kind the note describes; plugin.json and pyproject.toml change only in version"
+note = "re-read Why this is out of scope: this release bump is again version-only in pyproject.toml and plugin.json; the reasoning and the pin/manifest caveats stand"
 by = "Kevin Rogers"
-subjects = { ".claude-plugin/plugin.json" = "1a6e999842a8ab98", ".out-of-scope/adr-status-notes-as-churn.md" = "7bc84c78d3c4041e", ".out-of-scope/comment-only-churn.md" = "a8fc5351b734ef48", ".out-of-scope/generated-subjects-and-history-weighting.md" = "01bbf99406bf555f", "pyproject.toml" = "f089a5b02b74287c", "tests/fixtures/judgment_agent_golden/count_consistency_known_false/repo/ROADMAP.md" = "24be61be2e348715" }
+subjects = { ".claude-plugin/plugin.json" = "466c829ac8cd37f0", ".out-of-scope/adr-status-notes-as-churn.md" = "7bc84c78d3c4041e", ".out-of-scope/comment-only-churn.md" = "a8fc5351b734ef48", ".out-of-scope/generated-subjects-and-history-weighting.md" = "01bbf99406bf555f", "pyproject.toml" = "ce394f1bfd7953a1", "tests/fixtures/judgment_agent_golden/count_consistency_known_false/repo/ROADMAP.md" = "24be61be2e348715" }
 
 [[mark]]
 file = "AGENTS.md"
@@ -84,9 +84,9 @@ file = "AGENTS.md"
 mode = "stale-claims"
 unit = "138cc67997c9136e"
 copies = 1
-note = "checked-marks.md gained only a paragraph on a reworded restatement survivor's orphan; the Claims check, pending marks and approve-marks flow it cites are unchanged"
-by = "Claude Opus 5.5"
-subjects = { ".github/workflows/ci.yml" = "9a3f40dc08547d3e", ".github/workflows/dco.yml" = "8ed66fb756a4ce0a", "decisions/0015-an-approval-holds-for-content-not-for-a-commit.md" = "b6148025375721c9", "docs/checked-marks.md" = "86127973a495f20c" }
+note = "re-read Shipping a change: docs/checked-marks.md still documents approve-marks, pending-marks and the Claims CI check as cited; only an invalid-file condition was added"
+by = "Kevin Rogers"
+subjects = { ".github/workflows/ci.yml" = "9a3f40dc08547d3e", ".github/workflows/dco.yml" = "8ed66fb756a4ce0a", "decisions/0016-an-approval-can-name-its-approver-in-the-entry.md" = "6de1ef548829b100", "docs/checked-marks.md" = "68e8baebd0f2f0ca" }
 
 [[mark]]
 file = "AGENTS.md"
@@ -111,9 +111,9 @@ file = "AGENTS.md"
 mode = "stale-claims"
 unit = "8e4f8ea8f0f2e26d"
 copies = 1
-note = "This commit bumps plugin.json and pyproject.toml together to 0.30.0 with a CHANGELOG entry, as the section asks; test_plugin_manifest.py still pins them equal"
+note = "re-read Versioning against the 0.30.1 bump: plugin.json, pyproject.toml and uv.lock move together, test_plugin_manifest.py still pins them equal, CHANGELOG entry and tag rule unchanged"
 by = "Kevin Rogers"
-subjects = { ".claude-plugin/plugin.json" = "1a6e999842a8ab98", "decisions/0004-docs-is-the-user-facing-tree.md" = "d65bd4ae8cb8b4ac", "pyproject.toml" = "f089a5b02b74287c", "tests/test_plugin_manifest.py" = "f9e134c1ddb47151" }
+subjects = { ".claude-plugin/plugin.json" = "466c829ac8cd37f0", "decisions/0004-docs-is-the-user-facing-tree.md" = "d65bd4ae8cb8b4ac", "pyproject.toml" = "ce394f1bfd7953a1", "tests/test_plugin_manifest.py" = "f9e134c1ddb47151" }
 
 [[mark]]
 file = "AGENTS.md"
@@ -129,9 +129,9 @@ file = "AGENTS.md"
 mode = "stale-claims"
 unit = "c4e83690fc1a828d"
 copies = 1
-note = "pyproject.toml changes only its release version; the pyright pin in the dev group and uv.lock are untouched"
+note = "re-read Typechecking: pyright still pinned in pyproject.toml's dev group and uv.lock, the bump touched only the claims package version, and uv run -q pyright claims tests prints 0 errors, 0 warnings, 0 informations"
 by = "Kevin Rogers"
-subjects = { "decisions/0008-a-command-names-its-own-environment.md" = "ce9132a4784be55c", "pyproject.toml" = "f089a5b02b74287c", "uv.lock" = "9f9c2d2dce7dcace" }
+subjects = { "decisions/0008-a-command-names-its-own-environment.md" = "ce9132a4784be55c", "pyproject.toml" = "ce394f1bfd7953a1", "uv.lock" = "d67f453574de3ba7" }
 
 [[mark]]
 file = "AGENTS.md"
@@ -163,9 +163,9 @@ file = "README.md"
 mode = "stale-claims"
 unit = "8652909ce0f49280"
 copies = 1
-note = "checked-marks.md gains only an approve-marks --by paragraph; the check index and the gate/advisory split are unchanged"
+note = "re-read What it checks: the docs/checked-marks.md change adds one invalid-file condition and touches no check page; the gate and advisory lists still match docs/checks/"
 by = "Kevin Rogers"
-subjects = { "docs/checked-marks.md" = "76ac0bdd145c2fdd", "docs/checks/check-citations.md" = "ecb243a4acd27885", "docs/checks/check-cli-flags.md" = "44bda96325c02db3", "docs/checks/check-config-defaults.md" = "1d9bf9a74d0896b3", "docs/checks/check-env-vars.md" = "319716cdb042161c", "docs/checks/check-file-refs.md" = "db3236482a102adf", "docs/checks/check-links.md" = "2c6b3ddee6785686", "docs/checks/claim-words.md" = "312be6f331b007a3", "docs/checks/executable-claims.md" = "9a2ec8a527566d4d", "docs/checks/judgment-agent.md" = "58930e45fddd97e1", "docs/checks/restatement.md" = "5f19267b9f9e728b", "docs/checks/spliced-docs.md" = "e819a2b0f35f4571", "docs/checks/stale-claims.md" = "5c48b3851f66bbb6", "docs/checks/temporal-words.md" = "f68e411131bc8006", "docs/concepts.md" = "41f674d1abc601da", "docs/configuring.md" = "a27fc69a3e4bf5b5" }
+subjects = { "docs/checked-marks.md" = "68e8baebd0f2f0ca", "docs/checks/check-citations.md" = "ecb243a4acd27885", "docs/checks/check-cli-flags.md" = "44bda96325c02db3", "docs/checks/check-config-defaults.md" = "1d9bf9a74d0896b3", "docs/checks/check-env-vars.md" = "319716cdb042161c", "docs/checks/check-file-refs.md" = "db3236482a102adf", "docs/checks/check-links.md" = "2c6b3ddee6785686", "docs/checks/claim-words.md" = "312be6f331b007a3", "docs/checks/executable-claims.md" = "9a2ec8a527566d4d", "docs/checks/judgment-agent.md" = "58930e45fddd97e1", "docs/checks/restatement.md" = "5f19267b9f9e728b", "docs/checks/spliced-docs.md" = "e819a2b0f35f4571", "docs/checks/stale-claims.md" = "5c48b3851f66bbb6", "docs/checks/temporal-words.md" = "f68e411131bc8006", "docs/concepts.md" = "41f674d1abc601da", "docs/configuring.md" = "a27fc69a3e4bf5b5" }
 
 [[mark]]
 file = "TODO.md"
@@ -307,18 +307,18 @@ file = "claims/skill/SKILL.md"
 mode = "stale-claims"
 unit = "6812babe573c34f1"
 copies = 1
-note = "checked-marks.md gains only approve-marks --by; the skill still tells an agent to mark with --pending and never run approve-marks unasked, which holds"
+note = "re-read Marking a finding as checked against docs/checked-marks.md: the only change there is a new invalid-file condition, a duplicate file/mode/unit; mark-checked's flags, --pending, approve-marks and pending-marks are as the section says"
 by = "Kevin Rogers"
-subjects = { "docs/checked-marks.md" = "76ac0bdd145c2fdd" }
+subjects = { "docs/checked-marks.md" = "68e8baebd0f2f0ca" }
 
 [[mark]]
 file = "decisions/0004-docs-is-the-user-facing-tree.md"
 mode = "stale-claims"
 unit = "de00163e80311042"
 copies = 1
-note = "plugin.json changes only its version; the consequences describe the ADR move and its pointer retargets, which this release does not touch"
+note = "re-read Consequences: plugin.json changed only its version; the pointer retargets it records, and that a move needs a bump plus CHANGELOG entry, still hold"
 by = "Kevin Rogers"
-subjects = { ".claude-plugin/plugin.json" = "1a6e999842a8ab98", "claims/checks/check_file_refs.py" = "c2ac8d9562a70f4d", "claims/checks/executable_claims.py" = "967e49ef7ed3d693", "claims/skill/SKILL.md" = "b20402ff20b345bc" }
+subjects = { ".claude-plugin/plugin.json" = "466c829ac8cd37f0", "claims/checks/check_file_refs.py" = "c2ac8d9562a70f4d", "claims/checks/executable_claims.py" = "967e49ef7ed3d693", "claims/skill/SKILL.md" = "b20402ff20b345bc" }
 
 [[mark]]
 file = "decisions/0005-live-and-dated-claims.md"
@@ -334,9 +334,9 @@ file = "decisions/0008-a-command-names-its-own-environment.md"
 mode = "stale-claims"
 unit = "86ae35d58a6aa3b5"
 copies = 1
-note = "pyproject.toml changes only its release version; nothing about how a granted command names its environment moved"
+note = "re-read Decision: only the project's own version line in pyproject.toml changed, nothing about how a granted command names its environment"
 by = "Kevin Rogers"
-subjects = { "pyproject.toml" = "f089a5b02b74287c" }
+subjects = { "pyproject.toml" = "ce394f1bfd7953a1" }
 
 [[mark]]
 file = "decisions/0010-checked-marks-expire-on-their-own.md"

@@ -30,7 +30,9 @@ A missing file means no marks. A file that does not parse, an entry
 missing a required key or holding one of the wrong shape, an entry with an
 empty note, an entry whose `extent` is neither `"full"` nor
 `"partial"`, an entry whose `review` is anything but `"pending"`, an entry whose `file` or a subject is an absolute path or
-climbs out with `..`, or an entry written other than as a `[[mark]]`
+climbs out with `..`, an entry with the `file`, `mode` and `unit` of an
+earlier one, as a conflict resolved by keeping both sides leaves, or an
+entry written other than as a `[[mark]]`
 table is invalid. A path that reaches outside the repository through a
 symlink, or names anything but a regular file, is never read. An invalid file is reported as one gate finding, cited at
 `claims.checked.toml:0`, so it blocks a commit the way an invalid

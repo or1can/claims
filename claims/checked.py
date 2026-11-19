@@ -522,6 +522,9 @@ def _parse_marks(text: str) -> list[Mark]:
         raise ConfigError("marks must be written as [[mark]] tables")
 
     marks = []
+    # Each key's first `[[mark]]` line: `write_marks` replaces by key, so a
+    # second entry for one would be listed as approved yet left as written.
+    first_line: dict[tuple[str, str, str], int] = {}
     for line, entry in zip(headers, entries):
         if not isinstance(entry, dict):
             raise _invalid(line, "is not a table")
@@ -551,20 +554,24 @@ def _parse_marks(text: str) -> list[Mark]:
             raise _invalid(line, "has an 'extent' that is neither \"full\" nor \"partial\"")
         if "review" in entry and entry["review"] != "pending":
             raise _invalid(line, "has a 'review' that is not \"pending\"")
-        marks.append(
-            Mark(
-                file=entry["file"],
-                mode=entry["mode"],
-                unit=entry["unit"],
-                copies=copies,
-                subjects=dict(subjects),
-                note=entry["note"],
-                by=by,
-                partial=extent == "partial",
-                pending="review" in entry,
-                line=line,
-            )
+        mark = Mark(
+            file=entry["file"],
+            mode=entry["mode"],
+            unit=entry["unit"],
+            copies=copies,
+            subjects=dict(subjects),
+            note=entry["note"],
+            by=by,
+            partial=extent == "partial",
+            pending="review" in entry,
+            line=line,
         )
+        if mark.key in first_line:
+            raise _invalid(
+                line, f"has the file, mode and unit of the one at line {first_line[mark.key]}"
+            )
+        first_line[mark.key] = line
+        marks.append(mark)
     return marks
 
 
