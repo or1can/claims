@@ -5,6 +5,11 @@
 Accepted. Issue #253; amends
 `decisions/0015-an-approval-holds-for-content-not-for-a-commit.md`.
 
+Amended by `decisions/0017-an-approval-is-folded-into-the-commit-that-wrote-the-mark.md`
+(#255): this repository folds approvals with `fold-approvals`, which
+supersedes the `approve-marks` and `git commit --fixup` route its
+Consequences give.
+
 ## Context
 
 ADR 0015 left who approved to the project's own convention, and

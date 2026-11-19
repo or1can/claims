@@ -14,8 +14,9 @@
 
 """Minimal CLI adapter over `claims.runner.run`, plus `mark-checked`,
 which writes checked marks (`claims.checked`) for findings of one run,
-and `pending-marks` and `approve-marks`, which list and approve the
-marks no person has reviewed yet."""
+`pending-marks` and `approve-marks`, which list and approve the marks no
+person has reviewed yet, and `fold-approvals` (`claims.fold`), which
+approves them inside the commits that wrote them."""
 
 from __future__ import annotations
 
@@ -41,6 +42,7 @@ from .checked import (
     write_marks,
 )
 from .config import ConfigError, load_config
+from .fold import fold_approvals
 from .git import resolve_commit
 from .runner import format_findings, run
 
@@ -191,7 +193,14 @@ def list_pending(argv: list[str]) -> int:
     )
     parser.add_argument("--repo-root", type=Path, default=Path.cwd())
     parser.add_argument("--at", metavar="REV", help="Read the file as committed at REV (default: the working tree).")
+    parser.add_argument(
+        "--own",
+        action="store_true",
+        help="With --at, list only the marks REV added or changed since its first parent.",
+    )
     args = parser.parse_args(argv)
+    if args.own and args.at is None:
+        parser.error("--own needs --at")
     repo_root: Path = args.repo_root.resolve()
     commit = None
     if args.at is not None:
@@ -199,7 +208,7 @@ def list_pending(argv: list[str]) -> int:
         if commit is None:
             return 2
     try:
-        pending = pending_marks(repo_root, commit)
+        pending = pending_marks(repo_root, commit, own=args.own)
     except ConfigError as e:
         print(f"{CHECKED_FILENAME} is invalid: {e}", file=sys.stderr)
         return 2
@@ -251,6 +260,8 @@ def main(argv: list[str] | None = None) -> int:
         return list_pending(argv[1:])
     if argv[:1] == ["approve-marks"]:
         return approve(argv[1:])
+    if argv[:1] == ["fold-approvals"]:
+        return fold_approvals(argv[1:])
     args = parse_args(argv)
     repo_root: Path = args.repo_root.resolve()
     try:

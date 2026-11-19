@@ -63,13 +63,22 @@ import re
 import subprocess
 import tomllib
 from collections import Counter
-from collections.abc import Callable, Iterable, Mapping, Sequence
+from collections.abc import Callable, Container, Iterable, Mapping, Sequence
 from dataclasses import dataclass, replace
 from pathlib import Path, PurePosixPath
 from typing import NamedTuple
 
 from .config import ConfigError, append_only, counts_as_subject
-from .git import DiffLine, blob_id, blob_text, iter_diff, path_blobs, read_blob, tracked_files
+from .git import (
+    DiffLine,
+    blob_id,
+    blob_text,
+    iter_diff,
+    parent_commits,
+    path_blobs,
+    read_blob,
+    tracked_files,
+)
 from .lines import git_lines, tracked_text
 from .markdown import CODE_SPAN_RE, fence_state, prose_lines, section_range, sentences_from
 from .runner import Finding
@@ -639,11 +648,24 @@ def _describe(marks: Iterable[Mark], lines_of: Callable[[str], Sequence[str] | N
     return described
 
 
-def pending_marks(repo_root: Path, commit: str | None = None) -> list[str]:
+def own_pending(repo_root: Path, commit: str) -> list[Mark]:
+    """The marks pending at `commit` that its first parent lacks or holds
+    otherwise: the ones `commit` itself wrote, not those it inherited
+    unchanged. Raises `ConfigError` for a file invalid at either."""
+
+    parents = parent_commits(repo_root, commit)
+    before = {m.key: replace(m, line=0) for m in marks_at(repo_root, parents[0])} if parents else {}
+    return [
+        m for m in marks_at(repo_root, commit) if m.pending and before.get(m.key) != replace(m, line=0)
+    ]
+
+
+def pending_marks(repo_root: Path, commit: str | None = None, own: bool = False) -> list[str]:
     """Every pending mark in `claims.checked.toml`, expired and orphaned
     ones included, as `file:line mode note`: from the working tree, or
-    with `commit`, from the file and the marked files as committed there.
-    Raises `ConfigError` for an invalid file."""
+    with `commit`, from the file and the marked files as committed there,
+    and with `own` too, only `own_pending`'s. Raises `ConfigError` for an
+    invalid file."""
 
     if commit is None:
         tree = _Tree(repo_root, {})
@@ -653,24 +675,30 @@ def pending_marks(repo_root: Path, commit: str | None = None) -> list[str]:
         text = blob_text(repo_root, commit, rel)
         return None if text is None else git_lines(text)
 
-    return _describe((m for m in marks_at(repo_root, commit) if m.pending), lines_at)
+    marks = own_pending(repo_root, commit) if own else [m for m in marks_at(repo_root, commit) if m.pending]
+    return _describe(marks, lines_at)
 
 
 def approve_marks(
-    repo_root: Path, commit: str, rev: str, by: str | None = None
+    repo_root: Path,
+    commit: str,
+    rev: str,
+    by: str | None = None,
+    only: Container[tuple[str, str, str]] | None = None,
 ) -> tuple[list[str], list[str]]:
     """`(approved, left)`: approve every mark pending in the working tree
     and, with every other key the same, pending at `commit` too, writing
     the file through `write_marks`, each approved mark's `by` replaced
     with `by` when given; describe each approved mark, and each left
-    pending with why, naming `commit` as `rev`. Raises `ConfigError` for a
-    file invalid at either side, writing nothing."""
+    pending with why, naming `commit` as `rev`. With `only`, a mark whose
+    key it lacks is neither approved nor described. Raises `ConfigError`
+    for a file invalid at either side, writing nothing."""
 
     reviewed = {m.key: replace(m, line=0) for m in marks_at(repo_root, commit)}
     approving: list[Mark] = []
     left: list[tuple[Mark, str]] = []
     for mark in load_marks(repo_root):
-        if not mark.pending:
+        if not mark.pending or (only is not None and mark.key not in only):
             continue
         seen = reviewed.get(mark.key)
         if seen is None:
@@ -927,10 +955,18 @@ def write_marks(repo_root: Path, marks: Sequence[Mark], pruned: Iterable[Mark] =
     included, is kept as written; a comment directly above an entry moves
     with it."""
 
-    path = repo_root / CHECKED_FILENAME
-    existing = load_marks(repo_root)
+    load_marks(repo_root)  # Refuses a symlink or an invalid file before writing.
+    write_marks_file(repo_root / CHECKED_FILENAME, marks, pruned)
+
+
+def write_marks_file(path: Path, marks: Sequence[Mark], pruned: Iterable[Mark] = ()) -> None:
+    """`write_marks` on the file at `path`, which need not be the one in a
+    working tree: the fold's merge driver writes git's temporary copy.
+    Raises `ConfigError` for a file that doesn't parse."""
+
     # Read as `load_marks` reads it, so each entry is numbered the same.
     text = path.read_text(encoding="utf-8") if path.is_file() else ""
+    existing = _parse_marks(text)
     latest = {mark.key: mark for mark in marks}
     pruned_keys = {mark.key for mark in pruned}
 

@@ -11,6 +11,17 @@ reached you, not just that one was pushed upstream.
 
 ## [Unreleased]
 
+## [0.31.0] - 2026-11-19
+
+- Added: `fold-approvals BASE --by NAME [--approve REV ...] [--apply]`
+  approves pending marks inside the commits that wrote them, each
+  against its own commit's tree, by one rebase that also folds in
+  `fixup!` commits. It previews unless given `--apply`, puts the branch
+  back if the result differs from the old tip by more than approvals,
+  and never pushes (`docs/checked-marks.md`).
+- Added: `pending-marks --at REV --own` lists only the pending marks
+  `REV` wrote itself, not those it inherited unchanged.
+
 ## [0.30.1] - 2026-11-19
 
 - Fixed: a `claims.checked.toml` holding two entries with the same

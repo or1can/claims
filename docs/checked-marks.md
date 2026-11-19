@@ -219,7 +219,7 @@ afresh.
 The review cycle has two more commands. Neither runs any check.
 
 ```sh
-python3 -m claims.cli pending-marks [--repo-root R] [--at REV]
+python3 -m claims.cli pending-marks [--repo-root R] [--at REV [--own]]
 ```
 
 `pending-marks` prints each pending entry as `<file>:<line> <mode>
@@ -230,7 +230,9 @@ reviewed. The line is where the first copy of the mark's unit starts in
 [orphaned](#orphans) pending marks are listed too. Without `--at` it
 reads the working tree. With `--at REV` it reads `claims.checked.toml`,
 and each marked file, as committed at `REV`, and a commit without the
-file has no pending marks.
+file has no pending marks. Adding `--own` lists only the pending entries
+`REV` wrote itself: those its first parent lacks, or holds with any key
+different. An entry `REV` inherited unchanged is left out.
 
 ```sh
 python3 -m claims.cli approve-marks [--repo-root R] [--by NAME] REV
@@ -275,12 +277,85 @@ pending entry `approve-marks` would leave pending, `changed since REV`
 or `not in REV`, needs reading again.
 
 How the approval shows in history is up to the project. It can be a
-commit of its own, or folded into the commit that holds the marks, for
-example with `git commit --fixup=<commit> -- claims.checked.toml` and
-`git rebase --autosquash <base>`. Folding loses the separate commit that
-showed one party marked and another approved; `approve-marks <commit>
---by <name>` keeps who approved in each approved entry instead, where
-the squash carries it.
+commit of its own, or [folded](#folding-approvals-into-their-commits)
+into the commit that wrote the marks.
+
+## Folding approvals into their commits
+
+The ideal is to approve at commit time: a person working with an agent
+interactively reads the marks the agent's commit raised, and approves
+them before the commit is made, so no approval is ever pending in
+history. Marks written while nobody could approve, by an agent working
+alone for instance, reach the branch pending. `fold-approvals` approves
+them afterwards inside the commits that wrote them, so each mark is
+approved as written in its commit and read against that commit's tree.
+A mark written in one commit and re-marked in a later one is two
+approvals, one per commit.
+
+```sh
+python3 -m claims.cli fold-approvals [--repo-root R] BASE --by NAME [--approve REV ...] [--apply]
+```
+
+`BASE` is the commit the branch is folded onto, such as the branch it
+will merge into, which has to be up to date already: the command never
+fetches. Without `--apply`, it changes nothing. For each commit in
+`BASE..HEAD` it prints the commit, then that commit's own pending marks
+as `pending-marks --at <commit> --own` lists them, then each `fixup!`
+commit that targets it, with that fixup's own pending marks under it.
+A `fixup!` targets the commit `git rebase --autosquash` would fold it
+into: the first earlier commit whose subject it names, or the one it
+names by hash, or the first earlier commit whose subject starts with
+what it names. Last comes the plan: which commits it would approve,
+and which fixups it would fold. Read the marks it lists, against each
+commit's own tree, before naming that commit.
+
+Name each commit whose marks were read with `--approve`. Naming a commit
+covers it and the fixups listed under it. With `--apply`, the command
+runs one rebase of `BASE..HEAD`, folding every fixup into its commit.
+After each named commit and its fixups, it approves that group's own
+pending marks against the commit as originally committed, then against
+each fixup in turn, writing `NAME` as each approved entry's `by`, as
+`approve-marks REV --by NAME` does, and amends `claims.checked.toml`
+into the rewritten commit, without running its commit hooks. A commit not named still has its fixups
+folded, and none of its marks is approved; an entry it wrote stays
+pending in every later commit too, even a named one.
+
+During that rebase only, `claims.checked.toml` merges entry by entry
+rather than line by line, so a later commit that re-marks an entry an
+earlier step approved doesn't stop the rebase: where both sides changed
+one entry, the commit being replayed wins, and its own reading is
+pending again until its own step approves it. A merge or rebase run any
+other way merges the file line by line, as git always does.
+
+Afterwards, the new tip's tree has to equal the old tip's, except that
+`claims.checked.toml` may only have lost `review = "pending"` lines and
+had `by` lines replaced or added, each in an entry it approves. Any
+other difference, or a rebase that
+stops, puts the branch back at the old tip and exits `1`. On success it
+prints each named commit as rewritten, with `left pending <entry>`
+under it for each of its own entries still pending, then the old tip's
+SHA and the `git push --force-with-lease=<branch>:<old sha>` that
+publishes the result. It never pushes.
+
+It refuses, exiting `1` with nothing changed, when the working tree has
+uncommitted changes, a rebase is in progress, `HEAD` is detached,
+`claims.checked.toml` holds a pending entry at `BASE`, the range holds a
+merge commit or a `squash!` or `amend!` commit, a `fixup!` in the range
+targets no commit before it in the range, nothing in the range is
+pending, an `--approve` names a commit outside the range or a fixup, or
+the repository's own `.gitattributes` gives `claims.checked.toml` a
+`merge` attribute, which would override the fold's. A `--by` holding a
+line break exits `2`.
+A preview, with or without `--approve`, exits `0`, and a `BASE` git can't
+resolve to a commit exits `2`. Neither the commit
+hook nor CI runs the command.
+
+A correction found after a commit is made belongs in that commit too: a
+mark for a finding raised there and noticed later, or a rejected mark's
+fix with the deletion or re-mark it implies, is a `fixup!` commit for
+the commit it belongs to, which the fold then folds in and approves
+with it. Because the fold rewrites the branch, publishing it needs a
+force-push with a lease, so it is run where someone can approve that.
 
 ## Orphans
 

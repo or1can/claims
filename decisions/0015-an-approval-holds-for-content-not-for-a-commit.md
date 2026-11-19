@@ -11,6 +11,10 @@ Amended by `decisions/0016-an-approval-can-name-its-approver-in-the-entry.md`
 suggestion of a commit-message line naming the approver when an
 approval is folded.
 
+Amended by `decisions/0017-an-approval-is-folded-into-the-commit-that-wrote-the-mark.md`
+(#255): an approval is of a mark as written in its commit, read against
+that commit's tree, and `fold-approvals` folds each into that commit.
+
 ## Context
 
 ADR 0014's consequences say that approving is a commit of its own and

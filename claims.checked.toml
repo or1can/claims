@@ -3,27 +3,27 @@ file = ".out-of-scope/generated-subjects-and-history-weighting.md"
 mode = "stale-claims"
 unit = "dd656ffcd24a40a1"
 copies = 1
-note = "TODO.md still tracks the stale-claims output cap/churn floor beside ADR 0009's deferral; only the restatement entry was removed"
-by = "Claude Opus 5.5"
-subjects = { "TODO.md" = "91782fbadd877005" }
+note = "Read; TODO.md edit only narrows the merge-driver entry."
+by = "Kevin Rogers"
+subjects = { "TODO.md" = "6fa559b19dec74e6" }
 
 [[mark]]
 file = ".out-of-scope/version-only-churn.md"
 mode = "stale-claims"
 unit = "d892c3a16ef8ce1a"
 copies = 1
-note = "re-read: pyproject.toml changed only version = \"0.30.0\" to \"0.30.1\", exactly the version-only change described, still out of scope"
+note = "Read; pyproject.toml change here is a version-only bump, which is this file's own subject."
 by = "Kevin Rogers"
-subjects = { "pyproject.toml" = "ce394f1bfd7953a1" }
+subjects = { "pyproject.toml" = "c3799f509fca24d5" }
 
 [[mark]]
 file = ".out-of-scope/version-only-churn.md"
 mode = "stale-claims"
 unit = "dd656ffcd24a40a1"
 copies = 1
-note = "re-read Why this is out of scope: this release bump is again version-only in pyproject.toml and plugin.json; the reasoning and the pin/manifest caveats stand"
+note = "Read; version-only bump of pyproject.toml and plugin.json, the reasoning still holds."
 by = "Kevin Rogers"
-subjects = { ".claude-plugin/plugin.json" = "466c829ac8cd37f0", ".out-of-scope/adr-status-notes-as-churn.md" = "7bc84c78d3c4041e", ".out-of-scope/comment-only-churn.md" = "a8fc5351b734ef48", ".out-of-scope/generated-subjects-and-history-weighting.md" = "01bbf99406bf555f", "pyproject.toml" = "ce394f1bfd7953a1", "tests/fixtures/judgment_agent_golden/count_consistency_known_false/repo/ROADMAP.md" = "24be61be2e348715" }
+subjects = { ".claude-plugin/plugin.json" = "36927ca5527b5f1b", ".out-of-scope/adr-status-notes-as-churn.md" = "7bc84c78d3c4041e", ".out-of-scope/comment-only-churn.md" = "a8fc5351b734ef48", ".out-of-scope/generated-subjects-and-history-weighting.md" = "01bbf99406bf555f", "pyproject.toml" = "c3799f509fca24d5", "tests/fixtures/judgment_agent_golden/count_consistency_known_false/repo/ROADMAP.md" = "24be61be2e348715" }
 
 [[mark]]
 file = "AGENTS.md"
@@ -93,9 +93,9 @@ file = "AGENTS.md"
 mode = "stale-claims"
 unit = "3413ae0523a5bc76"
 copies = 1
-note = "TODO.md is still where out-of-scope gardening is noted; this change removes the restatement entry it resolves (#250)"
-by = "Claude Opus 5.5"
-subjects = { "TODO.md" = "91782fbadd877005" }
+note = "Read the section; TODO.md edit here only narrows the merge-driver entry, the gardening rule is unaffected."
+by = "Kevin Rogers"
+subjects = { "TODO.md" = "6fa559b19dec74e6" }
 
 [[mark]]
 file = "AGENTS.md"
@@ -111,36 +111,36 @@ file = "AGENTS.md"
 mode = "stale-claims"
 unit = "8e4f8ea8f0f2e26d"
 copies = 1
-note = "re-read Versioning against the 0.30.1 bump: plugin.json, pyproject.toml and uv.lock move together, test_plugin_manifest.py still pins them equal, CHANGELOG entry and tag rule unchanged"
+note = "Read Versioning; plugin.json and pyproject.toml both bumped to 0.31.0 with a CHANGELOG entry, as it says."
 by = "Kevin Rogers"
-subjects = { ".claude-plugin/plugin.json" = "466c829ac8cd37f0", "decisions/0004-docs-is-the-user-facing-tree.md" = "d65bd4ae8cb8b4ac", "pyproject.toml" = "ce394f1bfd7953a1", "tests/test_plugin_manifest.py" = "f9e134c1ddb47151" }
+subjects = { ".claude-plugin/plugin.json" = "36927ca5527b5f1b", "decisions/0004-docs-is-the-user-facing-tree.md" = "d65bd4ae8cb8b4ac", "pyproject.toml" = "c3799f509fca24d5", "tests/test_plugin_manifest.py" = "f9e134c1ddb47151" }
 
 [[mark]]
 file = "AGENTS.md"
 mode = "stale-claims"
 unit = "a24aa63faff14f27"
 copies = 1
-note = "TODO.md is still the named place to say why a shipped feature isn't adopted here; this change adds no config key, mode or flag to adopt"
-by = "Claude Opus 5.5"
-subjects = { "TODO.md" = "91782fbadd877005" }
+note = "Read Adopting what ships; this PR adopts fold-approvals in the Shipping a change route and notes the deferred driver in TODO.md."
+by = "Kevin Rogers"
+subjects = { "TODO.md" = "6fa559b19dec74e6" }
 
 [[mark]]
 file = "AGENTS.md"
 mode = "stale-claims"
 unit = "c4e83690fc1a828d"
 copies = 1
-note = "re-read Typechecking: pyright still pinned in pyproject.toml's dev group and uv.lock, the bump touched only the claims package version, and uv run -q pyright claims tests prints 0 errors, 0 warnings, 0 informations"
+note = "Read Typechecking; pyright pin unchanged, uv.lock only records the version bump; pyright still clean."
 by = "Kevin Rogers"
-subjects = { "decisions/0008-a-command-names-its-own-environment.md" = "ce9132a4784be55c", "pyproject.toml" = "ce394f1bfd7953a1", "uv.lock" = "d67f453574de3ba7" }
+subjects = { "decisions/0008-a-command-names-its-own-environment.md" = "ce9132a4784be55c", "pyproject.toml" = "c3799f509fca24d5", "uv.lock" = "248ad273ea0a70b6" }
 
 [[mark]]
 file = "AGENTS.md"
 mode = "stale-claims"
 unit = "f22baeb2d42ae875"
 copies = 1
-note = "Re-read after #245's CONTEXT.md edit: the single-context layout, root CONTEXT.md and decisions/ directory are unchanged; ADR 0014 lands in decisions/."
-by = "Claude (agent)"
-subjects = { "CONTEXT.md" = "1e4da3ec5d4540c7", "agents/domain.md" = "b6a1dc40c62adb9a", "decisions/0004-docs-is-the-user-facing-tree.md" = "d65bd4ae8cb8b4ac" }
+note = "Read Domain docs; CONTEXT.md only gained the Fold entry."
+by = "Kevin Rogers"
+subjects = { "CONTEXT.md" = "db2c125747256c87", "agents/domain.md" = "b6a1dc40c62adb9a", "decisions/0004-docs-is-the-user-facing-tree.md" = "d65bd4ae8cb8b4ac" }
 
 [[mark]]
 file = "README.md"
@@ -163,9 +163,9 @@ file = "README.md"
 mode = "stale-claims"
 unit = "8652909ce0f49280"
 copies = 1
-note = "re-read What it checks: the docs/checked-marks.md change adds one invalid-file condition and touches no check page; the gate and advisory lists still match docs/checks/"
+note = "Read; checked-marks.md gained the fold section and new refusals, the index wording still holds."
 by = "Kevin Rogers"
-subjects = { "docs/checked-marks.md" = "68e8baebd0f2f0ca", "docs/checks/check-citations.md" = "ecb243a4acd27885", "docs/checks/check-cli-flags.md" = "44bda96325c02db3", "docs/checks/check-config-defaults.md" = "1d9bf9a74d0896b3", "docs/checks/check-env-vars.md" = "319716cdb042161c", "docs/checks/check-file-refs.md" = "db3236482a102adf", "docs/checks/check-links.md" = "2c6b3ddee6785686", "docs/checks/claim-words.md" = "312be6f331b007a3", "docs/checks/executable-claims.md" = "9a2ec8a527566d4d", "docs/checks/judgment-agent.md" = "58930e45fddd97e1", "docs/checks/restatement.md" = "5f19267b9f9e728b", "docs/checks/spliced-docs.md" = "e819a2b0f35f4571", "docs/checks/stale-claims.md" = "5c48b3851f66bbb6", "docs/checks/temporal-words.md" = "f68e411131bc8006", "docs/concepts.md" = "41f674d1abc601da", "docs/configuring.md" = "a27fc69a3e4bf5b5" }
+subjects = { "docs/checked-marks.md" = "645c04bb5819efc5", "docs/checks/check-citations.md" = "ecb243a4acd27885", "docs/checks/check-cli-flags.md" = "44bda96325c02db3", "docs/checks/check-config-defaults.md" = "1d9bf9a74d0896b3", "docs/checks/check-env-vars.md" = "319716cdb042161c", "docs/checks/check-file-refs.md" = "db3236482a102adf", "docs/checks/check-links.md" = "2c6b3ddee6785686", "docs/checks/claim-words.md" = "312be6f331b007a3", "docs/checks/executable-claims.md" = "9a2ec8a527566d4d", "docs/checks/judgment-agent.md" = "58930e45fddd97e1", "docs/checks/restatement.md" = "5f19267b9f9e728b", "docs/checks/spliced-docs.md" = "e819a2b0f35f4571", "docs/checks/stale-claims.md" = "5c48b3851f66bbb6", "docs/checks/temporal-words.md" = "f68e411131bc8006", "docs/concepts.md" = "41f674d1abc601da", "docs/configuring.md" = "a27fc69a3e4bf5b5" }
 
 [[mark]]
 file = "TODO.md"
@@ -179,18 +179,18 @@ subjects = {}
 [[mark]]
 file = "TODO.md"
 mode = "claim-words-counts"
-unit = "edb2c375bc79fda4"
+unit = "0c9536ec6db7a073"
 copies = 1
-note = "Read against claims/checked.py's Mark: it has no timestamp field (file, mode, unit, copies, subjects, note, by, partial, line), and gitattributes(5) defines a merge driver's command only in git config, which .gitattributes can name but not install."
+note = "Read the merge-driver entry: one driver exists, for the fold's rebase only; an ordinary-merge one is still deferred."
 by = "Kevin Rogers"
 subjects = {}
 
 [[mark]]
 file = "TODO.md"
 mode = "claim-words-totalising"
-unit = "edb2c375bc79fda4"
+unit = "0c9536ec6db7a073"
 copies = 1
-note = "Read against claims/checked.py's Mark: it has no timestamp field (file, mode, unit, copies, subjects, note, by, partial, line), and gitattributes(5) defines a merge driver's command only in git config, which .gitattributes can name but not install."
+note = "Read the merge-driver entry: fold-approvals' driver is rebase-only (claims/fold.py _apply passes it with -c), so ordinary merges still have none."
 by = "Kevin Rogers"
 subjects = {}
 
@@ -235,18 +235,18 @@ file = "agents/domain.md"
 mode = "stale-claims"
 unit = "57c8e234debc95bb"
 copies = 1
-note = "Re-read after #245's CONTEXT.md edit: CONTEXT.md is still the root glossary, there is no CONTEXT-MAP.md, and decisions/ holds the ADRs; the edit only adds the Pending mark and Approve entries."
-by = "Claude (agent)"
-subjects = { "CONTEXT.md" = "1e4da3ec5d4540c7" }
+note = "Read; CONTEXT.md only gained the Fold entry, the instruction to read it still holds."
+by = "Kevin Rogers"
+subjects = { "CONTEXT.md" = "db2c125747256c87" }
 
 [[mark]]
 file = "agents/domain.md"
 mode = "stale-claims"
 unit = "b1dea1bb81163f11"
 copies = 1
-note = "Re-read after #245's CONTEXT.md edit: the new Pending mark and Approve entries are used as defined, and none of their _Avoid_ synonyms appear in this branch's docs or code."
-by = "Claude (agent)"
-subjects = { "CONTEXT.md" = "1e4da3ec5d4540c7" }
+note = "Read; CONTEXT.md only gained the Fold entry, vocabulary instruction still holds."
+by = "Kevin Rogers"
+subjects = { "CONTEXT.md" = "db2c125747256c87" }
 
 [[mark]]
 file = "claims/skill/SKILL.md"
@@ -260,10 +260,19 @@ subjects = {}
 [[mark]]
 file = "claims/skill/SKILL.md"
 mode = "claim-words-counts"
-unit = "8a8f5554e5fe5a30"
+unit = "e11ea9bb4a61e4a2"
 copies = 1
-note = "\"that one commit\" is the commit holding the marks, which this sentence just told the agent to make"
-by = "Claude Opus 5.5 (agent)"
+note = "Instruction to the agent; \"that one commit\" is the commit holding the marks, which fold-approvals approves into."
+by = "Kevin Rogers"
+subjects = {}
+
+[[mark]]
+file = "claims/skill/SKILL.md"
+mode = "claim-words-totalising"
+unit = "04e7b257c44fee7f"
+copies = 1
+note = "Instruction to the agent, not a claim about code; fold-approvals --apply rewrites history so it needs the user's ask like approve-marks."
+by = "Kevin Rogers"
 subjects = {}
 
 [[mark]]
@@ -278,28 +287,19 @@ subjects = {}
 [[mark]]
 file = "claims/skill/SKILL.md"
 mode = "claim-words-totalising"
-unit = "760a1ee42bea0fb4"
-copies = 1
-note = "an instruction to the agent, matching ADR 0014: approving is a person's act"
-by = "Claude (agent)"
-subjects = {}
-
-[[mark]]
-file = "claims/skill/SKILL.md"
-mode = "claim-words-totalising"
-unit = "8a8f5554e5fe5a30"
-copies = 1
-note = "An instruction scoped to the agent's own pre-commit run's findings; fix-or-mark matches the \"Never mark a false one\" rule above it"
-by = "Claude Opus 5.5 (agent)"
-subjects = {}
-
-[[mark]]
-file = "claims/skill/SKILL.md"
-mode = "claim-words-totalising"
 unit = "8f126c44411a691b"
 copies = 1
 note = "instructs showing every line verbatim; the summary clauses listed match the order claims/cli.py main appends them (partly, pending, then added in range with its own pending count)"
 by = "Claude (agent)"
+subjects = {}
+
+[[mark]]
+file = "claims/skill/SKILL.md"
+mode = "claim-words-totalising"
+unit = "e11ea9bb4a61e4a2"
+copies = 1
+note = "Instruction to the agent; fold-approvals exists in claims/cli.py main and folds approvals into the commit that wrote the marks."
+by = "Kevin Rogers"
 subjects = {}
 
 [[mark]]
@@ -316,27 +316,27 @@ file = "decisions/0004-docs-is-the-user-facing-tree.md"
 mode = "stale-claims"
 unit = "de00163e80311042"
 copies = 1
-note = "re-read Consequences: plugin.json changed only its version; the pointer retargets it records, and that a move needs a bump plus CHANGELOG entry, still hold"
+note = "Read; plugin.json version bump and SKILL.md fold wording don't change the docs-tree split."
 by = "Kevin Rogers"
-subjects = { ".claude-plugin/plugin.json" = "466c829ac8cd37f0", "claims/checks/check_file_refs.py" = "c2ac8d9562a70f4d", "claims/checks/executable_claims.py" = "967e49ef7ed3d693", "claims/skill/SKILL.md" = "b20402ff20b345bc" }
+subjects = { ".claude-plugin/plugin.json" = "36927ca5527b5f1b", "claims/checks/check_file_refs.py" = "c2ac8d9562a70f4d", "claims/checks/executable_claims.py" = "967e49ef7ed3d693", "claims/skill/SKILL.md" = "85c8b68dc7feafb7" }
 
 [[mark]]
 file = "decisions/0005-live-and-dated-claims.md"
 mode = "stale-claims"
 unit = "86ae35d58a6aa3b5"
 copies = 1
-note = "TODO.md's claims are still live with temporal phrasing after one entry's removal; CONTEXT.md still has Live claim and Dated claim, each with _Avoid_: Record-like"
-by = "Claude Opus 5.5"
-subjects = { "CONTEXT.md" = "1e4da3ec5d4540c7", "TODO.md" = "91782fbadd877005" }
+note = "Read; CONTEXT.md and TODO.md edits (Fold entry, merge-driver note) don't touch live/dated claims."
+by = "Kevin Rogers"
+subjects = { "CONTEXT.md" = "db2c125747256c87", "TODO.md" = "6fa559b19dec74e6" }
 
 [[mark]]
 file = "decisions/0008-a-command-names-its-own-environment.md"
 mode = "stale-claims"
 unit = "86ae35d58a6aa3b5"
 copies = 1
-note = "re-read Decision: only the project's own version line in pyproject.toml changed, nothing about how a granted command names its environment"
+note = "Read; pyproject.toml change is only the version bump."
 by = "Kevin Rogers"
-subjects = { "pyproject.toml" = "ce394f1bfd7953a1" }
+subjects = { "pyproject.toml" = "c3799f509fca24d5" }
 
 [[mark]]
 file = "decisions/0010-checked-marks-expire-on-their-own.md"
@@ -397,9 +397,9 @@ file = "decisions/0014-a-pending-mark-quiets-until-a-person-approves-it.md"
 mode = "stale-claims"
 unit = "073c1634c496cdb6"
 copies = 1
-note = "ADR 0015 gains only a status note pointing to ADR 0016; 0014's own status note about 0015 still holds"
+note = "Read; 0015 only gained an amended-by line for 0017, 0014's status still accurate."
 by = "Kevin Rogers"
-subjects = { "decisions/0010-checked-marks-expire-on-their-own.md" = "ef5f4f59b63853a1", "decisions/0012-a-ci-run-can-fail-on-unmarked-findings.md" = "8040e41e5a0442f3", "decisions/0015-an-approval-holds-for-content-not-for-a-commit.md" = "3c9367b7ef900180" }
+subjects = { "decisions/0010-checked-marks-expire-on-their-own.md" = "ef5f4f59b63853a1", "decisions/0012-a-ci-run-can-fail-on-unmarked-findings.md" = "8040e41e5a0442f3", "decisions/0015-an-approval-holds-for-content-not-for-a-commit.md" = "26fd8ab2cb9e0a7b" }
 
 [[mark]]
 file = "decisions/0015-an-approval-holds-for-content-not-for-a-commit.md"
@@ -409,6 +409,15 @@ copies = 1
 note = "ADR 0015's folding route as decided then; its status note now says ADR 0016 supersedes the commit-message line, and the ADR body stays as accepted"
 by = "Kevin Rogers"
 subjects = {}
+
+[[mark]]
+file = "decisions/0015-an-approval-holds-for-content-not-for-a-commit.md"
+mode = "restatement-ngram"
+unit = "236032de14d74ed9-2e80603bc24737e8"
+copies = 1
+note = "Status line pointing at ADR 0016 by its title; still accurate, and 0015 now also names 0017."
+by = "Kevin Rogers"
+subjects = { "decisions/0016-an-approval-can-name-its-approver-in-the-entry.md" = "917ae5919da3503b" }
 
 [[mark]]
 file = "decisions/0015-an-approval-holds-for-content-not-for-a-commit.md"
@@ -447,6 +456,24 @@ by = "Kevin Rogers"
 subjects = {}
 
 [[mark]]
+file = "decisions/0016-an-approval-can-name-its-approver-in-the-entry.md"
+mode = "restatement-ngram"
+unit = "64c7230cf0844bb9-3798052b8947a85d"
+copies = 1
+note = "Historical consequence of ADR 0016; its Status now says ADR 0017 supersedes this route."
+by = "Kevin Rogers"
+subjects = {}
+
+[[mark]]
+file = "decisions/0016-an-approval-can-name-its-approver-in-the-entry.md"
+mode = "restatement-ngram"
+unit = "e3ba3b13dc4fc8f3-3cd150a30650a6a4"
+copies = 1
+note = "ADR 0016's own title; a decision record, unchanged by this ticket."
+by = "Kevin Rogers"
+subjects = {}
+
+[[mark]]
 file = "docs/SUMMARY.md"
 mode = "stale-claims"
 unit = "52cdd6fcab22cbf9"
@@ -478,9 +505,9 @@ file = "docs/checks/check-links.md"
 mode = "stale-claims"
 unit = "8652909ce0f49280"
 copies = 1
-note = "cli.py gains only approve-marks --by and its help text; nothing about how check-links resolves link destinations changed"
+note = "Read; cli.py change adds fold-approvals and pending-marks --own, nothing about link resolution."
 by = "Kevin Rogers"
-subjects = { "CLAUDE.md" = "853bcf2caa9e1f02", "claims/cli.py" = "0b885f8e0c945ca4" }
+subjects = { "CLAUDE.md" = "6fbdf4ce3818eda7", "claims/cli.py" = "365df82680d9b44a" }
 
 [[mark]]
 file = "docs/checks/executable-claims.md"
