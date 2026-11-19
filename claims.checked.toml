@@ -12,27 +12,18 @@ file = ".out-of-scope/version-only-churn.md"
 mode = "stale-claims"
 unit = "d892c3a16ef8ce1a"
 copies = 1
-note = "pyproject.toml change is a release-version bump only, the case this note describes"
-by = "Claude Opus 5.5"
-subjects = { "pyproject.toml" = "2e7f49c66e7c5b5e" }
+note = "This commit is a release bump of the kind the note describes; pyproject.toml changes only its version"
+by = "Kevin Rogers"
+subjects = { "pyproject.toml" = "f089a5b02b74287c" }
 
 [[mark]]
 file = ".out-of-scope/version-only-churn.md"
 mode = "stale-claims"
 unit = "dd656ffcd24a40a1"
 copies = 1
-note = "This commit is the release bump the note describes; plugin.json and pyproject.toml change only in version"
-by = "Claude Opus 5.5"
-subjects = { ".claude-plugin/plugin.json" = "d78a19865f17d75d", ".out-of-scope/adr-status-notes-as-churn.md" = "7bc84c78d3c4041e", ".out-of-scope/comment-only-churn.md" = "a8fc5351b734ef48", ".out-of-scope/generated-subjects-and-history-weighting.md" = "01bbf99406bf555f", "pyproject.toml" = "2e7f49c66e7c5b5e", "tests/fixtures/judgment_agent_golden/count_consistency_known_false/repo/ROADMAP.md" = "24be61be2e348715" }
-
-[[mark]]
-file = "AGENTS.md"
-mode = "claim-words-about-elsewhere"
-unit = "5f4615b22a75787c"
-copies = 1
-note = "approve_marks in claims/checked.py only drops the review key; the file has no approver field, and a plain fixup! commit's message is discarded on autosquash"
-by = "Claude Opus 5.5 (agent)"
-subjects = { "decisions/0015-an-approval-holds-for-content-not-for-a-commit.md" = "b6148025375721c9" }
+note = "This commit is a release bump of the kind the note describes; plugin.json and pyproject.toml change only in version"
+by = "Kevin Rogers"
+subjects = { ".claude-plugin/plugin.json" = "1a6e999842a8ab98", ".out-of-scope/adr-status-notes-as-churn.md" = "7bc84c78d3c4041e", ".out-of-scope/comment-only-churn.md" = "a8fc5351b734ef48", ".out-of-scope/generated-subjects-and-history-weighting.md" = "01bbf99406bf555f", "pyproject.toml" = "f089a5b02b74287c", "tests/fixtures/judgment_agent_golden/count_consistency_known_false/repo/ROADMAP.md" = "24be61be2e348715" }
 
 [[mark]]
 file = "AGENTS.md"
@@ -120,9 +111,9 @@ file = "AGENTS.md"
 mode = "stale-claims"
 unit = "8e4f8ea8f0f2e26d"
 copies = 1
-note = "Re-read after the 0.29.3 bump: plugin.json, pyproject.toml and uv.lock all move to 0.29.3 with a CHANGELOG entry; test_plugin_manifest.py still pins them equal"
-by = "Claude Opus 5.5"
-subjects = { ".claude-plugin/plugin.json" = "d78a19865f17d75d", "decisions/0004-docs-is-the-user-facing-tree.md" = "d65bd4ae8cb8b4ac", "pyproject.toml" = "2e7f49c66e7c5b5e", "tests/test_plugin_manifest.py" = "f9e134c1ddb47151" }
+note = "This commit bumps plugin.json and pyproject.toml together to 0.30.0 with a CHANGELOG entry, as the section asks; test_plugin_manifest.py still pins them equal"
+by = "Kevin Rogers"
+subjects = { ".claude-plugin/plugin.json" = "1a6e999842a8ab98", "decisions/0004-docs-is-the-user-facing-tree.md" = "d65bd4ae8cb8b4ac", "pyproject.toml" = "f089a5b02b74287c", "tests/test_plugin_manifest.py" = "f9e134c1ddb47151" }
 
 [[mark]]
 file = "AGENTS.md"
@@ -138,9 +129,9 @@ file = "AGENTS.md"
 mode = "stale-claims"
 unit = "c4e83690fc1a828d"
 copies = 1
-note = "pyproject.toml still pins pyright==1.1.414 in the dev group with uv.lock; only the release version changed, and the pinned command still prints the quoted line"
-by = "Claude Opus 5.5"
-subjects = { "decisions/0008-a-command-names-its-own-environment.md" = "ce9132a4784be55c", "pyproject.toml" = "2e7f49c66e7c5b5e", "uv.lock" = "d6ca367e28f0a248" }
+note = "pyproject.toml changes only its release version; the pyright pin in the dev group and uv.lock are untouched"
+by = "Kevin Rogers"
+subjects = { "decisions/0008-a-command-names-its-own-environment.md" = "ce9132a4784be55c", "pyproject.toml" = "f089a5b02b74287c", "uv.lock" = "9f9c2d2dce7dcace" }
 
 [[mark]]
 file = "AGENTS.md"
@@ -172,9 +163,9 @@ file = "README.md"
 mode = "stale-claims"
 unit = "8652909ce0f49280"
 copies = 1
-note = "Index still links every check page and checked-marks.md; the restatement.md and checked-marks.md edits change no page's existence or role"
-by = "Claude Opus 5.5"
-subjects = { "docs/checked-marks.md" = "86127973a495f20c", "docs/checks/check-citations.md" = "ecb243a4acd27885", "docs/checks/check-cli-flags.md" = "44bda96325c02db3", "docs/checks/check-config-defaults.md" = "1d9bf9a74d0896b3", "docs/checks/check-env-vars.md" = "319716cdb042161c", "docs/checks/check-file-refs.md" = "db3236482a102adf", "docs/checks/check-links.md" = "2c6b3ddee6785686", "docs/checks/claim-words.md" = "312be6f331b007a3", "docs/checks/executable-claims.md" = "9a2ec8a527566d4d", "docs/checks/judgment-agent.md" = "58930e45fddd97e1", "docs/checks/restatement.md" = "5f19267b9f9e728b", "docs/checks/spliced-docs.md" = "e819a2b0f35f4571", "docs/checks/stale-claims.md" = "5c48b3851f66bbb6", "docs/checks/temporal-words.md" = "f68e411131bc8006", "docs/concepts.md" = "41f674d1abc601da", "docs/configuring.md" = "a27fc69a3e4bf5b5" }
+note = "checked-marks.md gains only an approve-marks --by paragraph; the check index and the gate/advisory split are unchanged"
+by = "Kevin Rogers"
+subjects = { "docs/checked-marks.md" = "76ac0bdd145c2fdd", "docs/checks/check-citations.md" = "ecb243a4acd27885", "docs/checks/check-cli-flags.md" = "44bda96325c02db3", "docs/checks/check-config-defaults.md" = "1d9bf9a74d0896b3", "docs/checks/check-env-vars.md" = "319716cdb042161c", "docs/checks/check-file-refs.md" = "db3236482a102adf", "docs/checks/check-links.md" = "2c6b3ddee6785686", "docs/checks/claim-words.md" = "312be6f331b007a3", "docs/checks/executable-claims.md" = "9a2ec8a527566d4d", "docs/checks/judgment-agent.md" = "58930e45fddd97e1", "docs/checks/restatement.md" = "5f19267b9f9e728b", "docs/checks/spliced-docs.md" = "e819a2b0f35f4571", "docs/checks/stale-claims.md" = "5c48b3851f66bbb6", "docs/checks/temporal-words.md" = "f68e411131bc8006", "docs/concepts.md" = "41f674d1abc601da", "docs/configuring.md" = "a27fc69a3e4bf5b5" }
 
 [[mark]]
 file = "TODO.md"
@@ -316,18 +307,18 @@ file = "claims/skill/SKILL.md"
 mode = "stale-claims"
 unit = "6812babe573c34f1"
 copies = 1
-note = "checked-marks.md gained only a paragraph on a reworded restatement survivor's orphan; --pending, --prune and --partial guidance here still matches it"
-by = "Claude Opus 5.5"
-subjects = { "docs/checked-marks.md" = "86127973a495f20c" }
+note = "checked-marks.md gains only approve-marks --by; the skill still tells an agent to mark with --pending and never run approve-marks unasked, which holds"
+by = "Kevin Rogers"
+subjects = { "docs/checked-marks.md" = "76ac0bdd145c2fdd" }
 
 [[mark]]
 file = "decisions/0004-docs-is-the-user-facing-tree.md"
 mode = "stale-claims"
 unit = "de00163e80311042"
 copies = 1
-note = "Re-read after the 0.29.3 bump: plugin.json changed only in version; a dated record of the move's consequences, nothing here moves a path"
-by = "Claude Opus 5.5"
-subjects = { ".claude-plugin/plugin.json" = "d78a19865f17d75d", "claims/checks/check_file_refs.py" = "c2ac8d9562a70f4d", "claims/checks/executable_claims.py" = "967e49ef7ed3d693", "claims/skill/SKILL.md" = "b20402ff20b345bc" }
+note = "plugin.json changes only its version; the consequences describe the ADR move and its pointer retargets, which this release does not touch"
+by = "Kevin Rogers"
+subjects = { ".claude-plugin/plugin.json" = "1a6e999842a8ab98", "claims/checks/check_file_refs.py" = "c2ac8d9562a70f4d", "claims/checks/executable_claims.py" = "967e49ef7ed3d693", "claims/skill/SKILL.md" = "b20402ff20b345bc" }
 
 [[mark]]
 file = "decisions/0005-live-and-dated-claims.md"
@@ -343,9 +334,9 @@ file = "decisions/0008-a-command-names-its-own-environment.md"
 mode = "stale-claims"
 unit = "86ae35d58a6aa3b5"
 copies = 1
-note = "pyproject.toml changed only in its release version; the Decision's uv run -q convention is untouched"
-by = "Claude Opus 5.5"
-subjects = { "pyproject.toml" = "2e7f49c66e7c5b5e" }
+note = "pyproject.toml changes only its release version; nothing about how a granted command names its environment moved"
+by = "Kevin Rogers"
+subjects = { "pyproject.toml" = "f089a5b02b74287c" }
 
 [[mark]]
 file = "decisions/0010-checked-marks-expire-on-their-own.md"
@@ -393,6 +384,69 @@ by = "Claude Opus 5.5 (agent)"
 subjects = {}
 
 [[mark]]
+file = "decisions/0014-a-pending-mark-quiets-until-a-person-approves-it.md"
+mode = "restatement-ngram"
+unit = "7d85036d62ea20c1-4239b5622ddcf6ba"
+copies = 1
+note = "The status note names ADR 0015's real path, which still exists; AGENTS.md now cites ADR 0016 instead, which is why the words left it"
+by = "Kevin Rogers"
+subjects = { "decisions/0015-an-approval-holds-for-content-not-for-a-commit.md" = "3c9367b7ef900180" }
+
+[[mark]]
+file = "decisions/0014-a-pending-mark-quiets-until-a-person-approves-it.md"
+mode = "stale-claims"
+unit = "073c1634c496cdb6"
+copies = 1
+note = "ADR 0015 gains only a status note pointing to ADR 0016; 0014's own status note about 0015 still holds"
+by = "Kevin Rogers"
+subjects = { "decisions/0010-checked-marks-expire-on-their-own.md" = "ef5f4f59b63853a1", "decisions/0012-a-ci-run-can-fail-on-unmarked-findings.md" = "8040e41e5a0442f3", "decisions/0015-an-approval-holds-for-content-not-for-a-commit.md" = "3c9367b7ef900180" }
+
+[[mark]]
+file = "decisions/0015-an-approval-holds-for-content-not-for-a-commit.md"
+mode = "restatement-ngram"
+unit = "2180bb4ae20a18bc-e448139cccd2aa09"
+copies = 1
+note = "ADR 0015's folding route as decided then; its status note now says ADR 0016 supersedes the commit-message line, and the ADR body stays as accepted"
+by = "Kevin Rogers"
+subjects = {}
+
+[[mark]]
+file = "decisions/0015-an-approval-holds-for-content-not-for-a-commit.md"
+mode = "restatement-ngram"
+unit = "2b1781c69e872cc4-2b453a254272ee18"
+copies = 1
+note = "An ADR's own title; AGENTS.md now cites ADR 0016, which amends this one"
+by = "Kevin Rogers"
+subjects = {}
+
+[[mark]]
+file = "decisions/0015-an-approval-holds-for-content-not-for-a-commit.md"
+mode = "restatement-ngram"
+unit = "4f9c10c5f5ad76f4-90e404956fd39002"
+copies = 1
+note = "ADR 0015's folding route as decided then; its status note now says ADR 0016 supersedes the commit-message line, and the ADR body stays as accepted"
+by = "Kevin Rogers"
+subjects = {}
+
+[[mark]]
+file = "decisions/0015-an-approval-holds-for-content-not-for-a-commit.md"
+mode = "restatement-ngram"
+unit = "92e3e710b215bb67-8e53941c484fbfb3"
+copies = 1
+note = "ADR 0015's folding route as decided then; its status note now says ADR 0016 supersedes the commit-message line, and the ADR body stays as accepted"
+by = "Kevin Rogers"
+subjects = {}
+
+[[mark]]
+file = "decisions/0015-an-approval-holds-for-content-not-for-a-commit.md"
+mode = "restatement-ngram"
+unit = "a2fb7af8d33143fe-666a60db0eeb07f2"
+copies = 1
+note = "ADR 0015's folding route as decided then; its status note now says ADR 0016 supersedes the commit-message line, and the ADR body stays as accepted"
+by = "Kevin Rogers"
+subjects = {}
+
+[[mark]]
 file = "docs/SUMMARY.md"
 mode = "stale-claims"
 unit = "52cdd6fcab22cbf9"
@@ -424,9 +478,9 @@ file = "docs/checks/check-links.md"
 mode = "stale-claims"
 unit = "8652909ce0f49280"
 copies = 1
-note = "Re-read: claims/cli.py is only the example of a non-Markdown link target with #L10, and still exists; #245's new subcommands don't touch link checking."
-by = "Claude (agent)"
-subjects = { "CLAUDE.md" = "43283aa041b65d67", "claims/cli.py" = "e69fbbd58feef5d5" }
+note = "cli.py gains only approve-marks --by and its help text; nothing about how check-links resolves link destinations changed"
+by = "Kevin Rogers"
+subjects = { "CLAUDE.md" = "853bcf2caa9e1f02", "claims/cli.py" = "0b885f8e0c945ca4" }
 
 [[mark]]
 file = "docs/checks/executable-claims.md"

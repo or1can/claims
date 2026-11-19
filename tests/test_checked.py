@@ -1509,6 +1509,60 @@ class CheckedMarkTests(RegistryClearingTestCase):
             [line for line in after.splitlines() if line != 'review = "pending"'],
         )
 
+    def test_approve_marks_by_names_the_approver_on_each_approved_entry_only(self) -> None:
+        base = self.repo.short_head()
+        self.repo.write(
+            "docs/a.md", "Every check runs.\n\nEvery rule holds.\n\nEvery test passes.\n"
+        )
+        self.mark("docs/a.md:1 claim-words-totalising read the runner", by="agent", pending=True)
+        self.mark("docs/a.md:3 claim-words-totalising read the rules", pending=True)
+        self.mark("docs/a.md:5 claim-words-totalising read the tests", by="agent", pending=True)
+        self.repo.commit()
+        reviewed = self.repo.short_head()
+        # Since the review: one entry's `by` alone changed, and one added.
+        self.assertEqual(
+            self.mark(
+                "docs/a.md:5 claim-words-totalising read the tests",
+                by="another agent",
+                diff_range=base,
+                pending=True,
+            )[0],
+            0,
+        )
+        self.repo.write(
+            "docs/a.md",
+            "Every check runs.\n\nEvery rule holds.\n\nEvery test passes.\n\nEvery doc builds.\n",
+        )
+        self.assertEqual(
+            self.mark("docs/a.md:7 claim-words-totalising read the build", by="agent", pending=True)[0],
+            0,
+        )
+
+        code, out, err = self.run_cli("approve-marks", reviewed, "--by", "Kevin")
+
+        self.assertEqual((code, err), (0, ""))
+        self.assertEqual(
+            sorted(out.splitlines()),
+            sorted(
+                [
+                    "approved docs/a.md:1 claim-words-totalising read the runner",
+                    "approved docs/a.md:3 claim-words-totalising read the rules",
+                    f"left pending docs/a.md:5 claim-words-totalising read the tests: changed since {reviewed}",
+                    f"left pending docs/a.md:7 claim-words-totalising read the build: not in {reviewed}",
+                    "approved 2 mark(s), left 2 pending",
+                ]
+            ),
+        )
+        self.assertEqual(
+            {m.note: (m.by, m.pending) for m in load_marks(self.repo.root)},
+            {
+                "read the runner": ("Kevin", False),
+                "read the rules": ("Kevin", False),
+                "read the tests": ("another agent", True),
+                "read the build": ("agent", True),
+            },
+        )
+
     def test_approve_marks_with_nothing_to_approve_exits_0(self) -> None:
         base = self.repo.short_head()
         self.repo.write("docs/a.md", "Every check runs.\n")

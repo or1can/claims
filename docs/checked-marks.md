@@ -231,7 +231,7 @@ and each marked file, as committed at `REV`, and a commit without the
 file has no pending marks.
 
 ```sh
-python3 -m claims.cli approve-marks [--repo-root R] REV
+python3 -m claims.cli approve-marks [--repo-root R] [--by NAME] REV
 ```
 
 `approve-marks` approves the marks a reviewer read at commit `REV`: it
@@ -245,6 +245,13 @@ reviewed there and is pending now, or `not in REV`. A closing line gives
 both counts. It exits `0` even when it approved nothing; commit the file
 afterwards. Re-running `mark-checked` is no substitute, since it records
 the subjects as they are now, which the reviewer may not have read.
+
+With `--by NAME`, each approved entry's `by` is written as `NAME`,
+replacing any `by` it had, and adding one where it had none. Which
+entries are approved is decided before that, so an entry whose `by`
+differs from its entry at `REV` is still left pending. `claims` puts no
+format on `NAME` and records it as given, the same as `mark-checked
+--by`.
 
 So the cycle is: an agent marks with `--pending` in the commit that
 brings the findings in; a person reads the marks `pending-marks --at
@@ -267,11 +274,11 @@ or `not in REV`, needs reading again.
 
 How the approval shows in history is up to the project. It can be a
 commit of its own, or folded into the commit that holds the marks, for
-example with `git commit --fixup=amend:<commit>` and `git rebase
---autosquash <base>`. Folding loses only the record that one party
-marked and another approved; a line naming the approver in the folded
-commit's message can keep it, which `--fixup=amend:` lets you write and
-a plain `--fixup` would discard.
+example with `git commit --fixup=<commit> -- claims.checked.toml` and
+`git rebase --autosquash <base>`. Folding loses the separate commit that
+showed one party marked and another approved; `approve-marks <commit>
+--by <name>` keeps who approved in each approved entry instead, where
+the squash carries it.
 
 ## Orphans
 

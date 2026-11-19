@@ -5,6 +5,12 @@
 Accepted. Issue #247; amends
 `decisions/0014-a-pending-mark-quiets-until-a-person-approves-it.md`.
 
+Amended by `decisions/0016-an-approval-can-name-its-approver-in-the-entry.md`
+(#253): `approve-marks --by` names the approver in each approved entry's
+`by`. That supersedes this record's "No code changes" and its
+suggestion of a commit-message line naming the approver when an
+approval is folded.
+
 ## Context
 
 ADR 0014's consequences say that approving is a commit of its own and

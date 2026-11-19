@@ -649,12 +649,15 @@ def pending_marks(repo_root: Path, commit: str | None = None) -> list[str]:
     return _describe((m for m in marks_at(repo_root, commit) if m.pending), lines_at)
 
 
-def approve_marks(repo_root: Path, commit: str, rev: str) -> tuple[list[str], list[str]]:
+def approve_marks(
+    repo_root: Path, commit: str, rev: str, by: str | None = None
+) -> tuple[list[str], list[str]]:
     """`(approved, left)`: approve every mark pending in the working tree
     and, with every other key the same, pending at `commit` too, writing
-    the file through `write_marks`; describe each approved mark, and each
-    left pending with why, naming `commit` as `rev`. Raises `ConfigError`
-    for a file invalid at either side, writing nothing."""
+    the file through `write_marks`, each approved mark's `by` replaced
+    with `by` when given; describe each approved mark, and each left
+    pending with why, naming `commit` as `rev`. Raises `ConfigError` for a
+    file invalid at either side, writing nothing."""
 
     reviewed = {m.key: replace(m, line=0) for m in marks_at(repo_root, commit)}
     approving: list[Mark] = []
@@ -668,7 +671,7 @@ def approve_marks(repo_root: Path, commit: str, rev: str) -> tuple[list[str], li
         elif seen != replace(mark, line=0):
             left.append((mark, f"changed since {rev}"))
         else:
-            approving.append(replace(mark, pending=False))
+            approving.append(replace(mark, pending=False, by=mark.by if by is None else by))
     if approving:
         write_marks(repo_root, approving)
     lines_of = _Tree(repo_root, {}).lines
