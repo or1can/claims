@@ -195,13 +195,14 @@ merge lands.
 An agent marks the findings a commit raises with `--pending`, in that
 same commit (the plugin skill's "Marking a finding as checked"). The
 maintainer's approval is folded into the commit that holds the marks,
-not left as a commit of its own: run `approve-marks <commit> --by
-<name>`, which writes the approver as each approved entry's `by`, commit
-the result with `git commit --fixup=<commit> -- claims.checked.toml`,
-then `git rebase --autosquash main`
-(`decisions/0016-an-approval-can-name-its-approver-in-the-entry.md`). A
-rebase that leaves the approved entries unchanged needs no second
-approval.
+not left as a commit of its own: preview with `fold-approvals main
+--by <name>`, read each commit's listed marks, then run it again with
+`--approve <commit>` for each commit read and `--apply`, and push with
+the `--force-with-lease` line it prints
+(`decisions/0017-an-approval-is-folded-into-the-commit-that-wrote-the-mark.md`).
+A correction to an earlier commit's marks goes in a `fixup!` commit for
+it, which the fold folds in. A rebase that leaves the approved entries
+unchanged needs no second approval.
 
 ### Adopting what ships
 

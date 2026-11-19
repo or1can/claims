@@ -119,6 +119,11 @@ What a person does to a pending mark they have reviewed, ending its
 pending state.
 _Avoid_: Sign off, confirm
 
+**Fold**:
+Approving a pending mark inside the commit that wrote it, by rewriting the
+branch, not in a commit of its own.
+_Avoid_: Squash approval, approval rebase
+
 **Unmarked finding**:
 An advisory finding, from a check whose findings can be marked, that no
 checked mark keeps quiet.
