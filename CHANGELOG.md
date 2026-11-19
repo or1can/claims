@@ -11,6 +11,15 @@ reached you, not just that one was pushed upstream.
 
 ## [Unreleased]
 
+## [0.30.0] - 2026-11-19
+
+- Added: `approve-marks REV --by NAME` writes `NAME` as the `by` of each
+  entry it approves, replacing any `by` it had, so an approval folded
+  into the commit holding the marks can name its approver in the entry
+  rather than in a commit-message line. Which entries it approves is
+  unchanged, and without `--by` it behaves as before
+  (`docs/checked-marks.md`).
+
 ## [0.29.3] - 2026-11-18
 
 - Fixed: rewording a line that holds a marked `restatement-ngram`

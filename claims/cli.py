@@ -218,6 +218,11 @@ def approve(argv: list[str]) -> int:
         ),
     )
     parser.add_argument("rev", metavar="REV", help="The commit whose pending marks were reviewed.")
+    parser.add_argument(
+        "--by",
+        metavar="NAME",
+        help="Name the approver on each approved entry, replacing any existing `by` value.",
+    )
     parser.add_argument("--repo-root", type=Path, default=Path.cwd())
     args = parser.parse_args(argv)
     repo_root: Path = args.repo_root.resolve()
@@ -229,7 +234,7 @@ def approve(argv: list[str]) -> int:
     except ConfigError as e:
         print(f"{CHECKED_FILENAME} is invalid: {e}", file=sys.stderr)
         return 2
-    approved, left = approve_marks(repo_root, commit, args.rev)
+    approved, left = approve_marks(repo_root, commit, args.rev, args.by)
     for line in approved:
         print(f"approved {line}")
     for line in left:
