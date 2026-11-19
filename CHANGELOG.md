@@ -11,6 +11,14 @@ reached you, not just that one was pushed upstream.
 
 ## [Unreleased]
 
+## [0.30.1] - 2026-11-19
+
+- Fixed: a `claims.checked.toml` holding two entries with the same
+  `file`, `mode` and `unit`, as a merge conflict resolved by keeping both
+  sides leaves, is now invalid, naming the second entry's line. It used
+  to load, and `approve-marks` then reported approving both while
+  leaving one pending (`docs/checked-marks.md`).
+
 ## [0.30.0] - 2026-11-19
 
 - Added: `approve-marks REV --by NAME` writes `NAME` as the `by` of each

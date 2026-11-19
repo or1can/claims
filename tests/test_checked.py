@@ -28,9 +28,10 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
-from claims.checked import Mark, _render, load_marks, write_marks
+from claims.checked import Mark, _render, load_marks, marks_at, write_marks
 from claims.checks import claim_words, restatement, spliced_docs, stale_claims
 from claims.cli import main
+from claims.config import ConfigError
 from claims.gate import decide_repo
 from claims.runner import Finding, clear_registry, register_check
 
@@ -295,6 +296,34 @@ class CheckedMarkTests(RegistryClearingTestCase):
                 )
                 if not valid:
                     self.assertIn("has an 'extent' that is neither \"full\" nor \"partial\"", out)
+
+    def test_a_second_entry_with_the_same_key_makes_the_sidecar_invalid(self) -> None:
+        entry = (
+            '[[mark]]\nfile = "docs/a.md"\nmode = "{mode}"\nunit = "{unit}"\n'
+            'copies = 1\nnote = "n"\nsubjects = {{}}\n'
+        )
+        first = entry.format(mode="claim-words-totalising", unit="x")
+        sidecar = self.repo.root / "claims.checked.toml"
+        for other, valid in (
+            (first, False),
+            (entry.format(mode="claim-words-counts", unit="x"), True),
+            (entry.format(mode="claim-words-totalising", unit="y"), True),
+        ):
+            with self.subTest(other=other):
+                sidecar.write_text(first + "\n" + other)
+                if valid:
+                    self.assertEqual(len(load_marks(self.repo.root)), 2)
+                    continue
+                with self.assertRaises(ConfigError) as tree:
+                    load_marks(self.repo.root)
+                self.repo.commit()
+                with self.assertRaises(ConfigError) as committed:
+                    marks_at(self.repo.root, "HEAD")
+                for raised in (tree, committed):
+                    self.assertEqual(
+                        str(raised.exception),
+                        "the [[mark]] at line 9 has the file, mode and unit of the one at line 1",
+                    )
 
     def test_a_sidecar_with_no_extent_loads_unchanged_and_counts_as_full(self) -> None:
         self.stale_section()
@@ -1597,6 +1626,22 @@ class CheckedMarkTests(RegistryClearingTestCase):
         self.assertEqual(code, 2)
         self.assertIn("claims.checked.toml is invalid at HEAD~1", err)
         self.assertEqual(sidecar.read_text(), good)
+
+    def test_approve_marks_against_a_duplicated_entry_exits_2_and_writes_nothing(self) -> None:
+        self.repo.write("docs/a.md", "Every check runs.\n")
+        self.mark("docs/a.md:1 claim-words-totalising read it", pending=True)
+        sidecar = self.repo.root / "claims.checked.toml"
+        # What a conflict resolution keeping both sides leaves.
+        sidecar.write_text(sidecar.read_text() + "\n" + sidecar.read_text())
+        self.repo.commit()
+        before = sidecar.read_bytes()
+
+        code, out, err = self.run_cli("approve-marks", "HEAD", "--by", "Kevin")
+
+        self.assertEqual((code, out), (2, ""))
+        self.assertIn("claims.checked.toml is invalid", err)
+        self.assertIn("has the file, mode and unit of the one at line 1", err)
+        self.assertEqual(sidecar.read_bytes(), before)
 
 
 def a_mark(file: str, note: str = "n", unit: str = "u") -> Mark:
