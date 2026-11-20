@@ -104,6 +104,12 @@ A record that someone read an advisory finding, which keeps it quiet until
 what it depends on changes.
 _Avoid_: Suppression, baseline, ignore
 
+**Reader**:
+Whoever read a finding against its subjects so that it could be marked:
+a person, an agent session, or a subagent, named with its model. Never
+the approver, though one person can be both.
+_Avoid_: Marker, author, checker
+
 **Partial mark**:
 A checked mark whose reader read only part of its section or doc comment,
 and said so.

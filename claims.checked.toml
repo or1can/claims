@@ -138,9 +138,27 @@ file = "AGENTS.md"
 mode = "stale-claims"
 unit = "f22baeb2d42ae875"
 copies = 1
-note = "Read Domain docs; CONTEXT.md only gained the Fold entry."
+note = "Read the Domain docs section in full: decisions/ and a root CONTEXT.md exist, there is no CONTEXT-MAP.md, agents/domain.md says to proceed silently when either is absent, and decisions/0004-docs-is-the-user-facing-tree.md says docs/ holds user-facing pages only"
 by = "Kevin Rogers"
-subjects = { "CONTEXT.md" = "db2c125747256c87", "agents/domain.md" = "b6a1dc40c62adb9a", "decisions/0004-docs-is-the-user-facing-tree.md" = "d65bd4ae8cb8b4ac" }
+subjects = { "CONTEXT.md" = "5d29a98f1f8b5888", "agents/domain.md" = "b6a1dc40c62adb9a", "decisions/0004-docs-is-the-user-facing-tree.md" = "d65bd4ae8cb8b4ac" }
+
+[[mark]]
+file = "CONTEXT.md"
+mode = "claim-words-counts"
+unit = "b88003f2ce0d8bd8"
+copies = 1
+note = "\"both\" counts the two roles, reader and approver, the definition names; ADR 0018 records them as the two keys by and approved_by"
+by = "Kevin Rogers"
+subjects = {}
+
+[[mark]]
+file = "CONTEXT.md"
+mode = "claim-words-totalising"
+unit = "b88003f2ce0d8bd8"
+copies = 1
+note = "Definition of Reader: the approver role is separate by definition (ADR 0018, decisions/0018-the-reader-and-the-approver-are-recorded-apart.md), and \"both\" is the one person holding the reader and approver roles; no count of code is asserted"
+by = "Kevin Rogers"
+subjects = {}
 
 [[mark]]
 file = "README.md"
@@ -235,18 +253,19 @@ file = "agents/domain.md"
 mode = "stale-claims"
 unit = "57c8e234debc95bb"
 copies = 1
-note = "Read; CONTEXT.md only gained the Fold entry, the instruction to read it still holds."
+note = "Read the section in full: CONTEXT.md is at the root, there is no CONTEXT-MAP.md, decisions/ exists and no src/ contexts do; not checked: that /domain-modeling is reached via /grill-with-docs and /improve-codebase-architecture, which names skills outside this repo"
 by = "Kevin Rogers"
-subjects = { "CONTEXT.md" = "db2c125747256c87" }
+extent = "partial"
+subjects = { "CONTEXT.md" = "5d29a98f1f8b5888" }
 
 [[mark]]
 file = "agents/domain.md"
 mode = "stale-claims"
 unit = "b1dea1bb81163f11"
 copies = 1
-note = "Read; CONTEXT.md only gained the Fold entry, vocabulary instruction still holds."
+note = "Read the section in full against CONTEXT.md: every entry is a bold term with a definition, and those with avoided synonyms carry an _Avoid_ line, so \"synonyms the glossary explicitly avoids\" holds; the new Reader entry follows the same shape"
 by = "Kevin Rogers"
-subjects = { "CONTEXT.md" = "db2c125747256c87" }
+subjects = { "CONTEXT.md" = "5d29a98f1f8b5888" }
 
 [[mark]]
 file = "claims/skill/SKILL.md"
@@ -325,9 +344,9 @@ file = "decisions/0005-live-and-dated-claims.md"
 mode = "stale-claims"
 unit = "86ae35d58a6aa3b5"
 copies = 1
-note = "Read; CONTEXT.md and TODO.md edits (Fold entry, merge-driver note) don't touch live/dated claims."
+note = "Read the Decision section in full against CONTEXT.md: Live claim and Dated claim qualify Claim and both carry _Avoid_: Record-like (CONTEXT.md:44, :49), and Retired quote is defined on its own with no file class; TODO.md's mention is the ADR's dated reasoning, unchanged by this commit"
 by = "Kevin Rogers"
-subjects = { "CONTEXT.md" = "db2c125747256c87", "TODO.md" = "6fa559b19dec74e6" }
+subjects = { "CONTEXT.md" = "5d29a98f1f8b5888", "TODO.md" = "6fa559b19dec74e6" }
 
 [[mark]]
 file = "decisions/0008-a-command-names-its-own-environment.md"
