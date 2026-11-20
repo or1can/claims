@@ -102,9 +102,10 @@ file = "AGENTS.md"
 mode = "stale-claims"
 unit = "6715f004a7dd6c85"
 copies = 1
-note = "every registered check still has a page, summary entry, README line and capture held by tests/test_check_pages.py and tests/test_captures.py; the tutorial is no check and is held by tests/test_tutorial.py instead"
-by = "Kevin Rogers"
-subjects = { ".github/workflows/docs.yml" = "9174303cf04e3b3d", "README.md" = "db4586aaa4c1126a", "agents/docs.md" = "365765872050be38", "book.toml" = "1944223542e98ac8", "docs/SUMMARY.md" = "ab62590848f45867", "tests/test_captures.py" = "7193d8987d213229", "tests/test_check_pages.py" = "c472fae497911ddf" }
+note = "agent read the section, agents/docs.md, SUMMARY.md, book.toml, docs.yml and both coverage tests in full; the README index line it only grepped is held by tests/test_check_pages.py, which passes"
+by = "claims:reading-agent (sonnet), with Claude Code (claude-opus-5-5)"
+approved_by = "Kevin Rogers"
+subjects = { ".github/workflows/docs.yml" = "9174303cf04e3b3d", "README.md" = "db4586aaa4c1126a", "agents/docs.md" = "77d100daaac19457", "book.toml" = "1944223542e98ac8", "docs/SUMMARY.md" = "ab62590848f45867", "tests/test_captures.py" = "7193d8987d213229", "tests/test_check_pages.py" = "c472fae497911ddf" }
 
 [[mark]]
 file = "AGENTS.md"
@@ -181,9 +182,10 @@ file = "README.md"
 mode = "stale-claims"
 unit = "8652909ce0f49280"
 copies = 1
-note = "Read; checked-marks.md gained the fold section and new refusals, the index wording still holds."
-by = "Kevin Rogers"
-subjects = { "docs/checked-marks.md" = "645c04bb5819efc5", "docs/checks/check-citations.md" = "ecb243a4acd27885", "docs/checks/check-cli-flags.md" = "44bda96325c02db3", "docs/checks/check-config-defaults.md" = "1d9bf9a74d0896b3", "docs/checks/check-env-vars.md" = "319716cdb042161c", "docs/checks/check-file-refs.md" = "db3236482a102adf", "docs/checks/check-links.md" = "2c6b3ddee6785686", "docs/checks/claim-words.md" = "312be6f331b007a3", "docs/checks/executable-claims.md" = "9a2ec8a527566d4d", "docs/checks/judgment-agent.md" = "58930e45fddd97e1", "docs/checks/restatement.md" = "5f19267b9f9e728b", "docs/checks/spliced-docs.md" = "e819a2b0f35f4571", "docs/checks/stale-claims.md" = "5c48b3851f66bbb6", "docs/checks/temporal-words.md" = "f68e411131bc8006", "docs/concepts.md" = "41f674d1abc601da", "docs/configuring.md" = "a27fc69a3e4bf5b5" }
+note = "agent read the section and the pages it names in full; its gate/advisory grouping matches docs/SUMMARY.md line for line, and every listed page exists (tests/test_check_pages.py)"
+by = "claims:reading-agent (sonnet), with Claude Code (claude-opus-5-5)"
+approved_by = "Kevin Rogers"
+subjects = { "docs/checked-marks.md" = "645c04bb5819efc5", "docs/checks/check-citations.md" = "ecb243a4acd27885", "docs/checks/check-cli-flags.md" = "44bda96325c02db3", "docs/checks/check-config-defaults.md" = "1d9bf9a74d0896b3", "docs/checks/check-env-vars.md" = "319716cdb042161c", "docs/checks/check-file-refs.md" = "db3236482a102adf", "docs/checks/check-links.md" = "8ca2ac4ac8e9c6ee", "docs/checks/claim-words.md" = "312be6f331b007a3", "docs/checks/executable-claims.md" = "9a2ec8a527566d4d", "docs/checks/judgment-agent.md" = "58930e45fddd97e1", "docs/checks/restatement.md" = "5f19267b9f9e728b", "docs/checks/spliced-docs.md" = "e819a2b0f35f4571", "docs/checks/stale-claims.md" = "5c48b3851f66bbb6", "docs/checks/temporal-words.md" = "f68e411131bc8006", "docs/concepts.md" = "41f674d1abc601da", "docs/configuring.md" = "a27fc69a3e4bf5b5" }
 
 [[mark]]
 file = "TODO.md"
@@ -500,6 +502,16 @@ copies = 1
 note = "Advisory checks list still has one entry per advisory check page; the restatement.md edit adds no page"
 by = "Claude Opus 5.5"
 subjects = { "docs/checks/check-cli-flags.md" = "44bda96325c02db3", "docs/checks/check-config-defaults.md" = "1d9bf9a74d0896b3", "docs/checks/check-env-vars.md" = "319716cdb042161c", "docs/checks/claim-words.md" = "312be6f331b007a3", "docs/checks/judgment-agent.md" = "58930e45fddd97e1", "docs/checks/restatement.md" = "5f19267b9f9e728b", "docs/checks/spliced-docs.md" = "e819a2b0f35f4571", "docs/checks/stale-claims.md" = "5c48b3851f66bbb6", "docs/checks/temporal-words.md" = "f68e411131bc8006" }
+
+[[mark]]
+file = "docs/SUMMARY.md"
+mode = "stale-claims"
+unit = "d5ec9565536fe30e"
+copies = 1
+note = "read SUMMARY.md and all four gate-check pages in full; each states gate severity, and only check-links.md changed, in its anchor rule, which the list does not describe"
+by = "claims:reading-agent (sonnet)"
+approved_by = "Kevin Rogers"
+subjects = { "docs/checks/check-citations.md" = "ecb243a4acd27885", "docs/checks/check-file-refs.md" = "db3236482a102adf", "docs/checks/check-links.md" = "8ca2ac4ac8e9c6ee", "docs/checks/executable-claims.md" = "9a2ec8a527566d4d" }
 
 [[mark]]
 file = "docs/checked-marks.md"

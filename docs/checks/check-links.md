@@ -40,9 +40,11 @@ host or, as GitHub reads it, the repository root, and nothing in the link
 says which, so neither is checked: write a link relative to the page if
 you want it held to this check.
 
-An anchor matches a heading under GitHub's rule: the heading text is
-lowercased, every character outside letters, digits, spaces, hyphens and
-underscores is dropped, and each space becomes a hyphen. `## Upgrading an
+An anchor matches a heading under GitHub's rule, as it applies to ASCII:
+the heading text is lowercased, every character outside the ASCII letters
+and digits, spaces, hyphens and underscores is dropped, and each space
+becomes a hyphen. A non-ASCII letter is dropped too, where GitHub keeps
+it, so `## Café` is reached by `#caf`. `## Upgrading an
 install` is reached by `#upgrading-an-install`, and `## claims.toml` by
 `#claimstoml`. Two headings with the same text produce the same anchor,
 and a link to it is satisfied by either.
