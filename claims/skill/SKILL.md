@@ -156,24 +156,63 @@ this narrower version proves useful in practice.
 A project can record, in a committed `claims.checked.toml`, that an
 advisory finding was read and found true; the finding then stays quiet
 until its wording or a file it names changes (the plugin's
-`docs/checked-marks.md`). You may write a mark only after you have read
-the finding against what it cites — the code, file or section the
-sentence names — and found it true, never on the strength of the
-finding's own text. A `judgment-agent` verdict never writes a mark by
+`docs/checked-marks.md`). A mark may be written only after the finding
+has been read against what it cites — the code, file or section the
+sentence names — and what was read found true (all of it, unless the
+mark is partial), never on the strength of the finding's own text. A
+`judgment-agent` verdict never writes a mark by
 itself: when you asked for the verdict, you may mark the finding once you
 have read the verdict's evidence, the same as any other finding.
 
-Mark a batch, one entry per line, each with a note saying what you
+### Reading a finding before marking it
+
+Hand each markable finding other than a `judgment-agent` candidate to the
+`claims:reading-agent` subagent before you mark it (its plugin-namespaced
+name — e.g. the Task tool's `subagent_type: "claims:reading-agent"`),
+once per finding, passing its finding line verbatim, the subjects it
+names, and the `--diff-range` it was raised over. Its input and output
+contract is `claims/subagent/reading_agent.md`; the plugin's
+`docs/reading-agent.md` describes it. It returns one verdict per claim in
+the finding's unit — `true`, `false` or `not checked` — each with the
+`file:line` it read, and for the finding as a whole, what it read in
+full, what it only searched, and a draft note. It never marks anything.
+Read its evidence, then:
+
+- **Every claim `true`:** mark the finding, with `--by
+  "claims:reading-agent (<model>)"`, `<model>` being the model it ran on.
+- **Any claim `false`:** fix the prose; never mark it.
+- **A claim `not checked`:** in a `stale-claims` section or a
+  `spliced-docs` doc comment, mark with `--partial` and name the
+  unchecked claim in the note. In any other mode, don't mark on the
+  agent's reading: read that claim's subject yourself, or leave the
+  finding unmarked. A full mark always means every claim was checked.
+
+When no subagent can be started, read the finding yourself, to the same
+rules: the whole unit and every subject it names, each opened in full,
+a search hit being a location rather than a reading. Then `--by` names
+you and your model, as `<session or agent name> (<model>)`. That
+`<name> (<model>)` shape is this skill's convention for `by`; `claims`
+itself puts no format on it. A mark written from a `judgment-agent`
+verdict names `judgment-agent (<model>)`.
+
+A mark that has expired is read again in full, the same way, as if it
+had never been marked.
+
+### Writing the marks
+
+Mark a batch, one entry per line, each with a note saying what was
 verified, over the same `--diff-range` the findings were reported for:
 
 ```bash
-PYTHONPATH="${CLAUDE_PLUGIN_ROOT}" python3 -m claims.cli mark-checked --pending --repo-root <path> --diff-range <range> --by <who read them> - <<'EOF'
+PYTHONPATH="${CLAUDE_PLUGIN_ROOT}" python3 -m claims.cli mark-checked --pending --repo-root <path> --diff-range <range> --by "claims:reading-agent (<model>)" - <<'EOF'
 docs/guide.md:3 claim-words-totalising src/cache.py has one reader, get, and nothing else reads the store
 EOF
 ```
 
-Never mark a finding you didn't read, a false one (fix it instead), or
-one the user hasn't asked you to work through. Gate findings can't be
+Never mark a finding nobody read, a false one (fix it instead), or
+one outside the work you were given: the findings your own change
+raises are always yours to settle (below), any others only when the
+user asks. Gate findings can't be
 marked. One bad entry fails the whole batch and nothing is written; the
 command names each bad entry. Add `--prune` to also remove every orphaned
 mark, one reported as `checked-mark` because its sentence was reworded or
@@ -185,7 +224,9 @@ still current.
 Always pass `--pending`, as above, unless the user tells you the reading
 is theirs: it records the mark as awaiting a person's review, which they
 give with `approve-marks` once they have read it (`pending-marks` lists
-what awaits them). A pending mark quiets its finding just the same, so it
+what awaits them, each with its `by`). Approving writes the approver in
+`approved_by` and leaves `by`, the reader, as it is. A pending mark
+quiets its finding just the same, so it
 doesn't hold you up. Never run `approve-marks` or `fold-approvals --apply`
 yourself unless the user asks you to.
 Settle every finding your own pre-commit run shows before you commit,

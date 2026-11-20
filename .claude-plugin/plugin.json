@@ -1,7 +1,7 @@
 {
   "name": "claims",
-  "version": "0.31.0",
-  "description": "Checks documentation and agent-instruction claims against the code they describe: executable-claims markers, staleness ranking, restatement drift, totalising-language sweeps, doc-comment splices, dead citations, broken links, and an architecture-claim judgment subagent.",
+  "version": "0.32.0",
+  "description": "Checks documentation and agent-instruction claims against the code they describe: executable-claims markers, staleness ranking, restatement drift, totalising-language sweeps, doc-comment splices, dead citations, broken links, and an architecture-claim judgment subagent, and a reading subagent for marking findings as checked.",
   "license": "Apache-2.0",
   "author": {
     "name": "Orican Ltd"
@@ -18,7 +18,8 @@
     "./claims/skill"
   ],
   "agents": [
-    "./claims/subagent/judgment_agent.md"
+    "./claims/subagent/judgment_agent.md",
+    "./claims/subagent/reading_agent.md"
   ],
   "hooks": "./claims/hooks.json"
 }

@@ -1346,6 +1346,26 @@ class CheckedMarkTests(RegistryClearingTestCase):
                 if not valid:
                     self.assertIn("has a 'review' that is not \"pending\"", out)
 
+    def test_an_approved_by_that_is_not_a_string_makes_the_sidecar_invalid(self) -> None:
+        entry = (
+            '[[mark]]\nfile = "docs/a.md"\nmode = "claim-words-totalising"\nunit = "x"\n'
+            'copies = 1\nnote = "n"\n{approved_by}subjects = {{}}\n'
+        )
+        for approved_by, valid in (("", True), ('approved_by = "Kevin"\n', True), ("approved_by = 1\n", False)):
+            with self.subTest(approved_by=approved_by):
+                (self.repo.root / "claims.checked.toml").write_text(entry.format(approved_by=approved_by))
+                out = self.run_cli()[1]
+                self.assertEqual(
+                    "[GATE] claims.checked.toml:0 (config) is invalid:" in out, not valid, out
+                )
+                if not valid:
+                    self.assertIn("has an 'approved_by' that is not a string", out)
+                else:
+                    self.assertEqual(
+                        [m.approved_by for m in load_marks(self.repo.root)],
+                        ["Kevin" if approved_by else None],
+                    )
+
     def test_a_pending_mark_is_written_with_its_review_and_quiets_its_finding(self) -> None:
         self.repo.write("docs/a.md", "Every check runs.\n\nEvery rule holds.\n")
         self.mark("docs/a.md:1 claim-words-totalising read the runner")
@@ -1435,6 +1455,27 @@ class CheckedMarkTests(RegistryClearingTestCase):
         self.assertEqual((code, err), (1, ""))
         self.assertEqual(
             out, "docs/a.md:3 claim-words-totalising read the rules\n1 pending mark(s)\n"
+        )
+
+    def test_pending_marks_names_each_marks_reader(self) -> None:
+        self.repo.write("docs/a.md", "Every check runs.\n\nEvery rule holds.\n")
+        self.mark("docs/a.md:1 claim-words-totalising read the runner", pending=True)
+        self.mark(
+            "docs/a.md:3 claim-words-totalising read the rules",
+            by="claims:reading-agent (sonnet)",
+            pending=True,
+        )
+
+        code, out, err = self.run_cli("pending-marks")
+
+        self.assertEqual((code, err), (1, ""))
+        self.assertEqual(
+            sorted(out.splitlines()),
+            [
+                "2 pending mark(s)",
+                "docs/a.md:1 claim-words-totalising read the runner",
+                "docs/a.md:3 claim-words-totalising read the rules (by claims:reading-agent (sonnet))",
+            ],
         )
 
     def test_pending_marks_passes_with_none_pending(self) -> None:
@@ -1538,7 +1579,7 @@ class CheckedMarkTests(RegistryClearingTestCase):
             [line for line in after.splitlines() if line != 'review = "pending"'],
         )
 
-    def test_approve_marks_by_names_the_approver_on_each_approved_entry_only(self) -> None:
+    def test_approve_marks_by_names_the_approver_on_each_approved_entry_only_and_keeps_its_reader(self) -> None:
         base = self.repo.short_head()
         self.repo.write(
             "docs/a.md", "Every check runs.\n\nEvery rule holds.\n\nEvery test passes.\n"
@@ -1574,21 +1615,22 @@ class CheckedMarkTests(RegistryClearingTestCase):
             sorted(out.splitlines()),
             sorted(
                 [
-                    "approved docs/a.md:1 claim-words-totalising read the runner",
+                    "approved docs/a.md:1 claim-words-totalising read the runner (by agent)",
                     "approved docs/a.md:3 claim-words-totalising read the rules",
-                    f"left pending docs/a.md:5 claim-words-totalising read the tests: changed since {reviewed}",
-                    f"left pending docs/a.md:7 claim-words-totalising read the build: not in {reviewed}",
+                    f"left pending docs/a.md:5 claim-words-totalising read the tests (by another agent): changed since {reviewed}",
+                    f"left pending docs/a.md:7 claim-words-totalising read the build (by agent): not in {reviewed}",
                     "approved 2 mark(s), left 2 pending",
                 ]
             ),
         )
+        # The reader stays in `by`; the approver goes in `approved_by`.
         self.assertEqual(
-            {m.note: (m.by, m.pending) for m in load_marks(self.repo.root)},
+            {m.note: (m.by, m.approved_by, m.pending) for m in load_marks(self.repo.root)},
             {
-                "read the runner": ("Kevin", False),
-                "read the rules": ("Kevin", False),
-                "read the tests": ("another agent", True),
-                "read the build": ("agent", True),
+                "read the runner": ("agent", "Kevin", False),
+                "read the rules": (None, "Kevin", False),
+                "read the tests": ("another agent", None, True),
+                "read the build": ("agent", None, True),
             },
         )
 

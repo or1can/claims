@@ -22,7 +22,8 @@ is what a check's `exclude` key is for.
 | `copies` | positive integer | How many copies of the unit the file held when it was marked. |
 | `subjects` | table of path to hash | A content hash of each file, or `page.md#anchor` section, the unit names; for an [append-only file](configuring.md#append-only-files), its git blob id. |
 | `note` | non-empty string | What the reader verified. Required. |
-| `by` | string, optional | Who read it. Nothing reads this key; it is a record. |
+| `by` | string, optional | Who read it: the reader, never the approver. Nothing acts on this key; it is a record. |
+| `approved_by` | string, optional | Who approved a [pending mark](#pending-marks), written by `approve-marks --by` or `fold-approvals --by`. Nothing acts on this key; it is a record. |
 | `extent` | `"full"` or `"partial"`, optional | How much of the unit was read. Written only for a [partial mark](#partial-marks); an entry without it is full. |
 | `review` | `"pending"`, optional | That no person has reviewed the reading yet. Written only for a [pending mark](#pending-marks); an entry without it is reviewed. |
 
@@ -180,7 +181,9 @@ mark](#pending-marks); the two combine.
 
 There is no form that marks findings without a note each. Whoever reads
 the finding writes the mark, and that can be an agent, once it has read
-the finding against what it cites.
+the finding against what it cites. The plugin ships one agent for that
+reading, the [reading agent](reading-agent.md), which reports what it
+read and leaves the marking to the session that called it.
 
 ## Partial marks
 
@@ -223,7 +226,9 @@ python3 -m claims.cli pending-marks [--repo-root R] [--at REV [--own]]
 ```
 
 `pending-marks` prints each pending entry as `<file>:<line> <mode>
-<note>`, then `N pending mark(s)`, and exits `1` while any exist, `0`
+<note>`, followed by ` (by <by>)` when the entry names its reader, so
+the reader is in view when a person reviews the mark, then `N pending
+mark(s)`, and exits `1` while any exist, `0`
 when none do, so CI can fail a pull request until its marks are
 reviewed. The line is where the first copy of the mark's unit starts in
 `<file>`, or `0` when the unit is gone; expired and
@@ -242,7 +247,8 @@ python3 -m claims.cli approve-marks [--repo-root R] [--by NAME] REV
 removes `review` from every entry that is pending in the working tree
 and was pending at `REV` with every other key identical. Each approved
 entry is rewritten as `mark-checked` writes it; every other entry keeps
-its text and comments. It prints `approved <entry>` for each, and
+its text and comments. It prints `approved <entry>` for each, each
+`<entry>` as `pending-marks` prints it, and
 `left pending <entry>: <why>` for each pending entry it left: `changed
 since REV` when the entry at `REV` differs, including one that was
 reviewed there and is pending now, or `not in REV`. A closing line gives
@@ -250,12 +256,14 @@ both counts. It exits `0` even when it approved nothing; commit the file
 afterwards. Re-running `mark-checked` is no substitute, since it records
 the subjects as they are now, which the reviewer may not have read.
 
-With `--by NAME`, each approved entry's `by` is written as `NAME`,
-replacing any `by` it had, and adding one where it had none. Which
-entries are approved is decided before that, so an entry whose `by`
-differs from its entry at `REV` is still left pending. `claims` puts no
-format on `NAME` and records it as given, the same as `mark-checked
---by`.
+With `--by NAME`, each approved entry gets `approved_by = "NAME"`,
+replacing any `approved_by` it had. Its `by` is left as it was, so the
+entry names its reader and its approver apart. Which entries are
+approved is decided before that, so an entry whose `by` differs from its
+entry at `REV` is still left pending. `claims` puts no format on `NAME`
+and records it as given, the same as `mark-checked --by`. An entry
+approved before `approved_by` existed may hold its approver's name in
+`by`, where the reader's name used to be; nothing rewrites it.
 
 So the cycle is: an agent marks with `--pending` in the commit that
 brings the findings in; a person reads the marks `pending-marks --at
@@ -314,8 +322,9 @@ covers it and the fixups listed under it. With `--apply`, the command
 runs one rebase of `BASE..HEAD`, folding every fixup into its commit.
 After each named commit and its fixups, it approves that group's own
 pending marks against the commit as originally committed, then against
-each fixup in turn, writing `NAME` as each approved entry's `by`, as
-`approve-marks REV --by NAME` does, and amends `claims.checked.toml`
+each fixup in turn, writing `NAME` as each approved entry's
+`approved_by`, as `approve-marks REV --by NAME` does, and amends
+`claims.checked.toml`
 into the rewritten commit, without running its commit hooks. A commit not named still has its fixups
 folded, and none of its marks is approved; an entry it wrote stays
 pending in every later commit too, even a named one.
@@ -329,7 +338,7 @@ other way merges the file line by line, as git always does.
 
 Afterwards, the new tip's tree has to equal the old tip's, except that
 `claims.checked.toml` may only have lost `review = "pending"` lines and
-had `by` lines replaced or added, each in an entry it approves. Any
+had `approved_by` lines replaced or added, each in an entry it approves. Any
 other difference, or a rebase that
 stops, puts the branch back at the old tip and exits `1`. On success it
 prints each named commit as rewritten, with `left pending <entry>`
@@ -495,5 +504,5 @@ back, as would changing a word of it.
 
 ## Next
 
-The check pages follow, gate checks first, and
-[executable-claims](checks/executable-claims.md) opens them.
+[The reading agent](reading-agent.md) is the plugin's subagent for
+reading a finding before it is marked.

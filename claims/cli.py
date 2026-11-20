@@ -187,7 +187,8 @@ def list_pending(argv: list[str]) -> int:
     parser = argparse.ArgumentParser(
         prog="python3 -m claims.cli pending-marks",
         description=(
-            "List every pending checked mark as `<file>:<line> <mode> <note>`; "
+            "List every pending checked mark as `<file>:<line> <mode> <note>`, "
+            "then ` (by <by>)` where it names its reader; "
             "exit 1 while any exist. Runs no checks."
         ),
     )
@@ -230,7 +231,7 @@ def approve(argv: list[str]) -> int:
     parser.add_argument(
         "--by",
         metavar="NAME",
-        help="Name the approver on each approved entry, replacing any existing `by` value.",
+        help="Name the approver in each approved entry's `approved_by`, leaving its `by`, the reader, as it is.",
     )
     parser.add_argument("--repo-root", type=Path, default=Path.cwd())
     args = parser.parse_args(argv)

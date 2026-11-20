@@ -53,7 +53,7 @@ _FIXUP = "fixup! "
 # Folded by `git rebase --autosquash` with a message to edit, which a
 # fold has nobody to do.
 _UNFOLDABLE = ("squash! ", "amend! ")
-_BY_LINE_RE = re.compile(r'^by = ".*"$')
+_APPROVED_BY_LINE_RE = re.compile(r'^approved_by = ".*"$')
 _REVIEW_LINE = 'review = "pending"'
 
 
@@ -208,8 +208,8 @@ def _todo(groups: list[Group], named: set[str], by: str) -> str:
 
 def _only_approvals(old: str | None, new: str | None) -> bool:
     """Whether `new` is `old` with `review = "pending"` lines removed and
-    `by` lines replaced or added, each only in an entry it approves, and
-    nothing else changed."""
+    `approved_by` lines replaced or added, each only in an entry it
+    approves, and nothing else changed."""
 
     try:
         old_marks = {m.key: replace(m, line=0) for m in _parse_marks(old or "")}
@@ -221,7 +221,7 @@ def _only_approvals(old: str | None, new: str | None) -> bool:
     for key, before in old_marks.items():
         after = new_marks[key]
         approved = before.pending and not after.pending
-        if after != before and not (approved and replace(after, pending=True, by=before.by) == before):
+        if after != before and not (approved and replace(after, pending=True, approved_by=before.approved_by) == before):
             return False
     old_lines = (old or "").splitlines()
     new_lines = (new or "").splitlines()
@@ -229,9 +229,9 @@ def _only_approvals(old: str | None, new: str | None) -> bool:
     for tag, i1, i2, j1, j2 in matcher.get_opcodes():
         if tag == "equal":
             continue
-        if not all(line == _REVIEW_LINE or _BY_LINE_RE.match(line) for line in old_lines[i1:i2]):
+        if not all(line == _REVIEW_LINE or _APPROVED_BY_LINE_RE.match(line) for line in old_lines[i1:i2]):
             return False
-        if not all(_BY_LINE_RE.match(line) for line in new_lines[j1:j2]):
+        if not all(_APPROVED_BY_LINE_RE.match(line) for line in new_lines[j1:j2]):
             return False
     return True
 
@@ -334,7 +334,7 @@ def fold_approvals(argv: list[str]) -> int:
         default=[],
         help="A commit whose own marks, and its fixups', were reviewed (repeatable).",
     )
-    parser.add_argument("--by", metavar="NAME", required=True, help="Name the approver on each approved entry.")
+    parser.add_argument("--by", metavar="NAME", required=True, help="Name the approver in each approved entry's `approved_by`.")
     parser.add_argument("--apply", action="store_true", help="Rewrite the branch (default: preview only).")
     parser.add_argument("--repo-root", type=Path, default=Path.cwd())
     args = parser.parse_args(argv)

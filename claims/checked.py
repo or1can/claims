@@ -114,7 +114,7 @@ UNITS = {
 _SECTION_HEADING_RE = re.compile(r"^(#{1,6})\s+(.*)")
 _DOC_RE = re.compile(r"^\s*///")
 _MARK_HEADER_RE = re.compile(r"^\s*\[\[\s*mark\s*\]\]\s*(#.*)?$")
-_KEYS = {"file", "mode", "unit", "copies", "subjects", "note", "by", "extent", "review"}
+_KEYS = {"file", "mode", "unit", "copies", "subjects", "note", "by", "approved_by", "extent", "review"}
 # A full SHA-1 or SHA-256 object id: what an append-only subject records.
 # Nothing else is passed to `git cat-file`: the sidecar is committed, so a
 # pull request could otherwise hand it a revision or an option.
@@ -161,7 +161,9 @@ class Mark:
     copies: int
     subjects: Mapping[str, str]
     note: str
+    # Who read it; `approved_by`, who approved that reading (ADR 0018).
     by: str | None = None
+    approved_by: str | None = None
     # Whether the reading was partial (ADR 0010); a sidecar records an
     # `extent` only for a partial mark, so an entry without one is full.
     partial: bool = False
@@ -558,6 +560,9 @@ def _parse_marks(text: str) -> list[Mark]:
         by = entry.get("by")
         if by is not None and not isinstance(by, str):
             raise _invalid(line, "has a 'by' that is not a string")
+        approved_by = entry.get("approved_by")
+        if approved_by is not None and not isinstance(approved_by, str):
+            raise _invalid(line, "has an 'approved_by' that is not a string")
         extent = entry.get("extent", "full")
         if extent not in ("full", "partial"):
             raise _invalid(line, "has an 'extent' that is neither \"full\" nor \"partial\"")
@@ -571,6 +576,7 @@ def _parse_marks(text: str) -> list[Mark]:
             subjects=dict(subjects),
             note=entry["note"],
             by=by,
+            approved_by=approved_by,
             partial=extent == "partial",
             pending="review" in entry,
             line=line,
@@ -637,14 +643,16 @@ def _unit_line(mark: Mark, lines: Sequence[str] | None) -> int:
 
 def _describe(marks: Iterable[Mark], lines_of: Callable[[str], Sequence[str] | None]) -> list[str]:
     """Each of `marks` as a `mark-checked` entry, `file:line mode note`,
-    its line looked up in what `lines_of` gives for its file."""
+    its line looked up in what `lines_of` gives for its file, followed by
+    ` (by <by>)` for a mark that names its reader."""
 
     cache: dict[str, Sequence[str] | None] = {}
     described = []
     for mark in marks:
         if mark.file not in cache:
             cache[mark.file] = lines_of(mark.file)
-        described.append(f"{mark.file}:{_unit_line(mark, cache[mark.file])} {mark.mode} {mark.note}")
+        reader = "" if mark.by is None else f" (by {mark.by})"
+        described.append(f"{mark.file}:{_unit_line(mark, cache[mark.file])} {mark.mode} {mark.note}{reader}")
     return described
 
 
@@ -662,7 +670,7 @@ def own_pending(repo_root: Path, commit: str) -> list[Mark]:
 
 def pending_marks(repo_root: Path, commit: str | None = None, own: bool = False) -> list[str]:
     """Every pending mark in `claims.checked.toml`, expired and orphaned
-    ones included, as `file:line mode note`: from the working tree, or
+    ones included, as `_describe` gives them: from the working tree, or
     with `commit`, from the file and the marked files as committed there,
     and with `own` too, only `own_pending`'s. Raises `ConfigError` for an
     invalid file."""
@@ -683,13 +691,14 @@ def approve_marks(
     repo_root: Path,
     commit: str,
     rev: str,
-    by: str | None = None,
+    approver: str | None = None,
     only: Container[tuple[str, str, str]] | None = None,
 ) -> tuple[list[str], list[str]]:
     """`(approved, left)`: approve every mark pending in the working tree
     and, with every other key the same, pending at `commit` too, writing
-    the file through `write_marks`, each approved mark's `by` replaced
-    with `by` when given; describe each approved mark, and each left
+    the file through `write_marks`, with `approver`, when given, as each
+    approved mark's `approved_by` and its `by`, the reader, left as it
+    is (ADR 0018); describe each approved mark, and each left
     pending with why, naming `commit` as `rev`. With `only`, a mark whose
     key it lacks is neither approved nor described. Raises `ConfigError`
     for a file invalid at either side, writing nothing."""
@@ -706,7 +715,8 @@ def approve_marks(
         elif seen != replace(mark, line=0):
             left.append((mark, f"changed since {rev}"))
         else:
-            approving.append(replace(mark, pending=False, by=mark.by if by is None else by))
+            approved_by = mark.approved_by if approver is None else approver
+            approving.append(replace(mark, pending=False, approved_by=approved_by))
     if approving:
         write_marks(repo_root, approving)
     lines_of = _Tree(repo_root, {}).lines
@@ -938,6 +948,8 @@ def _render(mark: Mark) -> str:
     ]
     if mark.by is not None:
         lines.append(f"by = {_toml_string(mark.by)}")
+    if mark.approved_by is not None:
+        lines.append(f"approved_by = {_toml_string(mark.approved_by)}")
     if mark.partial:
         lines.append('extent = "partial"')
     if mark.pending:

@@ -97,8 +97,8 @@ class FoldTests(RegistryClearingTestCase):
         self.assertEqual((code, err), (1, ""))
         self.assertEqual(
             out,
-            "docs/a.md:3 claim-words-totalising read the rules again\n"
-            "docs/a.md:5 claim-words-totalising read the tests\n"
+            "docs/a.md:3 claim-words-totalising read the rules again (by agent)\n"
+            "docs/a.md:5 claim-words-totalising read the tests (by agent)\n"
             "2 pending mark(s)\n",
         )
         self.assertEqual(self.run_cli("pending-marks", "--at", "HEAD")[1].splitlines()[-1], "3 pending mark(s)")
@@ -137,13 +137,13 @@ class FoldTests(RegistryClearingTestCase):
                 lines[:5],
                 [
                     f"{c1[:7]} c1",
-                    "    docs/a.md:1 claim-words-totalising read the runner",
+                    "    docs/a.md:1 claim-words-totalising read the runner (by agent)",
                     f"    fixup {f[:7]} fixup! c1",
-                    "        docs/a.md:1 claim-words-totalising read the runner closely",
+                    "        docs/a.md:1 claim-words-totalising read the runner closely (by agent)",
                     f"{c2[:7]} c2",
                 ],
             )
-            self.assertIn("    docs/a.md:3 claim-words-totalising read the rules", lines)
+            self.assertIn("    docs/a.md:3 claim-words-totalising read the rules (by agent)", lines)
             self.assertIn("nothing changed: this was a preview; add --apply to fold", lines)
 
     def test_each_refusal_exits_non_zero_and_rewrites_nothing(self) -> None:
@@ -206,12 +206,12 @@ class FoldTests(RegistryClearingTestCase):
         self.assertEqual((code, err), (0, ""))
         new1, new2 = self.rev("HEAD~1"), self.rev("HEAD")
         self.assertEqual(
-            {n: (m.pending, m.by) for n, m in self.marks(new1).items()},
-            {"read the runner": (False, "Kevin")},
+            {n: (m.pending, m.by, m.approved_by) for n, m in self.marks(new1).items()},
+            {"read the runner": (False, "agent", "Kevin")},
         )
         self.assertEqual(
-            {n: (m.pending, m.by) for n, m in self.marks(new2).items()},
-            {"read the runner": (False, "Kevin"), "read the rules": (False, "Kevin")},
+            {n: (m.pending, m.by, m.approved_by) for n, m in self.marks(new2).items()},
+            {"read the runner": (False, "agent", "Kevin"), "read the rules": (False, "agent", "Kevin")},
         )
         branch = self.git("symbolic-ref", "--short", "HEAD").strip()
         self.assertIn(old, out)
@@ -234,12 +234,12 @@ class FoldTests(RegistryClearingTestCase):
 
         self.assertEqual((code, err), (0, ""))
         self.assertEqual(
-            [(m.note, m.pending, m.by) for m in marks_at(self.repo.root, "HEAD~1")],
-            [("read the runner", False, "Kevin")],
+            [(m.note, m.pending, m.by, m.approved_by) for m in marks_at(self.repo.root, "HEAD~1")],
+            [("read the runner", False, "agent", "Kevin")],
         )
         self.assertEqual(
-            [(m.note, m.pending, m.by) for m in marks_at(self.repo.root, "HEAD")],
-            [("read the runner again", False, "Kevin")],
+            [(m.note, m.pending, m.by, m.approved_by) for m in marks_at(self.repo.root, "HEAD")],
+            [("read the runner again", False, "agent", "Kevin")],
         )
 
     def test_a_re_mark_in_a_commit_not_named_stays_pending_and_is_reported(self) -> None:
@@ -253,8 +253,8 @@ class FoldTests(RegistryClearingTestCase):
             [("read the runner", False)],
         )
         self.assertEqual(
-            [(m.note, m.pending, m.by) for m in marks_at(self.repo.root, "HEAD")],
-            [("read the runner again", True, "agent")],
+            [(m.note, m.pending, m.by, m.approved_by) for m in marks_at(self.repo.root, "HEAD")],
+            [("read the runner again", True, "agent", None)],
         )
 
     def test_an_entry_inherited_from_a_commit_not_named_stays_pending(self) -> None:
@@ -278,8 +278,8 @@ class FoldTests(RegistryClearingTestCase):
         self.assertEqual((code, err), (0, ""))
         self.assertEqual(self.git("log", "--format=%s", f"{self.base}..HEAD").split(), ["c2", "c1"])
         self.assertEqual(
-            [(m.note, m.pending, m.by) for m in marks_at(self.repo.root, "HEAD~1")],
-            [("read the runner closely", False, "Kevin")],
+            [(m.note, m.pending, m.by, m.approved_by) for m in marks_at(self.repo.root, "HEAD~1")],
+            [("read the runner closely", False, "agent", "Kevin")],
         )
 
     def test_a_bad_merge_result_resets_to_the_old_tip(self) -> None:

@@ -50,7 +50,7 @@ advisory finding was read, so it stays quiet until what it names changes.
 
 ## Using it
 
-Four invocation surfaces, same underlying checks:
+Five invocation surfaces, same underlying checks:
 
 - **Automatically, on commit.** A git `pre-commit` hook runs every check
   above on each commit, whoever makes it; a gate finding blocks the
@@ -73,6 +73,11 @@ Four invocation surfaces, same underlying checks:
   command a claim implies) and returns a verdict with cited evidence —
   never by pattern-matching the claim's own wording. Advisory only: like
   every check it feeds, it never blocks a commit.
+- **The `reading-agent` subagent.** Fed one markable finding at a time by
+  the skill, it reads the finding's section, sentence or doc comment and
+  every file it names in full, and reports a verdict per claim with
+  evidence, for the session to decide whether to mark it as checked — see
+  [`docs/reading-agent.md`](docs/reading-agent.md). It never writes a mark.
 - **Outside Claude Code entirely, as the git hook or a CI step.** The
   `pre-commit` hook needs no Claude Code session, and `claims.cli` is the
   same `run()` seam with the exit code a CI job already expects — see
