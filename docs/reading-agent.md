@@ -16,7 +16,9 @@ its [page](checks/judgment-agent.md) describes.
 ## What it is given
 
 One finding: its `file:line`, its mode and message as the run printed
-them, the subjects it names, and the diff range it was raised over. The
+them, the subjects it names, and its root, the directory holding the
+tree the finding was raised in: the project itself, or, for a range
+ending at a commit, a `git worktree` the session makes at it. The
 finding's **unit** is what it reads first: a `stale-claims` section from
 its heading to the next heading, a whole `spliced-docs` doc comment, a
 `claim-words` or `temporal-words` sentence, or a `restatement` line. A mark
@@ -46,11 +48,12 @@ One JSON object, with:
 `false` covers prose that doesn't finish as well as prose the subject
 contradicts: a sentence that trails off says nothing true, whatever its
 subject holds. `not checked` is for what reading alone can't settle, such
-as a command's output; it names what would settle it. A dated claim, one
-true when written and not meant to be re-read against today's tree, such
-as a decision record's account of what it changed, is judged against the
-state it describes; the agent has no shell to read that state, so such a
-claim is usually `not checked`.
+as a command's output; it names what would settle it.
+
+A claim that isn't about the tree as it stands, such as a decision
+record's account of a state not yet delivered or a changelog entry's of
+one since passed, is `not checked` too, saying which it is: the tree
+can't settle it.
 
 ## What the session does with it
 
@@ -62,9 +65,10 @@ before marking it, and marks only after reading the agent's evidence:
 - Any claim `false`: no mark. The prose is fixed.
 - A claim `not checked`, in a `stale-claims` section or a `spliced-docs`
   doc comment: a [partial mark](checked-marks.md#partial-marks), whose
-  note names the claim left unchecked. In any other mode, no mark: the
-  session reads that claim's subject itself, or leaves the finding
-  unmarked. A full mark always means every claim was checked.
+  note names the claim left unchecked, as long as at least one claim is
+  `true`. In any other mode, no mark: the session reads that claim's
+  subject itself, or leaves the finding unmarked. A full mark always
+  means every claim was checked.
 
 The skill marks with `--pending`, so a person reviews each reading before
 it stands, and `pending-marks` prints the `by` of each mark beside it.

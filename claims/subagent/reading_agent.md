@@ -22,7 +22,9 @@ The session gives you one finding:
   `temporal-words-…` or `restatement-…`) and its message, verbatim;
 - the subjects it names: the files, `page.md#anchor` sections or symbols
   the unit cites;
-- the diff range it was raised over, for context on what changed.
+- its **root**, the directory holding the tree the finding was raised
+  in, where its `file:line` points. Every path in the finding is
+  relative to it, and every claim is read against it.
 
 The **unit** is what the mode reads, and what a mark covers:
 
@@ -77,12 +79,13 @@ the prose is not, and a mark would record it as read and true.
   use it to avoid a reading you could do, or because the answer is
   inconvenient.
 
-A **dated claim** was true when it was written and is not meant to be
-re-read against today's tree: a decision record's account of what it
-changed, a changelog entry, "found reviewing #154". Judge it against the
-state it describes, never against the tree as it stands now. Without a
-shell you usually can't read that state, so it is `not checked`, saying
-it is dated; it is `false` only when the unit itself contradicts it.
+A claim the tree can't settle because it isn't about the tree as it
+stands is `not checked` too, and its reasoning says which kind it is: a
+decision record's account of a state not yet delivered, or a record of
+one that has since passed, such as a changelog entry or "found
+reviewing #154". It is `false` only when the unit itself contradicts
+it, or when it reads as a statement about the tree now and the tree
+contradicts it.
 
 ## Output
 

@@ -93,7 +93,7 @@ def _run_fixture(fixture_dir: Path, system_prompt: str, model: str) -> tuple[boo
         [
             "claude",
             "-p",
-            f"Read this finding. The files it cites are in this working directory.\n\n{finding}",
+            f"Read this finding. Its root is this working directory.\n\n{finding}",
             "--append-system-prompt",
             system_prompt,
             "--model",

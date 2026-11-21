@@ -164,14 +164,35 @@ mark is partial), never on the strength of the finding's own text. A
 itself: when you asked for the verdict, you may mark the finding once you
 have read the verdict's evidence, the same as any other finding.
 
+### Which findings to settle
+
+Settle every finding your own pre-commit run shows before you commit:
+fix a gate finding, which can't be marked, and a false advisory one,
+and read and mark a true one from a check that takes marks (the
+plugin's `docs/checked-marks.md` lists them). Any other finding is
+yours to settle only when the user asks. Never mark a finding nobody
+has read, and never mark a false one: fix it instead.
+
+Commit `claims.checked.toml` in the same commit as the change that
+raises the findings, not in a separate marks commit at the end of a
+branch: the mark then sits beside the edit it is about, and a person can
+fold their approval into that one commit with `fold-approvals`. A mark
+you find missing later, or a rejected mark's fix, goes in a `fixup!`
+commit for the commit it belongs to, so the fold folds it in there.
+
 ### Reading a finding before marking it
 
 Hand each markable finding other than a `judgment-agent` candidate to the
 `claims:reading-agent` subagent before you mark it (its plugin-namespaced
 name — e.g. the Task tool's `subagent_type: "claims:reading-agent"`),
 once per finding, passing its finding line verbatim, the subjects it
-names, and the `--diff-range` it was raised over. Its input and output
-contract is `claims/subagent/reading_agent.md`; the plugin's
+names, and its root: the directory holding the tree the finding was
+raised in. For a `--diff-range` reaching the working tree (`HEAD`, or
+any single ref), that is the project root; for `A..B`, it is a worktree
+at `B`, made outside the project with `git worktree add --detach <dir>
+B` and removed with `git worktree remove <dir>` once its findings are
+read. Its input and output contract is
+`claims/subagent/reading_agent.md`; the plugin's
 `docs/reading-agent.md` describes it. It returns one verdict per claim in
 the finding's unit — `true`, `false` or `not checked` — each with the
 `file:line` it read, and for the finding as a whole, what it read in
@@ -183,9 +204,10 @@ Read its evidence, then:
 - **Any claim `false`:** fix the prose; never mark it.
 - **A claim `not checked`:** in a `stale-claims` section or a
   `spliced-docs` doc comment, mark with `--partial` and name the
-  unchecked claim in the note. In any other mode, don't mark on the
-  agent's reading: read that claim's subject yourself, or leave the
-  finding unmarked. A full mark always means every claim was checked.
+  unchecked claim in the note, as long as at least one claim is `true`:
+  a mark on which nothing was checked records no reading at all. In any
+  other mode, don't mark on the agent's reading: read that claim's
+  subject yourself, or leave the finding unmarked. A full mark always means every claim was checked.
 
 When no subagent can be started, read the finding yourself, to the same
 rules: the whole unit and every subject it names, each opened in full,
@@ -209,34 +231,26 @@ docs/guide.md:3 claim-words-totalising src/cache.py has one reader, get, and not
 EOF
 ```
 
-Never mark a finding nobody read, a false one (fix it instead), or
-one outside the work you were given: the findings your own change
-raises are always yours to settle (below), any others only when the
-user asks. Gate findings can't be
-marked. One bad entry fails the whole batch and nothing is written; the
-command names each bad entry. Add `--prune` to also remove every orphaned
-mark, one reported as `checked-mark` because its sentence was reworded or
-removed; it needs no entries and no note, and keeps every other mark.
-If you read only part of a `stale-claims` section or a `spliced-docs`
-doc comment, say so with `--partial` rather than only in the note; it
-is refused for any other mode, and for a finding whose full mark is
-still current.
+One bad entry fails the whole batch and nothing is written; the command
+names each bad entry. If you read only part of a `stale-claims` section
+or a `spliced-docs` doc comment, say so with `--partial` rather than
+only in the note; it is refused for any other mode, and for a finding
+whose full mark is still current. Add `--prune` to also remove every
+orphaned mark, one reported as `checked-mark` because its sentence was
+reworded or removed; it needs no entries and no note, and keeps every
+other mark.
+
 Always pass `--pending`, as above, unless the user tells you the reading
-is theirs: it records the mark as awaiting a person's review, which they
-give with `approve-marks` once they have read it (`pending-marks` lists
-what awaits them, each with its `by`). Approving writes the approver in
-`approved_by` and leaves `by`, the reader, as it is. A pending mark
-quiets its finding just the same, so it
-doesn't hold you up. Never run `approve-marks` or `fold-approvals --apply`
-yourself unless the user asks you to.
-Settle every finding your own pre-commit run shows before you commit,
-fixing a false one and reading and marking a true one, and commit
-`claims.checked.toml` in that same commit, with the change that raises
-them, not in a separate marks commit at the end of a branch: the
-mark then sits beside the edit it is about, and a person can fold their
-approval into that one commit with `fold-approvals`. A mark you find
-missing later, or a rejected mark's fix, goes in a `fixup!` commit for
-the commit it belongs to, so the fold folds it in there.
+is theirs: it records the mark as awaiting a person's review. A pending
+mark quiets its finding just the same, so it doesn't hold you up.
+
+### Approving the marks
+
+Approving is a person's step, not yours: never run `approve-marks` or
+`fold-approvals --apply` unless the user asks you to. `pending-marks`
+lists what awaits their review, each mark with its `by`. Approving
+writes the approver in `approved_by` and leaves `by`, the reader, as it
+is.
 
 ## Coverage
 

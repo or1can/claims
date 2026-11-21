@@ -1,4 +1,4 @@
 [advisory] docs/design.md:1 (stale-claims) 'Caching' names code 67% changed since last touched — cache.py 2 commits (67% of its history)
 
 Subjects: cache.py
-Diff range: HEAD~1
+Root: the working directory

@@ -71,8 +71,9 @@ Five invocation surfaces, same underlying checks:
 - **The `judgment-agent` subagent.** Fed one candidate at a time from the
   `judgment-agent` check above, it reads the cited code (or runs the
   command a claim implies) and returns a verdict with cited evidence —
-  never by pattern-matching the claim's own wording. Advisory only: like
-  every check it feeds, it never blocks a commit.
+  never by pattern-matching the claim's own wording. Advisory only: its
+  verdict never blocks a commit, and the check that feeds it blocks one
+  only from a project that lists it under `[hook] fail_on_unmarked`.
 - **The `reading-agent` subagent.** Fed one markable finding at a time by
   the skill, it reads the finding's section, sentence or doc comment and
   every file it names in full, and reports a verdict per claim with
