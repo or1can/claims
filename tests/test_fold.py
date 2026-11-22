@@ -19,8 +19,11 @@ from __future__ import annotations
 
 import contextlib
 import io
+import os
+import shutil
 import subprocess
 import sys
+from pathlib import Path
 from unittest import mock
 
 from claims import fold
@@ -219,6 +222,49 @@ class FoldTests(RegistryClearingTestCase):
         # Never pushed: there is nowhere to push to, and nothing tried.
         self.assertEqual(self.git("remote"), "")
 
+    def decoy(self) -> None:
+        # A `claims` package that fails loudly the moment it is imported.
+        self.repo.write("claims/__init__.py", "raise SystemExit('the decoy claims package was imported')\n")
+
+    def test_a_claims_package_at_the_repository_root_is_not_what_the_rebase_runs(self) -> None:
+        # A consuming project may hold a package of its own named `claims`,
+        # and the rebase runs its steps from the repository root.
+        self.decoy()
+        self.repo.commit()
+        self.base = self.rev("HEAD")
+        c1, c2 = self.two_commits_two_entries()
+
+        code, _, err = self.fold("--approve", c1, "--approve", c2, "--apply")
+
+        self.assertEqual((code, err), (0, ""))
+        self.assertEqual({m.approved_by for m in self.marks("HEAD").values()}, {"Kevin"})
+
+    def test_a_fold_run_from_a_copy_the_rebase_rewinds_runs_that_copy_as_it_started(self) -> None:
+        # This repository folds its own branches with its own checkout,
+        # which each step of the rebase checks out at an older commit.
+        self.decoy()
+        self.repo.commit()
+        self.base = self.rev("HEAD")
+        c1, c2 = self.two_commits_two_entries()
+        package = Path(fold.__file__).resolve().parent
+        shutil.copytree(
+            package, self.repo.root / "claims", dirs_exist_ok=True, ignore=shutil.ignore_patterns("__pycache__")
+        )
+        self.commit("c3, carrying the real package")
+
+        done = subprocess.run(
+            [sys.executable, "-P", "-m", "claims.cli", "fold-approvals", self.base, "--by", "Kevin",
+             "--approve", c1, "--approve", c2, "--apply", "--repo-root", str(self.repo.root)],
+            cwd=self.repo.root,
+            env={**os.environ, "PYTHONPATH": str(self.repo.root)},
+            capture_output=True,
+            text=True,
+            timeout=120,
+        )
+
+        self.assertEqual((done.returncode, done.stderr), (0, ""))
+        self.assertEqual({m.approved_by for m in self.marks("HEAD").values()}, {"Kevin"})
+
     def re_marked(self) -> tuple[str, str]:
         self.doc("Every check runs.")
         self.mark("docs/a.md:1 claim-words-totalising read the runner")
@@ -316,7 +362,10 @@ class FoldTests(RegistryClearingTestCase):
             "open(p, 'w').write(re.sub('by = .*\\\\n', '', s))\" %A"
         )
 
-        with mock.patch("claims.fold.driver_command", return_value=f"{fold.driver_command()} && {strip_by}"):
+        real = fold.driver_command
+        with mock.patch(
+            "claims.fold.driver_command", side_effect=lambda parent: f"{real(parent)} && {strip_by}"
+        ):
             code, _, err = self.fold("--approve", c1, "--apply")
 
         self.assertEqual(code, 1)

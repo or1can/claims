@@ -24,6 +24,9 @@ reached you, not just that one was pushed upstream.
   `check-claims` skill now hands each markable finding to it before
   marking, recording `by = "claims:reading-agent (<model>)"`
   (`docs/reading-agent.md`).
+- Fixed: `fold-approvals` no longer imports a `claims` package at your
+  repository's root in place of its own, which made the fold fail in a
+  project holding one.
 
 ## [0.31.0] - 2026-11-19
 
