@@ -19,8 +19,11 @@ from __future__ import annotations
 
 import contextlib
 import io
+import os
+import shutil
 import subprocess
 import sys
+from pathlib import Path
 from unittest import mock
 
 from claims import fold
@@ -97,8 +100,8 @@ class FoldTests(RegistryClearingTestCase):
         self.assertEqual((code, err), (1, ""))
         self.assertEqual(
             out,
-            "docs/a.md:3 claim-words-totalising read the rules again\n"
-            "docs/a.md:5 claim-words-totalising read the tests\n"
+            "docs/a.md:3 claim-words-totalising read the rules again (by agent)\n"
+            "docs/a.md:5 claim-words-totalising read the tests (by agent)\n"
             "2 pending mark(s)\n",
         )
         self.assertEqual(self.run_cli("pending-marks", "--at", "HEAD")[1].splitlines()[-1], "3 pending mark(s)")
@@ -137,13 +140,13 @@ class FoldTests(RegistryClearingTestCase):
                 lines[:5],
                 [
                     f"{c1[:7]} c1",
-                    "    docs/a.md:1 claim-words-totalising read the runner",
+                    "    docs/a.md:1 claim-words-totalising read the runner (by agent)",
                     f"    fixup {f[:7]} fixup! c1",
-                    "        docs/a.md:1 claim-words-totalising read the runner closely",
+                    "        docs/a.md:1 claim-words-totalising read the runner closely (by agent)",
                     f"{c2[:7]} c2",
                 ],
             )
-            self.assertIn("    docs/a.md:3 claim-words-totalising read the rules", lines)
+            self.assertIn("    docs/a.md:3 claim-words-totalising read the rules (by agent)", lines)
             self.assertIn("nothing changed: this was a preview; add --apply to fold", lines)
 
     def test_each_refusal_exits_non_zero_and_rewrites_nothing(self) -> None:
@@ -206,18 +209,61 @@ class FoldTests(RegistryClearingTestCase):
         self.assertEqual((code, err), (0, ""))
         new1, new2 = self.rev("HEAD~1"), self.rev("HEAD")
         self.assertEqual(
-            {n: (m.pending, m.by) for n, m in self.marks(new1).items()},
-            {"read the runner": (False, "Kevin")},
+            {n: (m.pending, m.by, m.approved_by) for n, m in self.marks(new1).items()},
+            {"read the runner": (False, "agent", "Kevin")},
         )
         self.assertEqual(
-            {n: (m.pending, m.by) for n, m in self.marks(new2).items()},
-            {"read the runner": (False, "Kevin"), "read the rules": (False, "Kevin")},
+            {n: (m.pending, m.by, m.approved_by) for n, m in self.marks(new2).items()},
+            {"read the runner": (False, "agent", "Kevin"), "read the rules": (False, "agent", "Kevin")},
         )
         branch = self.git("symbolic-ref", "--short", "HEAD").strip()
         self.assertIn(old, out)
         self.assertIn(f"git push --force-with-lease={branch}:{old}", out)
         # Never pushed: there is nowhere to push to, and nothing tried.
         self.assertEqual(self.git("remote"), "")
+
+    def decoy(self) -> None:
+        # A `claims` package that fails loudly the moment it is imported.
+        self.repo.write("claims/__init__.py", "raise SystemExit('the decoy claims package was imported')\n")
+
+    def test_a_claims_package_at_the_repository_root_is_not_what_the_rebase_runs(self) -> None:
+        # A consuming project may hold a package of its own named `claims`,
+        # and the rebase runs its steps from the repository root.
+        self.decoy()
+        self.repo.commit()
+        self.base = self.rev("HEAD")
+        c1, c2 = self.two_commits_two_entries()
+
+        code, _, err = self.fold("--approve", c1, "--approve", c2, "--apply")
+
+        self.assertEqual((code, err), (0, ""))
+        self.assertEqual({m.approved_by for m in self.marks("HEAD").values()}, {"Kevin"})
+
+    def test_a_fold_run_from_a_copy_the_rebase_rewinds_runs_that_copy_as_it_started(self) -> None:
+        # This repository folds its own branches with its own checkout,
+        # which each step of the rebase checks out at an older commit.
+        self.decoy()
+        self.repo.commit()
+        self.base = self.rev("HEAD")
+        c1, c2 = self.two_commits_two_entries()
+        package = Path(fold.__file__).resolve().parent
+        shutil.copytree(
+            package, self.repo.root / "claims", dirs_exist_ok=True, ignore=shutil.ignore_patterns("__pycache__")
+        )
+        self.commit("c3, carrying the real package")
+
+        done = subprocess.run(
+            [sys.executable, "-P", "-m", "claims.cli", "fold-approvals", self.base, "--by", "Kevin",
+             "--approve", c1, "--approve", c2, "--apply", "--repo-root", str(self.repo.root)],
+            cwd=self.repo.root,
+            env={**os.environ, "PYTHONPATH": str(self.repo.root)},
+            capture_output=True,
+            text=True,
+            timeout=120,
+        )
+
+        self.assertEqual((done.returncode, done.stderr), (0, ""))
+        self.assertEqual({m.approved_by for m in self.marks("HEAD").values()}, {"Kevin"})
 
     def re_marked(self) -> tuple[str, str]:
         self.doc("Every check runs.")
@@ -234,12 +280,12 @@ class FoldTests(RegistryClearingTestCase):
 
         self.assertEqual((code, err), (0, ""))
         self.assertEqual(
-            [(m.note, m.pending, m.by) for m in marks_at(self.repo.root, "HEAD~1")],
-            [("read the runner", False, "Kevin")],
+            [(m.note, m.pending, m.by, m.approved_by) for m in marks_at(self.repo.root, "HEAD~1")],
+            [("read the runner", False, "agent", "Kevin")],
         )
         self.assertEqual(
-            [(m.note, m.pending, m.by) for m in marks_at(self.repo.root, "HEAD")],
-            [("read the runner again", False, "Kevin")],
+            [(m.note, m.pending, m.by, m.approved_by) for m in marks_at(self.repo.root, "HEAD")],
+            [("read the runner again", False, "agent", "Kevin")],
         )
 
     def test_a_re_mark_in_a_commit_not_named_stays_pending_and_is_reported(self) -> None:
@@ -253,8 +299,8 @@ class FoldTests(RegistryClearingTestCase):
             [("read the runner", False)],
         )
         self.assertEqual(
-            [(m.note, m.pending, m.by) for m in marks_at(self.repo.root, "HEAD")],
-            [("read the runner again", True, "agent")],
+            [(m.note, m.pending, m.by, m.approved_by) for m in marks_at(self.repo.root, "HEAD")],
+            [("read the runner again", True, "agent", None)],
         )
 
     def test_an_entry_inherited_from_a_commit_not_named_stays_pending(self) -> None:
@@ -278,8 +324,8 @@ class FoldTests(RegistryClearingTestCase):
         self.assertEqual((code, err), (0, ""))
         self.assertEqual(self.git("log", "--format=%s", f"{self.base}..HEAD").split(), ["c2", "c1"])
         self.assertEqual(
-            [(m.note, m.pending, m.by) for m in marks_at(self.repo.root, "HEAD~1")],
-            [("read the runner closely", False, "Kevin")],
+            [(m.note, m.pending, m.by, m.approved_by) for m in marks_at(self.repo.root, "HEAD~1")],
+            [("read the runner closely", False, "agent", "Kevin")],
         )
 
     def test_a_bad_merge_result_resets_to_the_old_tip(self) -> None:
@@ -316,7 +362,10 @@ class FoldTests(RegistryClearingTestCase):
             "open(p, 'w').write(re.sub('by = .*\\\\n', '', s))\" %A"
         )
 
-        with mock.patch("claims.fold.driver_command", return_value=f"{fold.driver_command()} && {strip_by}"):
+        real = fold.driver_command
+        with mock.patch(
+            "claims.fold.driver_command", side_effect=lambda parent: f"{real(parent)} && {strip_by}"
+        ):
             code, _, err = self.fold("--approve", c1, "--apply")
 
         self.assertEqual(code, 1)

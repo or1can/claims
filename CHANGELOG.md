@@ -11,6 +11,23 @@ reached you, not just that one was pushed upstream.
 
 ## [Unreleased]
 
+## [0.32.0] - 2026-11-20
+
+- Changed: `approve-marks --by NAME` and `fold-approvals --by NAME` now
+  write `approved_by = "NAME"` on each entry they approve and leave its
+  `by` alone, so the reader stays on record after approval. Entries an
+  earlier version approved keep the approver in `by`; nothing migrates
+  them. `pending-marks` and the `fold-approvals` preview print each
+  mark's `by` beside it (`docs/checked-marks.md`).
+- Added: the `claims:reading-agent` subagent reads one markable finding
+  in full against its subjects and reports a verdict per claim, and the
+  `check-claims` skill now hands each markable finding to it before
+  marking, recording `by = "claims:reading-agent (<model>)"`
+  (`docs/reading-agent.md`).
+- Fixed: `fold-approvals` no longer imports a `claims` package at your
+  repository's root in place of its own, which made the fold fail in a
+  project holding one.
+
 ## [0.31.0] - 2026-11-19
 
 - Added: `fold-approvals BASE --by NAME [--approve REV ...] [--apply]`

@@ -67,6 +67,18 @@ class PluginManifestTests(unittest.TestCase):
             self.assertIn("name:", text)
             self.assertIn("description:", text)
 
+    def test_the_reading_agent_is_registered_on_sonnet_with_read_only_tools(self) -> None:
+        # Issue #259: it reads and reports, and a mark is the session's to
+        # write, so its grant has no shell and no editor.
+        manifest = _load(".claude-plugin/plugin.json")
+        self.assertIn("./claims/subagent/reading_agent.md", manifest["agents"])
+        text = (REPO_ROOT / "claims" / "subagent" / "reading_agent.md").read_text(encoding="utf-8")
+        _, frontmatter, _ = text.split("---\n", 2)
+        fields = dict(line.split(": ", 1) for line in frontmatter.splitlines())
+        self.assertEqual(fields["name"], "reading-agent")
+        self.assertEqual(fields["model"], "sonnet")
+        self.assertEqual(fields["tools"].split(", "), ["Read", "Glob", "Grep"])
+
     def test_hooks_file_registers_only_the_nudge(self) -> None:
         # Git decides when a commit happens, through its own `pre-commit`
         # hook (#128, `decisions/0007-git-decides-when-a-commit-happens.md`):

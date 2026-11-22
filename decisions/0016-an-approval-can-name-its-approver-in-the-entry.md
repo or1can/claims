@@ -10,6 +10,10 @@ Amended by `decisions/0017-an-approval-is-folded-into-the-commit-that-wrote-the-
 supersedes the `approve-marks` and `git commit --fixup` route its
 Consequences give.
 
+Amended by `decisions/0018-the-reader-and-the-approver-are-recorded-apart.md`
+(#259): `--by` writes `approved_by` and leaves `by`, the reader, as it
+was, superseding "Replace, don't append" below.
+
 ## Context
 
 ADR 0015 left who approved to the project's own convention, and

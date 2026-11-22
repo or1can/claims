@@ -107,7 +107,8 @@ adding a page means adding it there too.
    the next section. [`docs/index.md`](../docs/index.md) models this.
 7. **Drift-tool-relative framing stays on the index page.** `claims` is
    most quickly explained by contrast with the drift detectors it is not,
-   and [`README.md`](../README.md) and `docs/index.md` both open that way.
+   and [`README.md`](../README.md) opens that way, as `docs/index.md`'s
+   first section does.
    No other page does: a reader on a check page wants to know what that
    check holds true, and has no reason to have met a drift detector. An
    inline aside where a detail genuinely turns on the distinction is fine;

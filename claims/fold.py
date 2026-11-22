@@ -20,7 +20,9 @@ The rebase runs two pieces of this module in processes of their own,
 `python -m claims.fold merge` as `claims.checked.toml`'s merge driver and
 `python -m claims.fold approve` as each named commit's `exec` step, both
 switched on for that one rebase and documented nowhere else: neither is
-a command a person runs."""
+a command a person runs. Both import a copy of the `claims` that started
+the fold, taken before the rebase, never a `claims` in the repository
+being rebased."""
 
 from __future__ import annotations
 
@@ -29,6 +31,7 @@ import difflib
 import os
 import re
 import shlex
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -53,7 +56,7 @@ _FIXUP = "fixup! "
 # Folded by `git rebase --autosquash` with a message to edit, which a
 # fold has nobody to do.
 _UNFOLDABLE = ("squash! ", "amend! ")
-_BY_LINE_RE = re.compile(r'^by = ".*"$')
+_APPROVED_BY_LINE_RE = re.compile(r'^approved_by = ".*"$')
 _REVIEW_LINE = 'review = "pending"'
 
 
@@ -84,20 +87,40 @@ def _git(repo_root: Path, *args: str) -> subprocess.CompletedProcess[str]:
     )
 
 
-def _claims_command(*args: str) -> str:
-    """A shell command running this module with `args`, importing this
-    copy of `claims` whatever directory git runs it from."""
+def _claims_command(package_parent: Path, *args: str) -> str:
+    """A shell command running this module with `args`, importing the
+    `claims` under `package_parent` whatever directory git runs it from:
+    `-P` keeps that directory, which may hold a `claims` of its own, off
+    `sys.path`."""
 
-    package_parent = str(Path(__file__).resolve().parent.parent)
     return " ".join(
-        [f"PYTHONPATH={shlex.quote(package_parent)}", shlex.quote(sys.executable), "-m", "claims.fold", *args]
+        [
+            f"PYTHONPATH={shlex.quote(str(package_parent))}",
+            shlex.quote(sys.executable),
+            "-P",
+            "-m",
+            "claims.fold",
+            *args,
+        ]
     )
 
 
-def driver_command() -> str:
+def _copy_of_claims(into: Path) -> Path:
+    """A copy of this `claims` package under `into`, returned as the
+    directory to import it from. Run from a checkout of the repository
+    being rebased, as this repository folds its own branches, `claims`
+    is rewound with each step; the copy stays as the fold started."""
+
+    shutil.copytree(
+        Path(__file__).resolve().parent, into / "claims", ignore=shutil.ignore_patterns("__pycache__")
+    )
+    return into
+
+
+def driver_command(package_parent: Path) -> str:
     """The merge driver's command line, `%O %A %B` as git substitutes them."""
 
-    return _claims_command("merge", "%O", "%A", "%B")
+    return _claims_command(package_parent, "merge", "%O", "%A", "%B")
 
 
 def _range(repo_root: Path, base: str) -> list[Commit]:
@@ -195,21 +218,21 @@ def _preview(repo_root: Path, groups: list[Group], named: set[str], by: str) -> 
             print(f"plan: fold {len(group.fixups)} fixup(s) into {group.root}, approving nothing")
 
 
-def _todo(groups: list[Group], named: set[str], by: str) -> str:
+def _todo(groups: list[Group], named: set[str], by: str, package_parent: Path) -> str:
     lines = []
     for group in groups:
         lines.append(f"pick {group.root.sha}")
         lines.extend(f"fixup {f.sha}" for f in group.fixups)
         if group.root.sha in named:
             shas = [group.root.sha, *(f.sha for f in group.fixups)]
-            lines.append("exec " + _claims_command("approve", "--by", shlex.quote(by), *shas))
+            lines.append("exec " + _claims_command(package_parent, "approve", "--by", shlex.quote(by), *shas))
     return "\n".join(lines) + "\n"
 
 
 def _only_approvals(old: str | None, new: str | None) -> bool:
     """Whether `new` is `old` with `review = "pending"` lines removed and
-    `by` lines replaced or added, each only in an entry it approves, and
-    nothing else changed."""
+    `approved_by` lines replaced or added, each only in an entry it
+    approves, and nothing else changed."""
 
     try:
         old_marks = {m.key: replace(m, line=0) for m in _parse_marks(old or "")}
@@ -221,7 +244,7 @@ def _only_approvals(old: str | None, new: str | None) -> bool:
     for key, before in old_marks.items():
         after = new_marks[key]
         approved = before.pending and not after.pending
-        if after != before and not (approved and replace(after, pending=True, by=before.by) == before):
+        if after != before and not (approved and replace(after, pending=True, approved_by=before.approved_by) == before):
             return False
     old_lines = (old or "").splitlines()
     new_lines = (new or "").splitlines()
@@ -229,9 +252,9 @@ def _only_approvals(old: str | None, new: str | None) -> bool:
     for tag, i1, i2, j1, j2 in matcher.get_opcodes():
         if tag == "equal":
             continue
-        if not all(line == _REVIEW_LINE or _BY_LINE_RE.match(line) for line in old_lines[i1:i2]):
+        if not all(line == _REVIEW_LINE or _APPROVED_BY_LINE_RE.match(line) for line in old_lines[i1:i2]):
             return False
-        if not all(_BY_LINE_RE.match(line) for line in new_lines[j1:j2]):
+        if not all(_APPROVED_BY_LINE_RE.match(line) for line in new_lines[j1:j2]):
             return False
     return True
 
@@ -256,8 +279,9 @@ def _apply(repo_root: Path, base: str, groups: list[Group], named: set[str], by:
     old = _git(repo_root, "rev-parse", "HEAD").stdout.strip()
     branch = _git(repo_root, "symbolic-ref", "--short", "HEAD").stdout.strip()
     with tempfile.TemporaryDirectory() as tmp:
+        package_parent = _copy_of_claims(Path(tmp) / "package")
         todo = Path(tmp) / "todo"
-        todo.write_text(_todo(groups, named, by), encoding="utf-8")
+        todo.write_text(_todo(groups, named, by, package_parent), encoding="utf-8")
         attributes = Path(tmp) / "attributes"
         attributes.write_text(f"/{CHECKED_FILENAME} merge={DRIVER}\n", encoding="utf-8")
         driver = [
@@ -266,7 +290,7 @@ def _apply(repo_root: Path, base: str, groups: list[Group], named: set[str], by:
             "-c",
             f"merge.{DRIVER}.name=claims fold-approvals",
             "-c",
-            f"merge.{DRIVER}.driver={driver_command()}",
+            f"merge.{DRIVER}.driver={driver_command(package_parent)}",
         ]
         # The repository's own attributes outrank `core.attributesFile`.
         attribute = _git(repo_root, *driver, "check-attr", "merge", "--", CHECKED_FILENAME).stdout
@@ -334,7 +358,7 @@ def fold_approvals(argv: list[str]) -> int:
         default=[],
         help="A commit whose own marks, and its fixups', were reviewed (repeatable).",
     )
-    parser.add_argument("--by", metavar="NAME", required=True, help="Name the approver on each approved entry.")
+    parser.add_argument("--by", metavar="NAME", required=True, help="Name the approver in each approved entry's `approved_by`.")
     parser.add_argument("--apply", action="store_true", help="Rewrite the branch (default: preview only).")
     parser.add_argument("--repo-root", type=Path, default=Path.cwd())
     args = parser.parse_args(argv)

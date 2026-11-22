@@ -5,6 +5,11 @@
 Accepted. Spec #56, implemented by ticket #58. See also #57, which later
 gave `check-file-refs` a `historical` key.
 
+Its Consequences record the tree as the move left it, and are history
+now: #74 has since declared `.scratch/claims-consolidation/` frozen
+(`AGENTS.md`, "Pre-GitHub history"), and the files they name have
+changed.
+
 ## Context
 
 Every check is already described in four places: `README.md`'s check list

@@ -46,6 +46,17 @@
   line's number against git's. The fix is decoding git's bytes without
   translation. Files in the working tree are read through
   `claims.lines.tracked_text` since #191. Found working on #185.
+- Re-reading an expired mark is always a full re-read of its unit and
+  subjects (#259). Where only a subject changed, reading just that
+  subject's diff against the recorded reading would be cheaper, but the
+  saving is unmeasured and a narrower reading is exactly the gap marks
+  exist to close; deferred as an early optimisation. It may wait on
+  ratect's settle-design/ready work.
+- `claims.markdown.slug` drops every character outside `[a-z0-9 _-]`
+  after lowercasing, so a non-ASCII letter is dropped where GitHub's own
+  anchor rule keeps it: `## Café` is `#caf` here and `#café` on GitHub,
+  and `check-links` reports a link GitHub resolves. Found by the reading
+  agent reading `docs/checks/check-links.md` on #259.
 - A git merge driver for `claims.checked.toml` in ordinary branch
   merges, deferred from #241. `fold-approvals` has one for its own
   rebase only, where the replayed commit winning is right (ADR 0017);
