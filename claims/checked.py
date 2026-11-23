@@ -53,6 +53,15 @@ the mark here and expire it everywhere else.
 A navigation page (ADR 0013) named without an anchor is neither recorded
 nor compared, so a mark written before the page was listed keeps its
 entry for it and stops reading it, with no rewrite of the sidecar.
+
+A mark records its claim's kind (ADR 0019). A past or superseded claim
+is read at a tree that doesn't move, so its mark compares no subject:
+it records its unit's whole text, which for a section is its body as
+well as the heading the unit hash covers, and the evidence its kind
+rests on, and expires when either changes. Both are hashed as words, as
+a unit is, so a reflow keeps the mark. The evidence is also what the
+approval listing compares with the range's base, so a change can't
+quietly add the Status note that supersedes a claim it breaks.
 """
 
 from __future__ import annotations
@@ -64,7 +73,7 @@ import subprocess
 import tomllib
 from collections import Counter
 from collections.abc import Callable, Container, Iterable, Mapping, Sequence
-from dataclasses import dataclass, replace
+from dataclasses import dataclass, field, replace
 from pathlib import Path, PurePosixPath
 from typing import NamedTuple
 
@@ -73,6 +82,7 @@ from .git import (
     DiffLine,
     blob_id,
     blob_text,
+    head_commit,
     iter_diff,
     parent_commits,
     path_blobs,
@@ -114,7 +124,14 @@ UNITS = {
 _SECTION_HEADING_RE = re.compile(r"^(#{1,6})\s+(.*)")
 _DOC_RE = re.compile(r"^\s*///")
 _MARK_HEADER_RE = re.compile(r"^\s*\[\[\s*mark\s*\]\]\s*(#.*)?$")
-_KEYS = {"file", "mode", "unit", "copies", "subjects", "note", "by", "approved_by", "extent", "review"}
+_KEYS = {
+    "file", "mode", "unit", "copies", "subjects", "note", "by", "approved_by", "extent", "review",
+    "kind", "text", "evidence",
+}
+# A claim's kinds (ADR 0019) as a mark records them; a mark with none is
+# current. `SETTLED` are the kinds read at a tree that doesn't move.
+KINDS = ("intended", "superseded", "past")
+SETTLED = ("superseded", "past")
 # A full SHA-1 or SHA-256 object id: what an append-only subject records.
 # Nothing else is passed to `git cat-file`: the sidecar is committed, so a
 # pull request could otherwise hand it a revision or an option.
@@ -170,6 +187,12 @@ class Mark:
     # Whether no person has reviewed the reading yet (ADR 0014); a sidecar
     # records `review = "pending"` only for a pending mark.
     pending: bool = False
+    # The claim's kind, one of `KINDS`, or `None` for current (ADR 0019).
+    kind: str | None = None
+    # For a `SETTLED` kind only: the hash of the unit's whole text, and of
+    # each file or section its kind rests on, by `path` or `path#anchor`.
+    text: str | None = None
+    evidence: Mapping[str, str] = field(default_factory=dict)
     # The 1-based line of this entry's `[[mark]]` header, which an orphan
     # finding cites; 0 for a mark not yet written.
     line: int = 0
@@ -200,6 +223,19 @@ def message_hash(message: str) -> str:
     different finding."""
 
     return _words_digest(message)
+
+
+def _evidence_digest(lines: Sequence[str], anchor: str) -> str | None:
+    """The hash a mark records for evidence in a file of `lines`: its
+    words, or its section's when `anchor` names one, or `None` when no
+    heading has that slug."""
+
+    if anchor:
+        span = section_range("\n".join(lines), anchor)
+        if span is None:
+            return None
+        lines = lines[span[0] - 1 : span[1]]
+    return _words_digest("\n".join(lines))
 
 
 def _blob_lines(data: bytes) -> list[str]:
@@ -453,6 +489,14 @@ class _Tree:
             new_lines = new_lines[new_span[0] - 1 : new_span[1]]
         return _only_grew(old_lines, new_lines)
 
+    def evidence_hash(self, ref: str) -> str | None:
+        """What a mark records for evidence `ref`, `path` or
+        `path#anchor`, or `None` when it isn't there."""
+
+        path, _, anchor = ref.partition("#")
+        lines = self.lines(path)
+        return None if lines is None else _evidence_digest(lines, anchor)
+
     def subjects(self, rel: str, unit: _Unit) -> dict[str, str]:
         """`{subject: subject_hash}` for each subject `unit`, in `rel`,
         names that exists on disk: one tracked but deleted has no content
@@ -568,6 +612,22 @@ def _parse_marks(text: str) -> list[Mark]:
             raise _invalid(line, "has an 'extent' that is neither \"full\" nor \"partial\"")
         if "review" in entry and entry["review"] != "pending":
             raise _invalid(line, "has a 'review' that is not \"pending\"")
+        kind = entry.get("kind")
+        if kind is not None and kind not in KINDS:
+            raise _invalid(line, f"has a 'kind' that is not one of {', '.join(map(repr, KINDS))}")
+        unit_text = entry.get("text")
+        evidence = entry.get("evidence", {})
+        if kind in SETTLED:
+            if not isinstance(unit_text, str) or not unit_text.strip():
+                raise _invalid(line, f"of kind {kind!r} needs a non-empty string 'text'")
+            if not isinstance(evidence, dict) or not all(isinstance(v, str) for v in evidence.values()):
+                raise _invalid(line, "needs 'evidence', if any, a table of path to hash")
+            if kind == "superseded" and not evidence:
+                raise _invalid(line, "of kind 'superseded' needs 'evidence'")
+            if not all(_repo_relative(ref.partition("#")[0]) for ref in evidence):
+                raise _invalid(line, "has evidence outside the repository")
+        elif "text" in entry or "evidence" in entry:
+            raise _invalid(line, "has a 'text' or 'evidence', which only a past or superseded 'kind' takes")
         mark = Mark(
             file=entry["file"],
             mode=entry["mode"],
@@ -579,6 +639,9 @@ def _parse_marks(text: str) -> list[Mark]:
             approved_by=approved_by,
             partial=extent == "partial",
             pending="review" in entry,
+            kind=kind,
+            text=unit_text,
+            evidence=dict(evidence),
             line=line,
         )
         if mark.key in first_line:
@@ -641,10 +704,29 @@ def _unit_line(mark: Mark, lines: Sequence[str] | None) -> int:
     return next((u.start + 1 for u in _units(kind, lines) if u.digest == _in_file(mark.unit)), 0)
 
 
-def _describe(marks: Iterable[Mark], lines_of: Callable[[str], Sequence[str] | None]) -> list[str]:
+def _evidence_at(repo_root: Path, base: str | None) -> Callable[[str], str | None]:
+    """What a mark would record for an evidence reference at commit
+    `base`, `None` where it isn't there or there is no `base`."""
+
+    def at(ref: str) -> str | None:
+        path, _, anchor = ref.partition("#")
+        text = None if base is None else blob_text(repo_root, base, path)
+        return None if text is None else _evidence_digest(git_lines(text), anchor)
+
+    return at
+
+
+def _describe(
+    marks: Iterable[Mark],
+    lines_of: Callable[[str], Sequence[str] | None],
+    evidence_at: Callable[[str], str | None],
+) -> list[str]:
     """Each of `marks` as a `mark-checked` entry, `file:line mode note`,
     its line looked up in what `lines_of` gives for its file, followed by
-    ` (by <by>)` for a mark that names its reader."""
+    ` (by <by>)` for a mark that names its reader, then its kind in
+    brackets. A kind that rests on evidence `evidence_at`, the range's
+    base, doesn't give the recorded hash for names that evidence too: it
+    was added or changed in the range that wrote the mark."""
 
     cache: dict[str, Sequence[str] | None] = {}
     described = []
@@ -652,8 +734,19 @@ def _describe(marks: Iterable[Mark], lines_of: Callable[[str], Sequence[str] | N
         if mark.file not in cache:
             cache[mark.file] = lines_of(mark.file)
         reader = "" if mark.by is None else f" (by {mark.by})"
-        described.append(f"{mark.file}:{_unit_line(mark, cache[mark.file])} {mark.mode} {mark.note}{reader}")
+        label = mark.kind or "current"
+        changed = [ref for ref, h in mark.evidence.items() if evidence_at(ref) != h]
+        if changed:
+            label += f"; evidence {', '.join(changed)} added or changed in range"
+        described.append(
+            f"{mark.file}:{_unit_line(mark, cache[mark.file])} {mark.mode} {mark.note}{reader} [{label}]"
+        )
     return described
+
+
+def _first_parent(repo_root: Path, commit: str) -> str | None:
+    parents = parent_commits(repo_root, commit)
+    return parents[0] if parents else None
 
 
 def own_pending(repo_root: Path, commit: str) -> list[Mark]:
@@ -668,23 +761,27 @@ def own_pending(repo_root: Path, commit: str) -> list[Mark]:
     ]
 
 
-def pending_marks(repo_root: Path, commit: str | None = None, own: bool = False) -> list[str]:
+def pending_marks(
+    repo_root: Path, commit: str | None = None, own: bool = False, base: str | None = None
+) -> list[str]:
     """Every pending mark in `claims.checked.toml`, expired and orphaned
     ones included, as `_describe` gives them: from the working tree, or
     with `commit`, from the file and the marked files as committed there,
-    and with `own` too, only `own_pending`'s. Raises `ConfigError` for an
-    invalid file."""
+    and with `own` too, only `own_pending`'s. Evidence is compared with
+    `base`, by default `HEAD` for the working tree and `commit`'s first
+    parent otherwise. Raises `ConfigError` for an invalid file."""
 
     if commit is None:
         tree = _Tree(repo_root, {})
-        return _describe((m for m in load_marks(repo_root) if m.pending), tree.lines)
+        evidence_at = _evidence_at(repo_root, base or head_commit(repo_root))
+        return _describe((m for m in load_marks(repo_root) if m.pending), tree.lines, evidence_at)
 
     def lines_at(rel: str) -> list[str] | None:
         text = blob_text(repo_root, commit, rel)
         return None if text is None else git_lines(text)
 
     marks = own_pending(repo_root, commit) if own else [m for m in marks_at(repo_root, commit) if m.pending]
-    return _describe(marks, lines_at)
+    return _describe(marks, lines_at, _evidence_at(repo_root, base or _first_parent(repo_root, commit)))
 
 
 def approve_marks(
@@ -693,6 +790,7 @@ def approve_marks(
     rev: str,
     approver: str | None = None,
     only: Container[tuple[str, str, str]] | None = None,
+    base: str | None = None,
 ) -> tuple[list[str], list[str]]:
     """`(approved, left)`: approve every mark pending in the working tree
     and, with every other key the same, pending at `commit` too, writing
@@ -700,7 +798,8 @@ def approve_marks(
     approved mark's `approved_by` and its `by`, the reader, left as it
     is (ADR 0018); describe each approved mark, and each left
     pending with why, naming `commit` as `rev`. With `only`, a mark whose
-    key it lacks is neither approved nor described. Raises `ConfigError`
+    key it lacks is neither approved nor described. Evidence is compared
+    with `base`, by default `commit`'s first parent. Raises `ConfigError`
     for a file invalid at either side, writing nothing."""
 
     reviewed = {m.key: replace(m, line=0) for m in marks_at(repo_root, commit)}
@@ -720,18 +819,25 @@ def approve_marks(
     if approving:
         write_marks(repo_root, approving)
     lines_of = _Tree(repo_root, {}).lines
+    evidence_at = _evidence_at(repo_root, base or _first_parent(repo_root, commit))
     return (
-        _describe(approving, lines_of),
+        _describe(approving, lines_of, evidence_at),
         [
             f"{entry}: {why}"
-            for entry, (_, why) in zip(_describe((m for m, _ in left), lines_of), left)
+            for entry, (_, why) in zip(_describe((m for m, _ in left), lines_of, evidence_at), left)
         ],
     )
 
 
 def _current(tree: _Tree, mark: Mark, rel: str, unit: _Unit) -> bool:
-    """Whether everything `mark` was read against is as it was."""
+    """Whether everything `mark` was read against is as it was: for a
+    `SETTLED` kind, its unit's text and its evidence; otherwise, its
+    subjects."""
 
+    if mark.kind in SETTLED:
+        return _words_digest(unit.body) == mark.text and all(
+            tree.evidence_hash(ref) == h for ref, h in mark.evidence.items()
+        )
     if not all(tree.subject_holds(s, h) for s, h in mark.subjects.items() if tree.counts(s)):
         return False
     return tree.subjects(rel, unit).keys() <= mark.subjects.keys()
@@ -866,6 +972,8 @@ def new_marks(
     by: str | None,
     partial: bool = False,
     pending: bool = False,
+    claim_kind: str | None = None,
+    evidence: Sequence[str] = (),
 ) -> tuple[list[Mark], list[str]]:
     """`(marks, problems)`: a mark for each of `entries`, one
     `<file>:<line> <mode> <note>` per item, looked up among `findings`,
@@ -873,9 +981,15 @@ def new_marks(
     are skipped. With `partial`, each mark records a partial reading, and
     an entry whose mode has no section or doc comment to read part of, or
     whose key a current full mark holds, can't be marked. With `pending`,
-    each mark awaits a person's review."""
+    each mark awaits a person's review. Each mark records `claim_kind`, and for
+    a `SETTLED` one its unit's text and the hash of each of `evidence`,
+    one that isn't there being a problem of its own."""
 
     tree = _Tree(repo_root, config)
+    evidence_hashes = {ref: tree.evidence_hash(ref) for ref in evidence}
+    missing = [ref for ref, h in evidence_hashes.items() if h is None]
+    if missing:
+        return [], [f"--evidence {ref}: no such file or section" for ref in missing]
     full_marks = {m.key: m for m in load_marks(repo_root) if not m.partial} if partial else {}
     marks: list[Mark] = []
     problems: list[str] = []
@@ -927,6 +1041,9 @@ def new_marks(
                         by=by,
                         partial=partial,
                         pending=pending,
+                        kind=claim_kind,
+                        text=_words_digest(unit.body) if claim_kind in SETTLED else None,
+                        evidence={ref: h for ref, h in evidence_hashes.items() if h is not None},
                     )
                 )
     return marks, problems
@@ -954,6 +1071,13 @@ def _render(mark: Mark) -> str:
         lines.append('extent = "partial"')
     if mark.pending:
         lines.append('review = "pending"')
+    if mark.kind is not None:
+        lines.append(f"kind = {_toml_string(mark.kind)}")
+    if mark.text is not None:
+        lines.append(f"text = {_toml_string(mark.text)}")
+    if mark.evidence:
+        evidence = ", ".join(f"{_toml_string(r)} = {_toml_string(h)}" for r, h in mark.evidence.items())
+        lines.append(f"evidence = {{ {evidence} }}")
     subjects = ", ".join(f"{_toml_string(s)} = {_toml_string(h)}" for s, h in mark.subjects.items())
     lines.append(f"subjects = {{ {subjects} }}" if subjects else "subjects = {}")
     return "\n".join(lines) + "\n"

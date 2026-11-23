@@ -27,7 +27,9 @@ from pathlib import Path
 from . import checks  # noqa: F401
 from .checked import (
     CHECKED_FILENAME,
+    KINDS,
     ORPHAN_MODE,
+    SETTLED,
     UNITS,
     approve_marks,
     failing_unmarked,
@@ -116,7 +118,27 @@ def parse_mark_args(argv: list[str]) -> argparse.Namespace:
         action="store_true",
         help="Record each mark as pending a person's review (see approve-marks).",
     )
-    return parser.parse_args(argv)
+    parser.add_argument(
+        "--kind",
+        choices=KINDS,
+        help="Record the kind of claim each unit holds (default: current).",
+    )
+    parser.add_argument(
+        "--evidence",
+        action="append",
+        default=[],
+        metavar="PATH[#ANCHOR]",
+        help=(
+            "A file or section the kind rests on, hashed onto each mark; "
+            "repeatable, past or superseded only, and required for superseded."
+        ),
+    )
+    args = parser.parse_args(argv)
+    if args.evidence and args.kind not in SETTLED:
+        parser.error("--evidence needs --kind past or --kind superseded")
+    if args.kind == "superseded" and not args.evidence:
+        parser.error("--kind superseded needs --evidence")
+    return args
 
 
 def mark_checked(argv: list[str]) -> int:
@@ -148,7 +170,15 @@ def mark_checked(argv: list[str]) -> int:
 
     result = run(repo_root, args.diff_range, config)
     marks, problems = new_marks(
-        repo_root, result.findings + result.quiet, config, entries, args.by, partial=args.partial, pending=args.pending
+        repo_root,
+        result.findings + result.quiet,
+        config,
+        entries,
+        args.by,
+        partial=args.partial,
+        pending=args.pending,
+        claim_kind=args.kind,
+        evidence=args.evidence,
     )
     if problems:
         for problem in problems:
@@ -183,6 +213,25 @@ def _commit_or_error(repo_root: Path, rev: str) -> str | None:
     return commit
 
 
+_BASE_HELP = (
+    "Flag a superseded or past mark whose evidence differs at REV, such as "
+    "the pull request's base (default: %s)."
+)
+
+
+def _base_or_error(repo_root: Path, rev: str | None) -> tuple[bool, str | None]:
+    """`(ok, commit)`: the commit a `--base` names, `None` when none was
+    given; not ok once the reason it can't be resolved is printed."""
+
+    if rev is None:
+        return True, None
+    commit = resolve_commit(repo_root, rev)
+    if commit is None:
+        print(f"{rev} names no commit", file=sys.stderr)
+        return False, None
+    return True, commit
+
+
 def list_pending(argv: list[str]) -> int:
     parser = argparse.ArgumentParser(
         prog="python3 -m claims.cli pending-marks",
@@ -199,6 +248,9 @@ def list_pending(argv: list[str]) -> int:
         action="store_true",
         help="With --at, list only the marks REV added or changed since its first parent.",
     )
+    parser.add_argument(
+        "--base", metavar="REV", help=_BASE_HELP % "HEAD, or with --at, its REV's first parent"
+    )
     args = parser.parse_args(argv)
     if args.own and args.at is None:
         parser.error("--own needs --at")
@@ -208,8 +260,11 @@ def list_pending(argv: list[str]) -> int:
         commit = _commit_or_error(repo_root, args.at)
         if commit is None:
             return 2
+    ok, base = _base_or_error(repo_root, args.base)
+    if not ok:
+        return 2
     try:
-        pending = pending_marks(repo_root, commit, own=args.own)
+        pending = pending_marks(repo_root, commit, own=args.own, base=base)
     except ConfigError as e:
         print(f"{CHECKED_FILENAME} is invalid: {e}", file=sys.stderr)
         return 2
@@ -233,18 +288,22 @@ def approve(argv: list[str]) -> int:
         metavar="NAME",
         help="Name the approver in each approved entry's `approved_by`, leaving its `by`, the reader, as it is.",
     )
+    parser.add_argument("--base", metavar="BASE", help=_BASE_HELP % "REV's first parent")
     parser.add_argument("--repo-root", type=Path, default=Path.cwd())
     args = parser.parse_args(argv)
     repo_root: Path = args.repo_root.resolve()
     commit = _commit_or_error(repo_root, args.rev)
     if commit is None:
         return 2
+    ok, base = _base_or_error(repo_root, args.base)
+    if not ok:
+        return 2
     try:
         load_marks(repo_root)
     except ConfigError as e:
         print(f"{CHECKED_FILENAME} is invalid: {e}", file=sys.stderr)
         return 2
-    approved, left = approve_marks(repo_root, commit, args.rev, args.by)
+    approved, left = approve_marks(repo_root, commit, args.rev, args.by, base=base)
     for line in approved:
         print(f"approved {line}")
     for line in left:

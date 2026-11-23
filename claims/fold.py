@@ -198,18 +198,20 @@ def _named(repo_root: Path, groups: list[Group], revs: list[str]) -> set[str]:
     return named
 
 
-def _own(repo_root: Path, commit: str) -> list[str]:
-    return pending_marks(repo_root, commit, own=True)
+def _own(repo_root: Path, commit: str, base: str) -> list[str]:
+    # Evidence is compared with `base`: a Status note an earlier commit in
+    # the range added is as much the range's as one added alongside.
+    return pending_marks(repo_root, commit, own=True, base=base)
 
 
-def _preview(repo_root: Path, groups: list[Group], named: set[str], by: str) -> None:
+def _preview(repo_root: Path, base: str, groups: list[Group], named: set[str], by: str) -> None:
     for group in groups:
         print(group.root)
-        for entry in _own(repo_root, group.root.sha):
+        for entry in _own(repo_root, group.root.sha, base):
             print(f"    {entry}")
         for fixup in group.fixups:
             print(f"    fixup {fixup}")
-            for entry in _own(repo_root, fixup.sha):
+            for entry in _own(repo_root, fixup.sha, base):
                 print(f"        {entry}")
     for group in groups:
         if group.root.sha in named:
@@ -335,7 +337,7 @@ def _apply(repo_root: Path, base: str, groups: list[Group], named: set[str], by:
         if group.root.sha not in named:
             continue
         print(f"approved in {new[:7]} {group.root.subject}")
-        for entry in _own(repo_root, new):
+        for entry in _own(repo_root, new, base):
             print(f"    left pending {entry}")
     print(f"old tip: {old}")
     print(f"to publish: git push --force-with-lease={branch}:{old}")
@@ -374,7 +376,7 @@ def fold_approvals(argv: list[str]) -> int:
         _refuse_unless_ready(repo_root, base)
         groups = _groups(repo_root, _range(repo_root, base))
         try:
-            if not any(_own(repo_root, c.sha) for g in groups for c in (g.root, *g.fixups)):
+            if not any(_own(repo_root, c.sha, base) for g in groups for c in (g.root, *g.fixups)):
                 raise Refusal(f"nothing is pending in {args.base}..HEAD")
         except ConfigError as e:
             raise Refusal(f"{CHECKED_FILENAME} is invalid in the range: {e}") from e
@@ -383,7 +385,7 @@ def fold_approvals(argv: list[str]) -> int:
         print(f"refusing: {e}", file=sys.stderr)
         return 1
     if not args.apply or not named:
-        _preview(repo_root, groups, named, args.by)
+        _preview(repo_root, base, groups, named, args.by)
         print("nothing changed: this was a preview; add --apply to fold")
         return 0
     return _apply(repo_root, base, groups, named, args.by)

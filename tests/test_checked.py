@@ -67,10 +67,16 @@ class CheckedMarkTests(RegistryClearingTestCase):
         diff_range: str | None = None,
         partial: bool = False,
         pending: bool = False,
+        kind: str | None = None,
+        evidence: tuple[str, ...] = (),
     ):
         argv = ["mark-checked"]
         if by is not None:
             argv += ["--by", by]
+        if kind is not None:
+            argv += ["--kind", kind]
+        for ref in evidence:
+            argv += ["--evidence", ref]
         if partial:
             argv.append("--partial")
         if pending:
@@ -1454,7 +1460,7 @@ class CheckedMarkTests(RegistryClearingTestCase):
 
         self.assertEqual((code, err), (1, ""))
         self.assertEqual(
-            out, "docs/a.md:3 claim-words-totalising read the rules\n1 pending mark(s)\n"
+            out, "docs/a.md:3 claim-words-totalising read the rules [current]\n1 pending mark(s)\n"
         )
 
     def test_pending_marks_names_each_marks_reader(self) -> None:
@@ -1473,8 +1479,8 @@ class CheckedMarkTests(RegistryClearingTestCase):
             sorted(out.splitlines()),
             [
                 "2 pending mark(s)",
-                "docs/a.md:1 claim-words-totalising read the runner",
-                "docs/a.md:3 claim-words-totalising read the rules (by claims:reading-agent (sonnet))",
+                "docs/a.md:1 claim-words-totalising read the runner [current]",
+                "docs/a.md:3 claim-words-totalising read the rules (by claims:reading-agent (sonnet)) [current]",
             ],
         )
 
@@ -1491,7 +1497,7 @@ class CheckedMarkTests(RegistryClearingTestCase):
         code, out, _ = self.run_cli("pending-marks")
 
         self.assertEqual(code, 1)
-        self.assertIn("docs/a.md:0 claim-words-totalising read the rules\n", out)
+        self.assertIn("docs/a.md:0 claim-words-totalising read the rules [current]\n", out)
 
     def test_pending_marks_at_a_commit_reads_that_commits_file(self) -> None:
         base = self.repo.short_head()
@@ -1506,7 +1512,7 @@ class CheckedMarkTests(RegistryClearingTestCase):
         self.assertEqual(self.run_cli("pending-marks")[0], 0)
         code, out, _ = self.run_cli("pending-marks", "--at", "HEAD")
         self.assertEqual(code, 1)
-        self.assertIn("docs/a.md:3 claim-words-totalising read the rules\n", out)
+        self.assertIn("docs/a.md:3 claim-words-totalising read the rules [current]\n", out)
         self.assertEqual(self.run_cli("pending-marks", "--at", base), (0, "0 pending mark(s)\n", ""))
 
     def test_pending_marks_with_a_bad_commit_or_an_invalid_file_exits_2(self) -> None:
@@ -1553,10 +1559,10 @@ class CheckedMarkTests(RegistryClearingTestCase):
             sorted(out.splitlines()),
             sorted(
                 [
-                    "approved docs/a.md:1 claim-words-totalising read the runner",
-                    f"left pending docs/a.md:3 claim-words-totalising read the rules again: changed since {reviewed}",
-                    f"left pending docs/a.md:5 claim-words-totalising read the tests again: changed since {reviewed}",
-                    f"left pending docs/a.md:7 claim-words-totalising read the build: not in {reviewed}",
+                    "approved docs/a.md:1 claim-words-totalising read the runner [current]",
+                    f"left pending docs/a.md:3 claim-words-totalising read the rules again [current]: changed since {reviewed}",
+                    f"left pending docs/a.md:5 claim-words-totalising read the tests again [current]: changed since {reviewed}",
+                    f"left pending docs/a.md:7 claim-words-totalising read the build [current]: not in {reviewed}",
                     "approved 1 mark(s), left 3 pending",
                 ]
             ),
@@ -1615,10 +1621,10 @@ class CheckedMarkTests(RegistryClearingTestCase):
             sorted(out.splitlines()),
             sorted(
                 [
-                    "approved docs/a.md:1 claim-words-totalising read the runner (by agent)",
-                    "approved docs/a.md:3 claim-words-totalising read the rules",
-                    f"left pending docs/a.md:5 claim-words-totalising read the tests (by another agent): changed since {reviewed}",
-                    f"left pending docs/a.md:7 claim-words-totalising read the build (by agent): not in {reviewed}",
+                    "approved docs/a.md:1 claim-words-totalising read the runner (by agent) [current]",
+                    "approved docs/a.md:3 claim-words-totalising read the rules [current]",
+                    f"left pending docs/a.md:5 claim-words-totalising read the tests (by another agent) [current]: changed since {reviewed}",
+                    f"left pending docs/a.md:7 claim-words-totalising read the build (by agent) [current]: not in {reviewed}",
                     "approved 2 mark(s), left 2 pending",
                 ]
             ),
@@ -1684,6 +1690,263 @@ class CheckedMarkTests(RegistryClearingTestCase):
         self.assertIn("claims.checked.toml is invalid", err)
         self.assertIn("has the file, mode and unit of the one at line 1", err)
         self.assertEqual(sidecar.read_bytes(), before)
+
+
+    # Kinds (ADR 0019): a mark records its claim's kind, and a past or
+    # superseded mark expires on its unit's text and its evidence.
+
+    def sidecar(self) -> Path:
+        return self.repo.root / "claims.checked.toml"
+
+    def test_a_mark_with_no_kind_loads_as_current(self) -> None:
+        self.repo.write("docs/a.md", "Every check runs.\n")
+        self.mark("docs/a.md:1 claim-words-totalising read the runner")
+
+        text = self.sidecar().read_text()
+        self.assertNotIn("kind", text)
+        self.assertNotIn("text =", text)
+        self.assertNotIn("evidence", text)
+        [mark] = load_marks(self.repo.root)
+        self.assertEqual((mark.kind, mark.text, dict(mark.evidence)), (None, None, {}))
+
+    def test_a_past_mark_records_its_kind_and_text(self) -> None:
+        self.repo.write("docs/a.md", "Every check runs.\n")
+
+        code, _, err = self.mark("docs/a.md:1 claim-words-totalising held at its writing", kind="past")
+
+        self.assertEqual((code, err), (0, ""))
+        self.assertIn('kind = "past"', self.sidecar().read_text())
+        [mark] = load_marks(self.repo.root)
+        self.assertEqual(mark.kind, "past")
+        self.assertIsNotNone(mark.text)
+        self.assertEqual(load_marks(self.repo.root), [mark])
+        self.assertEqual(_render(mark).count("text ="), 1)
+
+    def test_a_past_mark_holds_when_a_subject_changes(self) -> None:
+        self.repo.write("src/cache.py", "CACHE = 1\n")
+        self.repo.commit()
+        self.repo.write("docs/a.md", "Every read went through src/cache.py first.\n")
+        self.mark("docs/a.md:1 claim-words-totalising read at its writing", kind="past")
+
+        self.repo.write("src/cache.py", "CACHE = 2\n")
+        self.assertTrue(self.summary().endswith(", 1 quiet while checked"))
+        self.repo.write("src/cache.py", "")
+        (self.repo.root / "src/cache.py").unlink()
+        self.assertTrue(self.summary().endswith(", 1 quiet while checked"))
+
+    def test_a_past_mark_holds_when_its_unit_names_a_new_subject(self) -> None:
+        self.repo.write("docs/a.md", "Every read went through `store`.\n")
+        self.mark("docs/a.md:1 claim-words-totalising read at its writing", kind="past")
+
+        self.repo.write("src/store.py", "STORE = 1\n")
+        self.assertTrue(self.summary().endswith(", 1 quiet while checked"))
+
+    def test_an_intended_mark_records_its_kind_and_expires_as_a_current_one(self) -> None:
+        self.repo.write("src/cache.py", "CACHE = 1\n")
+        self.repo.commit()
+        self.repo.write("docs/a.md", "Every read will go through src/cache.py first.\n")
+        self.mark("docs/a.md:1 claim-words-totalising delivered", kind="intended")
+
+        self.assertIn('kind = "intended"', self.sidecar().read_text())
+        self.assertNotIn("text =", self.sidecar().read_text())
+        self.assertTrue(self.summary().endswith(", 1 quiet while checked"))
+        self.repo.write("src/cache.py", "CACHE = 2\n")
+        self.assertEqual(self.summary(), "1 checked, 1 finding(s), 0 gate failure(s)")
+
+    def section_always_reported(self) -> None:
+        """notes/s.md, one section naming src/cache.py, which a stand-in
+        for `stale-claims` reports on every run, whatever its staleness:
+        these tests are about the mark, not the ranking."""
+
+        register_check(
+            stale_claims.NAME,
+            lambda root, diff_range, config: [
+                Finding(file="notes/s.md", line=1, message="stale", mode=stale_claims.NAME, gate=False)
+            ],
+        )
+        self.repo.write("src/cache.py", "CACHE = 1\n")
+        self.repo.write("notes/s.md", "## Caching\n\nReads go through src/cache.py.\n")
+        self.assertEqual(self.mark("notes/s.md:1 stale-claims read at its writing", kind="past")[0], 0)
+
+    def test_a_past_section_mark_expires_on_a_word_of_its_body_and_not_on_a_subject(self) -> None:
+        self.section_always_reported()
+
+        self.repo.write("src/cache.py", "CACHE = 3\n")
+        self.assertTrue(self.summary().endswith(", 1 quiet while checked"))
+
+        # The heading, the unit's hash, is unchanged; a word under it isn't.
+        self.repo.write("notes/s.md", "## Caching\n\nReads went through src/cache.py.\n")
+        self.assertIn("[advisory] notes/s.md:1 (stale-claims)", self.run_cli()[1])
+        self.assertNotIn("quiet", self.summary())
+
+    def test_a_reflow_keeps_a_past_mark(self) -> None:
+        self.section_always_reported()
+
+        self.repo.write("notes/s.md", "## Caching\n\nReads go\nthrough *src/cache.py*.\n")
+
+        self.assertTrue(self.summary().endswith(", 1 quiet while checked"))
+
+    def test_a_partial_past_mark_can_be_written_for_a_section_only(self) -> None:
+        self.stale_section()
+        code, _, err = self.mark(
+            "notes/s.md:1 stale-claims read part at its writing",
+            diff_range="HEAD~1",
+            partial=True,
+            kind="past",
+        )
+        self.assertEqual((code, err), (0, ""))
+        self.assertEqual([(m.kind, m.partial) for m in load_marks(self.repo.root)], [("past", True)])
+
+        self.repo.write("docs/a.md", "Every check ran.\n")
+        code, _, err = self.mark("docs/a.md:1 claim-words-totalising read", partial=True, kind="past")
+        self.assertEqual(code, 1)
+        self.assertIn("can't be marked partial", err)
+
+    def adr(self, status: str = "Superseded by ADR 2.") -> None:
+        self.repo.write("decisions/1.md", f"# 1\n\n## Status\n\n{status}\n\n## Decision\n\nEvery check runs.\n")
+
+    def superseded(self) -> None:
+        self.adr()
+        self.repo.commit()
+        self.repo.write("docs/a.md", "Every read goes through src/cache.py first.\n")
+        code, _, err = self.mark(
+            "docs/a.md:1 claim-words-totalising held before ADR 2",
+            kind="superseded",
+            evidence=("decisions/1.md#status",),
+        )
+        self.assertEqual((code, err), (0, ""))
+
+    def test_a_superseded_mark_records_its_evidence_and_holds_while_it_does(self) -> None:
+        self.superseded()
+
+        [mark] = load_marks(self.repo.root)
+        self.assertEqual((mark.kind, list(mark.evidence)), ("superseded", ["decisions/1.md#status"]))
+        self.repo.write("src/cache.py", "CACHE = 1\n")
+        self.repo.write("decisions/1.md", (self.repo.root / "decisions/1.md").read_text() + "More.\n")
+        self.assertTrue(self.summary().endswith(", 1 quiet while checked"))
+
+    def test_a_superseded_mark_expires_when_its_evidence_changes_and_not_on_a_reflow(self) -> None:
+        self.superseded()
+
+        self.adr("Superseded\nby *ADR 2*.")
+        self.assertTrue(self.summary().endswith(", 1 quiet while checked"))
+
+        self.adr("Accepted.")
+        self.assertEqual(self.summary(), "1 checked, 1 finding(s), 0 gate failure(s)")
+
+        self.adr()
+        self.repo.write("decisions/1.md", "# 1\n\nNo status any more.\n")
+        self.assertEqual(self.summary(), "1 checked, 1 finding(s), 0 gate failure(s)")
+
+    def test_a_superseded_mark_needs_evidence_and_only_past_or_superseded_take_any(self) -> None:
+        self.adr()
+        self.repo.write("docs/a.md", "Every check runs.\n")
+        entry = "docs/a.md:1 claim-words-totalising read"
+
+        for kwargs in (
+            {"kind": "superseded"},
+            {"evidence": ("decisions/1.md#status",)},
+            {"kind": "intended", "evidence": ("decisions/1.md#status",)},
+            {"kind": "bogus"},
+        ):
+            with self.subTest(**kwargs), self.assertRaises(SystemExit) as raised:
+                self.mark(entry, **kwargs)  # type: ignore[arg-type]
+            self.assertEqual(raised.exception.code, 2)
+            self.assertFalse(self.sidecar().exists())
+
+        code, _, err = self.mark(entry, kind="past", evidence=("decisions/1.md#no-such",))
+        self.assertEqual(code, 1)
+        self.assertIn("decisions/1.md#no-such", err)
+        self.assertFalse(self.sidecar().exists())
+
+        code, _, err = self.mark(entry, kind="past", evidence=("decisions/1.md#status",))
+        self.assertEqual((code, err), (0, ""))
+
+    def test_a_bad_kind_or_its_keys_make_the_sidecar_invalid_and_nothing_is_written(self) -> None:
+        self.repo.write("docs/a.md", "Every check runs.\n\nEvery rule holds.\n")
+        self.mark("docs/a.md:1 claim-words-totalising read the runner", kind="past")
+        good = self.sidecar().read_text()
+
+        for bad, problem in (
+            (good.replace('kind = "past"', 'kind = "bogus"'), "'kind'"),
+            (good.replace('kind = "past"', 'kind = "current"'), "'kind'"),
+            ("\n".join(l for l in good.splitlines() if not l.startswith("text =")), "'text'"),
+            (good.replace('kind = "past"', 'kind = "intended"'), "'text'"),
+            (good.replace('kind = "past"', 'kind = "superseded"'), "'evidence'"),
+            (good.replace("subjects =", 'evidence = { "../x.md" = "h" }\nsubjects ='), "outside"),
+            (good.replace("subjects =", 'evidence = { "x.md" = 1 }\nsubjects ='), "'evidence'"),
+        ):
+            with self.subTest(problem=problem, bad=bad):
+                self.sidecar().write_text(bad)
+                code, _, err = self.mark("docs/a.md:3 claim-words-totalising read the rules")
+                self.assertEqual(code, 2)
+                self.assertIn(problem, err)
+                self.assertEqual(self.sidecar().read_text(), bad)
+
+    def test_the_listing_shows_each_marks_kind(self) -> None:
+        self.repo.write("docs/a.md", "Every check runs.\n\nEvery rule held.\n")
+        self.mark("docs/a.md:1 claim-words-totalising read the runner", pending=True)
+        self.mark("docs/a.md:3 claim-words-totalising read the rules", pending=True, kind="past")
+
+        code, out, err = self.run_cli("pending-marks")
+
+        self.assertEqual((code, err), (1, ""))
+        self.assertEqual(
+            out,
+            "docs/a.md:1 claim-words-totalising read the runner [current]\n"
+            "docs/a.md:3 claim-words-totalising read the rules [past]\n"
+            "2 pending mark(s)\n",
+        )
+
+    def test_the_listing_flags_a_superseded_mark_whose_evidence_changed_with_it(self) -> None:
+        start = self.repo.short_head()
+        self.repo.write("docs/a.md", "Every read goes through src/cache.py first.\n\nEvery rule holds.\n")
+        self.adr("Accepted.")
+        self.repo.commit()
+        # One commit both supersedes the claim and marks it so.
+        self.adr()
+        self.mark(
+            "docs/a.md:1 claim-words-totalising held before ADR 2",
+            pending=True,
+            kind="superseded",
+            evidence=("decisions/1.md#status",),
+            diff_range=start,
+        )
+        self.mark(
+            "docs/a.md:3 claim-words-totalising read the rules",
+            pending=True,
+            kind="past",
+            evidence=("README.md",),
+            diff_range=start,
+        )
+        flagged = (
+            "docs/a.md:1 claim-words-totalising held before ADR 2 "
+            "[superseded; evidence decisions/1.md#status added or changed in range]"
+        )
+        held = "docs/a.md:3 claim-words-totalising read the rules [past]"
+
+        self.assertEqual(sorted(self.run_cli("pending-marks")[1].splitlines()[:2]), [flagged, held])
+        self.repo.commit()
+        self.assertEqual(
+            sorted(self.run_cli("pending-marks", "--at", "HEAD")[1].splitlines()[:2]), [flagged, held]
+        )
+        code, out, _ = self.run_cli("approve-marks", "HEAD")
+        self.assertEqual(code, 0)
+        self.assertIn(f"approved {flagged}", out.splitlines())
+
+        # Evidence that was already there when the mark was written isn't flagged.
+        self.repo.write("docs/a.md", "Every read goes through src/cache.py first.\n\nEvery rule holds.\n\nEvery test passes.\n")
+        self.mark(
+            "docs/a.md:5 claim-words-totalising read the tests",
+            pending=True,
+            kind="superseded",
+            evidence=("decisions/1.md#status",),
+            diff_range=start,
+        )
+        self.assertIn(
+            "docs/a.md:5 claim-words-totalising read the tests [superseded]",
+            self.run_cli("pending-marks")[1].splitlines(),
+        )
 
 
 def a_mark(file: str, note: str = "n", unit: str = "u") -> Mark:

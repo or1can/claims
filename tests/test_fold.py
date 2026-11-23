@@ -100,11 +100,49 @@ class FoldTests(RegistryClearingTestCase):
         self.assertEqual((code, err), (1, ""))
         self.assertEqual(
             out,
-            "docs/a.md:3 claim-words-totalising read the rules again (by agent)\n"
-            "docs/a.md:5 claim-words-totalising read the tests (by agent)\n"
+            "docs/a.md:3 claim-words-totalising read the rules again (by agent) [current]\n"
+            "docs/a.md:5 claim-words-totalising read the tests (by agent) [current]\n"
             "2 pending mark(s)\n",
         )
         self.assertEqual(self.run_cli("pending-marks", "--at", "HEAD")[1].splitlines()[-1], "3 pending mark(s)")
+
+    def test_a_preview_flags_evidence_an_earlier_commit_in_the_range_added(self) -> None:
+        self.doc("Every check runs.")
+        self.repo.write("decisions/1.md", "# 1\n\n## Status\n\nSuperseded by ADR 2.\n")
+        c1 = self.commit("c1")
+        code, _, err = self.run_cli(
+            "mark-checked", "--by", "agent", "--diff-range", self.base, "--pending",
+            "--kind", "superseded", "--evidence", "decisions/1.md#status", "-",
+            stdin="docs/a.md:1 claim-words-totalising held before ADR 2\n",
+        )
+        self.assertEqual((code, err), (0, ""))
+        c2 = self.commit("c2")
+        entry = "docs/a.md:1 claim-words-totalising held before ADR 2 (by agent)"
+
+        flagged = f"{entry} [superseded; evidence decisions/1.md#status added or changed in range]"
+        # Against c2's own parent, the Status note was already there; against
+        # the base a reviewer names, the range added it.
+        self.assertIn(f"{entry} [superseded]", self.run_cli("pending-marks", "--at", c2, "--own")[1].splitlines())
+        self.assertIn(
+            flagged,
+            self.run_cli("pending-marks", "--at", c2, "--own", "--base", self.base)[1].splitlines(),
+        )
+        self.assertIn(flagged, self.run_cli("pending-marks", "--base", self.base)[1].splitlines())
+        self.assertIn(f"approved {flagged}", self.run_cli("approve-marks", c2, "--base", self.base)[1].splitlines())
+        self.git("checkout", "-q", "--", ".")
+        code, _, err = self.run_cli("pending-marks", "--base", "no-such-rev")
+        self.assertEqual(code, 2)
+        self.assertIn("no-such-rev", err)
+        # Against the base, the range added it.
+        lines = self.fold()[1].splitlines()
+        self.assertEqual(
+            lines[:3],
+            [
+                f"{c1[:7]} c1",
+                f"{c2[:7]} c2",
+                f"    {flagged}",
+            ],
+        )
 
     def fold(self, *argv: str) -> tuple[int, str, str]:
         return self.run_cli("fold-approvals", self.base, "--by", "Kevin", *argv)
@@ -140,13 +178,13 @@ class FoldTests(RegistryClearingTestCase):
                 lines[:5],
                 [
                     f"{c1[:7]} c1",
-                    "    docs/a.md:1 claim-words-totalising read the runner (by agent)",
+                    "    docs/a.md:1 claim-words-totalising read the runner (by agent) [current]",
                     f"    fixup {f[:7]} fixup! c1",
-                    "        docs/a.md:1 claim-words-totalising read the runner closely (by agent)",
+                    "        docs/a.md:1 claim-words-totalising read the runner closely (by agent) [current]",
                     f"{c2[:7]} c2",
                 ],
             )
-            self.assertIn("    docs/a.md:3 claim-words-totalising read the rules (by agent)", lines)
+            self.assertIn("    docs/a.md:3 claim-words-totalising read the rules (by agent) [current]", lines)
             self.assertIn("nothing changed: this was a preview; add --apply to fold", lines)
 
     def test_each_refusal_exits_non_zero_and_rewrites_nothing(self) -> None:

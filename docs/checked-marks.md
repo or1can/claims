@@ -26,12 +26,19 @@ is what a check's `exclude` key is for.
 | `approved_by` | string, optional | Who approved a [pending mark](#pending-marks), written by `approve-marks --by` or `fold-approvals --by`. Nothing acts on this key; it is a record. |
 | `extent` | `"full"` or `"partial"`, optional | How much of the unit was read. Written only for a [partial mark](#partial-marks); an entry without it is full. |
 | `review` | `"pending"`, optional | That no person has reviewed the reading yet. Written only for a [pending mark](#pending-marks); an entry without it is reviewed. |
+| `kind` | `"intended"`, `"superseded"` or `"past"`, optional | The [kind of claim](#kinds) the unit holds. An entry without it is current. |
+| `text` | string | A hash of the unit's whole text. Written for a `superseded` or `past` mark, and required there; no other entry may hold it. |
+| `evidence` | table of path to hash | A hash of each file, or `page.md#anchor` section, the kind rests on. Written for a `superseded` or `past` mark, and required, non-empty, for a `superseded` one; no other entry may hold it. |
 
 A missing file means no marks. A file that does not parse, an entry
 missing a required key or holding one of the wrong shape, an entry with an
 empty note, an entry whose `extent` is neither `"full"` nor
-`"partial"`, an entry whose `review` is anything but `"pending"`, an entry whose `file` or a subject is an absolute path or
-climbs out with `..`, an entry with the `file`, `mode` and `unit` of an
+`"partial"`, an entry whose `review` is anything but `"pending"`, an
+entry whose `kind` is anything but `"intended"`, `"superseded"` or
+`"past"`, a `superseded` or `past` entry without a `text`, a
+`superseded` entry without `evidence`, any other entry holding a `text`
+or `evidence`, an entry whose `file`, a subject or an evidence path is
+an absolute path or climbs out with `..`, an entry with the `file`, `mode` and `unit` of an
 earlier one, as a conflict resolved by keeping both sides leaves, or an
 entry written other than as a `[[mark]]`
 table is invalid. A path that reaches outside the repository through a
@@ -117,17 +124,63 @@ that the sentence was read, not that it is still true: a claim about
 behaviour the sentence never cites by path or name can go false under
 it while the mark holds.
 
+A [superseded or past mark](#kinds) is the exception: none of the rules
+above about subjects applies to it.
+
 A mark quiets at most `copies` findings. When the file holds more copies
 of the unit than the mark recorded, as many findings as there are extra
 copies stay reported, because which copy is the new one cannot be told.
 Marking the new copy records the larger count and quiets them all.
+
+## Kinds
+
+A claim is one of four kinds, and a mark can record which, as its
+`kind`:
+
+- **Intended**: states a decided state as though it holds, and is read
+  for whether it has been delivered.
+- **Current**: says what is, and is read against the tree as it stands.
+- **Superseded**: was meant to hold and no longer does, replaced or
+  withdrawn, and is read against the tree just before that happened.
+- **Past**: says what was, as a record, and is read against the tree as
+  it was at its writing.
+
+A mark without a `kind` is current, so every mark written before kinds
+existed means what it did.
+
+An intended or current mark expires exactly as
+[above](#when-a-mark-stops-applying), on its wording and its subjects.
+
+A superseded or past claim is read at a tree that doesn't move, the one
+before its replacement or at its writing, so a change to a subject
+today can't change what it was read to. Its mark compares no subject: a
+recorded subject that changes or goes, and a subject the unit names that
+the mark didn't record, leave it applying. It stops applying when either
+of these happens instead:
+
+- The unit's whole text changes. For a `stale-claims` section that is
+  its body as well as its heading, where the unit hash covers the
+  heading alone, so changing a word under an unchanged heading expires
+  the mark. For every other check the whole text is the unit itself.
+- A file or section recorded in `evidence` changes, or is gone. That is
+  what the kind rests on: a decision record's Status, say, or the
+  section of the record replacing it that says so. Evidence is a whole
+  file or section, never one sentence, so a replacing record's sentence
+  is recorded as the section holding it, and any change to that section
+  expires the mark.
+
+Both hashes are of words, the way a unit is hashed, so rewrapping the
+section, or the Status, keeps the mark and changing one word loses it.
+
+A partial mark can have any kind, under the same rule as any [partial
+mark](#partial-marks) on which modes can be partly read.
 
 ## Writing marks
 
 `mark-checked` records a batch of marks:
 
 ```sh
-python3 -m claims.cli mark-checked [--repo-root R] [--diff-range RANGE] [--by NAME] [--partial] [--pending] [--prune] [FILE|-]
+python3 -m claims.cli mark-checked [--repo-root R] [--diff-range RANGE] [--by NAME] [--partial] [--pending] [--kind KIND [--evidence PATH[#ANCHOR] ...]] [--prune] [FILE|-]
 ```
 
 It reads entries one per line from `FILE`, or from standard input when the
@@ -179,6 +232,17 @@ where the entry before it is pruned or replaced.
 mark](#partial-marks), and `--pending` as a [pending
 mark](#pending-marks); the two combine.
 
+`--kind` gives every mark in the batch one [kind](#kinds), `intended`,
+`superseded` or `past`; without it, each is current. Mark findings of
+different kinds in separate batches. `--evidence` names a file, or a
+`page.md#anchor` section, that the kind rests on, and is repeatable;
+each is hashed onto every mark in the batch. It is taken only with
+`--kind superseded` or `--kind past`, and `--kind superseded` needs at
+least one. A combination outside those rules, or a `--kind` that isn't
+one of the three, is a usage error, exit `2`. An `--evidence` that names
+no file, or no section of its file, is a bad entry: the command names
+it and writes nothing.
+
 There is no form that marks findings without a note each. Whoever reads
 the finding writes the mark, and that can be an agent, once it has read
 the finding against what it cites. The plugin ships one agent for that
@@ -222,13 +286,14 @@ afresh.
 The review cycle has two more commands. Neither runs any check.
 
 ```sh
-python3 -m claims.cli pending-marks [--repo-root R] [--at REV [--own]]
+python3 -m claims.cli pending-marks [--repo-root R] [--at REV [--own]] [--base BASE]
 ```
 
 `pending-marks` prints each pending entry as `<file>:<line> <mode>
 <note>`, followed by ` (by <by>)` when the entry names its reader, so
-the reader is in view when a person reviews the mark, then `N pending
-mark(s)`, and exits `1` while any exist, `0`
+the reader is in view when a person reviews the mark, then its
+[kind](#kinds) in brackets, `[current]` for an entry without one, then
+`N pending mark(s)`, and exits `1` while any exist, `0`
 when none do, so CI can fail a pull request until its marks are
 reviewed. The line is where the first copy of the mark's unit starts in
 `<file>`, or `0` when the unit is gone; expired and
@@ -239,8 +304,22 @@ file has no pending marks. Adding `--own` lists only the pending entries
 `REV` wrote itself: those its first parent lacks, or holds with any key
 different. An entry `REV` inherited unchanged is left out.
 
+A superseded or past entry whose evidence was added or changed in the
+range under review is flagged: its bracket reads `[superseded; evidence
+<path> added or changed in range]`. A change could otherwise quiet a
+claim it breaks by adding a Status note that supersedes it, in the same
+pull request, and the flag is what puts that in front of the reviewer.
+The evidence is compared with the range's base: `BASE` when `--base
+BASE` names one, as it should for a pull request whose Status note and
+mark may sit in different commits, and otherwise `HEAD` for the working
+tree and `REV`'s first parent with `--at REV`. The
+[`fold-approvals`](#folding-approvals-into-their-commits) preview always
+compares with its own `BASE`. An evidence path the base lacks, or whose
+section it lacks, counts as added. A `--base` git can't resolve to a
+commit exits `2`.
+
 ```sh
-python3 -m claims.cli approve-marks [--repo-root R] [--by NAME] REV
+python3 -m claims.cli approve-marks [--repo-root R] [--by NAME] [--base BASE] REV
 ```
 
 `approve-marks` approves the marks a reviewer read at commit `REV`: it
@@ -248,7 +327,8 @@ removes `review` from every entry that is pending in the working tree
 and was pending at `REV` with every other key identical. Each approved
 entry is rewritten as `mark-checked` writes it; every other entry keeps
 its text and comments. It prints `approved <entry>` for each, each
-`<entry>` as `pending-marks` prints it, and
+`<entry>` as `pending-marks --at REV` prints it, its evidence compared
+with `REV`'s first parent or with `--base BASE`, and
 `left pending <entry>: <why>` for each pending entry it left: `changed
 since REV` when the entry at `REV` differs, including one that was
 reviewed there and is pending now, or `not in REV`. A closing line gives
@@ -308,7 +388,9 @@ python3 -m claims.cli fold-approvals [--repo-root R] BASE --by NAME [--approve R
 will merge into, which has to be up to date already: the command never
 fetches. Without `--apply`, it changes nothing. For each commit in
 `BASE..HEAD` it prints the commit, then that commit's own pending marks
-as `pending-marks --at <commit> --own` lists them, then each `fixup!`
+as `pending-marks --at <commit> --own` lists them, except that evidence
+is compared with `BASE`, so a Status note an earlier commit in the
+range added is flagged too, then each `fixup!`
 commit that targets it, with that fixup's own pending marks under it.
 A `fixup!` targets the commit `git rebase --autosquash` would fold it
 into: the first earlier commit whose subject it names, or the one it
