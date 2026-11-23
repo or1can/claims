@@ -248,7 +248,7 @@ mark quiets its finding just the same, so it doesn't hold you up.
 
 Approving is a person's step, not yours: never run `approve-marks` or
 `fold-approvals --apply` unless the user asks you to. `pending-marks`
-lists what awaits their review, each mark with its `by`. Approving
+lists what awaits their review, each mark with its `by` and its kind. Approving
 writes the approver in `approved_by` and leaves `by`, the reader, as it
 is.
 

@@ -26,6 +26,12 @@
   code there is still reported as a retraction. A `claims.toml` key that
   adds a row of the same shape (line-comment tokens, block delimiters,
   nesting, docstrings) is the likely fix.
+- `mark-checked --kind` and `--evidence` ship unused here: no mark in
+  `claims.checked.toml` records a kind, and the `check-claims` skill
+  doesn't pass either, because the reading agent can't yet infer a kind
+  or read a claim at its kind's tree. Both, and re-marking this
+  repository's findings stuck on `not checked` with their kinds, are
+  #267.
 - `claims.markdown.SENTENCE_RE`'s fallback for a paragraph's unterminated
   tail is `\S.+$`, so a one-character tail is dropped: `It runs. X`
   yields only `It runs.`. Found reviewing #154; out of that ticket's

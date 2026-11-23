@@ -11,6 +11,22 @@ reached you, not just that one was pushed upstream.
 
 ## [Unreleased]
 
+## [0.33.0] - 2026-11-23
+
+- Added: `mark-checked --kind intended|superseded|past` records the kind
+  of claim a batch of marks holds, with `--evidence PATH[#ANCHOR]` for
+  the Status or record a superseded or past kind rests on. A superseded
+  or past mark expires when its unit's whole text or its evidence
+  changes, not when a subject does, so a mark on a past state stops
+  coming back on every edit to a file it names. A mark with no `kind`
+  is current and behaves as before (`docs/checked-marks.md#kinds`).
+- Changed: `pending-marks`, `approve-marks` and the `fold-approvals`
+  preview end each mark with its kind in brackets, `[current]` included,
+  and flag a superseded or past mark whose evidence was added or changed
+  in the range under review. `pending-marks --base BASE` and
+  `approve-marks --base BASE` name where that range starts, such as a
+  pull request's base.
+
 ## [0.32.0] - 2026-11-20
 
 - Changed: `approve-marks --by NAME` and `fold-approvals --by NAME` now
