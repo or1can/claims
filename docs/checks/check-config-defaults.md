@@ -142,9 +142,9 @@ on [Configuring `claims`](../configuring.md#silencing-one-check-at-commit-time).
 
 ## Retirement markers
 
-None. A claim inside a blockquote, an italicised sentence, a paragraph
-opening "Previously said:" or a fenced code block is read like any other
-line. The [retired-quote
+None. A claim inside a blockquote, an italicised sentence or a
+paragraph opening "Previously said:" is read like any other line; one in
+a fenced code block is skipped as an example, as above. The [retired-quote
 exemption](../concepts.md#the-retired-quote-exemption) skips a sentence
 quoted in order to retire it; this check has no exemption of its own,
 and a sentence about a mapped setting's former default is kept out of

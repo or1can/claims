@@ -135,9 +135,9 @@ enabled = false
 # Measured and deliberately absent — re-adding one wants new reasoning,
 # not just an edit here:
 #
-# - `decisions/*.md` and `CHANGELOG.md` are predominantly dated claims
-#   (`CONTEXT.md`), which is the opposite of what this check wants. An
-#   ADR's counts are frozen at the decision's date on purpose, and a
+# - `decisions/*.md` and `CHANGELOG.md` are predominantly past,
+#   superseded or intended claims (`CONTEXT.md`), which is the opposite
+#   of what this check wants. An ADR's counts are frozen at the decision's date on purpose, and a
 #   shipped changelog entry is never reworded (`AGENTS.md`,
 #   "Versioning"); on #55's own measurement of a list built around them,
 #   over the same `HEAD~15`, they supplied 77 of its 99 findings,
@@ -167,7 +167,7 @@ enabled = false
 # (`--diff-range e7af269~1` at d95e9dc, e7af269 being the commit that
 # added the page, so every line counts as added): 28 findings, nearly all
 # counts and absolutes about what setup, the two hooks and the commands
-# do. Those are live claims about this tree that drift when the
+# do. Those are current claims about this tree that drift when the
 # tutorial's script or hooks change, and one was already false — "Setup
 # writes three git settings", when the third was an option to `git init`.
 #
@@ -191,7 +191,7 @@ files = [
 
 # `temporal-words` is opt-in by omission the same way `claim-words` above
 # is, and wants a different file set: the pages describing what this tool
-# does now, with every file of dated claims left out. The list is the
+# does now, with every file of past claims left out. The list is the
 # site's own prose pages plus the README, measured over `HEAD~1`,
 # `HEAD~5` and `HEAD~15` at 4afaff6 (0 / 0 / 3 findings). Zero over a
 # release's worth of commits is the expected steady state, not a sign the
@@ -205,14 +205,14 @@ files = [
 # - `docs/checks/*.md`, the noisiest source measured by a wide margin: 17
 #   findings over `HEAD~15`, 12 of them one sentence shape. Every check
 #   page's "Retirement markers" section quotes the lead-in "Previously
-#   said:", and a word list cannot tell a quoted marker from a dated
+#   said:", and a word list cannot tell a quoted marker from a past
 #   claim. A check page is reference prose and belongs here on every other
 #   ground; it is out until that shape can be told apart.
-# - `CHANGELOG.md` and `decisions/*.md`, whose claims are dated: a shipped
-#   changelog entry describes a moment, and an ADR is frozen at its
-#   decision's date. `claim-words` above leaves them out for the same
-#   reason.
-# - `TODO.md`, for a different one: its claims are live, which is why
+# - `CHANGELOG.md` and `decisions/*.md`, whose claims are past,
+#   superseded or intended: a shipped changelog entry describes a moment,
+#   and an ADR's prose is kept as it was decided. `claim-words` above
+#   leaves them out for the same reason.
+# - `TODO.md`, for a different one: its claims are current, which is why
 #   `claim-words` above sweeps it, but its temporal phrasing is correct by
 #   nature, since it exists to say what isn't done yet. That is the
 #   reason the two checks can't share one key. With the two above, it
@@ -227,7 +227,7 @@ files = [
 #   "not yet committed" and "not yet pushed", definitions of `HEAD` and
 #   of `origin/main` that are correct by nature: `agents/docs.md`'s ban
 #   on "not yet" is aimed at feature status, which these are not. A
-#   tutorial's "now" is a step in its sequence, not a dated claim.
+#   tutorial's "now" is a step in its sequence, not a past claim.
 #
 # `docs/concepts.md` supplies all three of the findings above and is kept
 # anyway, for the reason `claim-words` keeps it: it is where this

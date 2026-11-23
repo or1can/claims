@@ -4,6 +4,14 @@
 
 Accepted. Ticket #77.
 
+Amended by `decisions/0019-claims-are-intended-current-superseded-or-past.md`
+(#261): the live and dated bullets, the sentence calling `TODO.md`'s
+claims live, and the sentence on which glossary entries carry
+`_Avoid_: Record-like` are replaced. Claims are now intended, current,
+superseded or past, each read against its own tree, and all four
+glossary entries carry the tombstone. "Dated" merged a claim meant to be
+with one about a state that has gone.
+
 ## Context
 
 "Record-like" did two incompatible jobs. `docs/concepts.md` and

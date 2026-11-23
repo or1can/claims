@@ -243,8 +243,8 @@ so is one under the `was:` marker that
 a name is gone still cites it, and whether the sentence is right is the
 subagent's question. The [retired-quote
 exemption](../concepts.md#the-retired-quote-exemption) skips a sentence
-quoted in order to retire it; this check's unit is a citation, and a
-candidate list is not narrowed by anything, by design.
+quoted in order to retire it; this check's unit is a citation, and no
+retirement marker narrows its candidate list, by design.
 
 ## Next
 

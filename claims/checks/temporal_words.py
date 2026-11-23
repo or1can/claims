@@ -65,7 +65,7 @@ which is one of the four version defects the simulation found.
 `decisions/0003-retirement-markers-are-scope-dependent.md` is the
 reasoning and the measurement. In this check's file scope — reference
 prose, with the changelog deliberately excluded — a `>` is a callout
-making a live claim, and 62 such lines in the corpus confirm it.
+making a current claim, and 62 such lines in the corpus confirm it.
 
 **Exemption polarity is the opposite of every sibling check's.** They
 ask whether a candidate *is* backticked, because backticking is what

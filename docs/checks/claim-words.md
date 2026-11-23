@@ -173,7 +173,7 @@ files = ["spec.md", "CONTEXT.md", "AGENTS.md"]
 
 | Key | Shape | Default | Reach for this when |
 | --- | --- | --- | --- |
-| `files` | list of glob strings; a bare string is a one-element list | `[]`: nothing is swept | Always, since the check reads nothing until this names a file. List every file whose sentences are claims you would want re-verified against the tree as it stands: a specification, a glossary, an agent instruction file, a README, a documentation site's own prose pages. In practice a changelog and a decision record fail that test — a changelog entry is dated at writing, and while a decision record's consequences are live, its motivation and counts are frozen at the decision's date and outnumber them. Designation is per file, so a file carrying both kinds is included on which kind predominates. A file not listed is never read, whatever it says. |
+| `files` | list of glob strings; a bare string is a one-element list | `[]`: nothing is swept | Always, since the check reads nothing until this names a file. List every file whose sentences are claims you would want re-verified against the tree as it stands: a specification, a glossary, an agent instruction file, a README, a documentation site's own prose pages. In practice a changelog and a decision record fail that test — a changelog entry is a past claim, and a decision record mixes past, intended, current and superseded claims, its past motivation and counts usually outnumbering the rest. Designation is per file, so a file carrying more than one kind is included on which kind predominates. A file not listed is never read, whatever it says. |
 
 There is no `exclude`. `files` is the only scope the check has, and a
 file outside it is already excluded.
@@ -184,7 +184,7 @@ on [Configuring `claims`](../configuring.md#silencing-one-check-at-commit-time).
 
 ## Retirement markers
 
-All three. A sentence is skipped when any line it spans is a Markdown
+This check honours all three. A sentence is skipped when any line it spans is a Markdown
 blockquote, `>` followed by a space or the end of the line; when the
 whole sentence is wrapped in `*asterisks*` or `_underscores_`; or when
 it opens with the lead-in "Previously said:", in any case. Any one of the
