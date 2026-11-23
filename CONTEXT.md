@@ -17,11 +17,15 @@ One thing a check found, cited to a `file:line`.
 _Avoid_: Error, warning, violation
 
 **Gate**:
-The finding severity that stops a commit.
+The finding severity that no reading settles, only a change: to the
+text, a fix or a marker beside the claim, or to the configuration
+scoping the check. It always fails the run.
 _Avoid_: Failure, blocker
 
 **Advisory**:
-A finding severity that is surfaced and never fails the run.
+A finding severity that a reading may settle, by a checked mark, as well
+as a fix. An unmarked one fails the run only where the caller asks for
+that.
 _Avoid_: Warning, info, soft failure
 
 **Mode**:

@@ -147,8 +147,8 @@ consistently rather than special cases:
   checked.
 
 The working-tree check always runs first and history is consulted only on
-a failure, so a project whose records all still resolve pays nothing for
-listing them. The reasoning behind the mechanism, and the alternatives it
+a failure, so a project whose records all still resolve pays no `git
+blame` for listing them. The reasoning behind the mechanism, and the alternatives it
 was chosen over, are in
 [ADR 0002](../../decisions/0002-historical-links-resolve-at-their-own-commit.md).
 
