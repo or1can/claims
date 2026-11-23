@@ -15,7 +15,7 @@ jobs:
       - uses: actions/setup-python@v7
         with:
           python-version: "3.11"
-      - uses: astral-sh/setup-uv@v10.3.3
+      - uses: astral-sh/setup-uv@v10.4.0
       - run: uv sync
       # Exact-match check: AGENTS.md's Typechecking section pins this
       # output, and PYRIGHT_PYTHON_IGNORE_WARNINGS=1 stops pyright-python's
@@ -36,7 +36,7 @@ jobs:
           python-version: "3.11"
       # `tests/test_tutorial.py` drives the tutorial's real hooks, which
       # run `claims` through `uv run -q`.
-      - uses: astral-sh/setup-uv@v10.3.3
+      - uses: astral-sh/setup-uv@v10.4.0
       # No pytest binary in this repo's own dev environment — same runner
       # every ticket's Answer uses, see .claude/CLAUDE.md memory.
       - run: python3 -m unittest discover -s tests -p 'test_*.py'
@@ -65,7 +65,7 @@ jobs:
         with:
           python-version: "3.11"
       # `AGENTS.md`'s `<!-- verify: -->` marker runs pyright through uv.
-      - uses: astral-sh/setup-uv@v10.3.3
+      - uses: astral-sh/setup-uv@v10.4.0
       - run: uv sync
       # `executable-claims` runs a marker's command only with an exact-string
       # grant in the git-ignored `claims.local.toml`, which CI has to write
