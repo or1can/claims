@@ -11,6 +11,13 @@ reached you, not just that one was pushed upstream.
 
 ## [Unreleased]
 
+## [0.35.0] - 2026-11-23
+
+- Added: a `claims` command, so `uvx --from
+  git+https://github.com/or1can/claims@<tag> claims …` runs the command
+  line from any directory, and `uv run claims …` from a checkout, the same
+  as `python3 -m claims.cli` (`docs/installation.md#the-command-line`).
+
 ## [0.34.0] - 2026-11-23
 
 - Added: the reading agent infers each claim's kind, intended, current,

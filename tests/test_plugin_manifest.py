@@ -139,3 +139,16 @@ class PluginManifestTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class CommandTests(unittest.TestCase):
+    def test_claims_names_the_command_line(self) -> None:
+        # `uv run claims` in a checkout, and `uvx --from git+…@<tag> claims`
+        # anywhere, run what `python3 -m claims.cli` runs.
+        import importlib
+
+        from claims import cli
+
+        scripts = tomllib.loads((REPO_ROOT / "pyproject.toml").read_text(encoding="utf-8"))["project"]["scripts"]
+        module, _, attr = scripts["claims"].partition(":")
+        self.assertIs(getattr(importlib.import_module(module), attr), cli.main)

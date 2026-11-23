@@ -33,10 +33,11 @@ With `uv run`, `-q` is part of the convention. A hook environment can set
 favour of the project's `.venv`. Stderr is compared with stdout, so the
 warning would read as drift.
 
-`check-cli-flags` builds its command itself, `./<script> --help`, so
-there the script's shebang is where the environment is named:
-`#!/usr/bin/env -S uv run -q python` for the project's own, or
-`#!/usr/bin/env -S uv run --script` with inline dependencies.
+`check-cli-flags` builds its command itself, `<script> --help`, with
+`./` before a script named without a `/`, so there the script's shebang
+is where the environment is named: `#!/usr/bin/env -S uv run -q python`
+for the project's own, or `#!/usr/bin/env -S uv run --script` with
+inline dependencies.
 
 This repository's own claim follows the rule, and so can run under any
 hook setup, pre-commit included.
