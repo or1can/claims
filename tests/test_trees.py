@@ -105,6 +105,27 @@ class TreeCopyTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "tracks .claims/"):
                 tree_copy(repo.root, commit)
 
+    def test_a_claims_directory_committed_in_another_case_is_refused(self) -> None:
+        # On a case-insensitive filesystem `.CLAIMS/` is `.claims/`.
+        with Repo() as repo:
+            repo.write("a.md", "real\n")
+            repo.commit()
+            commit = _rev(repo)
+            repo.write(f".CLAIMS/trees/{commit}/a.md", "forged\n")
+            repo.commit()
+            with self.assertRaisesRegex(ValueError, "tracks .claims/"):
+                tree_copy(repo.root, commit)
+
+    def test_a_symlinked_trees_directory_is_refused(self) -> None:
+        with Repo() as repo, tempfile.TemporaryDirectory() as elsewhere:
+            repo.write("a.md", "real\n")
+            repo.commit()
+            (repo.root / ".claims").mkdir()
+            (repo.root / ".claims" / "trees").symlink_to(elsewhere)
+            with self.assertRaisesRegex(ValueError, "symlink"):
+                tree_copy(repo.root, "HEAD")
+            self.assertEqual(list(Path(elsewhere).iterdir()), [])
+
     def test_a_claims_symlink_is_refused(self) -> None:
         with Repo() as repo, tempfile.TemporaryDirectory() as elsewhere:
             repo.write("a.md", "real\n")

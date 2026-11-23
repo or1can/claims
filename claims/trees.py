@@ -83,11 +83,15 @@ def tree_copy(repo_root: Path, rev: str) -> Path:
         raise ValueError(f"{rev} names no commit")
     if (top / CACHE_DIR).is_symlink():
         raise ValueError(f"{CACHE_DIR} is a symlink, so a copy there could be written anywhere")
-    if tracked_files(top, CACHE_DIR):
+    # `icase`: on a case-insensitive filesystem a committed `.CLAIMS/` is
+    # this same directory.
+    if tracked_files(top, f":(icase){CACHE_DIR}"):
         # A copy git tracks is whatever was committed, not the commit's tree.
         raise ValueError(f"git tracks {CACHE_DIR}/, which holds copies claims makes itself")
     cache = top / CACHE_DIR / "trees"
     dest = cache / commit
+    if cache.is_symlink() or dest.is_symlink():
+        raise ValueError(f"{CACHE_DIR}/trees holds a symlink, so a copy there could be written anywhere")
     if dest.is_dir():
         return dest
     cache.mkdir(parents=True, exist_ok=True)
