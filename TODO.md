@@ -69,3 +69,19 @@
   only name one; it merges three-way against the base, so an entry one
   side pruned stays deleted; and a mark has no timestamp to decide
   which is newer when both sides marked the same key.
+- The reading agent's verdicts (`true`, `false`, `not checked`) and
+  `judgment-agent`'s (`confirmed`, `refuted`, `inconclusive`) line up
+  one to one, and `CONTEXT.md`'s **Verdict** names neither set
+  (`decisions/0019-claims-are-intended-current-superseded-or-past.md`). Merging them
+  changes `judgment-agent`'s output contract and its page; worth doing
+  if a session handling both agents' results keeps translating between
+  them.
+- `historical` has two meanings
+  (`decisions/0019-claims-are-intended-current-superseded-or-past.md`): to
+  `check-file-refs` and `check-links` a mention resolves at the commit
+  that wrote it, a past claim's tree; to `restatement` and
+  `judgment-agent` only the lines a diff adds are read. Worth splitting
+  into two keys (#264). The first is a file-level stand-in for a
+  claim's kind, so a current claim in a `historical` file, such as a
+  decision's link, passes if it held at its writing; a split could
+  narrow that.

@@ -265,4 +265,4 @@ shows](checked-marks.md#what-a-run-shows) explains.
 
 [Concepts](concepts.md) defines the vocabulary the rest of the site uses:
 gate versus advisory, mode, candidate versus verdict, and what makes a
-claim live or dated.
+claim intended, current, superseded or past.

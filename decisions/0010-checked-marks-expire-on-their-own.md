@@ -38,6 +38,11 @@ Amended by `decisions/0014-a-pending-mark-quiets-until-a-person-approves-it.md`
 (#245): a mark can be pending a person's review. It quiets and expires
 as any other mark, until `approve-marks` approves it.
 
+Amended by `decisions/0019-claims-are-intended-current-superseded-or-past.md`
+(#261): a mark records a claim's kind, and a mark of kind superseded
+or past expires on its unit's whole text and, where its kind rests on a
+Status, on that evidence, never on a subject.
+
 ## Context
 
 The advisory checks exist so that a claim gets read. On a real project

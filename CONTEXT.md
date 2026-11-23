@@ -39,14 +39,25 @@ A statement in prose about the code, narrow enough that something can be
 executed against it.
 _Avoid_: Assertion, statement
 
-**Live claim**:
-A claim meant to be re-verified against the tree as it stands.
-_Avoid_: Record-like
+**Intended claim**:
+A claim stating a decided state as though it holds, read against the
+tree as it stands for whether it has been delivered.
+_Avoid_: Dated, Record-like
 
-**Dated claim**:
-A claim true at its writing and not meant to be re-read against today's
-tree.
-_Avoid_: Record-like
+**Current claim**:
+A claim saying what is, read against the tree as it stands.
+_Avoid_: Live, Record-like
+
+**Superseded claim**:
+A claim that was meant to hold and no longer is, superseded by a later
+replacement or by its withdrawal, and read against the tree just before
+the change that superseded it.
+_Avoid_: Record-like; Retired, which is a quote's; Abandoned
+
+**Past claim**:
+A claim saying what was, as a record, read against the tree as it was
+at its writing or just before.
+_Avoid_: Dated, Record-like
 
 **Subject**:
 The code a claim names.
@@ -69,7 +80,8 @@ A claim in doubt but not yet decided.
 _Avoid_: Suspect, hit
 
 **Verdict**:
-An evidenced decision that a claim is true or false.
+An evidenced decision on a claim. Each agent that reads claims names its
+own values.
 _Avoid_: Result
 
 **Designated file**:

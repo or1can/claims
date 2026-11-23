@@ -81,24 +81,43 @@ A whole-tree check therefore reports a pre-existing defect on a commit that
 never touched it. That is the intended behaviour, and the reason a first run
 in a project with a history often has more to say than a later one.
 
-## Live and dated claims
+## Intended, current, superseded and past claims
 
-A **live claim** is meant to be re-verified against the tree as it stands.
-A sentence in a specification saying "every check does X" is one: it is
-wrong the day a check stops doing X, whenever it was written.
+A claim is one of four kinds, and its kind names the tree it is true or
+false of.
 
-A **dated claim** was true at its writing and is not meant to be re-read
-against today's tree. A changelog entry is one, and so is the count in a
-decision record's motivation: both describe the tree on the day they were
-written, and are correct about that day forever.
+An **intended claim** states a decided state as though it already holds,
+as a decision record's decision does. It is true of the tree as it
+stands once the change it decides on is delivered, and until then it
+says what is meant to be.
 
-The distinction is per claim, not per file. A decision record's
-consequences are live while its motivation is dated, and a to-do list
-makes live claims in wording that is temporal by nature.
+A **current claim** says what is, and is true or false of the tree as it
+stands. A sentence in a specification saying "every check does X" is
+one: it is wrong the day a check stops doing X, whenever it was written.
+So is a to-do list's entry, in wording that is temporal by nature: "X
+isn't done yet" is false the day X is done.
+
+A **superseded claim** was meant to hold and no longer is, whether a
+later decision replaced it or withdrew it. It is true or false of the
+tree just before the change that superseded it, the last tree it was
+meant to hold in.
+
+A **past claim** says what was, as a record, and is true or false of the
+tree as it was when the claim was written, or just before. A changelog
+entry is one, and so is the count in a decision record's motivation:
+both describe the tree on the day they were written, and are correct
+about that day forever. This is much the tree a
+[`historical`](checks/check-file-refs.md) file's references resolve at.
+
+A claim typically moves from intended to current, and then to superseded
+or past; an intended claim never delivered skips current. The kind is
+per claim, not per file: one decision record can carry a past
+motivation, an intended decision, and consequences that are current once
+the decision is delivered.
 
 ## Designated files
 
-`claims` does not guess where a project's live claims are. A project
+`claims` does not guess where a project's current claims are. A project
 **designates** files, by listing them under a check's `files` key, and a
 check that reads only designated files reads nothing until the project
 has. The default is the empty set, so such a check is inert in a project
@@ -106,8 +125,8 @@ that has not opted in, and finds nothing rather than sweeping everything
 and hoping.
 
 Designation is per file, so it approximates a per-claim property at file
-granularity: a file carrying both kinds of claim is designated on which
-kind predominates.
+granularity: a file carrying more than one kind of claim is designated
+on which kind predominates.
 
 ## The retired-quote exemption
 
@@ -143,8 +162,8 @@ list is ranked, never filtered: nothing in it is dropped as probably fine,
 because a list that can collapse to "nothing to review" is a verdict in
 disguise.
 
-A **verdict** is a decision that a claim is true or false, with the
-evidence that decided it. A gate finding is a mechanical verdict on a claim
+A **verdict** is a decision on a claim, with the evidence that decided
+it. A gate finding is a mechanical verdict on a claim
 narrow enough to test. For an architecture-or-intent claim no check can
 test, the only verdict comes from the `judgment-agent` subagent, which reads
 the cited code one candidate at a time and answers with what it read. No
