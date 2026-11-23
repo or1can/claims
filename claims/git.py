@@ -363,19 +363,6 @@ def line_origin(repo_root: Path, commit: str, rel: str, line_no: int) -> str | N
     return commits[-1] if commits else None
 
 
-def git_common_dir(repo_root: Path) -> Path | None:
-    """The directory every worktree of `repo_root`'s repository shares,
-    `.git` in a plain clone, or `None` outside a repository."""
-
-    result = subprocess.run(
-        ["git", "-C", str(repo_root), "rev-parse", "--path-format=absolute", "--git-common-dir"],
-        capture_output=True,
-        text=True,
-        errors="replace",
-    )
-    return Path(result.stdout.strip()) if result.returncode == 0 else None
-
-
 def check_out_to(repo_root: Path, commit: str, dest: Path) -> bool:
     """Write every file tracked at `commit` under `dest`, through an index
     of its own, leaving the repository's index and work tree alone. Unlike

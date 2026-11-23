@@ -64,7 +64,6 @@ class TreeCopyTests(unittest.TestCase):
                 ).stdout,
                 "M  a.md\n?? untracked.txt\n",
             )
-            self.assertFalse(copy.is_relative_to(repo.root / "sub"))
 
     def test_the_copy_keeps_a_file_marked_export_ignore(self) -> None:
         with Repo() as repo:
@@ -72,6 +71,24 @@ class TreeCopyTests(unittest.TestCase):
             repo.write("notes.md", "kept\n")
             repo.commit()
             self.assertEqual((tree_copy(repo.root, "HEAD") / "notes.md").read_text(), "kept\n")
+
+    def test_the_copy_sits_in_the_work_tree_ignored_by_git(self) -> None:
+        # Visible in an editor, as `.git/` is often not; ignored, so neither
+        # `git status` nor a search that honours ignore files, hidden files
+        # included, reads an old tree as the tree as it stands.
+        with Repo() as repo:
+            repo.write("a.md", "old\n")
+            repo.commit()
+            copy = tree_copy(repo.root, "HEAD")
+            self.assertEqual(copy.parent, (repo.root / ".claims" / "trees").resolve())
+            self.assertEqual((repo.root / ".claims" / ".gitignore").read_text(), "*\n")
+            self.assertEqual(
+                subprocess.run(
+                    ["git", "-C", str(repo.root), "status", "--porcelain", "--ignored=no"],
+                    capture_output=True, text=True, check=True,
+                ).stdout,
+                "",
+            )
 
     def test_the_copys_files_are_read_only(self) -> None:
         with Repo() as repo:

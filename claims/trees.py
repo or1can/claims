@@ -41,16 +41,19 @@ from typing import Literal, NamedTuple
 from .git import (
     UNCOMMITTED,
     check_out_to,
-    git_common_dir,
     line_commit,
     line_origin,
     parent_commits,
     resolve_commit,
+    toplevel,
 )
 
 # The kinds `claim_trees` names trees for; a current or intended claim is
 # read in the tree as it stands.
 TREE_KINDS = ("past", "superseded")
+
+# Where `tree_copy` keeps its copies, at the top of the work tree.
+CACHE_DIR = ".claims"
 
 
 class Tree(NamedTuple):
@@ -63,19 +66,28 @@ class Tree(NamedTuple):
 
 def tree_copy(repo_root: Path, rev: str) -> Path:
     """A read-only copy of the tracked files at the commit `rev` names,
-    with no `.git`, made once per commit under the repository's shared git
-    directory and reused after. Raises `ValueError` when `rev` names no
-    commit."""
+    with no `.git`, made once per commit under `.claims/trees/` at the top
+    of the work tree and reused after. Raises `ValueError` when `rev`
+    names no commit.
+
+    In the work tree, where an editor shows it, as `.git/` it often
+    doesn't; and `.claims/` ignores itself, as `.pytest_cache/` does, so
+    `git status` never lists it and a search that honours ignore files
+    doesn't read an old tree as the tree as it stands, as one passing
+    `--hidden` from the top would read `.git/`."""
 
     commit = resolve_commit(repo_root, rev)
-    common = git_common_dir(repo_root)
-    if commit is None or common is None:
+    top = toplevel(repo_root)
+    if commit is None or top is None:
         raise ValueError(f"{rev} names no commit")
-    cache = common / "claims" / "trees"
+    cache = top / CACHE_DIR / "trees"
     dest = cache / commit
     if dest.is_dir():
         return dest
     cache.mkdir(parents=True, exist_ok=True)
+    ignore = top / CACHE_DIR / ".gitignore"
+    if not ignore.exists():
+        ignore.write_text("*\n", encoding="utf-8")
     staging = Path(tempfile.mkdtemp(prefix=f".{commit}-", dir=cache))
     if not check_out_to(repo_root, commit, staging):
         shutil.rmtree(staging)

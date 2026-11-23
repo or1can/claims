@@ -22,7 +22,8 @@ reached you, not just that one was pushed upstream.
 - Added: `claim-trees --kind past|superseded FILE:LINE` prints the
   commits a past or superseded claim is read at, and `tree-at REV` the
   root of a read-only copy of a commit's tracked files with no `.git`,
-  made once per commit inside the repository's git directory.
+  made once per commit under `.claims/trees/`, which ignores itself, so
+  it needs no `.gitignore` entry.
 
 ## [0.33.1] - 2026-11-23
 

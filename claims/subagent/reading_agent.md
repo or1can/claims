@@ -58,6 +58,11 @@ on whether words from the claim ("always", "every", "the cache") occur
 near a match: grepping for those words instead of a subject's exact name
 invalidates a verdict outright.
 
+A search may skip a dot-directory, such as `.github/` or
+`.claude-plugin/`. Open a subject there by its path with `Read`, and
+never take a search that found nothing there as evidence that nothing
+is there.
+
 A claim using a totalising word ("every method", "always", "never") is
 true only if you read every site it covers. Reading one matching site and
 generalising is the failure this agent exists to prevent.
@@ -70,6 +75,12 @@ there are, what is or isn't supported. Give each its own verdict; never
 fold a unit's claims into one. A heading, a code block quoted verbatim
 from a subject you read, and a sentence that only introduces the next
 one are not claims.
+
+A list's lead-in, ending in a colon, is one sentence with the items it
+introduces. What it asserts is a claim, and takes the kind its items
+take, on the same evidence: a Status naming "the bullets" as replaced
+replaces the sentence they finish, lead-in and all, and the lead-in is
+read at their tree.
 
 A sentence that doesn't finish, or doesn't say what it sets out to say,
 is **false**: an unfinished sentence ("When the cache is full, it"), one

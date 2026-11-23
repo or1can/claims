@@ -82,8 +82,10 @@ so a note reworded after the change it records still names that change.
 A line not yet committed is written in the working tree, printed as
 `working-tree` and the project root, and the tree before it is `HEAD`.
 `tree-at` prints the root of one commit's copy. Each copy is made once
-per commit, inside the repository's git directory, and reused after; its
-files are read-only.
+per commit, under `.claims/trees/` at the top of the project, and reused
+after; its files are read-only. `.claims/` holds a `.gitignore` of its
+own, so git never lists it, and a search that honours ignore files never
+reads an old tree in place of the project's own.
 
 The session makes the trees: when the agent reports a past or superseded
 claim with no tree to read it at, it names the line to pass to
@@ -92,7 +94,9 @@ printed.
 
 A claim comparing two states, such as "identical before and after", is
 read against both. A unit whose claims are of different kinds is read
-claim by claim, each at its own tree.
+claim by claim, each at its own tree. A list's lead-in, ending in a
+colon, goes with its items: it takes their kind, and is read at their
+tree.
 
 ## What it reports
 
