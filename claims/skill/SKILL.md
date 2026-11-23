@@ -54,8 +54,9 @@ One exception to "show the CLI's output verbatim": a finding whose `mode`
 is `judgment-agent-added` or `judgment-agent-removed` (either name among
 the modes in the printed line's parentheses) is a *candidate* for
 judgment, not a verdict on its own — `claims/checks/judgment_agent.py` only
-computes which claims cite a subject this diff touched; it never itself
-decides whether the claim is still true. Printing its line and moving on,
+computes which claims cite a subject this diff touched, or sit where a
+checked mark this diff expired was; it never itself decides whether the
+claim is still true. Printing its line and moving on,
 the way every other check's finding is handled, would show the user a
 data point, not an answer.
 
@@ -69,7 +70,8 @@ For each such finding:
    message verbatim. The message already carries everything the
    subagent's own input contract (`claims/subagent/judgment_agent.md`)
    asks for: the cited subject's name, whether it was added or removed by
-   this diff, and the diff evidence for why it counts as touched.
+   this diff, or that the diff expired its checked mark, and the diff
+   evidence for why it counts as touched.
 2. The subagent returns exactly one JSON verdict — `confirmed`, `refuted`,
    or `inconclusive`, each with `evidence` (the code actually read, or the
    command actually run) and `reasoning`. Report the verdict back to the
@@ -79,8 +81,8 @@ For each such finding:
 3. This never blocks a commit or the run: like the check that produces
    it, `judgment-agent`'s verdict is advisory only, whatever it says.
 
-This is a skill-level instruction only — no change to the check, the hook,
-or the subagent's own file. See "Broadening the search after a refuted
+This step is the skill's alone: the hook and the command line print the
+candidate and invoke no subagent. See "Broadening the search after a refuted
 verdict" below for an additional, on-demand step appended to this same
 procedure.
 

@@ -32,6 +32,7 @@ from pathlib import Path
 
 from claims.checks.judgment_agent import MODE_ADDED, MODE_REMOVED, NAME, check
 from claims.cli import main
+from claims.checked import load_marks, new_marks, write_marks
 from claims.runner import Finding, register_check, run
 
 from support import RegistryClearingTestCase, Repo
@@ -465,6 +466,91 @@ class JudgmentAgentCliTests(RegistryClearingTestCase):
                 code = main(["--repo-root", str(repo.root)])
 
         self.assertEqual(code, 0)
+
+
+class ExpiredMarkTests(RegistryClearingTestCase):
+    """#263: a change that expires a mark on a `judgment-agent` finding,
+    by changing a subject the mark recorded, raises the citation in its
+    own run, though the name it cites was neither added nor removed."""
+
+    def setUp(self) -> None:
+        super().setUp()
+        register_check(NAME, check)
+
+    def _run(self, repo_root: Path, diff_range: str = "HEAD") -> list[Finding]:
+        return list(run(repo_root, diff_range, {}).findings)
+
+    def _mark(self, repo_root: Path, findings: list[Finding]) -> None:
+        entries = [f"{f.citation} {f.mode} read it" for f in findings]
+        marks, problems = new_marks(repo_root, findings, {}, entries, None)
+        self.assertEqual(problems, [])
+        write_marks(repo_root, [*load_marks(repo_root), *marks])
+
+    def _cite_and_mark(self, repo: Repo, before: str, after: str) -> str:
+        """Commit A: `src/lexer.rs` goes from `before` to `after` and
+        README.md cites `parse_flags` in it, the finding marked. Returns
+        the commit before A."""
+
+        repo.write("src/lexer.rs", before)
+        repo.write("README.md", "seed\n")
+        repo.commit()
+        base = repo.short_head()
+        repo.write("src/lexer.rs", after)
+        repo.write("README.md", "`parse_flags` in `src/lexer.rs` reads flags.\n")
+        own_a = self._run(repo.root)
+        self.assertEqual([f.citation for f in own_a], ["README.md:1"])
+        self._mark(repo.root, own_a)
+        self.assertEqual(self._run(repo.root), [])
+        repo.commit()
+        return base
+
+    def test_changing_a_marked_subject_raises_an_added_citation(self) -> None:
+        with Repo() as repo:
+            base = self._cite_and_mark(repo, "fn other() {}\n", "fn parse_flags() {}\n")
+            repo.write("src/lexer.rs", "fn parse_flags() { let _ = 1; }\n")
+            own_b = self._run(repo.root)
+            repo.commit()
+            branch = self._run(repo.root, f"{base}..HEAD")
+
+        self.assertEqual([(f.citation, f.mode) for f in own_b], [("README.md:1", MODE_ADDED)])
+        self.assertIn("`parse_flags`", own_b[0].message)
+        self.assertIn("src/lexer.rs:1", own_b[0].message)
+        self.assertEqual(
+            [(f.citation, f.mode) for f in own_b], [(f.citation, f.mode) for f in branch]
+        )
+
+    def test_changing_a_marked_subject_raises_a_removed_citation(self) -> None:
+        with Repo() as repo:
+            base = self._cite_and_mark(repo, "fn parse_flags() {}\n", "fn other() {}\n")
+            repo.write("src/lexer.rs", "fn other() { let _ = 1; }\n")
+            own_b = self._run(repo.root)
+            repo.commit()
+            branch = self._run(repo.root, f"{base}..HEAD")
+
+        self.assertEqual([(f.citation, f.mode) for f in own_b], [("README.md:1", MODE_REMOVED)])
+        self.assertEqual(
+            [(f.citation, f.mode) for f in own_b], [(f.citation, f.mode) for f in branch]
+        )
+
+    def test_marking_the_raised_citation_quiets_it_in_its_commit_and_the_branch(self) -> None:
+        with Repo() as repo:
+            base = self._cite_and_mark(repo, "fn other() {}\n", "fn parse_flags() {}\n")
+            repo.write("src/lexer.rs", "fn parse_flags() { let _ = 1; }\n")
+            self._mark(repo.root, self._run(repo.root))
+            own_b = self._run(repo.root)
+            repo.commit()
+            branch = self._run(repo.root, f"{base}..HEAD")
+
+        self.assertEqual(own_b, [])
+        self.assertEqual(branch, [])
+
+    def test_a_mark_whose_subjects_the_range_left_alone_raises_nothing(self) -> None:
+        with Repo() as repo:
+            self._cite_and_mark(repo, "fn other() {}\n", "fn parse_flags() {}\n")
+            repo.write("NOTES.md", "unrelated\n")
+            findings = self._run(repo.root)
+
+        self.assertEqual(findings, [])
 
 
 if __name__ == "__main__":

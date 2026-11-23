@@ -50,6 +50,12 @@ does not.
 Three modes, one per matching strategy — `runner.Finding`'s own contract —
 so a consumer can filter or count by which kind of claim fired without
 parsing the message text.
+
+A sentence whose checked mark the diff expired is read as if added
+(`checked.expired_units`, #263): scoped to added sentences alone, the
+commit that changed a marked sentence's subject would raise nothing
+where the branch run raises the finding unmarked. It skips the rewrap
+test too, since a sentence the diff left alone is not a rewrap.
 """
 
 from __future__ import annotations
@@ -58,6 +64,7 @@ import re
 from collections.abc import Mapping, Sequence
 from pathlib import Path
 
+from ..checked import expired_lines
 from ..config import path_matches, string_list_config
 from ..git import added_lines_by_file
 from ..lines import git_lines, tracked_text
@@ -233,12 +240,13 @@ def check(
         return []
 
     added = added_lines_by_file(repo_root, diff_range)
-    designated = [path for path in added if path_matches(path, patterns)]
+    expired = expired_lines(repo_root, diff_range, NAME)
+    designated = [path for path in added.keys() | expired.keys() if path_matches(path, patterns)]
     removed = removed_sentences_by_file(repo_root, diff_range, designated)
     findings: list[Finding] = []
 
     for path in sorted(designated):
-        added_line_numbers = added[path]
+        added_line_numbers = added.get(path, set())
         try:
             text = tracked_text(repo_root / path)
         except (OSError, UnicodeDecodeError):
@@ -246,12 +254,15 @@ def check(
         lines = git_lines(text)
         zero_based_added = {n - 1 for n in added_line_numbers}
         removed_here = removed.get(path, set())
+        expired_here = expired.get(path, set())
 
         for sentence, start, end in sentences_from(prose_lines(lines)):
-            if zero_based_added.isdisjoint(range(start, end + 1)):
-                continue
-            if rewrapped(sentence, removed_here):
-                continue
+            # A unit whose mark the range expired is read as if added.
+            if expired_here.isdisjoint(range(start, end + 1)):
+                if zero_based_added.isdisjoint(range(start, end + 1)):
+                    continue
+                if rewrapped(sentence, removed_here):
+                    continue
             if _is_retired_quote(sentence, lines, start, end):
                 continue
             for mode in _classify(sentence):

@@ -326,6 +326,13 @@ def blob_text(repo_root: Path, commit: str, rel: str) -> str | None:
     return result.stdout if result.returncode == 0 else None
 
 
+def blob_bytes(repo_root: Path, commit: str, rel: str) -> bytes | None:
+    """`rel`'s content as of `commit`, byte for byte, or `None` if it had
+    no such path."""
+
+    return read_blob(repo_root, f"{commit}:{rel}")
+
+
 def blob_id(repo_root: Path, rel: str, data: bytes) -> str | None:
     """The id `data`, `rel`'s content in the working tree, would have as a
     blob once staged, without writing it to the store. `--path` applies
@@ -463,6 +470,30 @@ def resolve_commit(repo_root: Path, rev: str) -> str | None:
         errors="replace",
     )
     return result.stdout.strip() if result.returncode == 0 else None
+
+
+def range_base(repo_root: Path, diff_range: str) -> str | None:
+    """The commit `git diff diff_range` reads as its old side: `X` for a
+    lone `X`, `A` for `A..B`, the merge base for `A...B`, a commit's first
+    parent for `X^!`. `None` when git resolves no such commit.
+
+    `--revs-only` prints the range's commits, each one it excludes after
+    a `^`: the first of those is the old side, and a range excluding none
+    is a lone revision, diffed against the working tree."""
+
+    result = subprocess.run(
+        ["git", "-C", str(repo_root), "rev-parse", "--revs-only", diff_range or "HEAD"],
+        capture_output=True,
+        text=True,
+        errors="replace",
+    )
+    if result.returncode != 0:
+        return None
+    revs = result.stdout.split()
+    excluded = [rev[1:] for rev in revs if rev.startswith("^")]
+    if excluded:
+        return excluded[0]
+    return revs[0] if len(revs) == 1 else None
 
 
 def head_commit(repo_root: Path) -> str | None:

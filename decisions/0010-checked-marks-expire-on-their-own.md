@@ -43,6 +43,12 @@ Amended by `decisions/0019-claims-are-intended-current-superseded-or-past.md`
 or past expires on its unit's whole text and, where its kind rests on a
 Status, on that evidence, never on a subject.
 
+Amended after #262's commits (#263): a commit that changed a marked
+sentence's subject expired its mark, and since `claim-words` reports only
+sentences a range added, its own run showed nothing where the branch run
+showed an unmarked finding. A range that expires a mark on a check scoped
+to what the range added now raises that mark's finding in its own run.
+
 ## Context
 
 The advisory checks exist so that a claim gets read. On a real project
@@ -104,6 +110,14 @@ comes back without anyone lifting the mark.
 - A mark whose unit no longer exists in its file is an orphan, and is reported as an advisory finding. A mark
   that only matches no finding in this run is not, since a diff-scoped
   check reports nothing about a unit the diff left alone.
+- A range that expires a mark reports that mark's finding, though it
+  left the unit alone: a mark current at the range's old side and not
+  current now has its unit read by its check as if the range had added
+  it (`claim-words`, `temporal-words`, `judgment-agent`), so the commit
+  that expired it can mark it again. A mark that had expired before the
+  range is not raised again. `stale-claims` already ranks a section
+  whose subject the range changed, `restatement` raises a reworded
+  survivor its own way (#250), and `spliced-docs` sweeps the whole tree.
 - The summary line counts the findings that marks kept quiet, so a quiet
   run is never mistaken for a clean pass.
 

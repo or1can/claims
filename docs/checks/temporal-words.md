@@ -28,6 +28,12 @@ inline markup and a link's destination. A sentence with even one word
 changed, added or dropped is read, and so is a sentence moved in from
 another file, which is new to this one.
 
+A sentence whose [checked mark](../checked-marks.md#when-a-mark-stops-applying)
+the diff made stop applying, by changing a file it names, is read as
+though the diff had added it, so the change that expired the mark shows
+the sentence and can mark it again. A mark that had already stopped
+applying before the diff raises nothing.
+
 A **sentence** is found by joining a paragraph's lines and splitting at
 a full stop, question mark or exclamation mark, so a sentence wrapped
 across lines is read whole and reported at its first line. A mark does

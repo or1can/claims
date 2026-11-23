@@ -34,6 +34,7 @@ from claims.checks.temporal_words import (
     NAME,
     check,
 )
+from claims.checked import load_marks, new_marks, write_marks
 from claims.runner import Finding, register_check, run
 
 from support import RegistryClearingTestCase, Repo
@@ -405,6 +406,34 @@ class TemporalWordsTests(RegistryClearingTestCase):
             modes = self._modes(repo.root, ["reference.md"])
 
         self.assertEqual(modes, [MODE_VERSION])
+
+
+    # --- a change that expires a mark (#263) --------------------------
+
+    def test_changing_a_marked_subject_raises_the_finding_as_the_branch_does(self) -> None:
+        claim = "Currently `src/tool.py` reads one flag."
+        config: dict[str, dict[str, object]] = {NAME: {"files": ["README.md"]}}
+        with Repo() as repo:
+            repo.write("src/tool.py", "flags = 1\n")
+            repo.write("README.md", "# Tool\n\nseed\n")
+            repo.commit()
+            base = repo.short_head()
+            repo.write("README.md", f"# Tool\n\n{claim}\n")
+            own_a = list(run(repo.root, "HEAD", config).findings)
+            marks, problems = new_marks(
+                repo.root, own_a, config, [f"README.md:3 {MODE_PHRASE} read it"], None
+            )
+            self.assertEqual(problems, [])
+            write_marks(repo.root, [*load_marks(repo.root), *marks])
+            repo.commit()
+            repo.write("src/tool.py", "flags = 2\n")
+            own_b = list(run(repo.root, "HEAD", config).findings)
+            repo.commit()
+            branch = list(run(repo.root, f"{base}..HEAD", config).findings)
+
+        shown = [(f.citation, f.mode, f.message) for f in own_b]
+        self.assertEqual(shown, [("README.md:3", MODE_PHRASE, claim)])
+        self.assertEqual(shown, [(f.citation, f.mode, f.message) for f in branch])
 
 
 if __name__ == "__main__":

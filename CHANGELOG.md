@@ -11,6 +11,15 @@ reached you, not just that one was pushed upstream.
 
 ## [Unreleased]
 
+## [0.33.1] - 2026-11-23
+
+- Fixed: a commit that changes a file a marked `claim-words`,
+  `temporal-words` or `judgment-agent` finding names now shows that
+  finding in its own hook run, where before only the branch's run did,
+  so the commit that expired the mark can mark it again. A mark that had
+  already expired before the range is not raised again
+  (`docs/checked-marks.md#when-a-mark-stops-applying`).
+
 ## [0.33.0] - 2026-11-23
 
 - Added: `mark-checked --kind intended|superseded|past` records the kind
