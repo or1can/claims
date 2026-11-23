@@ -14,21 +14,22 @@ file = ".out-of-scope/version-only-churn.md"
 mode = "stale-claims"
 unit = "d892c3a16ef8ce1a"
 copies = 1
-note = "read pyproject.toml, stale_claims.py and checked.py in full: stale-claims counts a version-only commit as a change and ranks its sections, the file's hash change expires a mark, and neither tells a version line apart; all current and true"
+note = "read the section against pyproject.toml, plugin.json, AGENTS.md, ADRs 0004, 0008, 0009, the sibling out-of-scope notes and the stale-claims page: the mechanism, #198 pointer, dependency-pin, navigation and ADR 0009 claims hold (current); not checked: #228's asks and title (an issue), the 4-section bump (past, no tree), ratect's figures (another repository), the past marks' notes"
 by = "claims:reading-agent (sonnet)"
 approved_by = "Kevin Rogers"
-subjects = { "pyproject.toml" = "34021f2fff270b0f" }
+extent = "partial"
+subjects = { "pyproject.toml" = "7a94a459b9d9d230" }
 
 [[mark]]
 file = ".out-of-scope/version-only-churn.md"
 mode = "stale-claims"
 unit = "dd656ffcd24a40a1"
 copies = 1
-note = "read the section and every in-repo file it names in full: the cheap re-read pointer, the dependency-pin line, the Superseded by analogy, navigation's effect on plugin.json and ADR 0009's diff-scoping hold (current); not checked: #228's asks (an issue), the four sections a past bump ranked and the marks' notes then (past, history no one tree settles), the ratect figures (another repository) and plugin.json's churn history"
+note = "read the section against pyproject.toml, plugin.json, AGENTS.md, ADRs 0004, 0008, 0009, 0013 and the sibling out-of-scope notes: the #198 pointer, dependency-pin line and ADR 0009 ranking hold (current); not checked: #228's asks (an issue), the 4-section bump (past, no tree), ratect's figures (another repository), the no-sign observation, and plugin.json's churn and navigation fit"
 by = "claims:reading-agent (sonnet)"
 approved_by = "Kevin Rogers"
 extent = "partial"
-subjects = { ".claude-plugin/plugin.json" = "40c23bffab37f205", ".out-of-scope/adr-status-notes-as-churn.md" = "7bc84c78d3c4041e", ".out-of-scope/comment-only-churn.md" = "a8fc5351b734ef48", ".out-of-scope/generated-subjects-and-history-weighting.md" = "01bbf99406bf555f", "pyproject.toml" = "34021f2fff270b0f", "tests/fixtures/judgment_agent_golden/count_consistency_known_false/repo/ROADMAP.md" = "24be61be2e348715" }
+subjects = { ".claude-plugin/plugin.json" = "d2bdecbaa2757a88", ".out-of-scope/adr-status-notes-as-churn.md" = "7bc84c78d3c4041e", ".out-of-scope/comment-only-churn.md" = "a8fc5351b734ef48", ".out-of-scope/generated-subjects-and-history-weighting.md" = "01bbf99406bf555f", "pyproject.toml" = "7a94a459b9d9d230", "tests/fixtures/judgment_agent_golden/count_consistency_known_false/repo/ROADMAP.md" = "24be61be2e348715" }
 
 [[mark]]
 file = "AGENTS.md"
@@ -122,11 +123,11 @@ file = "AGENTS.md"
 mode = "stale-claims"
 unit = "8e4f8ea8f0f2e26d"
 copies = 1
-note = "read pyproject.toml, plugin.json, test_plugin_manifest.py, ADR 0004, check_file_refs.py, CHANGELOG.md's head and claims.toml: the bump, patch-or-minor, equal-version pin, changelog-entry, append-only and retarget rules hold (current); not checked: claude plugin update gating on the version string and how pre-commit and uvx pin a tag (third-party), and the 0.1.0/epr-wrench history (past, a span no one tree settles)"
+note = "read Versioning, pyproject.toml, plugin.json, ADR 0004, test_plugin_manifest.py, CHANGELOG.md's head and check_file_refs.py: bump rule, patch-level guidance, equal-version test, tagging, changelog entry, append-only and retarget rules hold (current); not checked: claude plugin update gating and pre-commit/uvx tag pinning (third-party), the 0.1.0 tickets 19-36 history (past, no single tree)"
 by = "claims:reading-agent (sonnet)"
 approved_by = "Kevin Rogers"
 extent = "partial"
-subjects = { ".claude-plugin/plugin.json" = "40c23bffab37f205", "decisions/0004-docs-is-the-user-facing-tree.md" = "84534f73ba887979", "pyproject.toml" = "34021f2fff270b0f", "tests/test_plugin_manifest.py" = "2279997b5e0c9fe5" }
+subjects = { ".claude-plugin/plugin.json" = "d2bdecbaa2757a88", "decisions/0004-docs-is-the-user-facing-tree.md" = "84534f73ba887979", "pyproject.toml" = "7a94a459b9d9d230", "tests/test_plugin_manifest.py" = "50834b11b663da44" }
 
 [[mark]]
 file = "AGENTS.md"
@@ -148,7 +149,7 @@ note = "read Typechecking, pyproject.toml, uv.lock and ADR 0008: the pyright 1.1
 by = "claims:reading-agent (sonnet)"
 approved_by = "Kevin Rogers"
 extent = "partial"
-subjects = { "decisions/0008-a-command-names-its-own-environment.md" = "44a8e0ed95bc0e7e", "pyproject.toml" = "34021f2fff270b0f", "uv.lock" = "b949e48bf9729bcf" }
+subjects = { "decisions/0008-a-command-names-its-own-environment.md" = "44a8e0ed95bc0e7e", "pyproject.toml" = "7a94a459b9d9d230", "uv.lock" = "3065675b92d5c933" }
 
 [[mark]]
 file = "AGENTS.md"
@@ -253,18 +254,21 @@ file = "README.md"
 mode = "stale-claims"
 unit = "427ab7d67f9acf9c"
 copies = 1
-note = "installation.md changed only its Next paragraph, which this section does not describe"
-subjects = { "docs/installation.md" = "b90939e42afb2dff" }
+note = "read Installing against installation.md, marketplace.json and configuring.md's [hook]: the git-URL install, pinning, separate hook (pre-commit or uvx from a tag), claims.toml opt-in, [hook] enabled and both pointers hold; all current and true"
+by = "claims:reading-agent (sonnet)"
+approved_by = "Kevin Rogers"
+subjects = { "docs/installation.md" = "b3b4c6c9afce46fc" }
 
 [[mark]]
 file = "README.md"
 mode = "stale-claims"
 unit = "4abe336640ffcdc1"
 copies = 1
-note = "read against reading-agent.md, installation.md, judgment-agent.md, configuring.md, SKILL.md, cli.py, plugin.json, hooks.json, nudge.py and checked.py's UNITS: the five surfaces, the hook and its fail_on_unmarked rule, the session-start reminder, the skill and its config review, both subagents and the CLI hold; all current and true"
+note = "read Using it against installation.md, reading-agent.md, judgment-agent.md, SKILL.md, hooks.json, both subagents, gate.py, pre_commit.py and nudge.py: the five surfaces, hook, nudge, skill, both agents and the CLI hold (current); cli.py and checked.py read only in part, so the exit codes and judgment-agent being markable rest on partial reads"
 by = "claims:reading-agent (sonnet)"
 approved_by = "Kevin Rogers"
-subjects = { "docs/installation.md" = "b90939e42afb2dff", "docs/reading-agent.md" = "3055e11e952cef48" }
+extent = "partial"
+subjects = { "docs/installation.md" = "b3b4c6c9afce46fc", "docs/reading-agent.md" = "3055e11e952cef48" }
 
 [[mark]]
 file = "README.md"
@@ -309,11 +313,11 @@ file = "agents/docs.md"
 mode = "stale-claims"
 unit = "53f9fac61c746451"
 copies = 1
-note = "read the section against capture.py, tutorial.py, steps.sh, both tests, tutorial.md, installation.md, support.py, runner.py and cli.py: every factual claim holds (current); not checked: rules 2 and 3 and the provenance requirement across pages other than tutorial.md and installation.md (editorial, every page)"
+note = "read the section against capture.py, tutorial.py, steps.sh, tutorial.md, test_captures.py, test_tutorial.py, support.py and installation.md: provenance, capture, history, local, config, tutorial and rules 2-3 claims hold (current); \"claims emits no colour\" rests on a grep of claims/ and the plain captures, not a full read"
 by = "claims:reading-agent (sonnet)"
 approved_by = "Kevin Rogers"
 extent = "partial"
-subjects = { "claims/git.py" = "2d15148b01b62ee0", "docs/installation.md" = "b90939e42afb2dff", "docs/tutorial.md" = "454c6bd10f8e4dff", "examples/tutorial/steps.sh" = "48ecb8d10295eb50", "scripts/capture.py" = "14d2b4164af212d6", "scripts/tutorial.py" = "4127a928e43432f6", "tests/test_captures.py" = "7193d8987d213229", "tests/test_tutorial.py" = "0648a0f0d960676a" }
+subjects = { "claims/git.py" = "2d15148b01b62ee0", "docs/installation.md" = "b3b4c6c9afce46fc", "docs/tutorial.md" = "454c6bd10f8e4dff", "examples/tutorial/steps.sh" = "48ecb8d10295eb50", "scripts/capture.py" = "14d2b4164af212d6", "scripts/tutorial.py" = "4127a928e43432f6", "tests/test_captures.py" = "7193d8987d213229", "tests/test_tutorial.py" = "0648a0f0d960676a" }
 
 [[mark]]
 file = "agents/docs.md"
@@ -789,11 +793,11 @@ file = "decisions/0008-a-command-names-its-own-environment.md"
 mode = "stale-claims"
 unit = "86ae35d58a6aa3b5"
 copies = 1
-note = "read executable_claims.py, check_cli_flags.py, pyproject.toml and claims.toml in full: commands run as written with the inherited PATH, stderr compared with stdout and ./<script> --help hold (Decision claims, delivered, so current); not checked: uv's, .venv's and poetry's resolution and VIRTUAL_ENV warning (third-party), and that the repository's own verify marker follows the rule, which the reader could not locate"
+note = "read the Decision, pyproject.toml, AGENTS.md's verify marker, check_cli_flags.py and executable_claims.py: run as written with the inherited PATH, the naming convention, declared dependencies, stderr compared with stdout, check-cli-flags' ./ for a bare name and shebang, and this repository's marker hold (current); not checked: uv's VIRTUAL_ENV warning (third-party)"
 by = "claims:reading-agent (sonnet)"
 approved_by = "Kevin Rogers"
 extent = "partial"
-subjects = { "pyproject.toml" = "34021f2fff270b0f" }
+subjects = { "pyproject.toml" = "7a94a459b9d9d230" }
 
 [[mark]]
 file = "decisions/0009-stale-claims-is-diff-scoped.md"
@@ -1341,6 +1345,16 @@ copies = 1
 note = "Re-read after #242: the section defines which files are append-only and that growth expires no mark; still true, and the history rule is stated on docs/checked-marks.md."
 by = "Claude (agent)"
 subjects = { "claims/config.py" = "8061ce4e20a17e51", "claims/historical.py" = "5872b17e8a5f0f74", "decisions/0011-append-only-is-a-property-of-the-file.md" = "ae108d5ef5184ffc" }
+
+[[mark]]
+file = "docs/installation.md"
+mode = "claim-words-about-elsewhere"
+unit = "22469f6668f40d33"
+copies = 1
+note = "read the sentence, its YAML block, pyproject.toml, cli.py's main and ci.yml: PYTHONPATH=claims python3 -m claims.cli runs with no uv and no dependencies; current and true"
+by = "claims:reading-agent (sonnet)"
+approved_by = "Kevin Rogers"
+subjects = { "uv.lock" = "3065675b92d5c933" }
 
 [[mark]]
 file = "docs/installation.md"

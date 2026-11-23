@@ -231,12 +231,17 @@ commit` command, so it stops the obvious route rather than every one.
 
 ## The command line
 
-The same checks are also a plain command line, `python3 -m claims.cli`,
-for a CI step or a one-off run:
+The same checks are also a plain command line, `claims`, for a CI step
+or a one-off run. `uvx` fetches a tagged release and runs it from any
+directory:
 
 ```sh
-python3 -m claims.cli --repo-root <path> --diff-range <range>
+uvx --from git+https://github.com/or1can/claims@<tag> claims --repo-root <path> --diff-range <range>
 ```
+
+In a checkout of this repository, `uv run claims` runs the same command,
+and so does `python3 -m claims.cli` with the checkout on `PYTHONPATH`,
+which needs no `uv`.
 
 `--repo-root` defaults to the current directory and `--diff-range` to
 `HEAD`, the working tree against the last commit. The command prints each
@@ -271,8 +276,8 @@ commit-time decision, and the CLI ignores both, so a check silenced at
 commit time is still reported here. Those switches are on
 [Configuring `claims`](configuring.md).
 
-The CLI runs from a checkout of this repository, pointed at with
-`PYTHONPATH`:
+Without `uv`, a CI job runs the CLI from a checkout of this repository,
+pointed at with `PYTHONPATH`:
 
 ```yaml
 # a CI job step, e.g. GitHub Actions

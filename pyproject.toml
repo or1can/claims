@@ -1,6 +1,6 @@
 [project]
 name = "claims"
-version = "0.34.0"
+version = "0.35.0"
 description = "Checks documentation and agent-instruction claims against the code they describe."
 license = "Apache-2.0"
 requires-python = ">=3.11"
@@ -10,6 +10,7 @@ dependencies = []
 Homepage = "https://github.com/or1can/claims"
 
 [project.scripts]
+claims = "claims.cli:main"
 claims-pre-commit = "claims.pre_commit:main"
 
 [build-system]
