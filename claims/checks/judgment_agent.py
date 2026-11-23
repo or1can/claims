@@ -91,6 +91,16 @@ candidate as before. Unlike `check-links`' key it re-tests nothing at the
 blamed commit, since a candidate comes from this diff's own delta, which
 a shipped line predates; and the diff is read only when the key is set.
 
+A citation in a unit whose checked mark the diff expired is a candidate
+though its name is in neither delta (`checked.expired_units`, #263): the
+name-scoped sweep would otherwise raise nothing in the commit that
+changed a marked sentence's subject, where the branch run that added
+the name raises it unmarked. It takes the mode the delta would give it,
+added for a name the head declares and removed for one it doesn't, and
+only where the expired mark has that mode. Under a removed mark every
+undeclared name the unit cites is raised, since nothing records which
+one the mark was for: more shown, never less.
+
 Each candidate's message carries the diff evidence rather than a bare
 citation because the `pre-commit` hook runs before `git commit` completes,
 so the common case is an uncommitted working-tree change with no commit
@@ -118,10 +128,11 @@ from __future__ import annotations
 
 import re
 import subprocess
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from pathlib import Path
 from typing import NamedTuple
 
+from ..checked import ExpiredUnit, expired_units
 from ..config import path_matches, string_list_config
 from ..git import QUOTEPATH_OFF, added_lines_by_file, tracked_files
 from ..lines import git_lines, tracked_text
@@ -429,6 +440,18 @@ def _citations(repo_root: Path) -> list[tuple[str, int, str]]:
     return found
 
 
+def _expired_mode(expired: Sequence[ExpiredUnit], rel: str, line: int, declared: bool) -> str | None:
+    """The mode to re-raise a citation of a name at `rel:line` in, one
+    `declared` in the head tree or not, when it sits in a unit whose mark
+    the range expired: `MODE_ADDED` for a declared name and `MODE_REMOVED`
+    for one that isn't, as a range adding or removing it would report it,
+    and only where the expired mark has that mode. `None` otherwise."""
+
+    mode = MODE_ADDED if declared else MODE_REMOVED
+    hit = any(u.file == rel and u.start <= line <= u.end and u.mode == mode for u in expired)
+    return mode if hit else None
+
+
 def check(
     repo_root: Path, diff_range: str, config: Mapping[str, object]
 ) -> list[Finding]:
@@ -445,7 +468,8 @@ def check(
 
     removed = base_index.keys() - head_index.keys()
     added = head_index.keys() - base_index.keys() - _rust_members(base_files)
-    if not removed and not added:
+    expired = expired_units(repo_root, diff_range, NAME)
+    if not removed and not added and not expired:
         return []
 
     historical = string_list_config(config, "historical")
@@ -454,19 +478,27 @@ def check(
     for rel, line, name in _citations(repo_root):
         if path_matches(rel, historical) and line not in added_lines.get(rel, set()):
             continue
+        subject: _Subject | None
         if name in removed:
-            subject, mode, direction = base_index[name], MODE_REMOVED, "removed"
+            subject, mode, why = base_index[name], MODE_REMOVED, "removed by this diff"
         elif name in added:
-            subject, mode, direction = head_index[name], MODE_ADDED, "added"
+            subject, mode, why = head_index[name], MODE_ADDED, "added by this diff"
         else:
-            continue
+            reraised = _expired_mode(expired, rel, line, name in head_index)
+            if reraised is None:
+                continue
+            subject = head_index.get(name) or base_index.get(name)
+            mode, why = reraised, "its checked mark expired by this diff"
 
-        commits = _commits_touching(repo_root, endpoints, subject.file)
-        evidence = _evidence(endpoints, subject, commits)
-        message = f"cites `{name}`, {direction} by this diff — {evidence}"
+        if subject is None:
+            commits, evidence = [], "declared at neither side"
+        else:
+            commits = _commits_touching(repo_root, endpoints, subject.file)
+            evidence = _evidence(endpoints, subject, commits)
+        message = f"cites `{name}`, {why} — {evidence}"
         candidates.append(
             _Candidate(
-                rank=(0 if direction == "removed" else 1, -len(commits)),
+                rank=(0 if mode == MODE_REMOVED else 1, -len(commits)),
                 finding=Finding(file=rel, line=line, message=message, mode=mode, gate=False),
             )
         )

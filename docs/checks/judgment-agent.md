@@ -95,8 +95,19 @@ sorts first, and the commits shown are every commit that touched the
 declaring file in range rather than only those that touched the
 declaring line.
 
-With no name added or removed, the check reports nothing. The check
-runs no command.
+A citation in a sentence or fenced line whose
+[checked mark](../checked-marks.md#when-a-mark-stops-applying) the diff
+made stop applying, by changing a file it names, is a candidate too,
+though the diff neither added nor removed its name, so the change that
+expired the mark shows it and can mark it again. A name the head
+declares is reported as `judgment-agent-added` and one it does not as
+`judgment-agent-removed`, each only where the expired mark has that
+mode, and the message says the mark expired in place of "added" or
+"removed". A mark that had already stopped applying before the diff
+raises nothing.
+
+With no name added or removed and no such mark, the check reports
+nothing. The check runs no command.
 
 ## What the subagent decides
 

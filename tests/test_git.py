@@ -28,6 +28,7 @@ from claims.git import (
     is_file_at,
     iter_diff,
     path_blobs,
+    range_base,
     tracked_files,
 )
 
@@ -571,6 +572,32 @@ class PathBlobsTests(unittest.TestCase):
             self.assertNotIn(gone, blobs)
             self.assertIn(self._blob(repo, "HEAD:log.md"), blobs)
             self.assertIn(self._blob(repo, ":log.md"), blobs)
+
+
+class RangeBaseTests(unittest.TestCase):
+    def test_each_range_form_names_the_commit_git_diff_reads_as_its_old_side(self) -> None:
+        with Repo() as repo:
+            repo.write("a.md", "one\n")
+            repo.commit()
+            first = repo.short_head()
+            repo.write("a.md", "two\n")
+            repo.commit()
+            second = repo.short_head()
+            subprocess.run(["git", "-C", str(repo.root), "checkout", "-q", "-b", "side", first], check=True)
+            repo.write("b.md", "side\n")
+            repo.commit()
+            side = repo.short_head()
+
+            def short(rev: str) -> str | None:
+                base = range_base(repo.root, rev)
+                return None if base is None else base[:7]
+
+            self.assertEqual(short(second), second)
+            self.assertEqual(short(""), side)
+            self.assertEqual(short(f"{first}..{second}"), first)
+            self.assertEqual(short(f"{second}...{side}"), first)
+            self.assertEqual(short(f"{second}^!"), first)
+            self.assertIsNone(short("no-such-revision"))
 
 
 if __name__ == "__main__":

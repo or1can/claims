@@ -19,12 +19,21 @@ against changes (`decisions/0010-checked-marks-expire-on-their-own.md`).
 expiry rules; this docstring is why the code is shaped the way it is.
 
 Applied by the runner after every check has run, never inside one, so
-`Finding` keeps its contract. One check reads marks, and none applies
-them: `restatement` asks `retractions_held` which committed marks record
+`Finding` keeps its contract. Some checks read marks, and none applies
+them. `restatement` asks `retractions_held` which committed marks record
 a retraction whose surviving line a pending change rewords (#250). That
 mark is the only record left of a retraction an earlier commit made, and
 without it the commit doing the rewording raises nothing where the
-branch run raises a finding no commit's own run showed.
+branch run raises a finding no commit's own run showed. `claim-words`,
+`temporal-words` and `judgment-agent`, which report only what a range
+added, ask `expired_units` which marks the range expired, and read those
+units as if the range had added them (#263), for the same reason: the
+change that expires a mark is the one that can mark it again.
+
+A mark is "expired by the range" when it is current at the range's old
+side and not in the working tree, so `_Tree` reads either: the old side
+through git's objects, the new one from disk. One already expired at the
+old side was an earlier change's to raise.
 
 A mark is keyed by a hash of the finding's **unit**, not its line, so it
 follows the text. `UNITS` is the fixed table of what that unit is per
@@ -77,19 +86,21 @@ from dataclasses import dataclass, field, replace
 from pathlib import Path, PurePosixPath
 from typing import NamedTuple
 
-from .config import ConfigError, append_only, counts_as_subject
+from .config import ConfigError, append_only, counts_as_subject, load_config
 from .git import (
     DiffLine,
+    blob_bytes,
     blob_id,
     blob_text,
     head_commit,
     iter_diff,
     parent_commits,
     path_blobs,
+    range_base,
     read_blob,
     tracked_files,
 )
-from .lines import git_lines, tracked_text
+from .lines import git_lines
 from .markdown import CODE_SPAN_RE, fence_state, prose_lines, section_range, sentences_from
 from .runner import Finding
 from .words import normalise
@@ -342,12 +353,15 @@ def _units(kind: str, lines: Sequence[str]) -> list[_Unit]:
 
 
 class _Tree:
-    """What applying or writing marks reads from the working tree, each
-    read once per run."""
+    """What applying or writing marks reads from the working tree, or
+    with `commit`, from that commit's tree, each read once per run."""
 
-    def __init__(self, repo_root: Path, config: Mapping[str, object]) -> None:
+    def __init__(
+        self, repo_root: Path, config: Mapping[str, object], commit: str | None = None
+    ) -> None:
         self.repo_root = repo_root
         self.config = config
+        self.commit = commit
         self._lines: dict[str, list[str] | None] = {}
         self._units: dict[tuple[str, str], list[_Unit] | None] = {}
         self._resolver: tuple[set[str], dict[str, str]] | None = None
@@ -355,14 +369,19 @@ class _Tree:
         self._grown: dict[tuple[str, str], bool] = {}
         self._blobs: dict[str, set[str]] = {}
 
+    def _bytes(self, rel: str) -> bytes | None:
+        if self.commit is not None:
+            return blob_bytes(self.repo_root, self.commit, rel)
+        path = _regular_file(self.repo_root, rel)
+        try:
+            return None if path is None else path.read_bytes()
+        except OSError:
+            return None
+
     def lines(self, rel: str) -> list[str] | None:
         if rel not in self._lines:
-            path = _regular_file(self.repo_root, rel)
-            try:
-                text = None if path is None else tracked_text(path, errors="replace")
-            except OSError:
-                text = None
-            self._lines[rel] = None if text is None else git_lines(text)
+            data = self._bytes(rel)
+            self._lines[rel] = None if data is None else git_lines(data.decode("utf-8", errors="replace"))
         return self._lines[rel]
 
     def units(self, rel: str, kind: str) -> list[_Unit] | None:
@@ -426,12 +445,8 @@ class _Tree:
 
     def _read_hash(self, subject: str, blob: bool) -> str | None:
         path, _, anchor = subject.partition("#")
-        resolved = _regular_file(self.repo_root, path)
-        if resolved is None:
-            return None
-        try:
-            text = resolved.read_bytes()
-        except OSError:
+        text = self._bytes(path)
+        if text is None:
             return None
         if not anchor:
             return blob_id(self.repo_root, path, text) if blob else hashlib.sha256(text).hexdigest()[:16]
@@ -472,12 +487,8 @@ class _Tree:
         if recorded not in self._blobs[path]:
             return False
         old = read_blob(self.repo_root, recorded)
-        resolved = _regular_file(self.repo_root, path)
-        if old is None or resolved is None:
-            return False
-        try:
-            current = resolved.read_bytes()
-        except OSError:
+        current = self._bytes(path)
+        if old is None or current is None:
             return False
         old_lines, new_lines = _blob_lines(old), _blob_lines(current)
         if anchor:
@@ -951,6 +962,66 @@ def retractions_held(repo_root: Path, mode: str) -> dict[str, set[str]]:
         if mark.mode == mode and message and not tree.copies(mark.file, LINE)[line]:
             held.setdefault(mark.file, set()).add(message)
     return held
+
+
+class ExpiredUnit(NamedTuple):
+    """One copy, in the working tree, of a unit whose mark a range expired."""
+
+    file: str
+    mode: str
+    start: int  # 1-based, inclusive
+    end: int  # 1-based, inclusive
+
+
+def expired_units(repo_root: Path, diff_range: str, check: str) -> list[ExpiredUnit]:
+    """Each copy in the working tree of the unit of every mark on `check`'s
+    findings that `diff_range` expired: committed at the range's old side,
+    current there, and not current in the working tree (#263).
+
+    A check scoped to what a range added raises nothing for a unit the
+    range left alone, so without this a change to a mark's subject expires
+    it with no run of its own showing the finding. A mark already expired
+    at the old side is left out: its expiry was an earlier change's to
+    raise. Marks are read at the old side, so one the range rewrites or
+    removes is still found; a sidecar there that doesn't parse holds none,
+    the working tree's being what a run reports as invalid."""
+
+    base = range_base(repo_root, diff_range)
+    if base is None:
+        return []
+    try:
+        marks = [m for m in marks_at(repo_root, base) if markable_check(m.mode) == check]
+    except ConfigError:
+        return []
+    if not marks:
+        return []
+    try:
+        config: Mapping[str, object] = load_config(repo_root)
+    except ConfigError:
+        # The run reports the bad `claims.toml`; read with defaults.
+        config = {}
+    before, after = _Tree(repo_root, config, base), _Tree(repo_root, config)
+    kind = UNITS[check]
+    expired: list[ExpiredUnit] = []
+    for mark in marks:
+        digest = _in_file(mark.unit)
+        old = next((u for u in before.units(mark.file, kind) or [] if u.digest == digest), None)
+        if old is None or not _current(before, mark, mark.file, old):
+            continue
+        now = [u for u in after.units(mark.file, kind) or [] if u.digest == digest]
+        if now and not _current(after, mark, mark.file, now[0]):
+            expired.extend(ExpiredUnit(mark.file, mark.mode, u.start + 1, u.end + 1) for u in now)
+    return expired
+
+
+def expired_lines(repo_root: Path, diff_range: str, check: str) -> dict[str, set[int]]:
+    """`{file: {0-based line}}`: every line `expired_units` covers, for a
+    check whose units are found by line whatever their mode."""
+
+    lines: dict[str, set[int]] = {}
+    for unit in expired_units(repo_root, diff_range, check):
+        lines.setdefault(unit.file, set()).update(range(unit.start - 1, unit.end))
+    return lines
 
 
 def orphaned_marks(repo_root: Path, config: Mapping[str, object]) -> list[Mark]:

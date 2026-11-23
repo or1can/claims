@@ -21,6 +21,9 @@ why the code is shaped the way it is.
 Advisory, for `claim-words`' reason: a sweep for the words a claim is
 made of cannot tell you the claim is wrong.
 
+A sentence whose checked mark the diff expired is read as if added, as
+`claim-words` reads one, for its reason (#263).
+
 **Why not a fourth `claim-words` mode.** The two checks share sentence
 splitting, diff scoping, severity and the shape of `files` — but not the
 file set. A to-do list's temporal wording is *correct* — it exists to
@@ -81,6 +84,7 @@ import re
 from collections.abc import Mapping
 from pathlib import Path
 
+from ..checked import expired_lines
 from ..config import path_matches, string_list_config
 from ..git import added_lines_by_file
 from ..lines import git_lines, tracked_text
@@ -169,24 +173,28 @@ def check(
         return []
 
     added = added_lines_by_file(repo_root, diff_range)
-    designated = [path for path in added if path_matches(path, patterns)]
+    expired = expired_lines(repo_root, diff_range, NAME)
+    designated = [path for path in added.keys() | expired.keys() if path_matches(path, patterns)]
     removed = removed_sentences_by_file(repo_root, diff_range, designated)
     findings: list[Finding] = []
 
     for path in sorted(designated):
-        added_line_numbers = added[path]
+        added_line_numbers = added.get(path, set())
         try:
             text = tracked_text(repo_root / path)
         except (OSError, UnicodeDecodeError):
             continue
         zero_based_added = {n - 1 for n in added_line_numbers}
         removed_here = removed.get(path, set())
+        expired_here = expired.get(path, set())
 
         for sentence, start, end in sentences_from(prose_lines(git_lines(text))):
-            if zero_based_added.isdisjoint(range(start, end + 1)):
-                continue
-            if rewrapped(sentence, removed_here):
-                continue
+            # A unit whose mark the range expired is read as if added.
+            if expired_here.isdisjoint(range(start, end + 1)):
+                if zero_based_added.isdisjoint(range(start, end + 1)):
+                    continue
+                if rewrapped(sentence, removed_here):
+                    continue
             if _is_retired_quote(sentence):
                 continue
             for mode in _classify(sentence):

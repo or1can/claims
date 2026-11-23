@@ -33,6 +33,7 @@ from claims.checks.claim_words import (
     NAME,
     check,
 )
+from claims.checked import load_marks, new_marks, write_marks
 from claims.runner import Finding, register_check, run
 
 from support import RegistryClearingTestCase, Repo
@@ -573,6 +574,128 @@ class ClaimWordsTests(RegistryClearingTestCase):
 
         self.assertTrue(findings)
         self.assertTrue(all(not f.gate for f in findings))
+
+
+CLAIM = "Every flag in `src/tool.py` is documented."
+
+
+class ExpiredMarkTests(RegistryClearingTestCase):
+    """#263: a change that expires a mark on a `claim-words` finding, by
+    changing a subject the mark recorded, raises that finding in its own
+    run, as the branch run would."""
+
+    CONFIG = {NAME: {"files": ["README.md"]}}
+
+    def setUp(self) -> None:
+        super().setUp()
+        register_check(NAME, check)
+
+    def _run(self, repo_root: Path, diff_range: str = "HEAD") -> list[Finding]:
+        return list(run(repo_root, diff_range, self.CONFIG).findings)
+
+    def _shown(self, findings: list[Finding]) -> list[tuple[str, str, str]]:
+        return [(f.citation, f.mode, f.message) for f in findings]
+
+    def _mark(self, repo_root: Path, findings: list[Finding]) -> None:
+        """Mark every finding in `findings`, as `mark-checked` over the
+        same range would, keeping every mark already in the file."""
+
+        entries = [f"{f.citation} {f.mode} read it" for f in findings]
+        marks, problems = new_marks(repo_root, findings, self.CONFIG, entries, None)
+        self.assertEqual(problems, [])
+        write_marks(repo_root, [*load_marks(repo_root), *marks])
+
+    def _add_and_mark(self, repo: Repo) -> str:
+        """Commit A: README.md adds `CLAIM`, which names `src/tool.py`,
+        and marks its finding. Returns the commit before A."""
+
+        repo.write("src/tool.py", "flags = 1\n")
+        repo.write("other.py", "unrelated = 1\n")
+        repo.write("README.md", "# Tool\n\nseed\n")
+        repo.commit()
+        base = repo.short_head()
+        repo.write("README.md", f"# Tool\n\n{CLAIM}\n")
+        own_a = self._run(repo.root)
+        self.assertEqual(self._shown(own_a), [("README.md:3", MODE_TOTALISING, CLAIM)])
+        self._mark(repo.root, own_a)
+        self.assertEqual(self._run(repo.root), [])
+        repo.commit()
+        return base
+
+    def test_changing_a_marked_subject_raises_the_finding_as_the_branch_does(self) -> None:
+        with Repo() as repo:
+            base = self._add_and_mark(repo)
+            repo.write("src/tool.py", "flags = 2\n")
+            own_b = self._run(repo.root)
+            repo.commit()
+            branch = self._run(repo.root, f"{base}..HEAD")
+
+        self.assertEqual(self._shown(own_b), [("README.md:3", MODE_TOTALISING, CLAIM)])
+        self.assertEqual(self._shown(own_b), self._shown(branch))
+
+    def test_marking_the_raised_finding_quiets_it_in_its_commit_and_the_branch(self) -> None:
+        with Repo() as repo:
+            base = self._add_and_mark(repo)
+            repo.write("src/tool.py", "flags = 2\n")
+            self._mark(repo.root, self._run(repo.root))
+            own_b = self._run(repo.root)
+            repo.commit()
+            branch = self._run(repo.root, f"{base}..HEAD")
+
+        self.assertEqual(own_b, [])
+        self.assertEqual(branch, [])
+
+    def test_a_base_branch_mark_is_raised_by_the_feature_commit_and_the_branch(self) -> None:
+        with Repo() as repo:
+            self._add_and_mark(repo)
+            main = repo.short_head()
+            repo.write("src/tool.py", "flags = 2\n")
+            own_b = self._run(repo.root)
+            repo.commit()
+            branch = self._run(repo.root, f"{main}...HEAD")
+
+        self.assertEqual(self._shown(own_b), [("README.md:3", MODE_TOTALISING, CLAIM)])
+        self.assertEqual(self._shown(branch), self._shown(own_b))
+
+    def test_a_mark_whose_subjects_the_range_left_alone_raises_nothing(self) -> None:
+        with Repo() as repo:
+            self._add_and_mark(repo)
+            repo.write("other.py", "unrelated = 2\n")
+            findings = self._run(repo.root)
+
+        self.assertEqual(findings, [])
+
+    def test_a_mark_that_expired_before_the_range_raises_nothing(self) -> None:
+        with Repo() as repo:
+            self._add_and_mark(repo)
+            repo.write("src/tool.py", "flags = 2\n")
+            repo.commit()
+            repo.write("src/tool.py", "flags = 3\n")
+            findings = self._run(repo.root)
+
+        self.assertEqual(findings, [])
+
+    def test_a_unit_the_range_adds_and_expires_is_reported_once(self) -> None:
+        # B adds a second copy of the sentence and changes its subject:
+        # the new copy is both added and the marked unit's.
+        with Repo() as repo:
+            self._add_and_mark(repo)
+            repo.write("README.md", f"# Tool\n\n{CLAIM}\n\n{CLAIM}\n")
+            repo.write("src/tool.py", "flags = 2\n")
+            findings = self._run(repo.root)
+
+        self.assertEqual(
+            self._shown(findings),
+            [("README.md:3", MODE_TOTALISING, CLAIM), ("README.md:5", MODE_TOTALISING, CLAIM)],
+        )
+
+    def test_a_raised_unit_still_has_to_be_in_a_designated_file(self) -> None:
+        with Repo() as repo:
+            self._add_and_mark(repo)
+            repo.write("src/tool.py", "flags = 2\n")
+            findings = list(run(repo.root, "HEAD", {NAME: {"files": ["docs/*.md"]}}).findings)
+
+        self.assertEqual(findings, [])
 
 
 if __name__ == "__main__":

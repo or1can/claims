@@ -132,6 +132,16 @@ of the unit than the mark recorded, as many findings as there are extra
 copies stay reported, because which copy is the new one cannot be told.
 Marking the new copy records the larger count and quiets them all.
 
+A change that makes a mark stop applying shows the mark's finding in
+that change's own run, even from a check that reports only what a range
+added. A mark on a `claim-words`, `temporal-words` or `judgment-agent`
+finding that applied at the range's old side and no longer does has its
+unit read as though the range had added it: a commit that edits a file
+a marked sentence names shows that sentence in its own commit hook run,
+at the line and in the mode the branch's run shows it, so the commit can
+mark it again. A mark that had already stopped applying before the range
+began is not raised again.
+
 ## Kinds
 
 A claim is one of four kinds, and a mark can record which, as its

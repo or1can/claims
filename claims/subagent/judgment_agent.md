@@ -18,7 +18,8 @@ Each candidate names:
 - the citing `file:line` — where the claim's prose lives;
 - the subject it cites (a symbol, file, or behavior);
 - why the subject counts as touched (the diff evidence the `judgment-agent`
-  check already computed — a rename, an add, a removal).
+  check already computed — a rename, an add, a removal, or a change to
+  something the claim names that expired its checked mark).
 
 ## The one hard rule
 
