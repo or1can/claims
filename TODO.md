@@ -9,10 +9,11 @@
   `.out-of-scope/generated-subjects-and-history-weighting.md`).
 - `stale-claims` scores a subject on `git log` of its current path,
   without `--follow`. A section naming a file by bare name (`` `a` ``,
-  `` `notes.txt` ``) resolves to the new path of an uncommitted rename,
-  which has no history yet, so the commit hook brings the section in and
-  reports nothing; once the rename is committed, CI ranks it. An
-  explicit path names the old path too, and is unaffected. Following
+  `` `notes.txt` ``) resolves to the new path of a rename, whose history
+  starts at the rename, so the rename alone ranks the section at 100%:
+  in the commit hook too, which counts the pending change as one more
+  commit (#248). An explicit path names the old path too, and is
+  unaffected. Following
   renames would change every subject's score. Found reviewing #230.
 - `stale-claims` counts an uncommitted insertion just after a linked
   section's last line as a change to that section, even when the

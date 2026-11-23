@@ -207,8 +207,9 @@ on [Configuring `claims`](../configuring.md#silencing-one-check-at-commit-time).
 
 None. The [retired-quote
 exemption](../concepts.md#the-retired-quote-exemption) is a rule about
-sentences a sweep reads, and this check reads no sentences: a marker is
-either live, alone on its line above a fence, or it is not a marker.
+sentences a sweep reads, and this check reads no sentences, only
+markers: one alone on its line above a fence is live, one with no fence
+after it is malformed, and one inside a fenced block is text.
 A marker quoted to show the syntax is put inside a fenced block, and one
 that must not run on this machine is recorded under `denied` in the grant
 file, which keeps it visible as an advisory finding rather than hiding it.

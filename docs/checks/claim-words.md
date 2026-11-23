@@ -184,7 +184,7 @@ on [Configuring `claims`](../configuring.md#silencing-one-check-at-commit-time).
 
 ## Retirement markers
 
-All three. A sentence is skipped when any line it spans is a Markdown
+This check honours all three. A sentence is skipped when any line it spans is a Markdown
 blockquote, `>` followed by a space or the end of the line; when the
 whole sentence is wrapped in `*asterisks*` or `_underscores_`; or when
 it opens with the lead-in "Previously said:", in any case. Any one of the

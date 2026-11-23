@@ -3,8 +3,8 @@
 Checks whether what a repository's prose says about its code is true, by
 executing against the thing the prose describes. This glossary is the
 vocabulary shared across checks; `docs/concepts.md` gives the behavioural
-account of most terms, and the check pages and `docs/configuring.md` give
-the rest.
+account of most terms, and the check pages, `docs/configuring.md` and
+`docs/checked-marks.md` give the rest.
 
 ## Language
 
