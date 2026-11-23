@@ -322,6 +322,14 @@ class SupersededClaimTreeTests(unittest.TestCase):
             self.assertEqual(code, 2)
             self.assertIn("0005.md has no line 9", err)
 
+    def test_a_form_feed_or_lone_carriage_return_ends_no_line(self) -> None:
+        # Git numbers lines by `\n` alone (#185, #191): this file has one.
+        with Repo() as repo:
+            repo.write("adr.md", "a\x0cb\rc\n")
+            repo.commit()
+            with self.assertRaisesRegex(ValueError, "adr.md has no line 2"):
+                claim_trees(repo.root, "adr.md", 2, "past")
+
 
 if __name__ == "__main__":
     unittest.main()
