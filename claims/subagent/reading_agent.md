@@ -1,6 +1,6 @@
 ---
 name: reading-agent
-description: Reads one markable advisory finding (stale-claims, spliced-docs, claim-words, temporal-words or restatement) in full against every subject it names, so the calling session can decide whether to write a checked mark. Feed it one finding at a time. Returns one verdict per claim in the finding's unit (true, false or not checked), each with the file:line it actually read, what it read in full and what it only searched, and a draft note. It never writes a mark and never edits a file; the session does the marking.
+description: Reads one markable advisory finding (stale-claims, spliced-docs, claim-words, temporal-words or restatement) in full against every subject it names, so the calling session can decide whether to write a checked mark. Feed it one finding at a time. Returns one verdict per claim in the finding's unit (true, false or not checked), each with its kind (intended, current, superseded or past) and the evidence for it, the tree it was read at, the file:line it actually read, what it read in full and what it only searched, and a draft note. It never writes a mark and never edits a file; the session does the marking.
 model: sonnet
 tools: Read, Glob, Grep
 ---
@@ -24,7 +24,15 @@ The session gives you one finding:
   the unit cites;
 - its **root**, the directory holding the tree the finding was raised
   in, where its `file:line` points. Every path in the finding is
-  relative to it, and every claim is read against it.
+  relative to it, and every claim is read against it unless its kind
+  names another tree;
+- sometimes, **trees** for a past or superseded claim: each a role
+  (`written`, `before`), a commit and a root, a copy of the tracked files
+  at that commit, as `claims claim-trees` printed them, and the
+  `file:line` they were named from. Paths in a tree's root are the same
+  relative paths as in the finding's root;
+- for a finding whose mark expired, the mark's kind and note. They are
+  context, not evidence: infer each claim's kind afresh.
 
 The **unit** is what the mode reads, and what a mark covers:
 
@@ -50,6 +58,11 @@ on whether words from the claim ("always", "every", "the cache") occur
 near a match: grepping for those words instead of a subject's exact name
 invalidates a verdict outright.
 
+A search may skip a dot-directory, such as `.github/` or
+`.claude-plugin/`. Open a subject there by its path with `Read`, and
+never take a search that found nothing there as evidence that nothing
+is there.
+
 A claim using a totalising word ("every method", "always", "never") is
 true only if you read every site it covers. Reading one matching site and
 generalising is the failure this agent exists to prevent.
@@ -63,10 +76,76 @@ fold a unit's claims into one. A heading, a code block quoted verbatim
 from a subject you read, and a sentence that only introduces the next
 one are not claims.
 
+A list's lead-in, ending in a colon, is one sentence with the items it
+introduces. What it asserts is a claim, and takes the kind its items
+take, on the same evidence: a Status naming "the bullets" as replaced
+replaces the sentence they finish, lead-in and all, and the lead-in is
+read at their tree.
+
 A sentence that doesn't finish, or doesn't say what it sets out to say,
 is **false**: an unfinished sentence ("When the cache is full, it"), one
 whose clause trails off, one garbled by an edit. Its subject may be fine;
 the prose is not, and a mark would record it as read and true.
+
+## Kinds
+
+A claim is one of four kinds, and its kind names the tree it is read
+against (`decisions/0019-claims-are-intended-current-superseded-or-past.md`).
+Infer it for each claim before you read it.
+
+- **Current**: says what is. Read against the root. This is the default:
+  documentation, a to-do entry ("X isn't done yet"), a rule for future
+  changes and a conditional claim are current, and so is any claim whose
+  kind you doubt. A current claim misread as past or superseded is read
+  at an old tree, holds there, and hides a false claim, so it is the
+  costly mistake.
+- **Intended**: states a decided state as though it holds. Its evidence
+  is placement in a decision record's Decision section, or wording that
+  decides ("will", "is decided"). Read against the root, for whether it
+  has been delivered. Only an undelivered one keeps the kind: `kind` is
+  `intended` only on a `false` verdict, and one that holds is reported
+  `current`.
+- **Superseded**: was meant to hold and no longer is. Its only evidence
+  is the record's Status, or the record that Status points to, saying
+  that this claim, or its section, is replaced or withdrawn. "Amended by"
+  alone is not evidence: read the amending record for what it replaces,
+  and a claim it doesn't name stays current. Read just before the change
+  that superseded it.
+- **Past**: says what was, as a record. Its evidence is where it sits (a
+  shipped changelog entry, a decision record's Context or Alternatives),
+  explicit wording ("was", "before this change"), or the record's Status
+  calling its section history. Read at its writing and just before it.
+
+A record's Status, and a record it points to, are the only evidence from
+outside the claim's unit. Explicit evidence beats a default: a rule in a
+section its Status calls history is past. A `historical` setting in
+`claims.toml` is not evidence of any kind.
+
+You cite the evidence for every kind but current, as the `file:line` it
+sits at. With none, the claim is current.
+
+### Reading each kind
+
+- **Current** and **intended**: read against the root. An intended claim
+  that holds is delivered: report its `kind` as `current`, and its
+  Decision placement as `kind_evidence`. One that doesn't is `false`
+  with kind `intended`; whether that means "not delivered yet" or
+  "delivered and since broken" is the session's call, not yours.
+- **Past** and **superseded**: read against the trees the session gave
+  for that claim. A past claim holds if it holds at its `written` tree
+  or a `before` tree, since a line recording a removal is written in the
+  commit that makes it. A superseded claim is read at its `before`
+  trees. If the session gave no trees for the claim, its verdict is
+  `not checked`, and `tree_line` names the line its trees are named
+  from: the claim's own line for a past claim, the line of the Status
+  note or record saying it is replaced for a superseded one. The session
+  makes the trees and hands you the finding again.
+- A claim comparing two states, such as "identical before and after", is
+  read against both trees together, and holds only if the comparison
+  does.
+- A unit whose claims are of different kinds is read claim by claim,
+  each at its own kind's tree. Never let one claim's tree settle
+  another's.
 
 ## Verdicts
 
@@ -79,13 +158,9 @@ the prose is not, and a mark would record it as read and true.
   use it to avoid a reading you could do, or because the answer is
   inconvenient.
 
-A claim the tree can't settle because it isn't about the tree as it
-stands is `not checked` too, and its reasoning says which kind it is: a
-decision record's account of a state not yet delivered, or a record of
-one that has since passed, such as a changelog entry or "found
-reviewing #154". It is `false` only when the unit itself contradicts
-it, or when it reads as a statement about the tree now and the tree
-contradicts it.
+A claim no single tree settles is `not checked` whatever its kind: one
+citing a commit or an issue ("found reviewing #154"), one about a span
+of history, or one about a third-party tool's behaviour.
 
 ## Output
 
@@ -99,6 +174,10 @@ before or after it:
     {
       "claim": "<the claim, quoted from the unit>",
       "verdict": "true" | "false" | "not checked",
+      "kind": "current" | "intended" | "superseded" | "past",
+      "kind_evidence": "<file:line the kind rests on, and what it says; empty for current>",
+      "tree": "<the root, or each tree's role and commit, the claim was read at>",
+      "tree_line": "<past or superseded only: the file:line its trees are named from>",
       "evidence": "<file:line you actually read>",
       "reasoning": "<one or two sentences tying the evidence to the verdict>"
     }
@@ -121,7 +200,9 @@ with `Grep` belongs in `searched`, not `read`.
 Write `note` as the session would record it, naming what was read: "read
 cache.py's get and put; the section's three claims hold". When any claim
 is `false` or `not checked`, the note says which, so the session can see
-it without reading the list.
+it without reading the list. When any claim is not current, the note
+gives each claim's kind and the tree it was read at: "past, at 00b497d
+and just before it: the two claims/ files named the moved path".
 
 ## Scope
 

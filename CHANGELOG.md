@@ -11,6 +11,20 @@ reached you, not just that one was pushed upstream.
 
 ## [Unreleased]
 
+## [0.34.0] - 2026-11-23
+
+- Added: the reading agent infers each claim's kind, intended, current,
+  superseded or past, cites what the kind rests on, and reads a past or
+  superseded claim at its own tree rather than reporting it `not
+  checked`. The `check-claims` skill passes the unit's kind to
+  `mark-checked --kind` and each claim's kind in the note
+  (`docs/reading-agent.md#kinds-and-trees`).
+- Added: `claim-trees --kind past|superseded FILE:LINE` prints the
+  commits a past or superseded claim is read at, and `tree-at REV` the
+  root of a read-only copy of a commit's tracked files with no `.git`,
+  made once per commit under `.claims/trees/`, which ignores itself, so
+  it needs no `.gitignore` entry.
+
 ## [0.33.1] - 2026-11-23
 
 - Fixed: a commit that changes a file a marked `claim-words`,

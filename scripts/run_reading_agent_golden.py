@@ -24,8 +24,11 @@ by `unittest discover`.
 
 A fixture holds `finding.txt`, the finding as the session hands it over;
 `repo/`, the files it cites; and `expected.json`, whose `false_claims`
-lists a fragment of each claim that has to come back `false`. Every other
-claim has to come back `true`, so a known-true fixture lists none.
+lists a fragment of each claim that has to come back `false`, and its
+optional `not_checked` one of each that has to come back `not checked`.
+Every other claim has to come back `true`, so a known-true fixture lists
+none. Its optional `kinds` maps a fragment to the kind the claim holding
+it has to be reported as (ADR 0019).
 `outside_unit` lists fragments of sentences beyond the unit, such as the
 next section's, which no claim may hold: a unit read past its end is
 read wrong, whatever the verdicts say. A
@@ -60,23 +63,30 @@ def _system_prompt() -> str:
     return body.strip()
 
 
-def _judge(report: dict[str, Any], false_claims: list[str], outside_unit: list[str]) -> str | None:
-    """Why `report`'s verdicts don't match `false_claims`, or one of its
-    claims holds an `outside_unit` fragment, or `None`."""
+def _judge(report: dict[str, Any], expected: dict[str, Any]) -> str | None:
+    """Why `report`'s verdicts or kinds don't match `expected`, or one of
+    its claims holds an `outside_unit` fragment, or `None`."""
 
+    false_claims: list[str] = expected["false_claims"]
+    not_checked: list[str] = expected.get("not_checked", [])
+    outside_unit: list[str] = expected["outside_unit"]
     claims = report.get("claims")
     if not isinstance(claims, list) or not claims:
         return f"no claims listed: {report!r}"
-    for fragment in false_claims:
-        if not any(fragment in c.get("claim", "") and c.get("verdict") == "false" for c in claims):
-            return f"no claim holding {fragment!r} came back false: {claims!r}"
+    for verdict, fragments in (("false", false_claims), ("not checked", not_checked)):
+        for fragment in fragments:
+            if not any(fragment in c.get("claim", "") and c.get("verdict") == verdict for c in claims):
+                return f"no claim holding {fragment!r} came back {verdict}: {claims!r}"
+    for fragment, kind in expected.get("kinds", {}).items():
+        if not any(fragment in c.get("claim", "") and c.get("kind") == kind for c in claims):
+            return f"no claim holding {fragment!r} came back of kind {kind}: {claims!r}"
     for claim in claims:
         if any(fragment in claim.get("claim", "") for fragment in outside_unit):
             return f"claim from outside the unit: {claim!r}"
         if not claim.get("evidence"):
             return f"no evidence cited: {claim!r}"
-        expected_false = any(fragment in claim.get("claim", "") for fragment in false_claims)
-        if not expected_false and claim.get("verdict") != "true":
+        listed = any(fragment in claim.get("claim", "") for fragment in false_claims + not_checked)
+        if not listed and claim.get("verdict") != "true":
             return f"expected true: {claim!r}"
     return None
 
@@ -119,7 +129,7 @@ def _run_fixture(fixture_dir: Path, system_prompt: str, model: str) -> tuple[boo
     except ValueError as exc:
         return False, str(exc)
 
-    problem = _judge(report, expected["false_claims"], expected["outside_unit"])
+    problem = _judge(report, expected)
     if problem is not None:
         return False, problem
     read_paths = [

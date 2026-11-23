@@ -1,0 +1,4 @@
+[advisory] decisions/0001-the-cache.md:10 (stale-claims) 'Decision' names code 67% changed since last touched — cache.py 2 commits (67% of its history)
+
+Subjects: cache.py
+Root: the working directory

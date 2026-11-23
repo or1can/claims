@@ -16,8 +16,10 @@
 
 from __future__ import annotations
 
+import os
 import re
 import subprocess
+import tempfile
 from collections.abc import Iterator, Sequence
 from pathlib import Path
 from typing import NamedTuple
@@ -283,7 +285,7 @@ def changed_paths(repo_root: Path, diff_range: str) -> set[str]:
 UNCOMMITTED = "0" * 40
 """`git blame`'s own marker for a working-tree line no commit has yet."""
 
-_BLAME_HEADER_RE = re.compile(r"^([0-9a-f]{40}) \d+ \d+")
+_BLAME_HEADER_RE = re.compile(r"^([0-9a-f]{40}) (\d+) \d+")
 
 
 def blame_commits(repo_root: Path, rel: str) -> list[str] | None:
@@ -312,6 +314,68 @@ def blame_commits(repo_root: Path, rel: str) -> list[str] | None:
         for line in git_lines(result.stdout)
         if (m := _BLAME_HEADER_RE.match(line))
     ]
+
+
+def line_commit(repo_root: Path, rel: str, line_no: int) -> tuple[str, int, str] | None:
+    """The commit working-tree line `line_no` of `rel` was last written in,
+    with that line's number and `rel`'s path in that commit, as `git blame`
+    attributes it: `UNCOMMITTED` for a line not yet in any commit. `None`
+    when `rel` isn't in `HEAD`, which `git blame` refuses to blame, or has
+    no such line."""
+
+    result = subprocess.run(
+        [
+            "git", *QUOTEPATH_OFF, "-C", str(repo_root), "blame", "--porcelain",
+            "-L", f"{line_no},{line_no}", "--", rel,
+        ],
+        capture_output=True,
+        text=True,
+        errors="replace",
+    )
+    if result.returncode != 0:
+        return None
+    lines = git_lines(result.stdout)
+    header = next((m for line in lines if (m := _BLAME_HEADER_RE.match(line))), None)
+    if header is None:
+        return None
+    path = next((line[len("filename "):] for line in lines if line.startswith("filename ")), rel)
+    return header.group(1), int(header.group(2)), path
+
+
+def line_origin(repo_root: Path, commit: str, rel: str, line_no: int) -> str | None:
+    """The oldest commit in the history of line `line_no` of `rel` as of
+    `commit`: the one that first added it, traced back through every later
+    edit to it, where `git blame` names only the last. `rel` is from the
+    top of the work tree, as blame's `filename` gives it. `None` when git
+    can't trace it."""
+
+    top = toplevel(repo_root) or repo_root
+    result = subprocess.run(
+        [
+            "git", *QUOTEPATH_OFF, "-C", str(top), "log", "--no-patch",
+            "--format=%H", f"-L{line_no},{line_no}:{rel}", commit,
+        ],
+        capture_output=True,
+        text=True,
+        errors="replace",
+    )
+    commits = result.stdout.split() if result.returncode == 0 else []
+    return commits[-1] if commits else None
+
+
+def check_out_to(repo_root: Path, commit: str, dest: Path) -> bool:
+    """Write every file tracked at `commit` under `dest`, through an index
+    of its own, leaving the repository's index and work tree alone. Unlike
+    `git archive`, it keeps a path `.gitattributes` marks `export-ignore`.
+    False when `commit` names no commit."""
+
+    with tempfile.TemporaryDirectory() as scratch:
+        env = {**os.environ, "GIT_INDEX_FILE": str(Path(scratch) / "index")}
+        for args in (["read-tree", commit], ["checkout-index", "-a", f"--prefix={dest}/"]):
+            result = subprocess.run(["git", "-C", str(repo_root), *args], capture_output=True, env=env)
+            if result.returncode != 0:
+                return False
+    return True
 
 
 def blob_text(repo_root: Path, commit: str, rel: str) -> str | None:

@@ -197,19 +197,60 @@ read. Its input and output contract is
 `claims/subagent/reading_agent.md`; the plugin's
 `docs/reading-agent.md` describes it. It returns one verdict per claim in
 the finding's unit — `true`, `false` or `not checked` — each with the
-`file:line` it read, and for the finding as a whole, what it read in
-full, what it only searched, and a draft note. It never marks anything.
-Read its evidence, then:
+claim's kind (`intended`, `current`, `superseded` or `past`) and the
+evidence for it, the tree it was read at and the `file:line` it read,
+and for the finding as a whole, what it read in full, what it only
+searched, and a draft note. It never marks anything.
+
+The agent has no shell, so it reads a past or superseded claim in a copy
+of the tree its kind names, which you make. A claim it reports `not
+checked` with a `tree_line` needs one: run
+
+```bash
+PYTHONPATH="${CLAUDE_PLUGIN_ROOT}" python3 -m claims.cli claim-trees --repo-root <path> --kind past|superseded <tree_line>
+```
+
+which prints one tree per line, `<role> <commit> <root>`, with no root
+for `superseded`, the change the claim is read just before, and
+`working-tree` as the commit of a line not yet committed. It makes each
+copy once per commit and reuses it after. Hand the agent the finding
+again with those trees, and the `tree_line` each was named from.
+`tree-at <REV>` prints the root of one commit's copy, for a claim
+comparing a state the tree names to another. When you re-read an expired
+mark, pass its `kind` and `note` from its entry in `claims.checked.toml`:
+the agent infers the kind afresh, with them as context.
+
+Read its evidence, the kind evidence included: a claim read at an old
+tree on weak evidence is the costly mistake, since it holds there and
+its mark no longer expires with its subjects. Then:
 
 - **Every claim `true`:** mark the finding, with `--by
   "claims:reading-agent (<model>)"`, `<model>` being the model it ran on.
-- **Any claim `false`:** fix the prose; never mark it.
+- **Any claim `false`:** fix the prose; never mark it. Two exceptions,
+  each yours to decide, not the agent's. An intended claim that is
+  `false` may not be delivered yet: fix the code, or record a change of
+  direction, or, where the pull request's plan delivers it later, mark
+  it, saying in the note that it is not delivered. A past or superseded
+  claim that is `false` at its tree is in a record whose prose is not
+  rewritten: check its kind evidence, and settle it with the user.
 - **A claim `not checked`:** in a `stale-claims` section or a
   `spliced-docs` doc comment, mark with `--partial` and name the
   unchecked claim in the note, as long as at least one claim is `true`:
   a mark on which nothing was checked records no reading at all. In any
   other mode, don't mark on the agent's reading: read that claim's
   subject yourself, or leave the finding unmarked. A full mark always means every claim was checked.
+
+Each claim is read at its own kind's tree, and the unit's verdicts
+combine as one claim's would: the unit is fully marked when every claim
+is `true` at its tree, whatever trees they were read at. Pass the unit's
+kind to `mark-checked` with `--kind`, the least settled of its claims'
+kinds: current if any claim is current (no `--kind`), else `intended`,
+else `superseded`, else `past`. For a superseded or past unit, pass
+`--evidence` once for each file or `page.md#anchor` section its claims'
+kinds rest on, such as a decision record's `#status`. A superseded unit
+needs at least one. Put each claim's kind, and the commit a past or superseded claim
+was read at, in the note. Marks of different kinds go in separate
+batches.
 
 When no subagent can be started, read the finding yourself, to the same
 rules: the whole unit and every subject it names, each opened in full,
@@ -219,8 +260,8 @@ you and your model, as `<session or agent name> (<model>)`. That
 itself puts no format on it. A mark written from a `judgment-agent`
 verdict names `judgment-agent (<model>)`.
 
-A mark that has expired is read again in full, the same way, as if it
-had never been marked.
+A mark that has expired is read again in full, the same way, its kind
+and note passed as context, never as a verdict.
 
 ### Writing the marks
 
