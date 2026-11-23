@@ -206,7 +206,7 @@ copies = 1
 note = "read docs/reading-agent.md, reading_agent.md and SKILL.md in full: one finding at a time from the skill, the unit and every named subject read in full, a verdict per claim with evidence, the session deciding on marking, and the linked page; all current and true"
 by = "claims:reading-agent (sonnet)"
 approved_by = "Kevin Rogers"
-subjects = { "docs/reading-agent.md" = "1f4e87feea9c4e9d" }
+subjects = { "docs/reading-agent.md" = "3055e11e952cef48" }
 
 [[mark]]
 file = "README.md"
@@ -236,7 +236,7 @@ copies = 1
 note = "read docs/reading-agent.md, reading_agent.md and SKILL.md in full: one finding at a time from the skill, the unit and every named subject read in full, a verdict per claim with evidence, the session deciding on marking, and the linked page; all current and true"
 by = "claims:reading-agent (sonnet)"
 approved_by = "Kevin Rogers"
-subjects = { "docs/reading-agent.md" = "1f4e87feea9c4e9d" }
+subjects = { "docs/reading-agent.md" = "3055e11e952cef48" }
 
 [[mark]]
 file = "README.md"
@@ -261,10 +261,10 @@ file = "README.md"
 mode = "stale-claims"
 unit = "4abe336640ffcdc1"
 copies = 1
-note = "read against installation.md, reading-agent.md, judgment-agent.md, configuring.md, SKILL.md, cli.py, plugin.json, hooks.json, nudge.py and checked.py's UNITS: the five surfaces, the hook and its fail_on_unmarked rule, the session-start reminder, the skill and its config review, both subagents and the CLI hold; all current and true"
+note = "read against reading-agent.md, installation.md, judgment-agent.md, configuring.md, SKILL.md, cli.py, plugin.json, hooks.json, nudge.py and checked.py's UNITS: the five surfaces, the hook and its fail_on_unmarked rule, the session-start reminder, the skill and its config review, both subagents and the CLI hold; all current and true"
 by = "claims:reading-agent (sonnet)"
 approved_by = "Kevin Rogers"
-subjects = { "docs/installation.md" = "b90939e42afb2dff", "docs/reading-agent.md" = "1f4e87feea9c4e9d" }
+subjects = { "docs/installation.md" = "b90939e42afb2dff", "docs/reading-agent.md" = "3055e11e952cef48" }
 
 [[mark]]
 file = "README.md"
@@ -663,11 +663,11 @@ file = "claims/skill/SKILL.md"
 mode = "stale-claims"
 unit = "47be515c5099e436"
 copies = 1
-note = "read the section against reading_agent.md, reading-agent.md, trees.py, cli.py's handlers, checked.py and checked-marks.md in full: the handoff, roots, contract, trees, claim-trees and tree-at, the kinds on marks, --partial, --evidence and the expired-mark rules hold (current); not checked: the git worktree add and remove commands (git behaviour) and what a judgment-agent mark names in by"
+note = "read the section against reading_agent.md, reading-agent.md, trees.py, cli.py's handlers, checked.py, checked-marks.md and judgment-agent.md in full: the handoff, roots, contract, trees, claim-trees and tree-at, the kinds on marks, --partial, --evidence and the expired-mark rules hold (current); not checked: the git worktree add and remove commands (git behaviour) and what a judgment-agent mark names in by"
 by = "claims:reading-agent (sonnet)"
 approved_by = "Kevin Rogers"
 extent = "partial"
-subjects = { "claims/subagent/reading_agent.md" = "258dcb8b37f90b82", "docs/reading-agent.md" = "1f4e87feea9c4e9d" }
+subjects = { "claims/subagent/reading_agent.md" = "258dcb8b37f90b82", "docs/reading-agent.md" = "3055e11e952cef48" }
 
 [[mark]]
 file = "claims/skill/SKILL.md"

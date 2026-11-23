@@ -164,21 +164,23 @@ to the agent as context, and it infers each kind afresh.
 ## The model
 
 The agent runs on sonnet. Its golden fixtures, under
-`tests/fixtures/reading_agent_golden/`, are five `stale-claims` sections
+`tests/fixtures/reading_agent_golden/`, are six `stale-claims` sections
 about one small cache module. Three are a design page's: one true
 throughout, one with a sentence left unfinished among true ones, and one
 claiming the cache evicts its oldest entry when the code evicts its
-newest. Two are a decision record's Decision: one making that same
+newest. Three are a decision record's Decision. One makes that same
 eviction claim, which has to come back `false` and intended beside a
-delivered claim reported current, and one whose Status names one of its
+delivered claim reported current. One has a Status naming one of its
 sentences as replaced, which has to come back superseded and `not
-checked` with no tree given, beside a current claim. Each fixture passes
-only when every claim gets the expected verdict and kind, the agent
-opened the section and the module with the file-reading tool, and no
-claim comes from outside the section. `python3 scripts/run_reading_agent_golden.py
+checked` with no tree given, beside a current claim. One has a Status
+naming a list's bullets as replaced, and the list's lead-in has to come
+back superseded with them. Each fixture passes only when every claim
+gets the expected verdict and kind, the agent opened the section and the
+module with the file-reading tool, and no claim comes from outside the
+section. `python3 scripts/run_reading_agent_golden.py
 --model <model>` runs them against the real model, one API call each.
 
-Sonnet passes all five. Haiku, over two runs of the first three,
+Sonnet passes all six. Haiku, over two runs of the first three,
 gives the right verdict on every claim, both false ones included,
 but in three of its six fixture runs it also reports the sentence under
 the next heading as one of the section's claims, which fails that

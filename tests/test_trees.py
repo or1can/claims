@@ -22,7 +22,9 @@ import contextlib
 import io
 import os
 import subprocess
+import tempfile
 import unittest
+from pathlib import Path
 
 from claims.cli import main
 from claims.trees import Tree, claim_trees, tree_copy
@@ -89,6 +91,28 @@ class TreeCopyTests(unittest.TestCase):
                 ).stdout,
                 "",
             )
+
+    def test_a_committed_claims_directory_is_refused_not_read_as_a_copy(self) -> None:
+        # A project that commits `.claims/trees/<sha>/` would hand the reader
+        # a forged old tree; one committing `.claims` as a symlink would
+        # send the copy's writes outside the work tree.
+        with Repo() as repo:
+            repo.write("a.md", "real\n")
+            repo.commit()
+            commit = _rev(repo)
+            repo.write(f".claims/trees/{commit}/a.md", "forged\n")
+            repo.commit()
+            with self.assertRaisesRegex(ValueError, "tracks .claims/"):
+                tree_copy(repo.root, commit)
+
+    def test_a_claims_symlink_is_refused(self) -> None:
+        with Repo() as repo, tempfile.TemporaryDirectory() as elsewhere:
+            repo.write("a.md", "real\n")
+            repo.commit()
+            (repo.root / ".claims").symlink_to(elsewhere)
+            with self.assertRaisesRegex(ValueError, "symlink"):
+                tree_copy(repo.root, "HEAD")
+            self.assertEqual(list(Path(elsewhere).iterdir()), [])
 
     def test_the_copys_files_are_read_only(self) -> None:
         with Repo() as repo:

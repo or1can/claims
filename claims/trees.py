@@ -46,6 +46,7 @@ from .git import (
     parent_commits,
     resolve_commit,
     toplevel,
+    tracked_files,
 )
 
 # The kinds `claim_trees` names trees for; a current or intended claim is
@@ -80,6 +81,11 @@ def tree_copy(repo_root: Path, rev: str) -> Path:
     top = toplevel(repo_root)
     if commit is None or top is None:
         raise ValueError(f"{rev} names no commit")
+    if (top / CACHE_DIR).is_symlink():
+        raise ValueError(f"{CACHE_DIR} is a symlink, so a copy there could be written anywhere")
+    if tracked_files(top, CACHE_DIR):
+        # A copy git tracks is whatever was committed, not the commit's tree.
+        raise ValueError(f"git tracks {CACHE_DIR}/, which holds copies claims makes itself")
     cache = top / CACHE_DIR / "trees"
     dest = cache / commit
     if dest.is_dir():
