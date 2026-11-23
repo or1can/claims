@@ -16,7 +16,9 @@
 which writes checked marks (`claims.checked`) for findings of one run,
 `pending-marks` and `approve-marks`, which list and approve the marks no
 person has reviewed yet, and `fold-approvals` (`claims.fold`), which
-approves them inside the commits that wrote them."""
+approves them inside the commits that wrote them; and `tree-at` and
+`claim-trees` (`claims.trees`), which name and copy the trees a past or
+superseded claim is read at."""
 
 from __future__ import annotations
 
@@ -47,6 +49,7 @@ from .config import ConfigError, load_config
 from .fold import fold_approvals
 from .git import resolve_commit
 from .runner import format_findings, run
+from .trees import TREE_KINDS, claim_trees, tree_copy
 
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
@@ -312,6 +315,67 @@ def approve(argv: list[str]) -> int:
     return 0
 
 
+def tree_at(argv: list[str]) -> int:
+    parser = argparse.ArgumentParser(
+        prog="python3 -m claims.cli tree-at",
+        description=(
+            "Print the path of a read-only copy of the tracked files at REV, "
+            "with no .git, made once per commit and reused after."
+        ),
+    )
+    parser.add_argument("rev", metavar="REV")
+    parser.add_argument("--repo-root", type=Path, default=Path.cwd())
+    args = parser.parse_args(argv)
+    try:
+        print(tree_copy(args.repo_root.resolve(), args.rev))
+    except ValueError as e:
+        print(e, file=sys.stderr)
+        return 2
+    return 0
+
+
+def list_claim_trees(argv: list[str]) -> int:
+    parser = argparse.ArgumentParser(
+        prog="python3 -m claims.cli claim-trees",
+        description=(
+            "Print the trees a past or superseded claim is read at, one per "
+            "line as `<role> <commit> <root>`: `written` and `before` for a "
+            "past claim, read at both; `superseded`, with no root, and "
+            "`before`, read there, for a superseded one. `working-tree` "
+            "stands for the commit an uncommitted line has none of."
+        ),
+    )
+    parser.add_argument(
+        "line",
+        metavar="FILE:LINE",
+        help=(
+            "The claim's own line for --kind past; for --kind superseded, the "
+            "line of the Status note or record saying it is replaced or withdrawn."
+        ),
+    )
+    parser.add_argument("--kind", choices=TREE_KINDS, required=True)
+    parser.add_argument("--repo-root", type=Path, default=Path.cwd())
+    args = parser.parse_args(argv)
+    rel, sep, number = args.line.rpartition(":")
+    if not sep or not number.isdigit():
+        parser.error(f"{args.line} is not FILE:LINE")
+    repo_root: Path = args.repo_root.resolve()
+    try:
+        trees = claim_trees(repo_root, rel, int(number), args.kind)
+        for tree in trees:
+            commit = tree.commit or "working-tree"
+            if tree.role == "superseded":
+                print(f"{tree.role} {commit}")
+            elif tree.commit is None:
+                print(f"{tree.role} {commit} {repo_root}")
+            else:
+                print(f"{tree.role} {tree.commit} {tree_copy(repo_root, tree.commit)}")
+    except ValueError as e:
+        print(e, file=sys.stderr)
+        return 2
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     argv = sys.argv[1:] if argv is None else argv
     if argv[:1] == ["mark-checked"]:
@@ -322,6 +386,10 @@ def main(argv: list[str] | None = None) -> int:
         return approve(argv[1:])
     if argv[:1] == ["fold-approvals"]:
         return fold_approvals(argv[1:])
+    if argv[:1] == ["tree-at"]:
+        return tree_at(argv[1:])
+    if argv[:1] == ["claim-trees"]:
+        return list_claim_trees(argv[1:])
     args = parse_args(argv)
     repo_root: Path = args.repo_root.resolve()
     try:

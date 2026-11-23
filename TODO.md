@@ -26,12 +26,19 @@
   code there is still reported as a retraction. A `claims.toml` key that
   adds a row of the same shape (line-comment tokens, block delimiters,
   nesting, docstrings) is the likely fix.
-- `mark-checked --kind` and `--evidence` ship unused here: no mark in
-  `claims.checked.toml` records a kind, and the `check-claims` skill
-  doesn't pass either, because the reading agent can't yet infer a kind
-  or read a claim at its kind's tree. Both, and re-marking this
-  repository's findings stuck on `not checked` with their kinds, are
-  #267.
+- `claim-trees --kind superseded` finds the superseding change by
+  following the Status note's line back through every edit to where it
+  was first added. A note written onto the end of an older line, such as
+  `Accepted.`, is followed back to that line's own commit, so the claim
+  is read at a tree older than the change. Every "Amended by" note in
+  `decisions/` is its own paragraph, so none is affected, though ADR
+  0004's `Accepted.` line, later extended, has that shape; following the
+  words that name the replacement, not the line, would cover it. A claim
+  over several lines is named from one of them, so a past claim whose
+  lines came in different commits is read at that line's commit alone.
+  And a note line edited in the working tree has no history to follow,
+  so it supersedes there, at `HEAD`; its unedited lines still name the
+  change.
 - `claims.markdown.SENTENCE_RE`'s fallback for a paragraph's unterminated
   tail is `\S.+$`, so a one-character tail is dropped: `It runs. X`
   yields only `It runs.`. Found reviewing #154; out of that ticket's
