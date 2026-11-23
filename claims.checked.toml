@@ -144,11 +144,11 @@ file = "AGENTS.md"
 mode = "stale-claims"
 unit = "c4e83690fc1a828d"
 copies = 1
-note = "read pyproject.toml, uv.lock and ADR 0008 in full: the pyright pin in the dev group and the lock holds (current); not checked: that pyright stays clean, the wrapper's IGNORE_WARNINGS behaviour and uv -q's VIRTUAL_ENV warning, which need a run"
+note = "read Typechecking, pyproject.toml, uv.lock and ADR 0008: the pyright 1.1.414 pin in the dev group and lock holds (current); not checked: PYRIGHT_PYTHON_IGNORE_WARNINGS and uv -q behaviour (third-party) and the verify block's output (needs a run)"
 by = "claims:reading-agent (sonnet)"
 approved_by = "Kevin Rogers"
 extent = "partial"
-subjects = { "decisions/0008-a-command-names-its-own-environment.md" = "ce9132a4784be55c", "pyproject.toml" = "34021f2fff270b0f", "uv.lock" = "b949e48bf9729bcf" }
+subjects = { "decisions/0008-a-command-names-its-own-environment.md" = "44a8e0ed95bc0e7e", "pyproject.toml" = "34021f2fff270b0f", "uv.lock" = "b949e48bf9729bcf" }
 
 [[mark]]
 file = "AGENTS.md"
@@ -1130,11 +1130,10 @@ file = "docs/checks/check-cli-flags.md"
 mode = "stale-claims"
 unit = "8652909ce0f49280"
 copies = 1
-note = "read check_cli_flags.py, git.py, execution_grants.py, executable_claims.py, ADR 0008 and configuring.md in full: the claims of What it checks hold, git.py's tracked_files backing the *.md sweep (current); not checked: that pre-commit and uvx put the hook's own Python first on PATH (third-party)"
+note = "read What it checks against check_cli_flags.py, execution_grants.py, executable_claims.py's ungranted branch, configuring.md's grant file and ADR 0008: claim shape, script and flag patterns, ./ for a bare name, grants, severities, run and match rules, cache, shebang and whole-tree sweep hold; all current and true"
 by = "claims:reading-agent (sonnet)"
 approved_by = "Kevin Rogers"
-extent = "partial"
-subjects = { "claims/git.py" = "2d15148b01b62ee0", "decisions/0008-a-command-names-its-own-environment.md" = "ce9132a4784be55c", "docs/configuring.md#the-grant-file" = "b34c8248c7423f51" }
+subjects = { "claims/git.py" = "2d15148b01b62ee0", "decisions/0008-a-command-names-its-own-environment.md" = "44a8e0ed95bc0e7e", "docs/configuring.md#the-grant-file" = "b34c8248c7423f51" }
 
 [[mark]]
 file = "docs/checks/check-env-vars.md"
@@ -1204,6 +1203,17 @@ copies = 1
 note = "Re-read: #245's capture.py change only unpacks apply_marks' new fourth value; the executable-claims example and its capture are unchanged."
 by = "Claude (agent)"
 subjects = { "docs/captures/executable-claims.txt" = "286fe731e65db64a", "examples/executable-claims/README.md" = "6a19528942bde738", "examples/executable-claims/local/claims.local.toml" = "89f958645c8a445d", "scripts/capture.py" = "14d2b4164af212d6" }
+
+[[mark]]
+file = "docs/checks/executable-claims.md"
+mode = "stale-claims"
+unit = "619e393900c77c6d"
+copies = 1
+note = "read the section, ADR 0008 and executable_claims.py: run as written with the inherited PATH, the naming convention, stderr compared with stdout and the ADR pointer hold (current); not checked: what pre-commit and uvx put on PATH and uv's VIRTUAL_ENV warning (third-party)"
+by = "claims:reading-agent (sonnet)"
+approved_by = "Kevin Rogers"
+extent = "partial"
+subjects = { "decisions/0008-a-command-names-its-own-environment.md" = "44a8e0ed95bc0e7e" }
 
 [[mark]]
 file = "docs/checks/judgment-agent.md"
