@@ -1,0 +1,4 @@
+[advisory] docs/api.md:4 (claim-words-totalising) Every method of `Cache` leaves its entries unchanged.
+
+Subjects: cache.py
+Root: the working directory

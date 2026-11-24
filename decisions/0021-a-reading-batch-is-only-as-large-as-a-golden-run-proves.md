@@ -6,6 +6,21 @@ Accepted. Issue #274; builds on
 `decisions/0018-the-reader-and-the-approver-are-recorded-apart.md` and
 `decisions/0019-claims-are-intended-current-superseded-or-past.md`.
 
+Amended by #281, which corrects the account of the batched runs in the
+Decision. All four packed ten findings from eight unrelated roots into
+one call, which the Decision forbids of a reading batch, so they don't
+show how a real one does, and the harness reported only the first
+problem it met. The failed run that listed a sentence from beyond a
+section also returned a false claim `true`: it gave two findings that
+share a subject and need opposite verdicts each other's verdict. The
+other failed run returned the undelivered claim `false`, but of kind
+current. The cap stays at 1. "Passed with on every repeat" means no
+failed run in 20 of that size, where any failure rejects the size,
+whether verdict, kind, unit or other. The `--batched` run the
+Consequences name is now `--stress`, and never sets the cap; the runs
+the cap rests on are `--batch-size`'s, of findings from one root that
+share subjects.
+
 ## Context
 
 The reading agent took one finding per call, and the skill called it

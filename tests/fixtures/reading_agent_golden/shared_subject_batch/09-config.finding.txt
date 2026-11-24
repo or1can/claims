@@ -1,0 +1,4 @@
+[advisory] docs/config.md:1 (stale-claims) 'Building a cache' names code 67% changed since last touched — cache.py 2 commits (67% of its history), settings.py 2 commits (67% of its history)
+
+Subjects: cache.py, settings.py
+Root: the working directory

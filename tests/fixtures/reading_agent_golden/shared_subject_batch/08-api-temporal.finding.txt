@@ -1,0 +1,4 @@
+[advisory] docs/api.md:7 (temporal-words-cited) `delete` now ignores a key the cache doesn't hold.
+
+Subjects: cache.py
+Root: the working directory

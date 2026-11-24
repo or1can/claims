@@ -205,11 +205,11 @@ step's detail follows it.
 
    A reading batch holds at most **1 finding**, so every finding is a
    reading batch of its own. The cap is set by the reading agent's
-   batched golden run, which hands it 10 findings in one call and has
-   not yet passed on every repeat (the plugin's `docs/reading-agent.md`
-   records the runs). It is raised only to a size whose batched run
-   passes every repeat; a group larger than the cap is then split,
-   keeping together the findings that share the most subjects.
+   golden runs of whole reading batches, and no larger size has been
+   shown to pass them (the plugin's `docs/reading-agent.md` records the
+   runs). It is raised only to a size with no failed run in 20; a group
+   larger than the cap is then split, keeping together the findings that
+   share the most subjects.
 
    A `judgment-agent` candidate is never batched, as its own section
    above says: its golden harness has no batched run at all to prove its

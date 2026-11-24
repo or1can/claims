@@ -52,13 +52,13 @@ it, at the same tree. The same path at a different tree, such as a past
 claim's tree, is read again there.
 
 A reading batch holds at most one finding, so every finding is read in
-a call of its own. The cap is set by the batched golden run under [The
-model](#the-model), which hands the agent 10 findings in one call, and
-that run has not passed every time: a reading that is cheaper
-but sometimes wrong would write marks that hide false claims. The cap
-goes up only to a size whose batched run passes on every repeat. A group
-larger than the cap is then split, keeping together the findings that
-share the most subjects.
+a call of its own. The cap is set by the golden runs of whole reading
+batches under [The model](#the-model), and no larger size has been shown
+to pass them: a reading that is cheaper but sometimes wrong would write
+marks that hide false claims. The cap goes up only to a size with no
+failed run in 20, and any failure rejects a size, whether it is a
+verdict, a kind, the unit or another. A group larger than the cap is
+then split, keeping together the findings that share the most subjects.
 
 The session checks that each reading batch's output holds exactly one
 report per finding it sent, matched by the finding's `file:line` and
@@ -245,22 +245,50 @@ module, a `claim-words` sentence saying every setting has a default,
 when one has none, and a `temporal-words` sentence about a default that
 holds.
 
-`python3 scripts/run_reading_agent_golden.py --model <model>` runs each
-finding against the real model, one API call each. With `--batched`, it
-runs all ten as one reading batch in one call, each fixture's files
-under a prefix of their own in one root, and passes only when each
-finding comes back as it has to alone: one report per finding, the same
-verdicts and kinds, its unit and every subject listed as read, and no
-claim from outside its unit.
+One more fixture is a root of ten findings that share subjects, as a
+reading batch's do. They name one cache module, one settings module, or
+both, across design pages, decision records and single sentences. The
+first two are a pair like the `Eviction` one above. The third carries
+trees for a past claim, and the cache module in one of them evicts its
+newest entry where the root's evicts its oldest, so a reader that takes
+one for the other fails it. The skill would re-send a finding with trees
+apart from the rest; here it stays, so that one path at two trees meets
+in one call. A finding fails if it lists another's claim as its own, and
+the kind of every claim is judged.
 
-Run alone, sonnet passes all ten. Batched, it passed two of four runs.
+`python3 scripts/run_reading_agent_golden.py --model <model>` runs each
+of the twenty findings alone against the real model, one API call each.
+`--batch-size`, with 2, 3, 5 or 10, hands that many of the shared root's
+findings, the first in order, to one call. `--stress` hands the ten
+findings of the other fixtures to one call, each fixture's files under a
+prefix of their own. Those are from eight unrelated roots, which no
+reading batch is, so a stress run is recorded and never sets the cap. A run passes only when each
+finding comes back as it has to alone: one report per finding, the same
+verdicts and kinds, its unit and every subject listed as read and opened,
+and no claim from outside its unit. Otherwise it reports every problem in
+every finding. `--repeat` runs a mode several times and counts the failed
+runs, and the failures by finding and type. `--output-dir` saves each
+run's final message and the files it opened.
+
+Each call is isolated: the agent's contract is its whole system prompt,
+Read, Glob and Grep are its only tools, it loads no hook, skill, plugin,
+MCP server or `CLAUDE.md`, and its root is outside the repository. A
+call in a real project does load that project's `CLAUDE.md`. Leaving it
+out keeps one run comparable with another.
+
+Run alone and isolated, sonnet passes all twenty, one run each.
+
+Handed those ten findings from unrelated roots in one call, before the
+calls were isolated, it passed two of four runs.
 One failed run listed a sentence from the next section as one of a
 section's claims, true but outside the unit; the sentence telling the
-agent never to list one was added after it. The other, after that
-sentence, reported the decision record's undelivered eviction claim
-without its intended kind. A reading that strays from its unit or
-misreads a kind is not one to mark from, so the skill's cap stays at one
-finding.
+agent never to list one was added after it. The same run gave the first
+pair's two findings each other's verdict, so a false claim came back
+`true`. The other, after that sentence, reported the decision record's
+undelivered eviction claim `false`, as it has to be, but current rather
+than intended. A reading that strays from its unit or misreads a kind,
+or returns a false claim as true, is not one to mark from, so the skill's
+cap stays at one finding.
 
 Haiku, over two runs of the first three,
 gives the right verdict on every claim, both false ones included,
