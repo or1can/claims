@@ -200,7 +200,11 @@ settings, and neither declares a kind.
   is the reading the current claim needs.
 - A claim reworded as it changes kind becomes a new finding, and its old
   mark an orphan: the re-reading starts afresh, at current, and the move
-  between kinds is seen only in the history of `claims.checked.toml`.
+  between kinds is seen only in the history of `claims.checked.toml`. A
+  `stale-claims` section is the exception: its mark is keyed by its
+  heading, so a claim reworded in it keeps the section's mark, which
+  expires as a current mark does, on its subjects, or as a past or
+  superseded one does, on its text.
 - A claim no single tree settles might be read at several and the
   readings combined. That is not the reading agent's job, and is left
   for later.

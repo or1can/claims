@@ -24,11 +24,11 @@ file = ".out-of-scope/version-only-churn.md"
 mode = "stale-claims"
 unit = "dd656ffcd24a40a1"
 copies = 1
-note = "read the section against pyproject.toml, plugin.json, AGENTS.md, ADRs 0004, 0008, 0009 and 0013 and the sibling out-of-scope files: current claims hold; Claude Code settled the rest it could: #228's three options and 4 sections, ratect 6c645e5c's files and 170 marks with no version-file subject, this repo's re-marks for 0.28.2 each with a specific note, and plugin.json's history (3 of 92 commits changed more than the version); not checked: ratect's 24 ranked sections and 1 naming Cargo.toml, a past run's output"
+note = "read against both sibling out-of-scope pages, ADRs 0009 and 0013, stale_claims.py, config.py, pyproject.toml, plugin.json and AGENTS.md: current claims hold; Claude Code settled #228's options and 4 sections, ratect 6c645e5c's files and 170 marks, the 0.28.2 notes and plugin.json's history; not checked: ratect's 24 ranked sections and 1 naming Cargo.toml, a past run's output"
 by = "claims:reading-agent (sonnet), with Claude Code (claude-opus-5-5)"
 approved_by = "Kevin Rogers"
 extent = "partial"
-subjects = { ".claude-plugin/plugin.json" = "c08b5d37832c355d", ".out-of-scope/adr-status-notes-as-churn.md" = "7bc84c78d3c4041e", ".out-of-scope/comment-only-churn.md" = "a8fc5351b734ef48", ".out-of-scope/generated-subjects-and-history-weighting.md" = "01bbf99406bf555f", "pyproject.toml" = "687170452362eec2", "tests/fixtures/judgment_agent_golden/count_consistency_known_false/repo/ROADMAP.md" = "24be61be2e348715" }
+subjects = { ".claude-plugin/plugin.json" = "c08b5d37832c355d", ".out-of-scope/adr-status-notes-as-churn.md" = "7bc84c78d3c4041e", ".out-of-scope/comment-only-churn.md" = "a8fc5351b734ef48", ".out-of-scope/generated-subjects-and-history-weighting.md" = "07ee72d09c6f005a", "pyproject.toml" = "687170452362eec2", "tests/fixtures/judgment_agent_golden/count_consistency_known_false/repo/ROADMAP.md" = "24be61be2e348715" }
 
 [[mark]]
 file = "AGENTS.md"
@@ -100,11 +100,11 @@ file = "AGENTS.md"
 mode = "stale-claims"
 unit = "3413ae0523a5bc76"
 copies = 1
-note = "read the section and TODO.md in full: the gardening rule, its fit with surgical changes and the TODO.md pointer hold, current; not checked, and nothing could settle them: the load_project incident (Claude Code found load_project only in or1can/ratect, with no commit, PR or review cited to find the incident by) and TODO.md once describing deleted behaviour (no release or commit cited)"
+note = "read the section and TODO.md in full: the gardening rule, its fit with surgical changes and the TODO.md pointer hold, current; not checked, and nothing could settle them: the load_project incident (found only in or1can/ratect, with no commit, PR or review cited) and TODO.md once describing deleted behaviour (no release or commit cited)"
 by = "claims:reading-agent (sonnet), with Claude Code (claude-opus-5-5)"
 approved_by = "Kevin Rogers"
 extent = "partial"
-subjects = { "TODO.md" = "281d6a285c707a34" }
+subjects = { "TODO.md" = "23425f98d5229151" }
 
 [[mark]]
 file = "AGENTS.md"
@@ -122,11 +122,11 @@ file = "AGENTS.md"
 mode = "stale-claims"
 unit = "a24aa63faff14f27"
 copies = 1
-note = "read TODO.md and claims.toml in full: the repo runs claims on itself and adopts what ships, with no unexplained gap in TODO.md, current; not checked: that a feature only ratect runs has a cost its shapers haven't paid, a judgement rather than a fact"
+note = "read TODO.md and claims.toml in full: the repo runs claims on itself and adopts what ships, with no unexplained gap in TODO.md, current; not checked: that a feature only ratect runs has a cost its shapers haven't paid, a judgement (one reader called it rationale and true, another left it unchecked)"
 by = "claims:reading-agent (sonnet), with Claude Code (claude-opus-5-5)"
 approved_by = "Kevin Rogers"
 extent = "partial"
-subjects = { "TODO.md" = "281d6a285c707a34" }
+subjects = { "TODO.md" = "23425f98d5229151" }
 
 [[mark]]
 file = "AGENTS.md"
@@ -357,34 +357,13 @@ subjects = {}
 
 [[mark]]
 file = "TODO.md"
-mode = "claim-words-about-elsewhere"
-unit = "eb08d25488b8250b"
-copies = 1
-note = "read markdown.py and spliced_docs.py: the SENTENCE_RE fallback, the Rust walk and both fixes hold; the agent left four claims not checked, and Claude Code settled them: the two lines were added in PR 159 (closes #154, an abbreviation bug, so the tail is out of scope) and PR 170 (closes #168), and cargo doc documents both shapes while rustfmt rewrites both onto separate lines; current and true"
-by = "claims:reading-agent (sonnet), with Claude Code (claude-opus-5-5)"
-approved_by = "Kevin Rogers"
-subjects = { "CONTEXT.md" = "1c037c2446d63488", "decisions/0019-claims-are-intended-current-superseded-or-past.md" = "5dd8425615ea3a6d", "docs/checks/check-links.md" = "1016d0435261ddec" }
-
-[[mark]]
-file = "TODO.md"
-mode = "claim-words-counts"
-unit = "eb08d25488b8250b"
-copies = 1
-note = "read markdown.py and spliced_docs.py: the SENTENCE_RE fallback, the Rust walk and both fixes hold; the agent left four claims not checked, and Claude Code settled them: the two lines were added in PR 159 (closes #154, an abbreviation bug, so the tail is out of scope) and PR 170 (closes #168), and cargo doc documents both shapes while rustfmt rewrites both onto separate lines; current and true"
-by = "claims:reading-agent (sonnet), with Claude Code (claude-opus-5-5)"
-approved_by = "Kevin Rogers"
-subjects = { "CONTEXT.md" = "1c037c2446d63488", "decisions/0019-claims-are-intended-current-superseded-or-past.md" = "5dd8425615ea3a6d", "docs/checks/check-links.md" = "1016d0435261ddec" }
-
-[[mark]]
-file = "TODO.md"
 mode = "stale-claims"
 unit = "602fae580f5863ab"
 copies = 1
-note = "the entries naming check-links.md and CONTEXT.md hold: the slug rule, the verdict pairing and Verdict naming neither set; not checked: the #259 provenance and the other entries, which name neither subject"
-by = "claims:reading-agent (sonnet), batched"
+note = "read every entry against the code it names: all hold; Claude Code settled what the agent couldn't reach: cargo doc documents both Rust shapes and rustfmt rewrites both, man gitattributes says a custom driver is defined in git config, and each Found-reviewing or deferred-from attribution traces to the PR that added its line (159, 170, 186, 232, 251, 262, 243, 278); the later .out-of-scope edit touches no entry; current and true"
+by = "claims:reading-agent (sonnet), with Claude Code (claude-opus-5-5)"
 approved_by = "Kevin Rogers"
-extent = "partial"
-subjects = { ".out-of-scope/generated-subjects-and-history-weighting.md" = "01bbf99406bf555f", "CONTEXT.md" = "cd63df9e19bbfa23", "decisions/0009-stale-claims-is-diff-scoped.md" = "7b4a958975680dc0", "decisions/0019-claims-are-intended-current-superseded-or-past.md" = "5dd8425615ea3a6d", "docs/checks/check-links.md" = "1016d0435261ddec" }
+subjects = { ".out-of-scope/generated-subjects-and-history-weighting.md" = "07ee72d09c6f005a", "CONTEXT.md" = "1c037c2446d63488", "decisions/0009-stale-claims-is-diff-scoped.md" = "2ccb40320358ff66", "decisions/0019-claims-are-intended-current-superseded-or-past.md" = "f27ce5ba82baa739", "docs/checks/check-links.md" = "1016d0435261ddec" }
 
 [[mark]]
 file = "agents/docs.md"
@@ -1092,10 +1071,10 @@ file = "claims/subagent/reading_agent.md"
 mode = "stale-claims"
 unit = "f6b1a520a9e0d54c"
 copies = 1
-note = "the four kinds, their evidence and trees, the Status-only rule and historical being no evidence hold against ADR 0019 and ADR 0020"
-by = "claims:reading-agent (sonnet), batched"
+note = "read the Kinds section against ADR 0019 in full: the four kinds, their trees, evidence rules and the costly-mistake default all match the Decision; current and true"
+by = "claims:reading-agent (sonnet)"
 approved_by = "Kevin Rogers"
-subjects = { "claims/historical.py" = "6a37d1e75977cece", "decisions/0019-claims-are-intended-current-superseded-or-past.md" = "5dd8425615ea3a6d" }
+subjects = { "claims/historical.py" = "6a37d1e75977cece", "decisions/0019-claims-are-intended-current-superseded-or-past.md" = "f27ce5ba82baa739" }
 
 [[mark]]
 file = "decisions/0002-historical-links-resolve-at-their-own-commit.md"
@@ -1413,20 +1392,20 @@ file = "decisions/0005-live-and-dated-claims.md"
 mode = "stale-claims"
 unit = "073c1634c496cdb6"
 copies = 1
-note = "read ADR 0005, ADR 0019, CONTEXT.md and TODO.md: the amendment's scope, the four kinds, the tombstone and the Dated rationale hold; the agent left Ticket #77 not checked, and Claude Code read it with gh: #77 is the claim-words recommendation issue whose tension this record's Decision settles; current and true"
+note = "read ADR 0005, ADR 0019, CONTEXT.md and TODO.md: the amendment, the three replaced items, the four kinds, the tombstone and the Dated rationale hold; Claude Code read Ticket #77 with gh, the claim-words recommendation issue this record settles, and compared ADR 0019's later Consequences edit, which touches none of these claims; current and true"
 by = "claims:reading-agent (sonnet), with Claude Code (claude-opus-5-5)"
 approved_by = "Kevin Rogers"
-subjects = { "TODO.md" = "281d6a285c707a34", "decisions/0019-claims-are-intended-current-superseded-or-past.md" = "5dd8425615ea3a6d" }
+subjects = { "TODO.md" = "23425f98d5229151", "decisions/0019-claims-are-intended-current-superseded-or-past.md" = "f27ce5ba82baa739" }
 
 [[mark]]
 file = "decisions/0005-live-and-dated-claims.md"
 mode = "stale-claims"
 unit = "86ae35d58a6aa3b5"
 copies = 1
-note = "current: record-like retired, the retired quote unanchored, files' mechanics unchanged in claim_words.py and the claim-words recommendation hold; superseded, at 0bd963f just before 61479e9: the live/dated bullets with their lead-in, the TODO.md axis sentence and the two-entry tombstone held; past, at a6de882: ADR 0003 tied its style to record-like files"
+note = "current: record-like retired, the retired quote unanchored, files' mechanics and the claim-words recommendation hold at the root; superseded, at 0bd963f just before 61479e9: the live/dated bullets with their lead-in, the TODO.md axis sentence and the two-entry tombstone held; past, at a6de882 and 78a958e: ADR 0003 tied its style to record-like files"
 by = "claims:reading-agent (sonnet)"
 approved_by = "Kevin Rogers"
-subjects = { "CONTEXT.md" = "1c037c2446d63488", "TODO.md" = "281d6a285c707a34" }
+subjects = { "CONTEXT.md" = "1c037c2446d63488", "TODO.md" = "23425f98d5229151" }
 
 [[mark]]
 file = "decisions/0008-a-command-names-its-own-environment.md"
@@ -1465,11 +1444,10 @@ file = "decisions/0010-checked-marks-expire-on-their-own.md"
 mode = "stale-claims"
 unit = "073c1634c496cdb6"
 copies = 1
-note = "0009, the 0011, 0013, 0014 and 0019 amendments hold against checked.py; not checked: the risk-review and ratect history and the #263 consumers"
-by = "claims:reading-agent (sonnet), batched"
+note = "read the Status against ADRs 0009, 0011, 0013, 0014, 0019 and checked.py: the amendments and current rules hold; Claude Code settled the history the agent couldn't reach with gh: #156 records the risk review, the first version's orphan and expiry rules, the ratect full read (937 read, 889 true, 94% again) and the no-SHA rebase/squash rule, #203 the partial-mark milestone and #263 the 0a538ff/cdbfd59 gap fixed by PR 271; ADR 0019's later edit touches none of these; current and true"
+by = "claims:reading-agent (sonnet), with Claude Code (claude-opus-5-5)"
 approved_by = "Kevin Rogers"
-extent = "partial"
-subjects = { "decisions/0009-stale-claims-is-diff-scoped.md" = "7b4a958975680dc0", "decisions/0011-append-only-is-a-property-of-the-file.md" = "aacbe8fbac67f25d", "decisions/0013-a-navigation-page-is-not-a-whole-page-subject.md" = "425cadf4a7bea0e3", "decisions/0014-a-pending-mark-quiets-until-a-person-approves-it.md" = "6ce37d46a75a107e", "decisions/0019-claims-are-intended-current-superseded-or-past.md" = "5dd8425615ea3a6d" }
+subjects = { "decisions/0009-stale-claims-is-diff-scoped.md" = "2ccb40320358ff66", "decisions/0011-append-only-is-a-property-of-the-file.md" = "aacbe8fbac67f25d", "decisions/0013-a-navigation-page-is-not-a-whole-page-subject.md" = "425cadf4a7bea0e3", "decisions/0014-a-pending-mark-quiets-until-a-person-approves-it.md" = "6ce37d46a75a107e", "decisions/0019-claims-are-intended-current-superseded-or-past.md" = "f27ce5ba82baa739" }
 
 [[mark]]
 file = "decisions/0011-append-only-is-a-property-of-the-file.md"
@@ -1522,11 +1500,10 @@ file = "decisions/0011-append-only-is-a-property-of-the-file.md"
 mode = "stale-claims"
 unit = "073c1634c496cdb6"
 copies = 1
-note = "the #230, #242 and ADR 0020 amendments hold against stale_claims.py, checked.py, git.py's path_blobs, restatement.py, judgment_agent.py and config.py; not checked: the #187 citation and the two past clauses"
-by = "claims:reading-agent (sonnet), batched"
+note = "read the Status against ADRs 0009, 0010, 0020, stale_claims.py, git.py, checked.py and restatement.py/judgment_agent.py at the root and 05d6499: every amendment holds; the agent left the #242 incident not checked, and Claude Code read #242 with gh, which records the dangling blob holding locally and expiring in CI on ratect PR #895; current and true"
+by = "claims:reading-agent (sonnet), with Claude Code (claude-opus-5-5)"
 approved_by = "Kevin Rogers"
-extent = "partial"
-subjects = { "claims/historical.py" = "6a37d1e75977cece", "decisions/0009-stale-claims-is-diff-scoped.md" = "7b4a958975680dc0", "decisions/0010-checked-marks-expire-on-their-own.md" = "584af60d91195c7b", "decisions/0020-a-historical-reference-that-moved-is-a-markable-finding.md" = "ce8585527ea588e8" }
+subjects = { "claims/historical.py" = "6a37d1e75977cece", "decisions/0009-stale-claims-is-diff-scoped.md" = "2ccb40320358ff66", "decisions/0010-checked-marks-expire-on-their-own.md" = "584af60d91195c7b", "decisions/0020-a-historical-reference-that-moved-is-a-markable-finding.md" = "ce8585527ea588e8" }
 
 [[mark]]
 file = "decisions/0011-append-only-is-a-property-of-the-file.md"
@@ -1578,11 +1555,10 @@ file = "decisions/0013-a-navigation-page-is-not-a-whole-page-subject.md"
 mode = "stale-claims"
 unit = "073c1634c496cdb6"
 copies = 1
-note = "the amends-0009-and-0010 and extends-0011's-[subjects] claims hold against those records; not checked: \"Issue #193\", an issue citation"
-by = "claims:reading-agent prompt via general-purpose (sonnet)"
+note = "read the Status against ADRs 0009, 0010, 0011, config.py, checked.py and stale_claims.py: the amends and extends claims hold; the agent left Issue #193 not checked, and Claude Code read it with gh: #193 is the much-linked-page expiry issue this record settles; current and true"
+by = "claims:reading-agent (sonnet), with Claude Code (claude-opus-5-5)"
 approved_by = "Kevin Rogers"
-extent = "partial"
-subjects = { "decisions/0009-stale-claims-is-diff-scoped.md" = "7b4a958975680dc0", "decisions/0010-checked-marks-expire-on-their-own.md" = "584af60d91195c7b", "decisions/0011-append-only-is-a-property-of-the-file.md" = "aacbe8fbac67f25d" }
+subjects = { "decisions/0009-stale-claims-is-diff-scoped.md" = "2ccb40320358ff66", "decisions/0010-checked-marks-expire-on-their-own.md" = "584af60d91195c7b", "decisions/0011-append-only-is-a-property-of-the-file.md" = "aacbe8fbac67f25d" }
 
 [[mark]]
 file = "decisions/0014-a-pending-mark-quiets-until-a-person-approves-it.md"
@@ -1709,10 +1685,10 @@ file = "decisions/0017-an-approval-is-folded-into-the-commit-that-wrote-the-mark
 mode = "stale-claims"
 unit = "de00163e80311042"
 copies = 1
-note = "read ADR 0015, TODO.md, fold.py and cli.py in full: ADR 0015's sentence stands, fold-approvals rebases and prints a force-with-lease push, and the ordinary merge driver stays deferred; current and true"
+note = "read ADR 0015, TODO.md, fold.py and cli.py: ADR 0015's sentence stands, fold-approvals rebases and prints a force-with-lease push, and the ordinary merge driver stays deferred; current and true"
 by = "claims:reading-agent (sonnet)"
 approved_by = "Kevin Rogers"
-subjects = { "TODO.md" = "281d6a285c707a34" }
+subjects = { "TODO.md" = "23425f98d5229151" }
 
 [[mark]]
 file = "decisions/0018-the-reader-and-the-approver-are-recorded-apart.md"
@@ -1802,10 +1778,10 @@ file = "decisions/0019-claims-are-intended-current-superseded-or-past.md"
 mode = "stale-claims"
 unit = "86ae35d58a6aa3b5"
 copies = 1
-note = "current: the four kinds, inference, reading each kind, marks, expiry, approval and the rest of Scope hold against reading_agent.md, SKILL.md, CONTEXT.md, checked.py, judgment_agent.py and the claim-words and temporal-words pages; superseded, at 05d6499 just before 307ee91: the Scope list of five modes held"
+note = "current: every Decision claim holds against reading_agent.md, SKILL.md, CONTEXT.md, checked.py, judgment_agent.py and the claim-words and temporal-words pages; superseded, at 05d6499 just before 307ee91: the Scope list of five modes held"
 by = "claims:reading-agent (sonnet)"
 approved_by = "Kevin Rogers"
-subjects = { "CONTEXT.md" = "1c037c2446d63488", "TODO.md" = "281d6a285c707a34", "claims/historical.py" = "6a37d1e75977cece" }
+subjects = { "CONTEXT.md" = "1c037c2446d63488", "TODO.md" = "23425f98d5229151", "claims/historical.py" = "6a37d1e75977cece" }
 
 [[mark]]
 file = "decisions/0019-claims-are-intended-current-superseded-or-past.md"
@@ -1894,10 +1870,10 @@ file = "decisions/0020-a-historical-reference-that-moved-is-a-markable-finding.m
 mode = "stale-claims"
 unit = "073c1634c496cdb6"
 copies = 1
-note = "ADRs 0002 and 0011 carry its amendment notes, 0019 its pointer, and the Decision builds on 0012 and 0019"
-by = "claims:reading-agent (sonnet), batched"
+note = "read the Status against ADRs 0002, 0011, 0012 and 0019: amends and builds-on hold and the amended records carry matching notes; Claude Code read Issue #264 with gh, historical's two meanings; current and true"
+by = "claims:reading-agent (sonnet), with Claude Code (claude-opus-5-5)"
 approved_by = "Kevin Rogers"
-subjects = { "decisions/0002-historical-links-resolve-at-their-own-commit.md" = "afd456f78c8e4dc7", "decisions/0011-append-only-is-a-property-of-the-file.md" = "aacbe8fbac67f25d", "decisions/0012-a-ci-run-can-fail-on-unmarked-findings.md" = "8040e41e5a0442f3", "decisions/0019-claims-are-intended-current-superseded-or-past.md" = "5dd8425615ea3a6d" }
+subjects = { "decisions/0002-historical-links-resolve-at-their-own-commit.md" = "afd456f78c8e4dc7", "decisions/0011-append-only-is-a-property-of-the-file.md" = "aacbe8fbac67f25d", "decisions/0012-a-ci-run-can-fail-on-unmarked-findings.md" = "8040e41e5a0442f3", "decisions/0019-claims-are-intended-current-superseded-or-past.md" = "f27ce5ba82baa739" }
 
 [[mark]]
 file = "decisions/0020-a-historical-reference-that-moved-is-a-markable-finding.md"
@@ -1908,6 +1884,16 @@ note = "read against CONTEXT.md, concepts.md, historical.py and ADR 0011: all si
 by = "claims:reading-agent (sonnet), with Claude Code (claude-opus-5-5)"
 approved_by = "Kevin Rogers"
 subjects = { "CONTEXT.md" = "1c037c2446d63488", "claims/historical.py" = "6a37d1e75977cece", "docs/concepts.md" = "35fb513ebf1797ca" }
+
+[[mark]]
+file = "decisions/0021-a-reading-batch-is-only-as-large-as-a-golden-run-proves.md"
+mode = "stale-claims"
+unit = "073c1634c496cdb6"
+copies = 1
+note = "read the Status against ADRs 0018 and 0019: both builds-on claims hold; Claude Code read Issue #274 with gh, the reading-batch issue; current and true"
+by = "claims:reading-agent (sonnet), with Claude Code (claude-opus-5-5)"
+approved_by = "Kevin Rogers"
+subjects = { "decisions/0018-the-reader-and-the-approver-are-recorded-apart.md" = "50487915a0cbd9ae", "decisions/0019-claims-are-intended-current-superseded-or-past.md" = "f27ce5ba82baa739" }
 
 [[mark]]
 file = "docs/SUMMARY.md"

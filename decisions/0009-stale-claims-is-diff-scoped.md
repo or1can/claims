@@ -7,7 +7,9 @@ Accepted. Issue #155.
 Amended by `decisions/0010-checked-marks-expire-on-their-own.md` (#156):
 a checked mark records no commit, so the Consequences' "after the
 recorded commit" is replaced. A mark comes back when a subject it
-recorded changes content.
+recorded changes content, except where ADRs 0011 and 0019 narrow that:
+an append-only subject's growth leaves it alone, and a past or
+superseded mark expires on its text and evidence instead.
 
 ## Context
 

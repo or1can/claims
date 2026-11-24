@@ -25,8 +25,8 @@ exclude = ["docs/captures/*"]
 ```
 
 **Weighting the percentage by history length.** Since ADR 0009, every
-section in scope is reported, so the score decides only the order, never
-whether a section is shown. "100% of 7 commits" and "50% of 100 commits"
+section with a subject moved since its last touch is reported, with no
+cap or floor, so among those the score decides only the order. "100% of 7 commits" and "50% of 100 commits"
 are both worth reading, and there is no principled answer to which is
 staler. Any weighting would be a guessed constant. Whether the output
 needs a floor at all is tracked in `TODO.md`, beside the caps and floors
