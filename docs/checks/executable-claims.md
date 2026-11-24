@@ -57,7 +57,8 @@ visible instead of vanishing.
 
 A marker's command passes three tests in order, and fails closed at the
 first it does not pass. A command that fails any of them never runs, and
-is reported as a gate finding naming the reason.
+is reported naming the reason: as a gate finding, except a command the
+grant file lists under `denied`, which is advisory.
 
 1. The fixed blocklist, which has no configuration and is the same for
    every project. [Configuring

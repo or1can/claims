@@ -77,11 +77,17 @@ it (#116), by the `claims.historical` resolver `check-file-refs` shares
 any other held if that commit's tree had a file or directory at the path
 (#91). `known_untracked` isn't consulted there, since no commit's tree
 ever held a deliberately untracked file. See ADR 0002 for the reasoning
-and the alternatives considered. The cutoff at the commit that first added
-`claims.toml` is deliberate: a line older than that was written before
-this plugin gated anything, may have been broken when written, and can't
-be fixed under the same rule now; no tracked `claims.toml` means no
-cutoff, and every line is checked.
+and the alternatives considered.
+
+ADR 0020 changed what that lookup decides. A link that held there, or
+on a line older than the commit that first added `claims.toml`, is not
+passed but reported advisory, under `MODE_HISTORICAL`, so a reading can
+say whether its line records what was or claims what is, and mark it.
+Only a link on a later line that held nowhere is still a gate. A
+demoted finding quotes its link in backticks, where a gate's doesn't,
+because a mark's unit is the line and the first reference its message
+quotes: its commits change on a rebase, so the message as a whole
+can't be the unit.
 """
 
 from __future__ import annotations
@@ -207,8 +213,16 @@ def _holds(slugs: set[str] | None, resolved: str, anchor: str) -> bool:
     return not anchor or not resolved.endswith(".md") or anchor in slugs
 
 
-def _finding(rel: str, line_no: int, message: str) -> Finding:
-    return Finding(file=rel, line=line_no, message=message, mode=NAME, gate=True)
+# ADR 0020: a link in a `historical` file that held where its line was
+# written, or whose line predates the adoption commit, is reported under
+# a mode of its own, advisory and markable.
+MODE_HISTORICAL = f"{NAME}-historical"
+
+
+def _finding(rel: str, line_no: int, message: str, gate: bool = True) -> Finding:
+    return Finding(
+        file=rel, line=line_no, message=message, mode=NAME if gate else MODE_HISTORICAL, gate=gate
+    )
 
 
 def check(repo_root: Path, diff_range: str, config: Mapping[str, object]) -> list[Finding]:
@@ -265,29 +279,24 @@ def check(repo_root: Path, diff_range: str, config: Mapping[str, object]) -> lis
                 slugs = slug_cache[resolved]
                 if _holds(slugs, resolved, anchor):
                     continue
-                where = ""
-                if file_resolver is not None:
-                    verdict = file_resolver.held_when_written(
+                if file_resolver is None:
+                    gate, where = True, ""
+                else:
+                    gate, where = file_resolver.resolve(
                         rel, line_no, lambda commit: held_at(commit, resolved, anchor)
                     )
-                    if verdict is True:
-                        continue
-                    if isinstance(verdict, str):
-                        where = f", nor at {verdict}"
+                # A demoted finding quotes its link in backticks: a mark's
+                # unit is the line and the reference it quotes first.
+                shown = target if gate else f"`{target}`"
                 if slugs is None:
-                    message = f"broken link: {target}"
+                    message = f"broken link: {shown}"
                     if where:
                         message += f" (not in the working tree{where})"
-                    findings.append(_finding(rel, line_no, message))
                 else:
-                    findings.append(
-                        _finding(
-                            rel,
-                            line_no,
-                            f"broken anchor: {target} "
-                            f"({resolved} has no heading with that slug{where})",
-                        )
+                    message = (
+                        f"broken anchor: {shown} ({resolved} has no heading with that slug{where})"
                     )
+                findings.append(_finding(rel, line_no, message, gate))
     return findings
 
 

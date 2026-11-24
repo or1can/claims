@@ -96,17 +96,20 @@ doesn't erase it, and every run in that file with that hash is wanted
 again. Only for a range reaching the working tree, where the commit
 being made is the one that can mark it. Added to the wanted runs rather
 than reported straight from the file, so the sweep's own rules (added
-lines, `historical`, the duplication threshold, one run per line) apply
+lines, append-only files, the duplication threshold, one run per line) apply
 unchanged and a range that also sees the retraction reports it once.
 The mark holds one run, the longest on its line, so a rewording that
 breaks that run but keeps a shorter one the earlier commit retracted is
 still raised by the branch run alone.
 
-`historical` (#174) skips a line in a matching file that the diff didn't
-add, and a run starting on one: it is a shipped entry the project's rules
-forbid editing. A run starting on an added line, an `[Unreleased]` entry,
-still counts even where it wraps onto a shipped one, as it would in any
-file. The file's own diff is still read, which is what an `exclude` glob
+In an append-only file (`config.append_only`, `CHANGELOG.md` built in),
+a line the diff didn't add is skipped, and so is a run starting on one:
+it is a shipped entry the project's rules forbid editing. That was this
+check's own `historical` key (#174) until ADR 0020 made it the file's
+property, read from the project's whole configuration, since the same
+file is append-only to `stale-claims` and to marks. A run starting on
+an added line, an `[Unreleased]` entry, still counts even where it wraps
+onto a shipped one, as it would in any file. The file's own diff is still read, which is what an `exclude` glob
 would stop: an edit to a changelog's `[Unreleased]` section is a
 retraction like any other.
 """
@@ -119,7 +122,14 @@ from pathlib import Path
 from typing import NamedTuple
 
 from ..checked import message_hash, retractions_held
-from ..config import exclude_patterns, numeric_config, path_matches, string_list_config
+from ..config import (
+    append_only,
+    exclude_patterns,
+    load_config,
+    numeric_config,
+    path_matches,
+    string_list_config,
+)
 from ..git import DiffLine, added_lines_by_file, iter_diff, resolve_commit, tracked_files
 from ..lines import git_lines, tracked_text
 from ..runner import Finding, register_check
@@ -366,7 +376,7 @@ def _survivors(
     wanted_ngrams: set[str],
     wanted_lines: set[str],
     added: Mapping[str, set[int]],
-    historical: Sequence[str],
+    project: Mapping[str, object],
 ) -> tuple[list[tuple[str, int, str]], list[tuple[str, int, str]]]:
     """`(ngram_hits, whole_line_hits)`, each `(file, line, text)`.
 
@@ -374,7 +384,8 @@ def _survivors(
     modes, rather than sweeping the whole scoped tree twice.
 
     A line in `added` is never a hit, and neither is a run lying wholly on
-    such lines. In a `historical` file, neither is a line not in `added`
+    such lines. In an append-only file under the `project`'s whole
+    configuration, neither is a line not in `added`
     nor a run starting on one, the line it would be reported at, so only
     a run starting on an added line and wrapping onto a shipped one is
     left.
@@ -391,7 +402,7 @@ def _survivors(
             continue
         lines = _prose_lines(name, git_lines(text))
         added_here = added.get(name, set())
-        historical_here = path_matches(name, historical)
+        shipped_here = append_only(project, name)
         located = [
             (word, number)
             for number, line in enumerate(lines, start=1)
@@ -404,7 +415,7 @@ def _survivors(
                 window = located[i : i + NGRAM_WORDS]
                 if all(number in added_here for _, number in window):
                     continue
-                if historical_here and window[0][1] not in added_here:
+                if shipped_here and window[0][1] not in added_here:
                     continue
                 surviving.setdefault(" ".join(word for word, _ in window), window[0][1])
 
@@ -417,8 +428,8 @@ def _survivors(
                     best[line] = run
             ngram_hits.extend((name, line, run) for line, run in sorted(best.items()))
 
-        # In a `historical` file every line is either added or shipped.
-        if wanted_lines and not historical_here:
+        # In an append-only file every line is either added or shipped.
+        if wanted_lines and not shipped_here:
             for number, line in enumerate(lines, start=1):
                 normalised = " ".join(normalise(line))
                 if number not in added_here and normalised in wanted_lines:
@@ -506,9 +517,8 @@ def check(
 
     tracked = _tracked_scoped(repo_root, extensions, exclude)
     added = added_lines_by_file(repo_root, diff_range)
-    historical = string_list_config(config, "historical")
     ngram_hits, whole_line_hits = _survivors(
-        repo_root, tracked, wanted_ngrams, wanted_lines, added, historical
+        repo_root, tracked, wanted_ngrams, wanted_lines, added, load_config(repo_root)
     )
     ngram_hits = _below_duplication_threshold(ngram_hits, threshold)
     whole_line_hits = _below_duplication_threshold(whole_line_hits, threshold)

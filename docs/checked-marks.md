@@ -62,6 +62,7 @@ kind of unit:
 | `stale-claims` | The section's heading. A heading repeated in one file is a separate unit each time, told apart by its order, as a repeated heading's anchor is, so inserting an identical heading above existing ones can move a mark onto another section of the same name, where only a subject change expires it. A file with no heading is one section, whose unit is the file itself: its mark expires only with its subjects. |
 | `restatement` | The surviving line, together with the retracted words the finding quotes. |
 | `spliced-docs` | The run of `///` doc-comment lines holding the cited line. |
+| `check-links`, `check-file-refs` | The line, together with the link or path the finding quotes first. Only a reference in a `historical` file that held when its line was written, or whose line predates the adoption commit, can be marked: the modes `check-links-historical` and `check-file-refs-historical`. |
 
 Findings from any other check, and gate findings, cannot be marked.
 Checking a gate finding does not fix what it reports.

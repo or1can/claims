@@ -527,32 +527,36 @@ class RestatementTests(RegistryClearingTestCase):
         self.assertEqual(whole_line[0].citation, "c.md:1")
 
     # Ticket #174: on or1can/ratect, shipped CHANGELOG.md/RELEASES.md
-    # entries were 62 of 168 findings, none of them actionable.
-    def _historical_survivors(self, config: dict[str, object]) -> set[str]:
+    # entries were 62 of 168 findings, none of them actionable. ADR 0020
+    # moved the skip from a `historical` key to `[subjects] append_only`.
+    def _append_only_survivors(self, record: str, claims_toml: str = "") -> set[str]:
         sentence = "binding a proxy to zero dot zero dot zero dot zero exposes it to everything\n"
         with Repo() as repo:
             repo.write("a.md", sentence)
             repo.write("b.md", sentence)
-            repo.write("CHANGELOG.md", "## [1.0.0]\n\n- " + sentence)
+            repo.write(record, "## [1.0.0]\n\n- " + sentence)
             repo.commit()
             repo.write("a.md", "an entirely different sentence about something else\n")
 
-            return {f.citation for f in self._findings(repo.root, config=config)}
+            return {f.citation for f in self._findings_with_toml(repo.root, claims_toml)}
 
-    def test_a_historical_files_untouched_line_is_not_reported_or_counted(self) -> None:
-        """Without the key the changelog's copy is a second survivor, over
-        the default threshold, and hides `b.md`'s."""
-        self.assertEqual(self._historical_survivors({}), set())
+    def test_a_changelogs_untouched_line_is_not_reported_or_counted(self) -> None:
+        """`CHANGELOG.md` is append-only built in, so its copy is neither a
+        survivor nor a second copy over the threshold hiding `b.md`'s."""
+        self.assertEqual(self._append_only_survivors("CHANGELOG.md"), {"b.md:1"})
+
+    def test_a_listed_append_only_files_untouched_line_is_not_reported_or_counted(self) -> None:
         self.assertEqual(
-            self._historical_survivors({"historical": ["CHANGELOG.md"]}), {"b.md:1"}
+            self._append_only_survivors("RELEASES.md", '[subjects]\nappend_only = "RELEASES.md"\n'),
+            {"b.md:1"},
         )
 
-    def test_a_bare_string_historical_is_one_glob(self) -> None:
-        self.assertEqual(
-            self._historical_survivors({"historical": "CHANGELOG.md"}), {"b.md:1"}
-        )
+    def test_every_line_of_a_file_that_isnt_append_only_is_read(self) -> None:
+        """The record's copy is a second survivor, over the default
+        threshold, and hides `b.md`'s."""
+        self.assertEqual(self._append_only_survivors("RELEASES.md"), set())
 
-    def test_a_historical_files_shipped_line_is_no_whole_line_survivor(self) -> None:
+    def test_a_changelogs_shipped_line_is_no_whole_line_survivor(self) -> None:
         """With the changelog the only survivor, nothing is over the
         threshold to hide a whole-line hit there."""
         sentence = "binding a proxy to zero dot zero dot zero dot zero exposes it to everything\n"
@@ -562,29 +566,27 @@ class RestatementTests(RegistryClearingTestCase):
             repo.commit()
             repo.write("a.md", "an entirely different sentence about something else\n")
 
-            findings = self._findings(repo.root, config={"historical": ["CHANGELOG.md"]})
+            findings = self._findings(repo.root)
 
         self.assertEqual(findings, [])
 
-    def _wrapping_run(self, before: str, after: str, config: dict[str, object]) -> set[str]:
+    def _wrapping_run(self, before: str, after: str, record: str = "CHANGELOG.md") -> set[str]:
         with Repo() as repo:
             repo.write("a.md", "alpha beta gamma delta epsilon zeta eta\n")
-            repo.write("CHANGELOG.md", before)
+            repo.write(record, before)
             repo.commit()
             repo.write("a.md", "unrelated wording entirely\n")
-            repo.write("CHANGELOG.md", after)
+            repo.write(record, after)
 
-            return {f.citation for f in self._findings(repo.root, config=config)}
+            return {f.citation for f in self._findings(repo.root)}
 
     def test_a_run_starting_on_a_shipped_line_is_not_reported(self) -> None:
         """It would be reported at a line the diff didn't add, even though
         it wraps onto one the diff did."""
         before = "## [1.0.0]\n\nas noted alpha beta gamma\ndelta epsilon zeta tail one\n"
         after = "## [1.0.0]\n\nas noted alpha beta gamma\ndelta epsilon zeta tail two\n"
-        self.assertEqual(self._wrapping_run(before, after, {}), {"CHANGELOG.md:3"})
-        self.assertEqual(
-            self._wrapping_run(before, after, {"historical": ["CHANGELOG.md"]}), set()
-        )
+        self.assertEqual(self._wrapping_run(before, after, "NOTES.md"), {"NOTES.md:3"})
+        self.assertEqual(self._wrapping_run(before, after), set())
 
     def test_a_run_starting_on_an_added_line_is_still_reported(self) -> None:
         """An `[Unreleased]` line stays live: a run starting there and
@@ -592,7 +594,7 @@ class RestatementTests(RegistryClearingTestCase):
         before = "## [1.0.0]\n\ndelta epsilon zeta tail\n"
         after = "## [1.0.0]\n\nnew alpha beta gamma\ndelta epsilon zeta tail\n"
         self.assertEqual(
-            self._wrapping_run(before, after, {"historical": ["CHANGELOG.md"]}),
+            self._wrapping_run(before, after),
             {"CHANGELOG.md:3"},
         )
 
@@ -609,37 +611,37 @@ class RestatementTests(RegistryClearingTestCase):
 
         self.assertEqual({f.citation for f in findings}, {"b.md:2"})
 
-    def test_a_form_feed_does_not_make_an_added_historical_line_a_shipped_one(self) -> None:
-        """The `historical` skip matches git's added lines to the file's (#185)."""
+    def test_a_form_feed_does_not_make_an_added_append_only_line_a_shipped_one(self) -> None:
+        """The append-only skip matches git's added lines to the file's (#185)."""
         before = "## [1.0.0]\x0c\n\ndelta epsilon zeta tail\n"
         after = "## [1.0.0]\x0c\n\nnew alpha beta gamma\ndelta epsilon zeta tail\n"
         self.assertEqual(
-            self._wrapping_run(before, after, {"historical": ["CHANGELOG.md"]}),
+            self._wrapping_run(before, after),
             {"CHANGELOG.md:3"},
         )
 
-    def test_a_bare_carriage_return_does_not_make_an_added_historical_line_a_shipped_one(
+    def test_a_bare_carriage_return_does_not_make_an_added_append_only_line_a_shipped_one(
         self,
     ) -> None:
-        """The file is read with no newline translation, so the `historical`
+        """The file is read with no newline translation, so the append-only
         skip matches git's added lines to the file's (#191)."""
         before = "## [1.0.0]\r notes\n\ndelta epsilon zeta tail\n"
         after = "## [1.0.0]\r notes\n\nnew alpha beta gamma\ndelta epsilon zeta tail\n"
         self.assertEqual(
-            self._wrapping_run(before, after, {"historical": ["CHANGELOG.md"]}),
+            self._wrapping_run(before, after),
             {"CHANGELOG.md:3"},
         )
 
-    def test_a_form_feed_does_not_make_a_shipped_historical_line_an_added_one(self) -> None:
-        """The `historical` skip matches git's added lines to the file's (#185)."""
+    def test_a_form_feed_does_not_make_a_shipped_append_only_line_an_added_one(self) -> None:
+        """The append-only skip matches git's added lines to the file's (#185)."""
         before = "## [1.0.0]\x0c\n\nas noted alpha beta gamma\ndelta epsilon zeta tail one\n"
         after = "## [1.0.0]\x0c\n\nas noted alpha beta gamma\ndelta epsilon zeta tail two\n"
         self.assertEqual(
-            self._wrapping_run(before, after, {"historical": ["CHANGELOG.md"]}), set()
+            self._wrapping_run(before, after), set()
         )
 
-    def test_a_line_removed_from_a_historical_file_is_still_a_retraction(self) -> None:
-        """Unlike `exclude`, the key leaves the record's own diff read: an
+    def test_a_line_removed_from_an_append_only_file_is_still_a_retraction(self) -> None:
+        """Unlike `exclude`, append-only leaves the record's own diff read: an
         edit to its `[Unreleased]` section is searched for as before."""
         sentence = "binding a proxy to zero dot zero dot zero dot zero exposes it to everything\n"
         with Repo() as repo:
@@ -648,7 +650,7 @@ class RestatementTests(RegistryClearingTestCase):
             repo.commit()
             repo.write("CHANGELOG.md", "## [Unreleased]\n\n- something else entirely\n")
 
-            findings = self._findings(repo.root, config={"historical": ["CHANGELOG.md"]})
+            findings = self._findings(repo.root)
 
         self.assertEqual({f.citation for f in findings}, {"b.md:1"})
 

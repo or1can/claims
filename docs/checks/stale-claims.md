@@ -26,8 +26,8 @@ A **subject** is a tracked file the section names, in one of two shapes.
 An explicit relative path, a directory and a file name with an
 extension, counts when a tracked file has exactly that path, or the
 diff range deleted or renamed away a file at that path, read from the
-repository root or, failing that, from the directory of the file that
-cites it: `.github/workflows/ci.yml` names that file, and so does
+repository root and from the directory of the file that cites it, each
+that resolves being a subject: `.github/workflows/ci.yml` names that file, and so does
 `./.github/workflows/ci.yml`. A path starting with `../` is read from
 the citing file's directory only. A path starting with `/` or `~/` names
 no subject, because it points outside the repository. A
@@ -150,8 +150,8 @@ the same way: the anchor then names no heading, `check-links` reports the
 link as broken, and fixing that link brings a reader back to the section
 that holds it.
 
-The check is diff-scoped: it reads every tracked `.md` file on every
-run, and reports only the sections the range brings in. It runs no
+The check is diff-scoped: it reports only the sections the range brings
+in, and reads nothing when the range changes no file. It runs no
 command. A file named `CHANGELOG.md`, in any letter case and
 any directory, is skipped, because a changelog entry describes a release as it shipped and its
 subjects moving afterwards is expected.

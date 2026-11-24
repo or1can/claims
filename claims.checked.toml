@@ -3,33 +3,32 @@ file = ".out-of-scope/generated-subjects-and-history-weighting.md"
 mode = "stale-claims"
 unit = "dd656ffcd24a40a1"
 copies = 1
-note = "read the section, TODO.md, ADR 0009, the stale-claims page and stale_claims.py in full: exclude, every-section-reported, the TODO pointer and the bare-stem scope hold (current); not checked: the #199 history (past, citing an issue), the weighting opinions and the docs-part pointer"
-by = "claims:reading-agent (sonnet)"
+note = "exclude leaving a file out of the bare-name lookup, no cap or weighting, the TODO.md entry and module_reference_scope hold against stale_claims.py and stale-claims.md; not checked: the #199 case, past and cited"
+by = "claims:reading-agent (sonnet), batched"
 approved_by = "Kevin Rogers"
 extent = "partial"
-subjects = { "TODO.md" = "001ebd990184bc7f" }
+subjects = { "TODO.md" = "54819ae6256ff341" }
 
 [[mark]]
 file = ".out-of-scope/version-only-churn.md"
 mode = "stale-claims"
 unit = "d892c3a16ef8ce1a"
 copies = 1
-note = "read the section against pyproject.toml, plugin.json, AGENTS.md, ADRs 0004, 0008, 0009, the sibling out-of-scope notes and the stale-claims page: the mechanism, #198 pointer, dependency-pin, navigation and ADR 0009 claims hold (current); not checked: #228's asks and title (an issue), the 4-section bump (past, no tree), ratect's figures (another repository), the past marks' notes"
-by = "claims:reading-agent (sonnet)"
+note = "stale_claims.py counts every commit to pyproject.toml, a version bump included, ranking its sections and expiring their marks, and nothing tells a version line apart"
+by = "claims:reading-agent (sonnet), batched"
 approved_by = "Kevin Rogers"
-extent = "partial"
-subjects = { "pyproject.toml" = "7a94a459b9d9d230" }
+subjects = { "pyproject.toml" = "dfa884937e68fbff" }
 
 [[mark]]
 file = ".out-of-scope/version-only-churn.md"
 mode = "stale-claims"
 unit = "dd656ffcd24a40a1"
 copies = 1
-note = "read the section against pyproject.toml, plugin.json, AGENTS.md, ADRs 0004, 0008, 0009, 0013 and the sibling out-of-scope notes: the #198 pointer, dependency-pin line and ADR 0009 ranking hold (current); not checked: #228's asks (an issue), the 4-section bump (past, no tree), ratect's figures (another repository), the no-sign observation, and plugin.json's churn and navigation fit"
-by = "claims:reading-agent (sonnet)"
+note = "the cheap re-read, the pyright pin, the navigation term and ADR 0009's ranking hold against the sibling notes, pyproject.toml, configuring.md and stale_claims.py; not checked: the #228 request, past and ratect measurements, past marks' notes, and plugin.json's history"
+by = "claims:reading-agent (sonnet), batched"
 approved_by = "Kevin Rogers"
 extent = "partial"
-subjects = { ".claude-plugin/plugin.json" = "d2bdecbaa2757a88", ".out-of-scope/adr-status-notes-as-churn.md" = "7bc84c78d3c4041e", ".out-of-scope/comment-only-churn.md" = "a8fc5351b734ef48", ".out-of-scope/generated-subjects-and-history-weighting.md" = "01bbf99406bf555f", "pyproject.toml" = "7a94a459b9d9d230", "tests/fixtures/judgment_agent_golden/count_consistency_known_false/repo/ROADMAP.md" = "24be61be2e348715" }
+subjects = { ".claude-plugin/plugin.json" = "0ba75986ab1847b4", ".out-of-scope/adr-status-notes-as-churn.md" = "7bc84c78d3c4041e", ".out-of-scope/comment-only-churn.md" = "a8fc5351b734ef48", ".out-of-scope/generated-subjects-and-history-weighting.md" = "01bbf99406bf555f", "pyproject.toml" = "dfa884937e68fbff", "tests/fixtures/judgment_agent_golden/count_consistency_known_false/repo/ROADMAP.md" = "24be61be2e348715" }
 
 [[mark]]
 file = "AGENTS.md"
@@ -90,66 +89,66 @@ file = "AGENTS.md"
 mode = "stale-claims"
 unit = "138cc67997c9136e"
 copies = 1
-note = "read against ci.yml, dco.yml, CONTRIBUTING.md, ADR 0017, checked-marks.md and SKILL.md: the workflow, approval and fixup claims hold; not checked: the GitHub ruleset settings (no bypass, required checks, up-to-date branch, reviewer count)"
-by = "claims:reading-agent (sonnet)"
+note = "ci.yml's and dco.yml's job names and triggers, the Claims job's pending-marks step, CONTRIBUTING.md's DCO section, the skill's marking rule and checked-marks.md's fold-approvals steps hold; not checked: the ruleset, required checks and reviewer count, GitHub settings"
+by = "claims:reading-agent (sonnet), batched"
 approved_by = "Kevin Rogers"
 extent = "partial"
-subjects = { ".github/workflows/ci.yml" = "9a3f40dc08547d3e", ".github/workflows/dco.yml" = "8ed66fb756a4ce0a", "decisions/0017-an-approval-is-folded-into-the-commit-that-wrote-the-mark.md" = "332bd81bad39be19", "docs/checked-marks.md" = "cf7aeab937ae953e" }
+subjects = { ".github/workflows/ci.yml" = "9a3f40dc08547d3e", ".github/workflows/dco.yml" = "8ed66fb756a4ce0a", "decisions/0017-an-approval-is-folded-into-the-commit-that-wrote-the-mark.md" = "332bd81bad39be19", "docs/checked-marks.md" = "976d132e765cbdfe" }
 
 [[mark]]
 file = "AGENTS.md"
 mode = "stale-claims"
 unit = "3413ae0523a5bc76"
 copies = 1
-note = "read the section and TODO.md in full: the fix-it-then rule and TODO.md as the home for out-of-scope work hold (current); not checked: the load_project and stale-TODO accounts (past, history no one tree settles), the reading of \"touch only what you must\" and what the surgical-changes rule protects (rationale)"
-by = "claims:reading-agent (sonnet)"
+note = "the strict reading of Surgical Changes, the fix-it-then rule and the own-commit and TODO.md rules hold against AGENTS.md and TODO.md; not checked: the load_project and TODO.md anecdote, a past event"
+by = "claims:reading-agent (sonnet), batched"
 approved_by = "Kevin Rogers"
 extent = "partial"
-subjects = { "TODO.md" = "001ebd990184bc7f" }
+subjects = { "TODO.md" = "54819ae6256ff341" }
 
 [[mark]]
 file = "AGENTS.md"
 mode = "stale-claims"
 unit = "6715f004a7dd6c85"
 copies = 1
-note = "Read the section, agents/docs.md, both tests, SUMMARY.md, book.toml and docs.yml. Verified 13 checks each have a page, SUMMARY entry, README line and capture. All claims hold except 'stated there and only there', which is not checked: exclusivity would need a sweep of the whole repo. ci.yml was not read. Not checked: They are stated there and only there.."
-by = "claims:reading-agent (sonnet)"
+note = "book.toml's src, docs.yml's build and deploy, agents/docs.md's trigger and the two tests holding every check to a page, entry, index line and capture hold; not checked: \"stated there and only there\""
+by = "claims:reading-agent (sonnet), batched"
 approved_by = "Kevin Rogers"
 extent = "partial"
-subjects = { ".github/workflows/docs.yml" = "9174303cf04e3b3d", "README.md" = "8907f0763c92ada1", "agents/docs.md" = "77d100daaac19457", "book.toml" = "1944223542e98ac8", "docs/SUMMARY.md" = "a5180e869bbfd99d", "tests/test_captures.py" = "7193d8987d213229", "tests/test_check_pages.py" = "c472fae497911ddf" }
+subjects = { ".github/workflows/docs.yml" = "9174303cf04e3b3d", "README.md" = "730bf014fcf43601", "agents/docs.md" = "77d100daaac19457", "book.toml" = "1944223542e98ac8", "docs/SUMMARY.md" = "a5180e869bbfd99d", "tests/test_captures.py" = "7193d8987d213229", "tests/test_check_pages.py" = "c472fae497911ddf" }
 
 [[mark]]
 file = "AGENTS.md"
 mode = "stale-claims"
 unit = "8e4f8ea8f0f2e26d"
 copies = 1
-note = "read Versioning, pyproject.toml, plugin.json, ADR 0004, test_plugin_manifest.py, CHANGELOG.md's head and check_file_refs.py: bump rule, patch-level guidance, equal-version test, tagging, changelog entry, append-only and retarget rules hold (current); not checked: claude plugin update gating and pre-commit/uvx tag pinning (third-party), the 0.1.0 tickets 19-36 history (past, no single tree)"
-by = "claims:reading-agent (sonnet)"
+note = "the patch-bump rule, the pyproject.toml pin tests/test_plugin_manifest.py holds equal, the changelog entry rule and ADR 0004's retarget rule hold; not checked: claude plugin update's cache gating, the 0.1.0 anecdote and whether tags exist on the remote"
+by = "claims:reading-agent (sonnet), batched"
 approved_by = "Kevin Rogers"
 extent = "partial"
-subjects = { ".claude-plugin/plugin.json" = "d2bdecbaa2757a88", "decisions/0004-docs-is-the-user-facing-tree.md" = "84534f73ba887979", "pyproject.toml" = "7a94a459b9d9d230", "tests/test_plugin_manifest.py" = "50834b11b663da44" }
+subjects = { ".claude-plugin/plugin.json" = "0ba75986ab1847b4", "decisions/0004-docs-is-the-user-facing-tree.md" = "84534f73ba887979", "pyproject.toml" = "dfa884937e68fbff", "tests/test_plugin_manifest.py" = "50834b11b663da44" }
 
 [[mark]]
 file = "AGENTS.md"
 mode = "stale-claims"
 unit = "a24aa63faff14f27"
 copies = 1
-note = "read claims.toml, .pre-commit-config.yaml, ci.yml, TODO.md and cli.py: runs claims on itself, and the adoption rule holds, claim-trees and tree-at being skill-run subcommands no project sets (current); not checked: the ratect rationale"
-by = "claims:reading-agent (sonnet)"
+note = "claims.toml, the hooks and CI run claims on this repo, and 0.36.0's new modes are adopted in [hook] fail_on_unmarked; not checked: the ratect sentence"
+by = "claims:reading-agent (sonnet), batched"
 approved_by = "Kevin Rogers"
 extent = "partial"
-subjects = { "TODO.md" = "001ebd990184bc7f" }
+subjects = { "TODO.md" = "54819ae6256ff341" }
 
 [[mark]]
 file = "AGENTS.md"
 mode = "stale-claims"
 unit = "c4e83690fc1a828d"
 copies = 1
-note = "read Typechecking, pyproject.toml, uv.lock and ADR 0008: the pyright 1.1.414 pin in the dev group and lock holds (current); not checked: PYRIGHT_PYTHON_IGNORE_WARNINGS and uv -q behaviour (third-party) and the verify block's output (needs a run)"
-by = "claims:reading-agent (sonnet)"
+note = "pyright is pinned at 1.1.414 in pyproject.toml's dev group and uv.lock; not checked: the clean run, and pyright-python's and uv's warning behaviour, which need a run"
+by = "claims:reading-agent (sonnet), batched"
 approved_by = "Kevin Rogers"
 extent = "partial"
-subjects = { "decisions/0008-a-command-names-its-own-environment.md" = "44a8e0ed95bc0e7e", "pyproject.toml" = "7a94a459b9d9d230", "uv.lock" = "3065675b92d5c933" }
+subjects = { "decisions/0008-a-command-names-its-own-environment.md" = "44a8e0ed95bc0e7e", "pyproject.toml" = "dfa884937e68fbff", "uv.lock" = "befb76220f5ad21d" }
 
 [[mark]]
 file = "AGENTS.md"
@@ -225,10 +224,20 @@ file = "CONTEXT.md"
 mode = "stale-claims"
 unit = "a61808fe40feb8b3"
 copies = 1
-note = "read against concepts.md, configuring.md, checked-marks.md, executable-claims.md, claim-words.md and the README tagline: all four claims hold"
-by = "claims:reading-agent (sonnet)"
+note = "all 31 glossary entries hold against concepts.md, configuring.md, checked-marks.md, reading-agent.md and the check pages they name"
+by = "claims:reading-agent (sonnet), batched"
 approved_by = "Kevin Rogers"
-subjects = { "docs/checked-marks.md" = "cf7aeab937ae953e", "docs/concepts.md" = "bb29ec82823fb536", "docs/configuring.md" = "a27fc69a3e4bf5b5" }
+subjects = { "docs/checked-marks.md" = "976d132e765cbdfe", "docs/concepts.md" = "35fb513ebf1797ca", "docs/configuring.md" = "3fef65658d43f0bf" }
+
+[[mark]]
+file = "README.md"
+mode = "claim-words-about-elsewhere"
+unit = "b00551c4c98a666b"
+copies = 1
+note = "SKILL.md runs claims.cli, which calls the hook's run(), and hands each judgment-agent candidate to that subagent where one can be started"
+by = "claims:reading-agent (sonnet), batched"
+approved_by = "Kevin Rogers"
+subjects = {}
 
 [[mark]]
 file = "README.md"
@@ -245,10 +254,10 @@ file = "README.md"
 mode = "claim-words-counts"
 unit = "7df1301d46f4f60a"
 copies = 1
-note = "read docs/reading-agent.md, reading_agent.md and SKILL.md in full: one finding at a time from the skill, the unit and every named subject read in full, a verdict per claim with evidence, the session deciding on marking, and the linked page; all current and true"
-by = "claims:reading-agent (sonnet)"
+note = "SKILL.md hands the agent one finding per call, and reading_agent.md has it read its whole unit and every subject with Read and return a verdict per claim with evidence"
+by = "claims:reading-agent (sonnet), batched"
 approved_by = "Kevin Rogers"
-subjects = { "docs/reading-agent.md" = "3055e11e952cef48" }
+subjects = { "docs/reading-agent.md" = "a166fe82600cc6fc" }
 
 [[mark]]
 file = "README.md"
@@ -275,10 +284,20 @@ file = "README.md"
 mode = "claim-words-totalising"
 unit = "7df1301d46f4f60a"
 copies = 1
-note = "read docs/reading-agent.md, reading_agent.md and SKILL.md in full: one finding at a time from the skill, the unit and every named subject read in full, a verdict per claim with evidence, the session deciding on marking, and the linked page; all current and true"
-by = "claims:reading-agent (sonnet)"
+note = "SKILL.md hands the agent one finding per call, and reading_agent.md has it read its whole unit and every subject with Read and return a verdict per claim with evidence"
+by = "claims:reading-agent (sonnet), batched"
 approved_by = "Kevin Rogers"
-subjects = { "docs/reading-agent.md" = "3055e11e952cef48" }
+subjects = { "docs/reading-agent.md" = "a166fe82600cc6fc" }
+
+[[mark]]
+file = "README.md"
+mode = "claim-words-totalising"
+unit = "b00551c4c98a666b"
+copies = 1
+note = "SKILL.md runs claims.cli, which calls the hook's run(), and hands each judgment-agent candidate to that subagent where one can be started"
+by = "claims:reading-agent (sonnet), batched"
+approved_by = "Kevin Rogers"
+subjects = {}
 
 [[mark]]
 file = "README.md"
@@ -287,6 +306,16 @@ unit = "c3ff06e7646e1d37"
 copies = 1
 note = "read the reading-agent definition (tools Read/Glob/Grep, Scope section) and docs/reading-agent.md in full; the one claim holds. I did not read README.md in full, only the lines around line 80."
 by = "claims:reading-agent (sonnet)"
+approved_by = "Kevin Rogers"
+subjects = {}
+
+[[mark]]
+file = "README.md"
+mode = "restatement-ngram"
+unit = "4eec41277dbc73e2-48731e25834d1359"
+copies = 1
+note = "concepts.md's Gate versus advisory and pre_commit.py: a gate blocks the commit, and an unmarked advisory fails only where the run is told to"
+by = "claims:reading-agent (sonnet), batched"
 approved_by = "Kevin Rogers"
 subjects = {}
 
@@ -316,11 +345,10 @@ file = "README.md"
 mode = "stale-claims"
 unit = "8652909ce0f49280"
 copies = 1
-note = "a page per check, gate and advisory as concepts.md defines them, and what configuring.md and checked-marks.md cover hold; not checked: the severity of each check in the two lists beyond check-links and check-config-defaults"
-by = "claims:reading-agent (sonnet)"
+note = "a page per check, gate and advisory as concepts.md defines them, each check under the severity its page states, and what configuring.md and checked-marks.md cover hold, read against all 13 check pages"
+by = "claims:reading-agent (sonnet), batched"
 approved_by = "Kevin Rogers"
-extent = "partial"
-subjects = { "docs/checked-marks.md" = "cf7aeab937ae953e", "docs/checks/check-citations.md" = "ecb243a4acd27885", "docs/checks/check-cli-flags.md" = "44bda96325c02db3", "docs/checks/check-config-defaults.md" = "faf67bb8a909b1e3", "docs/checks/check-env-vars.md" = "319716cdb042161c", "docs/checks/check-file-refs.md" = "db3236482a102adf", "docs/checks/check-links.md" = "7aba082cc115512e", "docs/checks/claim-words.md" = "82e15f94290c47fe", "docs/checks/executable-claims.md" = "5e693c5b0ecdb270", "docs/checks/judgment-agent.md" = "e3e7f922a1f39d30", "docs/checks/restatement.md" = "5f19267b9f9e728b", "docs/checks/spliced-docs.md" = "e819a2b0f35f4571", "docs/checks/stale-claims.md" = "5c48b3851f66bbb6", "docs/checks/temporal-words.md" = "9a8bfdb82a0fc29a", "docs/concepts.md" = "bb29ec82823fb536", "docs/configuring.md" = "a27fc69a3e4bf5b5" }
+subjects = { "docs/checked-marks.md" = "976d132e765cbdfe", "docs/checks/check-citations.md" = "7f7eff44dd987f8f", "docs/checks/check-cli-flags.md" = "44bda96325c02db3", "docs/checks/check-config-defaults.md" = "faf67bb8a909b1e3", "docs/checks/check-env-vars.md" = "319716cdb042161c", "docs/checks/check-file-refs.md" = "1f3f4264176d8743", "docs/checks/check-links.md" = "1016d0435261ddec", "docs/checks/claim-words.md" = "82e15f94290c47fe", "docs/checks/executable-claims.md" = "1951d594661e2765", "docs/checks/judgment-agent.md" = "0a229b2658be12de", "docs/checks/restatement.md" = "bf20c9d61ca4ce85", "docs/checks/spliced-docs.md" = "e819a2b0f35f4571", "docs/checks/stale-claims.md" = "e5b2c8bcfe1272f0", "docs/checks/temporal-words.md" = "9a8bfdb82a0fc29a", "docs/concepts.md" = "35fb513ebf1797ca", "docs/configuring.md" = "3fef65658d43f0bf" }
 
 [[mark]]
 file = "TODO.md"
@@ -333,24 +361,14 @@ subjects = {}
 
 [[mark]]
 file = "TODO.md"
-mode = "claim-words-counts"
-unit = "b0ed963fd55de141"
-copies = 1
-note = "read markdown.py's SENTENCE_RE tail, spliced_docs.py's Rust walk and both shapes, git.py's text=True reads, lines.py, trees.py (fixed in ba798d2 to count through tracked_text), the full re-read, the slug rule, fold.py's rebase-only driver and sorted writes, the verdict pairing and historical's two meanings; Claude Code checked #154, #168, #185, #241 and #259's titles against their provenance lines; left unread: rustdoc, rustfmt and GitHub's anchor behaviour, git's driver configuration, and the deferral judgments, which are to-do intent"
-by = "claims:reading-agent (sonnet)"
-approved_by = "Kevin Rogers"
-subjects = { "CONTEXT.md" = "cd63df9e19bbfa23", "claims/historical.py" = "5872b17e8a5f0f74", "decisions/0019-claims-are-intended-current-superseded-or-past.md" = "8364070cc17f6076", "docs/checks/check-links.md" = "7aba082cc115512e" }
-
-[[mark]]
-file = "TODO.md"
 mode = "stale-claims"
 unit = "602fae580f5863ab"
 copies = 1
-note = "the claims naming CONTEXT.md and check-links.md hold: Verdict names neither verdict set, the slug rule, the verdict pairing and historical's two meanings, against CONTEXT.md, check-links.md, markdown.py and ADR 0019; not checked: the other entries, which name neither subject"
-by = "claims:reading-agent (sonnet)"
+note = "the entries naming check-links.md and CONTEXT.md hold: the slug rule, the verdict pairing and Verdict naming neither set; not checked: the #259 provenance and the other entries, which name neither subject"
+by = "claims:reading-agent (sonnet), batched"
 approved_by = "Kevin Rogers"
 extent = "partial"
-subjects = { ".out-of-scope/generated-subjects-and-history-weighting.md" = "01bbf99406bf555f", "CONTEXT.md" = "cd63df9e19bbfa23", "claims/historical.py" = "5872b17e8a5f0f74", "decisions/0009-stale-claims-is-diff-scoped.md" = "7b4a958975680dc0", "decisions/0019-claims-are-intended-current-superseded-or-past.md" = "8364070cc17f6076", "docs/checks/check-links.md" = "7aba082cc115512e" }
+subjects = { ".out-of-scope/generated-subjects-and-history-weighting.md" = "01bbf99406bf555f", "CONTEXT.md" = "cd63df9e19bbfa23", "decisions/0009-stale-claims-is-diff-scoped.md" = "7b4a958975680dc0", "decisions/0019-claims-are-intended-current-superseded-or-past.md" = "5dd8425615ea3a6d", "docs/checks/check-links.md" = "1016d0435261ddec" }
 
 [[mark]]
 file = "agents/docs.md"
@@ -377,11 +395,11 @@ file = "agents/docs.md"
 mode = "stale-claims"
 unit = "992ac522673fcb80"
 copies = 1
-note = "Read agents/docs.md section, docs/SUMMARY.md, README.md, docs/index.md and book.toml. The factual claims hold: the README and index.md open with the drift contrast, index.md ends in a Next handoff, there is no version picker, and CHANGELOG.md exists. Not checked: mdBook's prev/next rendering, and the totalising 'no other page' and 'docs/ is self-contained' rules, which need every docs/ page read. Not checked: 5. A page links out for reasoning, never for the fact it states ... `docs/` is s; 6. `docs/SUMMARY.md`'s order is a reading order — mdBook renders it as previous/; No other page does: a reader on a check page wants to know what that check holds."
-by = "claims:reading-agent (sonnet)"
+note = "CHANGELOG.md holding versions, the ADR-for-reasoning example, every page's Next section and the index's drift framing hold; not checked: mdBook's previous and next buttons"
+by = "claims:reading-agent (sonnet), batched"
 approved_by = "Kevin Rogers"
 extent = "partial"
-subjects = { "CHANGELOG.md" = "a945105b024628760bcc84302dac6cb95e15635a", "README.md" = "8907f0763c92ada1", "docs/SUMMARY.md" = "a5180e869bbfd99d", "docs/index.md" = "82762e1e81e9b3a5" }
+subjects = { "CHANGELOG.md" = "3fca80ba39a7492e9643d4c63d46468910babda2", "README.md" = "730bf014fcf43601", "docs/SUMMARY.md" = "a5180e869bbfd99d", "docs/index.md" = "29ccb6b588e803c1" }
 
 [[mark]]
 file = "agents/docs.md"
@@ -414,6 +432,26 @@ note = "CONTEXT.md is the root glossary of the project's terms, with _Avoid_ syn
 by = "claims:reading-agent prompt via general-purpose (sonnet)"
 approved_by = "Kevin Rogers"
 subjects = { "CONTEXT.md" = "cd63df9e19bbfa23" }
+
+[[mark]]
+file = "claims/checks/check_links.py"
+mode = "restatement-ngram"
+unit = "6e41acebdfc0e40f-f6c06ec3145c4239"
+copies = 1
+note = "check_links.py re-resolves a failed link through historical.py's HistoricalResolver at the blamed commit and its parents"
+by = "claims:reading-agent (sonnet), batched"
+approved_by = "Kevin Rogers"
+subjects = {}
+
+[[mark]]
+file = "claims/checks/check_links.py"
+mode = "restatement-ngram"
+unit = "82a9c12b787d005c-769dae6a29e5b056"
+copies = 1
+note = "check_links.py re-resolves a failed link through historical.py's HistoricalResolver at the blamed commit and its parents, shared with check_file_refs.py"
+by = "claims:reading-agent (sonnet), batched"
+approved_by = "Kevin Rogers"
+subjects = {}
 
 [[mark]]
 file = "claims/skill/SKILL.md"
@@ -519,10 +557,10 @@ file = "claims/skill/SKILL.md"
 mode = "claim-words-counts"
 unit = "a699a0188d0f4ac5"
 copies = 1
-note = "read against judgment_agent.py and checked.expired_units: the check emits only the two modes as candidates, from the added/removed names and expired marks' units, and never judges truth"
-by = "claims:reading-agent (sonnet)"
+note = "judgment_agent.py's two modes are advisory candidates, and the check only computes which claims cite a touched subject or an expired mark, never a verdict"
+by = "claims:reading-agent (sonnet), batched"
 approved_by = "Kevin Rogers"
-subjects = { "claims/checks/judgment_agent.py" = "f36a3e7746ba4792" }
+subjects = { "claims/checks/judgment_agent.py" = "32fefcba3bda8f4f" }
 
 [[mark]]
 file = "claims/skill/SKILL.md"
@@ -571,6 +609,16 @@ unit = "4ce53a05c135ca97"
 copies = 1
 note = "read SKILL.md in full plus cli.py's approve/dispatch and fold.py's fold_approvals: both commands and `--apply` exist, and SKILL.md has no instruction that contradicts 'never'. The claim is a policy directive, so this is a consistency check only. All claims true."
 by = "claims:reading-agent (sonnet)"
+approved_by = "Kevin Rogers"
+subjects = {}
+
+[[mark]]
+file = "claims/skill/SKILL.md"
+mode = "claim-words-totalising"
+unit = "58ee1498b96c9159"
+copies = 1
+note = "the skill shows every other finding verbatim with judgment-agent its one exception, and a candidate line alone carries no verdict"
+by = "claims:reading-agent (sonnet), batched"
 approved_by = "Kevin Rogers"
 subjects = {}
 
@@ -658,10 +706,10 @@ file = "claims/skill/SKILL.md"
 mode = "claim-words-totalising"
 unit = "a699a0188d0f4ac5"
 copies = 1
-note = "read against judgment_agent.py and checked.expired_units: the check emits only the two modes as candidates, from the added/removed names and expired marks' units, and never judges truth"
-by = "claims:reading-agent (sonnet)"
+note = "judgment_agent.py's two modes are advisory candidates, and the check only computes which claims cite a touched subject or an expired mark, never a verdict"
+by = "claims:reading-agent (sonnet), batched"
 approved_by = "Kevin Rogers"
-subjects = { "claims/checks/judgment_agent.py" = "f36a3e7746ba4792" }
+subjects = { "claims/checks/judgment_agent.py" = "32fefcba3bda8f4f" }
 
 [[mark]]
 file = "claims/skill/SKILL.md"
@@ -708,32 +756,287 @@ file = "claims/skill/SKILL.md"
 mode = "stale-claims"
 unit = "2f9c353ad4ef88df"
 copies = 1
-note = "read against checked-marks.md: which checks take marks, the fold and fixup! claims hold; not checked: the two directives, policy rather than claims"
-by = "claims:reading-agent (sonnet)"
+note = "gate findings are refused as marks, checked-marks.md lists the markable checks, and fold-approvals folds a commit's marks and fixup! commits into it"
+by = "claims:reading-agent (sonnet), batched"
 approved_by = "Kevin Rogers"
-extent = "partial"
-subjects = { "docs/checked-marks.md" = "cf7aeab937ae953e" }
+subjects = { "docs/checked-marks.md" = "976d132e765cbdfe" }
 
 [[mark]]
 file = "claims/skill/SKILL.md"
 mode = "stale-claims"
 unit = "47be515c5099e436"
 copies = 1
-note = "read the section against reading_agent.md, reading-agent.md, trees.py, cli.py's handlers, checked.py, checked-marks.md and judgment-agent.md in full: the handoff, roots, contract, trees, claim-trees and tree-at, the kinds on marks, --partial, --evidence and the expired-mark rules hold (current); not checked: the git worktree add and remove commands (git behaviour) and what a judgment-agent mark names in by"
-by = "claims:reading-agent (sonnet)"
+note = "reading_agent.md's input and output contract, cli.py's claim-trees and tree-at, trees.py's copies, checked.py's mark-checked rules and ADR 0019's kind ordering hold"
+by = "claims:reading-agent (sonnet), batched"
 approved_by = "Kevin Rogers"
-extent = "partial"
-subjects = { "claims/subagent/reading_agent.md" = "258dcb8b37f90b82", "docs/reading-agent.md" = "3055e11e952cef48" }
+subjects = { "claims/subagent/reading_agent.md" = "5275224455a52cfc", "docs/reading-agent.md" = "a166fe82600cc6fc" }
 
 [[mark]]
 file = "claims/skill/SKILL.md"
 mode = "stale-claims"
 unit = "6812babe573c34f1"
 copies = 1
-note = "read against all of checked-marks.md, judgment-agent.md and claims.checked.toml: all four claims hold, the new expiry paragraph included"
-by = "claims:reading-agent (sonnet)"
+note = "checked-marks.md and checked.py: a mark keeps a read finding quiet until its wording or subjects change, is written only after a reading, and a judgment-agent verdict never writes one"
+by = "claims:reading-agent (sonnet), batched"
 approved_by = "Kevin Rogers"
-subjects = { "docs/checked-marks.md" = "cf7aeab937ae953e" }
+subjects = { "docs/checked-marks.md" = "976d132e765cbdfe" }
+
+[[mark]]
+file = "claims/skill/SKILL.md"
+mode = "stale-claims"
+unit = "c1413af28238c15a"
+copies = 1
+note = "judgment_agent.py emits advisory candidates whose message carries what claims/subagent/judgment_agent.md's input asks for, and its output is one JSON verdict"
+by = "claims:reading-agent (sonnet), batched"
+approved_by = "Kevin Rogers"
+subjects = { "claims/checks/judgment_agent.py" = "32fefcba3bda8f4f", "claims/subagent/judgment_agent.md" = "5587950406ba88c2" }
+
+[[mark]]
+file = "claims/skill/SKILL.md"
+mode = "stale-claims"
+unit = "c3a3091b9d32267d"
+copies = 1
+note = "cli.py imports claims.checks, which registers every check; config_review.py's maps are hand-maintained and tests/test_config_review.py fails on an unlisted check"
+by = "claims:reading-agent (sonnet), batched"
+approved_by = "Kevin Rogers"
+subjects = { "claims/config_review.py" = "b5474535b80d7bf3", "tests/test_config_review.py" = "476aa7bf4bf3217c" }
+
+[[mark]]
+file = "claims/subagent/reading_agent.md"
+mode = "stale-claims"
+unit = "f6b1a520a9e0d54c"
+copies = 1
+note = "the four kinds, their evidence and trees, the Status-only rule and historical being no evidence hold against ADR 0019 and ADR 0020"
+by = "claims:reading-agent (sonnet), batched"
+approved_by = "Kevin Rogers"
+subjects = { "claims/historical.py" = "6a37d1e75977cece", "decisions/0019-claims-are-intended-current-superseded-or-past.md" = "5dd8425615ea3a6d" }
+
+[[mark]]
+file = "decisions/0002-historical-links-resolve-at-their-own-commit.md"
+mode = "restatement-ngram"
+unit = "1590e201dba38d8c-9128a70f64f061b6"
+copies = 1
+note = "past: the 62 of 168 and 23 of 78 counts are the maintainer's measurement on or1can/ratect at #174, not re-read here; approval is the check"
+by = "Claude Code (claude-opus-5-5), on the maintainer's measurement"
+approved_by = "Kevin Rogers"
+kind = "past"
+text = "1590e201dba38d8c"
+evidence = { "decisions/0002-historical-links-resolve-at-their-own-commit.md#status" = "d3a9ea8467de4a88" }
+subjects = {}
+
+[[mark]]
+file = "decisions/0002-historical-links-resolve-at-their-own-commit.md"
+mode = "restatement-ngram"
+unit = "1f110166b8fd03da-806815f732899839"
+copies = 1
+note = "superseded at b06ad38, read just before at ba798d2: judgment_agent.py skipped a historical file's non-added lines"
+by = "claims:reading-agent (sonnet), batched"
+approved_by = "Kevin Rogers"
+kind = "superseded"
+text = "1f110166b8fd03da"
+evidence = { "decisions/0002-historical-links-resolve-at-their-own-commit.md#status" = "d3a9ea8467de4a88" }
+subjects = {}
+
+[[mark]]
+file = "decisions/0002-historical-links-resolve-at-their-own-commit.md"
+mode = "restatement-ngram"
+unit = "2af19087a326d868-9bf993f4acb8e5f8"
+copies = 1
+note = "superseded at b06ad38, read just before at ba798d2: historical.py passed a pre-adoption failure, nothing to fix it"
+by = "claims:reading-agent (sonnet), batched"
+approved_by = "Kevin Rogers"
+kind = "superseded"
+text = "2af19087a326d868"
+evidence = { "decisions/0002-historical-links-resolve-at-their-own-commit.md#status" = "d3a9ea8467de4a88" }
+subjects = {}
+
+[[mark]]
+file = "decisions/0002-historical-links-resolve-at-their-own-commit.md"
+mode = "restatement-ngram"
+unit = "2d59e00f92fa91ba-34a79500fe181b69"
+copies = 1
+note = "superseded at b06ad38, read just before at ba798d2: the rationale for historical.py's pre-adoption pass held there"
+by = "claims:reading-agent (sonnet), batched"
+approved_by = "Kevin Rogers"
+kind = "superseded"
+text = "2d59e00f92fa91ba"
+evidence = { "decisions/0002-historical-links-resolve-at-their-own-commit.md#status" = "d3a9ea8467de4a88" }
+subjects = {}
+
+[[mark]]
+file = "decisions/0002-historical-links-resolve-at-their-own-commit.md"
+mode = "restatement-ngram"
+unit = "418a7a0bfe0a27b4-1b70be5e721ed1b6"
+copies = 1
+note = "past, at eb4a728: restatement.py and judgment_agent.py skipped a historical file's non-added lines with nothing re-tested at a commit"
+by = "claims:reading-agent (sonnet), batched"
+approved_by = "Kevin Rogers"
+kind = "past"
+text = "418a7a0bfe0a27b4"
+evidence = { "decisions/0002-historical-links-resolve-at-their-own-commit.md#status" = "d3a9ea8467de4a88" }
+subjects = {}
+
+[[mark]]
+file = "decisions/0002-historical-links-resolve-at-their-own-commit.md"
+mode = "restatement-ngram"
+unit = "462f8a6385d7896f-a0e1005ffcd9cf9c"
+copies = 1
+note = "superseded at b06ad38, read just before at ba798d2: historical.py passed a failing pre-adoption line; the cutoff is still found from history, historical.py's first_commit_adding"
+by = "claims:reading-agent (sonnet), batched"
+approved_by = "Kevin Rogers"
+subjects = {}
+
+[[mark]]
+file = "decisions/0002-historical-links-resolve-at-their-own-commit.md"
+mode = "restatement-ngram"
+unit = "76ef6f106bd7e619-d3751e15f83af1b6"
+copies = 1
+note = "historical.py with no adoption commit demotes no line for age, so every failing line is tested"
+by = "claims:reading-agent (sonnet), batched"
+approved_by = "Kevin Rogers"
+subjects = {}
+
+[[mark]]
+file = "decisions/0002-historical-links-resolve-at-their-own-commit.md"
+mode = "restatement-ngram"
+unit = "ae6523fbf443c24b-25418de44ffd758a"
+copies = 1
+note = "check_links.py and check_file_refs.py build the quoted gate messages with historical.py's suffix"
+by = "claims:reading-agent (sonnet), batched"
+approved_by = "Kevin Rogers"
+subjects = {}
+
+[[mark]]
+file = "decisions/0002-historical-links-resolve-at-their-own-commit.md"
+mode = "restatement-ngram"
+unit = "d22113be8bf7490f-8c0f9d93b7e2b107"
+copies = 1
+note = "superseded at b06ad38, read just before at ba798d2: historical.py passed a failing pre-adoption line without testing it"
+by = "claims:reading-agent (sonnet), batched"
+approved_by = "Kevin Rogers"
+kind = "superseded"
+text = "d22113be8bf7490f"
+evidence = { "decisions/0002-historical-links-resolve-at-their-own-commit.md#status" = "d3a9ea8467de4a88" }
+subjects = {}
+
+[[mark]]
+file = "decisions/0002-historical-links-resolve-at-their-own-commit.md"
+mode = "stale-claims"
+unit = "073c1634c496cdb6"
+copies = 1
+note = "the ADR 0020 amendment holds against historical.py, the two gate checks and config.py, and #174's skip held just before b06ad38; not checked: the #50, #57, #116 and #174 history and ratect's counts"
+by = "claims:reading-agent (sonnet), batched"
+approved_by = "Kevin Rogers"
+extent = "partial"
+subjects = { "decisions/0020-a-historical-reference-that-moved-is-a-markable-finding.md" = "ce8585527ea588e8" }
+
+[[mark]]
+file = "decisions/0002-historical-links-resolve-at-their-own-commit.md"
+mode = "stale-claims"
+unit = "86ae35d58a6aa3b5"
+copies = 1
+note = "current claims hold against historical.py, check_links.py and check_file_refs.py, the laziness included; superseded by ADR 0020 and read just before b06ad38, at ba798d2: the restatement and judgment-agent key, \"passes it\" and the pre-adoption skip"
+by = "claims:reading-agent (sonnet), batched"
+approved_by = "Kevin Rogers"
+subjects = { "claims/historical.py" = "6a37d1e75977cece" }
+
+[[mark]]
+file = "decisions/0002-historical-links-resolve-at-their-own-commit.md"
+mode = "stale-claims"
+unit = "b6f433d59d37306f"
+copies = 1
+note = "check-links and check-file-refs taking the key and sharing claims/historical.py with their own at-commit test hold; not checked: the restatement and judgment-agent bullets, superseded by ADR 0020, and the other checks' bullets, whose modules weren't read"
+by = "claims:reading-agent (sonnet), batched"
+approved_by = "Kevin Rogers"
+extent = "partial"
+subjects = { "claims/historical.py" = "6a37d1e75977cece" }
+
+[[mark]]
+file = "decisions/0002-historical-links-resolve-at-their-own-commit.md"
+mode = "stale-claims"
+unit = "de00163e80311042"
+copies = 1
+note = "the rename, message, git-calls (now lazy), caching, cat-file -t and known_untracked bullets hold against historical.py, git.py and the two checks; not checked: that no project using the plugin has a symlink in history"
+by = "claims:reading-agent (sonnet), batched"
+approved_by = "Kevin Rogers"
+extent = "partial"
+subjects = { "claims/historical.py" = "6a37d1e75977cece" }
+
+[[mark]]
+file = "decisions/0004-docs-is-the-user-facing-tree.md"
+mode = "check-file-refs-historical"
+unit = "26bb30c9aa1a3b15-17ed18489a956f32"
+copies = 1
+note = "past, at 00b497d and just before it at 7aad789: installation.md and configuration.md were user pages, docs/adr/ and docs/agents/ contributor ones, all under one docs/"
+by = "claims:reading-agent (sonnet), batched"
+approved_by = "Kevin Rogers"
+kind = "past"
+text = "26bb30c9aa1a3b15"
+evidence = { "decisions/0004-docs-is-the-user-facing-tree.md#context" = "4be8103d2608abac" }
+subjects = {}
+
+[[mark]]
+file = "decisions/0004-docs-is-the-user-facing-tree.md"
+mode = "check-file-refs-historical"
+unit = "66aa13f7d334c12c-17ed18489a956f32"
+copies = 1
+note = "past, at 00b497d and 7aad789: docs/configuration.md was the per-check configuration surface and stayed, so every pointer to it held"
+by = "claims:reading-agent (sonnet), batched"
+approved_by = "Kevin Rogers"
+kind = "past"
+text = "66aa13f7d334c12c"
+evidence = { "decisions/0004-docs-is-the-user-facing-tree.md#alternatives-considered" = "152a2b9ea09cd22d" }
+subjects = {}
+
+[[mark]]
+file = "decisions/0004-docs-is-the-user-facing-tree.md"
+mode = "check-file-refs-historical"
+unit = "8eb40b4676f0a02d-17ed18489a956f32"
+copies = 1
+note = "past, at 00b497d: claims/skill/SKILL.md named only docs/configuration.md under docs/, which did not move"
+by = "claims:reading-agent (sonnet), batched"
+approved_by = "Kevin Rogers"
+kind = "past"
+text = "8eb40b4676f0a02d"
+evidence = { "decisions/0004-docs-is-the-user-facing-tree.md#status" = "5015f24b77a5096e" }
+subjects = {}
+
+[[mark]]
+file = "decisions/0004-docs-is-the-user-facing-tree.md"
+mode = "check-file-refs-historical"
+unit = "9d8f1fcca0ba670d-17ed18489a956f32"
+copies = 1
+note = "past, at 7aad789 and 00b497d: CHANGELOG.md and ADRs 0001-0003 had no internal links and three bare docs/ pointers, two to docs/adr/ and one to docs/configuration.md, which stayed"
+by = "claims:reading-agent (sonnet), batched"
+approved_by = "Kevin Rogers"
+kind = "past"
+text = "9d8f1fcca0ba670d"
+evidence = { "decisions/0004-docs-is-the-user-facing-tree.md#context" = "4be8103d2608abac" }
+subjects = {}
+
+[[mark]]
+file = "decisions/0004-docs-is-the-user-facing-tree.md"
+mode = "check-file-refs-historical"
+unit = "bd9b019abd8ebc29-17ed18489a956f32"
+copies = 1
+note = "past, at 00b497d and 7aad789: docs/configuration.md was the per-check configuration surface; loose at its writing, since it had no section for check-citations, judgment-agent or temporal-words; kept as written, by the maintainer's call"
+by = "claims:reading-agent (sonnet), batched"
+approved_by = "Kevin Rogers"
+kind = "past"
+text = "bd9b019abd8ebc29"
+evidence = { "decisions/0004-docs-is-the-user-facing-tree.md#context" = "4be8103d2608abac" }
+subjects = {}
+
+[[mark]]
+file = "decisions/0004-docs-is-the-user-facing-tree.md"
+mode = "stale-claims"
+unit = "073c1634c496cdb6"
+copies = 1
+note = "the #57 key and the frozen .scratch/ tree hold against check_file_refs.py and AGENTS.md; not checked: that the files the Consequences name have changed, a span of history"
+by = "claims:reading-agent (sonnet), batched"
+approved_by = "Kevin Rogers"
+extent = "partial"
+subjects = { "claims/historical.py" = "6a37d1e75977cece" }
 
 [[mark]]
 file = "decisions/0004-docs-is-the-user-facing-tree.md"
@@ -824,33 +1127,33 @@ file = "decisions/0005-live-and-dated-claims.md"
 mode = "stale-claims"
 unit = "073c1634c496cdb6"
 copies = 1
-note = "read ADR 0005, ADR 0019, CONTEXT.md and TODO.md in full: the 0019 amendment, #261, the three replaced items, the four kinds and their tombstones hold (all current); not checked: ticket #77, a tracker fact"
-by = "claims:reading-agent (sonnet)"
+note = "ADR 0019 replaces exactly the three items named, four kinds each with a tree, and all four glossary entries carry the tombstone; not checked: \"Ticket #77\""
+by = "claims:reading-agent (sonnet), batched"
 approved_by = "Kevin Rogers"
 extent = "partial"
-subjects = { "TODO.md" = "001ebd990184bc7f", "decisions/0019-claims-are-intended-current-superseded-or-past.md" = "8364070cc17f6076" }
+subjects = { "TODO.md" = "54819ae6256ff341", "decisions/0019-claims-are-intended-current-superseded-or-past.md" = "5dd8425615ea3a6d" }
 
 [[mark]]
 file = "decisions/0005-live-and-dated-claims.md"
 mode = "stale-claims"
 unit = "86ae35d58a6aa3b5"
 copies = 1
-note = "current and true: record-like retired, the retired-quote definition, ADR 0003's drift, per-file designation and the claim-words recommendation, against CONTEXT.md, ADR 0019, ADR 0003 and claim-words.md; not checked: the live and dated bullets, their lead-in, the TODO.md and tombstone sentences (superseded by ADR 0019, no trees made) and \"files keeps its mechanics\", a before-and-after comparison"
-by = "claims:reading-agent prompt via general-purpose (sonnet)"
+note = "record-like retired, the retired-quote definition, ADR 0003's drift and the claim-words recommendation hold against CONTEXT.md, concepts.md, claim-words.md and ADR 0003; not checked: the live and dated bullets and their lead-in, the TODO.md and tombstone sentences (superseded by ADR 0019, no trees) and \"files keeps its mechanics\", a before-and-after comparison"
+by = "claims:reading-agent (sonnet), batched"
 approved_by = "Kevin Rogers"
 extent = "partial"
-subjects = { "CONTEXT.md" = "cd63df9e19bbfa23", "TODO.md" = "001ebd990184bc7f" }
+subjects = { "CONTEXT.md" = "cd63df9e19bbfa23", "TODO.md" = "54819ae6256ff341" }
 
 [[mark]]
 file = "decisions/0008-a-command-names-its-own-environment.md"
 mode = "stale-claims"
 unit = "86ae35d58a6aa3b5"
 copies = 1
-note = "read the Decision, pyproject.toml, AGENTS.md's verify marker, check_cli_flags.py and executable_claims.py: run as written with the inherited PATH, the naming convention, declared dependencies, stderr compared with stdout, check-cli-flags' ./ for a bare name and shebang, and this repository's marker hold (current); not checked: uv's VIRTUAL_ENV warning (third-party)"
-by = "claims:reading-agent (sonnet)"
+note = "executable_claims.py runs a granted command as written with the inherited PATH and compares stderr, pyproject.toml declares the environment, check_cli_flags.py prefixes ./, and AGENTS.md's marker uses uv run -q; not checked: uv's VIRTUAL_ENV warning"
+by = "claims:reading-agent (sonnet), batched"
 approved_by = "Kevin Rogers"
 extent = "partial"
-subjects = { "pyproject.toml" = "7a94a459b9d9d230" }
+subjects = { "pyproject.toml" = "dfa884937e68fbff" }
 
 [[mark]]
 file = "decisions/0009-stale-claims-is-diff-scoped.md"
@@ -868,32 +1171,89 @@ file = "decisions/0009-stale-claims-is-diff-scoped.md"
 mode = "stale-claims"
 unit = "de00163e80311042"
 copies = 1
-note = "read against concepts.md, the stale-claims page and ADR 0010: the first three consequences hold; not checked: \"comes back when a subject changes after the recorded commit\", which the record's Status now names as replaced by ADR 0010 (a superseded claim, false against today's tree, so the reader flagged it)"
-by = "claims:reading-agent (sonnet)"
+note = "an untouched section stays silent and concepts.md and the stale-claims page call the check diff-scoped, per stale_claims.py; not checked: the #156 citation and the superseded \"after the recorded commit\" sentence"
+by = "claims:reading-agent (sonnet), batched"
 approved_by = "Kevin Rogers"
 extent = "partial"
-subjects = { "docs/concepts.md" = "bb29ec82823fb536" }
+subjects = { "docs/concepts.md" = "35fb513ebf1797ca" }
 
 [[mark]]
 file = "decisions/0010-checked-marks-expire-on-their-own.md"
 mode = "stale-claims"
 unit = "073c1634c496cdb6"
 copies = 1
-note = "the Accepted line, both \"rules below replace those\" sentences, the 0011, 0013, 0014 and 0019 amendment summaries, partial marks and the #263 re-raise hold against those records; not checked: the risk-review history, ratect's audit counts, its 0.13.0 milestone and the pre-#263 runs, all past or about another repository"
-by = "claims:reading-agent prompt via general-purpose (sonnet)"
+note = "0009, the 0011, 0013, 0014 and 0019 amendments hold against checked.py; not checked: the risk-review and ratect history and the #263 consumers"
+by = "claims:reading-agent (sonnet), batched"
 approved_by = "Kevin Rogers"
 extent = "partial"
-subjects = { "decisions/0009-stale-claims-is-diff-scoped.md" = "7b4a958975680dc0", "decisions/0011-append-only-is-a-property-of-the-file.md" = "aacbe8fbac67f25d", "decisions/0013-a-navigation-page-is-not-a-whole-page-subject.md" = "425cadf4a7bea0e3", "decisions/0014-a-pending-mark-quiets-until-a-person-approves-it.md" = "6ce37d46a75a107e", "decisions/0019-claims-are-intended-current-superseded-or-past.md" = "8364070cc17f6076" }
+subjects = { "decisions/0009-stale-claims-is-diff-scoped.md" = "7b4a958975680dc0", "decisions/0011-append-only-is-a-property-of-the-file.md" = "aacbe8fbac67f25d", "decisions/0013-a-navigation-page-is-not-a-whole-page-subject.md" = "425cadf4a7bea0e3", "decisions/0014-a-pending-mark-quiets-until-a-person-approves-it.md" = "6ce37d46a75a107e", "decisions/0019-claims-are-intended-current-superseded-or-past.md" = "5dd8425615ea3a6d" }
+
+[[mark]]
+file = "decisions/0011-append-only-is-a-property-of-the-file.md"
+mode = "restatement-ngram"
+unit = "4b7ffc170640a8a5-4c4697ea2621bc2c"
+copies = 1
+note = "config._subjects_patterns wraps a bare string as a one-element list, which append_only reads through"
+by = "claims:reading-agent (sonnet), batched"
+approved_by = "Kevin Rogers"
+subjects = {}
+
+[[mark]]
+file = "decisions/0011-append-only-is-a-property-of-the-file.md"
+mode = "restatement-ngram"
+unit = "b1b48bc7c32679aa-fd36c346ff893a2e"
+copies = 1
+note = "past, at 4f09b63 and just before it at ab963e4: historical was a per-check key, and check-links.md said it judged a line in the file at its own commit"
+by = "claims:reading-agent (sonnet), batched"
+approved_by = "Kevin Rogers"
+kind = "past"
+text = "b1b48bc7c32679aa"
+evidence = { "decisions/0011-append-only-is-a-property-of-the-file.md#context" = "f349092689395247" }
+subjects = {}
+
+[[mark]]
+file = "decisions/0011-append-only-is-a-property-of-the-file.md"
+mode = "restatement-ngram"
+unit = "b859947d76def881-f6dff3c29c1b1e5d"
+copies = 1
+note = "the title names the decision, and config.append_only takes a path and the project's whole configuration, set once under [subjects]"
+by = "claims:reading-agent (sonnet), batched"
+approved_by = "Kevin Rogers"
+subjects = {}
+
+[[mark]]
+file = "decisions/0011-append-only-is-a-property-of-the-file.md"
+mode = "restatement-ngram"
+unit = "de6d90a0caf9aa81-1ae6411abbf32038"
+copies = 1
+note = "past, at 4f09b63: check-links.md said historical judged a line in the file at the commit that wrote it"
+by = "claims:reading-agent (sonnet), batched"
+approved_by = "Kevin Rogers"
+kind = "past"
+text = "de6d90a0caf9aa81"
+evidence = { "decisions/0011-append-only-is-a-property-of-the-file.md#context" = "f349092689395247" }
+subjects = {}
 
 [[mark]]
 file = "decisions/0011-append-only-is-a-property-of-the-file.md"
 mode = "stale-claims"
 unit = "073c1634c496cdb6"
 copies = 1
-note = "read against ADRs 0009 and 0010, stale_claims.py's triggers and commits, git.path_blobs and checked._grew: all five claims hold"
-by = "claims:reading-agent (sonnet)"
+note = "the #230, #242 and ADR 0020 amendments hold against stale_claims.py, checked.py, git.py's path_blobs, restatement.py, judgment_agent.py and config.py; not checked: the #187 citation and the two past clauses"
+by = "claims:reading-agent (sonnet), batched"
 approved_by = "Kevin Rogers"
-subjects = { "decisions/0009-stale-claims-is-diff-scoped.md" = "7b4a958975680dc0", "decisions/0010-checked-marks-expire-on-their-own.md" = "584af60d91195c7b" }
+extent = "partial"
+subjects = { "claims/historical.py" = "6a37d1e75977cece", "decisions/0009-stale-claims-is-diff-scoped.md" = "7b4a958975680dc0", "decisions/0010-checked-marks-expire-on-their-own.md" = "584af60d91195c7b", "decisions/0020-a-historical-reference-that-moved-is-a-markable-finding.md" = "ce8585527ea588e8" }
+
+[[mark]]
+file = "decisions/0011-append-only-is-a-property-of-the-file.md"
+mode = "stale-claims"
+unit = "de00163e80311042"
+copies = 1
+note = "config.py's built-in CHANGELOG.md and the two gate checks' historical say different things about one file, runner.py, config_review.py and configuring.md know [subjects], and checked.py's blob test holds"
+by = "claims:reading-agent (sonnet), batched"
+approved_by = "Kevin Rogers"
+subjects = { "claims/historical.py" = "6a37d1e75977cece", "docs/configuring.md" = "3fef65658d43f0bf" }
 
 [[mark]]
 file = "decisions/0012-a-ci-run-can-fail-on-unmarked-findings.md"
@@ -924,11 +1284,11 @@ file = "decisions/0012-a-ci-run-can-fail-on-unmarked-findings.md"
 mode = "stale-claims"
 unit = "de00163e80311042"
 copies = 1
-note = "read against concepts.md and checked-marks.md: the concepts.md exception, the precision cost and the dependency-bot sentence hold; not checked: \"waits on #187\", a tracker fact"
-by = "claims:reading-agent (sonnet)"
+note = "concepts.md now states the exception, precision is a cost under the flag, and checked-marks.md says a person or agent marks for a bot; not checked: the #187 citation"
+by = "claims:reading-agent (sonnet), batched"
 approved_by = "Kevin Rogers"
 extent = "partial"
-subjects = { "docs/concepts.md" = "bb29ec82823fb536" }
+subjects = { "docs/concepts.md" = "35fb513ebf1797ca" }
 
 [[mark]]
 file = "decisions/0013-a-navigation-page-is-not-a-whole-page-subject.md"
@@ -1066,11 +1426,10 @@ file = "decisions/0017-an-approval-is-folded-into-the-commit-that-wrote-the-mark
 mode = "stale-claims"
 unit = "de00163e80311042"
 copies = 1
-note = "read ADR 0017, ADR 0015, TODO.md, fold.py and cli.py in full: the 0015 quote, the fold as the supported command, the force-push with lease and the deferred merge driver hold (current); not checked: where the fold is run (process)"
-by = "claims:reading-agent (sonnet)"
+note = "ADR 0015's rule stands, AGENTS.md folds with fold.py's fold-approvals, which prints a --force-with-lease push, and TODO.md defers the merge driver"
+by = "claims:reading-agent (sonnet), batched"
 approved_by = "Kevin Rogers"
-extent = "partial"
-subjects = { "TODO.md" = "001ebd990184bc7f" }
+subjects = { "TODO.md" = "54819ae6256ff341" }
 
 [[mark]]
 file = "decisions/0018-the-reader-and-the-approver-are-recorded-apart.md"
@@ -1094,6 +1453,58 @@ subjects = {}
 
 [[mark]]
 file = "decisions/0019-claims-are-intended-current-superseded-or-past.md"
+mode = "restatement-ngram"
+unit = "9f40c3969a69c6f9-415782992ff60e97"
+copies = 1
+note = "superseded by ADR 0020, read just before at b06ad38: historical.py passed a held reference in a historical file whatever the kind of the claim around it"
+by = "claims:reading-agent (sonnet), batched"
+approved_by = "Kevin Rogers"
+kind = "superseded"
+text = "9f40c3969a69c6f9"
+evidence = { "decisions/0019-claims-are-intended-current-superseded-or-past.md#status" = "f5930a84e17e780d" }
+subjects = { "claims/historical.py" = "6a37d1e75977cece" }
+
+[[mark]]
+file = "decisions/0019-claims-are-intended-current-superseded-or-past.md"
+mode = "restatement-ngram"
+unit = "a8d0d56d2fcb2152-b614d05bb4972d28"
+copies = 1
+note = "superseded by ADR 0020, read just before at b06ad38: historical.py passed a reference held at its writing"
+by = "claims:reading-agent (sonnet), batched"
+approved_by = "Kevin Rogers"
+kind = "superseded"
+text = "a8d0d56d2fcb2152"
+evidence = { "decisions/0019-claims-are-intended-current-superseded-or-past.md#status" = "f5930a84e17e780d" }
+subjects = { "claims/historical.py" = "6a37d1e75977cece" }
+
+[[mark]]
+file = "decisions/0019-claims-are-intended-current-superseded-or-past.md"
+mode = "restatement-ngram"
+unit = "b3383d8abbf57703-2e4fd09960916eea"
+copies = 1
+note = "superseded by ADR 0020, read just before at b06ad38: restatement.py and judgment_agent.py skipped a historical file's non-added lines"
+by = "claims:reading-agent (sonnet), batched"
+approved_by = "Kevin Rogers"
+kind = "superseded"
+text = "b3383d8abbf57703"
+evidence = { "decisions/0019-claims-are-intended-current-superseded-or-past.md#status" = "f5930a84e17e780d" }
+subjects = {}
+
+[[mark]]
+file = "decisions/0019-claims-are-intended-current-superseded-or-past.md"
+mode = "restatement-ngram"
+unit = "f187f56f87b6e67b-7fef90865929c1b6"
+copies = 1
+note = "superseded by ADR 0020, read just before at b06ad38: check_links.py passed a held reference in a historical file whatever its kind"
+by = "claims:reading-agent (sonnet), batched"
+approved_by = "Kevin Rogers"
+kind = "superseded"
+text = "f187f56f87b6e67b"
+evidence = { "decisions/0019-claims-are-intended-current-superseded-or-past.md#status" = "f5930a84e17e780d" }
+subjects = {}
+
+[[mark]]
+file = "decisions/0019-claims-are-intended-current-superseded-or-past.md"
 mode = "stale-claims"
 unit = "073c1634c496cdb6"
 copies = 1
@@ -1108,42 +1519,134 @@ file = "decisions/0019-claims-are-intended-current-superseded-or-past.md"
 mode = "stale-claims"
 unit = "86ae35d58a6aa3b5"
 copies = 1
-note = "the four kinds and their trees, live and dated retired with Record-like on all four entries, ADR 0005's replacements, the inference rules, reading each kind and a mark's kind hold against CONTEXT.md, reading_agent.md and checked.py; not checked: the typical movement, approval showing kinds, the least-settled rule, past-mark expiry code and the scope sentence"
-by = "claims:reading-agent prompt via general-purpose (sonnet)"
+note = "the kinds, inference and marks rules hold against reading_agent.md, SKILL.md, CONTEXT.md and checked.py, and the Scope list, superseded, held at b06ad38; not checked: the judgment-agent and no-matching-change sentence"
+by = "claims:reading-agent (sonnet), batched"
 approved_by = "Kevin Rogers"
 extent = "partial"
-subjects = { "CONTEXT.md" = "cd63df9e19bbfa23", "TODO.md" = "001ebd990184bc7f", "claims/historical.py" = "5872b17e8a5f0f74" }
+subjects = { "CONTEXT.md" = "cd63df9e19bbfa23", "TODO.md" = "54819ae6256ff341", "claims/historical.py" = "6a37d1e75977cece" }
 
 [[mark]]
 file = "decisions/0019-claims-are-intended-current-superseded-or-past.md"
 mode = "stale-claims"
 unit = "de00163e80311042"
 copies = 1
-note = "read the Consequences against ADRs 0004, 0005 and 0010, TODO.md, CONTEXT.md, checked.py, trees.py, SKILL.md, reading_agent.md and the check pages, and ADR 0005 at 0bd963f: the 0005 and 0010 standing, the replaced sentences holding just before 0019, the defaults, units, orphans, historical, verdicts and mechanism hold (current); not checked: ADR 0004's Consequences holding at their writing and #261 marking this repository's stuck findings, which its own marks settle"
-by = "claims:reading-agent (sonnet)"
+note = "ADR 0005 and 0010 keep their prose with pointers, the current bullets hold, and the historical bullet, superseded, held at b06ad38; not checked: ADR 0004's Consequences holding at writing and the #261 process"
+by = "claims:reading-agent (sonnet), batched"
 approved_by = "Kevin Rogers"
 extent = "partial"
-subjects = { "TODO.md" = "001ebd990184bc7f", "claims/historical.py" = "5872b17e8a5f0f74" }
+subjects = { "TODO.md" = "54819ae6256ff341", "claims/historical.py" = "6a37d1e75977cece" }
+
+[[mark]]
+file = "decisions/0020-a-historical-reference-that-moved-is-a-markable-finding.md"
+mode = "restatement-ngram"
+unit = "0cc6d169a69833e7-296b61e0aefc5f05"
+copies = 1
+note = "historical.py tests an uncommitted line at HEAD and demotes it if it held there"
+by = "claims:reading-agent (sonnet), batched"
+approved_by = "Kevin Rogers"
+subjects = {}
+
+[[mark]]
+file = "decisions/0020-a-historical-reference-that-moved-is-a-markable-finding.md"
+mode = "restatement-ngram"
+unit = "3fa2d8609cadbbe5-063f5b564e1b1b71"
+copies = 1
+note = "past, at b06ad38 and just before: ADR 0019 noted the stand-in passing a held current claim, as historical.py did"
+by = "claims:reading-agent (sonnet), batched"
+approved_by = "Kevin Rogers"
+kind = "past"
+text = "3fa2d8609cadbbe5"
+evidence = { "decisions/0020-a-historical-reference-that-moved-is-a-markable-finding.md#context" = "af865e326cf24373" }
+subjects = {}
+
+[[mark]]
+file = "decisions/0020-a-historical-reference-that-moved-is-a-markable-finding.md"
+mode = "restatement-ngram"
+unit = "5737519fa8f348ff-da3e1d91274b7c76"
+copies = 1
+note = "past, at b06ad38 and just before: historical.py passed held and pre-adoption references, and restatement.py and judgment_agent.py skipped non-added lines"
+by = "claims:reading-agent (sonnet), batched"
+approved_by = "Kevin Rogers"
+kind = "past"
+text = "5737519fa8f348ff"
+evidence = { "decisions/0020-a-historical-reference-that-moved-is-a-markable-finding.md#context" = "af865e326cf24373" }
+subjects = {}
+
+[[mark]]
+file = "decisions/0020-a-historical-reference-that-moved-is-a-markable-finding.md"
+mode = "restatement-ngram"
+unit = "a10c21dbcacdedd1-41da3dbdc5b977db"
+copies = 1
+note = "historical.py demotes on a hold at the blamed commit or a parent, or a pre-adoption line, and check_links.py emits check-links-historical"
+by = "claims:reading-agent (sonnet), batched"
+approved_by = "Kevin Rogers"
+subjects = {}
+
+[[mark]]
+file = "decisions/0020-a-historical-reference-that-moved-is-a-markable-finding.md"
+mode = "restatement-ngram"
+unit = "c101f74807b627ff-92eb2d784cdccb71"
+copies = 1
+note = "past: ADR 0019's Consequences, unchanged at b06ad38 and today, call historical a file-level stand-in that passes a current claim held at its writing"
+by = "claims:reading-agent (sonnet), batched"
+approved_by = "Kevin Rogers"
+kind = "past"
+text = "c101f74807b627ff"
+evidence = { "decisions/0020-a-historical-reference-that-moved-is-a-markable-finding.md#context" = "af865e326cf24373" }
+subjects = {}
+
+[[mark]]
+file = "decisions/0020-a-historical-reference-that-moved-is-a-markable-finding.md"
+mode = "restatement-ngram"
+unit = "c19b342aa7c3ac95-c8ea4a6aac3d4617"
+copies = 1
+note = "past, at b06ad38 and just before: restatement.py and judgment_agent.py skipped a historical file's non-added lines"
+by = "claims:reading-agent (sonnet), batched"
+approved_by = "Kevin Rogers"
+kind = "past"
+text = "c19b342aa7c3ac95"
+evidence = { "decisions/0020-a-historical-reference-that-moved-is-a-markable-finding.md#context" = "af865e326cf24373" }
+subjects = {}
+
+[[mark]]
+file = "decisions/0020-a-historical-reference-that-moved-is-a-markable-finding.md"
+mode = "stale-claims"
+unit = "073c1634c496cdb6"
+copies = 1
+note = "ADRs 0002 and 0011 carry its amendment notes, 0019 its pointer, and the Decision builds on 0012 and 0019"
+by = "claims:reading-agent (sonnet), batched"
+approved_by = "Kevin Rogers"
+subjects = { "decisions/0002-historical-links-resolve-at-their-own-commit.md" = "afd456f78c8e4dc7", "decisions/0011-append-only-is-a-property-of-the-file.md" = "aacbe8fbac67f25d", "decisions/0012-a-ci-run-can-fail-on-unmarked-findings.md" = "8040e41e5a0442f3", "decisions/0019-claims-are-intended-current-superseded-or-past.md" = "5dd8425615ea3a6d" }
+
+[[mark]]
+file = "decisions/0020-a-historical-reference-that-moved-is-a-markable-finding.md"
+mode = "stale-claims"
+unit = "de00163e80311042"
+copies = 1
+note = "CONTEXT.md and concepts.md define gate and advisory by what settles them, historical.py demotes moved references, config.py refuses the removed keys, and only the two gate checks take historical"
+by = "claims:reading-agent (sonnet), batched"
+approved_by = "Kevin Rogers"
+subjects = { "CONTEXT.md" = "cd63df9e19bbfa23", "claims/historical.py" = "6a37d1e75977cece", "docs/concepts.md" = "35fb513ebf1797ca" }
 
 [[mark]]
 file = "docs/SUMMARY.md"
 mode = "stale-claims"
 unit = "52cdd6fcab22cbf9"
 copies = 1
-note = "read against the stale-claims, temporal-words and claim-words pages and the nine check modules: every listed check emits advisory (gate=False) findings and has its page"
-by = "claims:reading-agent (sonnet)"
+note = "all nine linked check pages exist and call their findings advisory"
+by = "claims:reading-agent (sonnet), batched"
 approved_by = "Kevin Rogers"
-subjects = { "docs/checks/check-cli-flags.md" = "44bda96325c02db3", "docs/checks/check-config-defaults.md" = "faf67bb8a909b1e3", "docs/checks/check-env-vars.md" = "319716cdb042161c", "docs/checks/claim-words.md" = "82e15f94290c47fe", "docs/checks/judgment-agent.md" = "e3e7f922a1f39d30", "docs/checks/restatement.md" = "5f19267b9f9e728b", "docs/checks/spliced-docs.md" = "e819a2b0f35f4571", "docs/checks/stale-claims.md" = "5c48b3851f66bbb6", "docs/checks/temporal-words.md" = "9a8bfdb82a0fc29a" }
+subjects = { "docs/checks/check-cli-flags.md" = "44bda96325c02db3", "docs/checks/check-config-defaults.md" = "faf67bb8a909b1e3", "docs/checks/check-env-vars.md" = "319716cdb042161c", "docs/checks/claim-words.md" = "82e15f94290c47fe", "docs/checks/judgment-agent.md" = "0a229b2658be12de", "docs/checks/restatement.md" = "bf20c9d61ca4ce85", "docs/checks/spliced-docs.md" = "e819a2b0f35f4571", "docs/checks/stale-claims.md" = "e5b2c8bcfe1272f0", "docs/checks/temporal-words.md" = "9a8bfdb82a0fc29a" }
 
 [[mark]]
 file = "docs/SUMMARY.md"
 mode = "stale-claims"
 unit = "d5ec9565536fe30e"
 copies = 1
-note = "the Gate checks section lists executable-claims, check-citations, check-links and check-file-refs, each a gate in its module and page, with only named advisory departures"
-by = "claims:reading-agent (sonnet)"
+note = "all four linked check pages exist and call their findings gate, check-links and check-file-refs stating the historical demotion as an exception"
+by = "claims:reading-agent (sonnet), batched"
 approved_by = "Kevin Rogers"
-subjects = { "docs/checks/check-citations.md" = "ecb243a4acd27885", "docs/checks/check-file-refs.md" = "db3236482a102adf", "docs/checks/check-links.md" = "7aba082cc115512e", "docs/checks/executable-claims.md" = "5e693c5b0ecdb270" }
+subjects = { "docs/checks/check-citations.md" = "7f7eff44dd987f8f", "docs/checks/check-file-refs.md" = "1f3f4264176d8743", "docs/checks/check-links.md" = "1016d0435261ddec", "docs/checks/executable-claims.md" = "1951d594661e2765" }
 
 [[mark]]
 file = "docs/checked-marks.md"
@@ -1171,6 +1674,16 @@ unit = "25de8e6d44ed86c6-3ff6d887db0dca10"
 copies = 1
 note = "line 64 is a worked hypothetical about a rename, not a restatement: the retracted wording was the reading agent's own dated-claim paragraph, which it doesn't repeat"
 by = "claims:reading-agent (sonnet), with Claude Code (claude-opus-5-5)"
+approved_by = "Kevin Rogers"
+subjects = {}
+
+[[mark]]
+file = "docs/checks/check-citations.md"
+mode = "restatement-ngram"
+unit = "7827a5f56b72088f-5b67228b42886fab"
+copies = 1
+note = "examples/check-citations/docs/NOTES.md:6-7 and check_citations.py carry the was: marker to the next line, and the capture reports NOTES.md:3 only"
+by = "claims:reading-agent (sonnet), batched"
 approved_by = "Kevin Rogers"
 subjects = {}
 
@@ -1206,6 +1719,26 @@ approved_by = "Kevin Rogers"
 subjects = { "claims/git.py" = "2d15148b01b62ee0", "decisions/0008-a-command-names-its-own-environment.md" = "44a8e0ed95bc0e7e", "docs/configuring.md#the-grant-file" = "b34c8248c7423f51" }
 
 [[mark]]
+file = "docs/checks/check-cli-flags.md"
+mode = "stale-claims"
+unit = "b7d64a9221007dfd"
+copies = 1
+note = "check_cli_flags.py reads exclude and a project-wide numeric timeout of 10, grants come from claims.local.toml, and gate.py reads enabled"
+by = "claims:reading-agent (sonnet), batched"
+approved_by = "Kevin Rogers"
+subjects = { "docs/configuring.md#silencing-one-check-at-commit-time" = "60a5875faa207cfd", "docs/configuring.md#the-grant-file" = "b34c8248c7423f51" }
+
+[[mark]]
+file = "docs/checks/check-config-defaults.md"
+mode = "stale-claims"
+unit = "b7d64a9221007dfd"
+copies = 1
+note = "check_config_defaults.py parses each path:line target, checks only mapped names, has no exclude, and gate.py reads enabled"
+by = "claims:reading-agent (sonnet), batched"
+approved_by = "Kevin Rogers"
+subjects = { "docs/configuring.md#silencing-one-check-at-commit-time" = "60a5875faa207cfd" }
+
+[[mark]]
 file = "docs/checks/check-env-vars.md"
 mode = "stale-claims"
 unit = "3619a6b5d34f0b4f"
@@ -1216,24 +1749,34 @@ approved_by = "Kevin Rogers"
 subjects = { "docs/concepts.md#the-retired-quote-exemption" = "c1404aed4250008d" }
 
 [[mark]]
+file = "docs/checks/check-env-vars.md"
+mode = "stale-claims"
+unit = "b7d64a9221007dfd"
+copies = 1
+note = "check_env_vars.py adds definition_files to .env.example's built-in scope, skips exclude whole, and gate.py reads enabled"
+by = "claims:reading-agent (sonnet), batched"
+approved_by = "Kevin Rogers"
+subjects = { "docs/configuring.md#silencing-one-check-at-commit-time" = "60a5875faa207cfd" }
+
+[[mark]]
 file = "docs/checks/check-file-refs.md"
 mode = "stale-claims"
 unit = "3619a6b5d34f0b4f"
 copies = 1
-note = "read against check_file_refs.py, historical.py and concepts.md: no markers, the example marker and historical are the only exemptions"
-by = "claims:reading-agent (sonnet)"
+note = "check_file_refs.py skips only fences, link destinations and URLs, the example marker consumes one mention, and historical keeps a record's old mentions"
+by = "claims:reading-agent (sonnet), batched"
 approved_by = "Kevin Rogers"
-subjects = { "claims/historical.py" = "5872b17e8a5f0f74", "docs/concepts.md#the-retired-quote-exemption" = "c1404aed4250008d" }
+subjects = { "claims/historical.py" = "6a37d1e75977cece", "docs/concepts.md#the-retired-quote-exemption" = "c1404aed4250008d" }
 
 [[mark]]
 file = "docs/checks/check-file-refs.md"
 mode = "stale-claims"
 unit = "8652909ce0f49280"
 copies = 1
-note = "read the 'What it checks' section against check_file_refs.py, paths.py, markdown.fence_state, git.tracked_files and executable_claims' fence finding; all 11 claims hold. Caveat on 'every tracked .md file': a symlinked tracked .md is skipped by `_read` and the page does not say so. The flagged subject README.md is not cited by path in the section; its only mention is the bare `README`, which the check ignores. README.md was read and holds no claim about this section."
-by = "claims:reading-agent (sonnet)"
+note = "PATH_RE, the extension set, the four set-aside kinds, fence_state, the two resolution bases and known_untracked hold against check_file_refs.py, paths.py and markdown.py"
+by = "claims:reading-agent (sonnet), batched"
 approved_by = "Kevin Rogers"
-subjects = { "README.md" = "8907f0763c92ada1" }
+subjects = { "README.md" = "730bf014fcf43601" }
 
 [[mark]]
 file = "docs/checks/check-file-refs.md"
@@ -1251,10 +1794,10 @@ file = "docs/checks/check-links.md"
 mode = "stale-claims"
 unit = "3619a6b5d34f0b4f"
 copies = 1
-note = "read against check_links.py, historical.py and concepts.md: no retirement markers, a link in a blockquote, italics or \"Previously said:\" is checked, the exemption is as linked, and historical keeps old links"
-by = "claims:reading-agent (sonnet)"
+note = "check_links.py skips only fences and code spans, with no retired-quote handling, and historical keeps a record's old links, per historical.py and concepts.md"
+by = "claims:reading-agent (sonnet), batched"
 approved_by = "Kevin Rogers"
-subjects = { "claims/historical.py" = "5872b17e8a5f0f74", "docs/concepts.md#the-retired-quote-exemption" = "c1404aed4250008d" }
+subjects = { "claims/historical.py" = "6a37d1e75977cece", "docs/concepts.md#the-retired-quote-exemption" = "c1404aed4250008d" }
 
 [[mark]]
 file = "docs/checks/check-links.md"
@@ -1297,14 +1840,24 @@ extent = "partial"
 subjects = { "decisions/0008-a-command-names-its-own-environment.md" = "44a8e0ed95bc0e7e" }
 
 [[mark]]
+file = "docs/checks/executable-claims.md"
+mode = "stale-claims"
+unit = "b7d64a9221007dfd"
+copies = 1
+note = "executable_claims.py reads exclude, a numeric timeout of 30 and literal permitted_prefixes, grants come from claims.local.toml, and gate.py reads enabled"
+by = "claims:reading-agent (sonnet), batched"
+approved_by = "Kevin Rogers"
+subjects = { "docs/configuring.md#silencing-one-check-at-commit-time" = "60a5875faa207cfd", "docs/configuring.md#the-grant-file" = "b34c8248c7423f51" }
+
+[[mark]]
 file = "docs/checks/judgment-agent.md"
 mode = "stale-claims"
 unit = "c6c1c9a9c8543f1e"
 copies = 1
-note = "read against SUMMARY.md, configuring.md and concepts.md: the page is last, and both linked pages exist and cover what the section says"
-by = "claims:reading-agent (sonnet)"
+note = "judgment-agent is SUMMARY.md's last entry, and configuring.md and concepts.md hold what the page says they do"
+by = "claims:reading-agent (sonnet), batched"
 approved_by = "Kevin Rogers"
-subjects = { "docs/concepts.md" = "bb29ec82823fb536", "docs/configuring.md" = "a27fc69a3e4bf5b5" }
+subjects = { "docs/concepts.md" = "35fb513ebf1797ca", "docs/configuring.md" = "3fef65658d43f0bf" }
 
 [[mark]]
 file = "docs/checks/restatement.md"
@@ -1325,6 +1878,16 @@ note = "read the page and concepts.md: the check reads no Markdown, the anchor e
 by = "claims:reading-agent (sonnet)"
 approved_by = "Kevin Rogers"
 subjects = { "docs/concepts.md#the-retired-quote-exemption" = "c1404aed4250008d" }
+
+[[mark]]
+file = "docs/checks/spliced-docs.md"
+mode = "stale-claims"
+unit = "b7d64a9221007dfd"
+copies = 1
+note = "spliced_docs.py validates modes with undocumented the default, has no exclude, and gate.py reads enabled"
+by = "claims:reading-agent (sonnet), batched"
+approved_by = "Kevin Rogers"
+subjects = { "docs/configuring.md#silencing-one-check-at-commit-time" = "60a5875faa207cfd" }
 
 [[mark]]
 file = "docs/checks/stale-claims.md"
@@ -1356,12 +1919,52 @@ by = "Claude (agent)"
 subjects = { ".github/workflows/ci.yml" = "9a3f40dc08547d3e", "claims/config.py" = "8061ce4e20a17e51", "docs/configuring.md#append-only-files" = "7b641ca9032d95d6", "docs/configuring.md#navigation-pages" = "d761e008a5c92152" }
 
 [[mark]]
+file = "docs/checks/stale-claims.md"
+mode = "stale-claims"
+unit = "b7d64a9221007dfd"
+copies = 1
+note = "stale_claims.py's module_reference_scope, exclude and exclude_sections handling, the invalid-entry error, gate.py's enabled and [subjects] being read from load_config hold"
+by = "claims:reading-agent (sonnet), batched"
+approved_by = "Kevin Rogers"
+subjects = { "claims/config.py" = "a64ed0da2782f350", "docs/configuring.md#append-only-files" = "f9d9759025fd585f", "docs/configuring.md#navigation-pages" = "d761e008a5c92152", "docs/configuring.md#silencing-one-check-at-commit-time" = "60a5875faa207cfd" }
+
+[[mark]]
+file = "docs/concepts.md"
+mode = "claim-words-counts"
+unit = "1198b2667a9b53f8"
+copies = 1
+note = "checked.py's UNITS lists the checks whose findings can be marked, and checked-marks.md says others' cannot"
+by = "claims:reading-agent (sonnet), batched"
+approved_by = "Kevin Rogers"
+subjects = {}
+
+[[mark]]
+file = "docs/concepts.md"
+mode = "claim-words-counts"
+unit = "13fff3b882095f6a"
+copies = 1
+note = "cli.py and gate.py fail on an unmarked advisory finding only under --fail-on-unmarked or a listed [hook] fail_on_unmarked check"
+by = "claims:reading-agent (sonnet), batched"
+approved_by = "Kevin Rogers"
+subjects = {}
+
+[[mark]]
 file = "docs/concepts.md"
 mode = "claim-words-counts"
 unit = "4fc6dbf492b3b78e"
 copies = 1
 note = "read the Designated files section, the kinds section and ADR 0005: designation is per file, approximating a per-claim kind, and a mixed file goes on its predominant kind"
 by = "claims:reading-agent (sonnet)"
+approved_by = "Kevin Rogers"
+subjects = {}
+
+[[mark]]
+file = "docs/concepts.md"
+mode = "claim-words-counts"
+unit = "7207c5d38ce1ab65"
+copies = 1
+note = "checked.py refuses and never applies a mark to a gate finding; only a text fix, an example marker or a scoping configuration change (exclude, historical) settles one"
+by = "claims:reading-agent (sonnet), batched"
 approved_by = "Kevin Rogers"
 subjects = {}
 
@@ -1378,12 +1981,72 @@ subjects = {}
 [[mark]]
 file = "docs/concepts.md"
 mode = "claim-words-counts"
+unit = "d1cf76ba8075882d"
+copies = 1
+note = "the CLI flag and the [hook] fail_on_unmarked key are the only two routes, cli.py and gate.py"
+by = "claims:reading-agent (sonnet), batched"
+approved_by = "Kevin Rogers"
+subjects = {}
+
+[[mark]]
+file = "docs/concepts.md"
+mode = "claim-words-counts"
 unit = "dd14ed1f181f293c"
 copies = 1
 note = "read the section and ADR 0005 as an example record: the lifecycle and skip hold, and one record carries a past motivation, an intended decision and consequences"
 by = "claims:reading-agent (sonnet)"
 approved_by = "Kevin Rogers"
 subjects = {}
+
+[[mark]]
+file = "docs/concepts.md"
+mode = "claim-words-counts"
+unit = "df6327ac621b6ed0"
+copies = 1
+note = "historical.py demotes a held or pre-adoption reference, and check_links.py and check_file_refs.py, the only checks taking the key, report it advisory"
+by = "claims:reading-agent (sonnet), batched"
+approved_by = "Kevin Rogers"
+subjects = { "claims/historical.py" = "6a37d1e75977cece" }
+
+[[mark]]
+file = "docs/concepts.md"
+mode = "claim-words-totalising"
+unit = "13fff3b882095f6a"
+copies = 1
+note = "cli.py and gate.py fail on an unmarked advisory finding only under --fail-on-unmarked or a listed [hook] fail_on_unmarked check"
+by = "claims:reading-agent (sonnet), batched"
+approved_by = "Kevin Rogers"
+subjects = {}
+
+[[mark]]
+file = "docs/concepts.md"
+mode = "claim-words-totalising"
+unit = "4dcdb57c6b2e1705"
+copies = 1
+note = "cli.py returns 1 and gate.py blocks on any reported gate finding, and no mark quiets one"
+by = "claims:reading-agent (sonnet), batched"
+approved_by = "Kevin Rogers"
+subjects = {}
+
+[[mark]]
+file = "docs/concepts.md"
+mode = "claim-words-totalising"
+unit = "7207c5d38ce1ab65"
+copies = 1
+note = "checked.py refuses and never applies a mark to a gate finding; only a text fix, an example marker or a scoping configuration change (exclude, historical) settles one"
+by = "claims:reading-agent (sonnet), batched"
+approved_by = "Kevin Rogers"
+subjects = {}
+
+[[mark]]
+file = "docs/concepts.md"
+mode = "claim-words-totalising"
+unit = "d5bf8aacf01bf842"
+copies = 1
+note = "historical.py tests at the written commit and its parents, splitting held (advisory, markable) from never held (gate)"
+by = "claims:reading-agent (sonnet), batched"
+approved_by = "Kevin Rogers"
+subjects = { "claims/historical.py" = "6a37d1e75977cece", "docs/checks/check-file-refs.md" = "1f3f4264176d8743" }
 
 [[mark]]
 file = "docs/concepts.md"
@@ -1416,6 +2079,76 @@ subjects = {}
 
 [[mark]]
 file = "docs/configuring.md"
+mode = "claim-words-counts"
+unit = "5a29ab3a38c5efca"
+copies = 1
+note = "config.append_only is project-wide; stale_claims.py, checked.py, restatement.py and judgment_agent.py read it, and the last two never report a non-added line in such a file"
+by = "claims:reading-agent (sonnet), batched"
+approved_by = "Kevin Rogers"
+subjects = { "docs/checks/judgment-agent.md#configuration" = "8dfd8ee957e098d3", "docs/checks/restatement.md#configuration" = "975640f6b3458633" }
+
+[[mark]]
+file = "docs/configuring.md"
+mode = "claim-words-counts"
+unit = "ffad8fa6c1443262"
+copies = 1
+note = "ADR 0011 and ADR 0020 each give the reason append-only and historical are kept apart"
+by = "claims:reading-agent (sonnet), batched"
+approved_by = "Kevin Rogers"
+subjects = { "decisions/0011-append-only-is-a-property-of-the-file.md" = "aacbe8fbac67f25d", "decisions/0020-a-historical-reference-that-moved-is-a-markable-finding.md" = "ce8585527ea588e8" }
+
+[[mark]]
+file = "docs/configuring.md"
+mode = "claim-words-totalising"
+unit = "5a29ab3a38c5efca"
+copies = 1
+note = "config.append_only is project-wide; stale_claims.py, checked.py, restatement.py and judgment_agent.py read it, and the last two never report a non-added line in such a file"
+by = "claims:reading-agent (sonnet), batched"
+approved_by = "Kevin Rogers"
+subjects = { "docs/checks/judgment-agent.md#configuration" = "8dfd8ee957e098d3", "docs/checks/restatement.md#configuration" = "975640f6b3458633" }
+
+[[mark]]
+file = "docs/configuring.md"
+mode = "claim-words-totalising"
+unit = "5ba10bc62bd1a92f"
+copies = 1
+note = "gate.py returns before run() with enabled false, blocking only on an invalid claims.toml first, and nudge.py goes quiet"
+by = "claims:reading-agent (sonnet), batched"
+approved_by = "Kevin Rogers"
+subjects = {}
+
+[[mark]]
+file = "docs/configuring.md"
+mode = "restatement-ngram"
+unit = "9b5a9671bfdff97c-0d4ae81eaa887112"
+copies = 1
+note = "executable_claims.py reports an ungranted command as a gate naming the TOML, and check_cli_flags.py the same as advisory"
+by = "claims:reading-agent (sonnet), batched"
+approved_by = "Kevin Rogers"
+subjects = {}
+
+[[mark]]
+file = "docs/configuring.md"
+mode = "restatement-ngram"
+unit = "faf2596ae8b86b75-dcdf01697fc4a554"
+copies = 1
+note = "config.append_only is one project-wide helper that stale_claims.py, checked.py, restatement.py and judgment_agent.py call, as ADR 0011 and ADR 0020 say"
+by = "claims:reading-agent (sonnet), batched"
+approved_by = "Kevin Rogers"
+subjects = {}
+
+[[mark]]
+file = "docs/configuring.md"
+mode = "stale-claims"
+unit = "01e487d19ef4d70b"
+copies = 1
+note = "runner.py's unrecognized-table gate, its underscore suggestion, the live registry, the claims.local.toml pass accepting nudge but not hook, and the grant checks reporting an unparsable local file hold"
+by = "claims:reading-agent (sonnet), batched"
+approved_by = "Kevin Rogers"
+subjects = { "claims/config.py" = "a64ed0da2782f350", "claims/nudge.py" = "28c420537fd727d5" }
+
+[[mark]]
+file = "docs/configuring.md"
 mode = "stale-claims"
 unit = "822fa03f0c97d80e"
 copies = 1
@@ -1426,24 +2159,44 @@ extent = "partial"
 subjects = { "claims/config.py" = "8061ce4e20a17e51", "claims/historical.py" = "5872b17e8a5f0f74", "decisions/0011-append-only-is-a-property-of-the-file.md" = "aacbe8fbac67f25d" }
 
 [[mark]]
+file = "docs/index.md"
+mode = "claim-words-totalising"
+unit = "161c5299106cd910"
+copies = 1
+note = "cli.py and gate.py fail on an advisory finding only where asked, and concepts.md gives the rationale; Claude Code settled \"most\" from SUMMARY.md and README.md: 9 of the 13 checks are advisory"
+by = "claims:reading-agent (sonnet), batched, with Claude Code (claude-opus-5-5)"
+approved_by = "Kevin Rogers"
+subjects = {}
+
+[[mark]]
+file = "docs/index.md"
+mode = "restatement-ngram"
+unit = "3cc75cc6fda6dc20-772ab8e1c7d3b455"
+copies = 1
+note = "concepts.md and pre_commit.py: a disproved claim is a gate and blocks its commit, with the exceptions concepts.md names"
+by = "claims:reading-agent (sonnet), batched"
+approved_by = "Kevin Rogers"
+subjects = {}
+
+[[mark]]
 file = "docs/installation.md"
 mode = "claim-words-about-elsewhere"
 unit = "22469f6668f40d33"
 copies = 1
-note = "read the sentence, its YAML block, pyproject.toml, cli.py's main and ci.yml: PYTHONPATH=claims python3 -m claims.cli runs with no uv and no dependencies; current and true"
-by = "claims:reading-agent (sonnet)"
+note = "claims/cli.py runs as a module with the checkout on PYTHONPATH, as the YAML step after it shows"
+by = "claims:reading-agent (sonnet), batched"
 approved_by = "Kevin Rogers"
-subjects = { "uv.lock" = "3065675b92d5c933" }
+subjects = { "uv.lock" = "befb76220f5ad21d" }
 
 [[mark]]
 file = "docs/installation.md"
 mode = "stale-claims"
 unit = "12f337ae2821f577"
 copies = 1
-note = "read against cli.py, gate.py, runner.format_findings, config.py, SKILL.md's config review and the judgment-agent page: every claim holds"
-by = "claims:reading-agent (sonnet)"
+note = "pyproject.toml's claims script, cli.py's defaults, summary line and exit codes, runner.py's grouping and gate.py's commit-time switches hold"
+by = "claims:reading-agent (sonnet), batched"
 approved_by = "Kevin Rogers"
-subjects = { "docs/checks/judgment-agent.md" = "e3e7f922a1f39d30" }
+subjects = { "docs/checks/judgment-agent.md" = "0a229b2658be12de", "uv.lock" = "befb76220f5ad21d" }
 
 [[mark]]
 file = "docs/reading-agent.md"
@@ -1468,6 +2221,16 @@ subjects = { "scripts/run_reading_agent_golden.py" = "d29c5da78858153c" }
 [[mark]]
 file = "docs/reading-agent.md"
 mode = "stale-claims"
+unit = "6622047bb0623c09"
+copies = 1
+note = "the kinds, claim-trees' printed trees, line_origin's first-added commit, tree_copy's read-only ignored copies and the session making trees hold against trees.py, cli.py, git.py and reading_agent.md"
+by = "claims:reading-agent (sonnet), batched"
+approved_by = "Kevin Rogers"
+subjects = { "claims/historical.py" = "6a37d1e75977cece" }
+
+[[mark]]
+file = "docs/reading-agent.md"
+mode = "stale-claims"
 unit = "be83134480e00326"
 copies = 1
 note = "read against reading_agent.md, SKILL.md, checked-marks.md, judgment-agent.md, ADR 0018, the golden script and its fixtures: every structural claim holds; not checked: the sonnet and haiku run results, which need a live rerun"
@@ -1481,10 +2244,10 @@ file = "docs/reading-agent.md"
 mode = "stale-claims"
 unit = "c6c1c9a9c8543f1e"
 copies = 1
-note = "read against SUMMARY.md and executable-claims.md: the check pages follow, gate checks first, and executable-claims opens them"
-by = "claims:reading-agent (sonnet)"
+note = "SUMMARY.md puts the gate checks next, executable-claims first"
+by = "claims:reading-agent (sonnet), batched"
 approved_by = "Kevin Rogers"
-subjects = { "docs/checks/executable-claims.md" = "5e693c5b0ecdb270" }
+subjects = { "docs/checks/executable-claims.md" = "1951d594661e2765" }
 
 [[mark]]
 file = "docs/tutorial.md"
@@ -1499,10 +2262,10 @@ file = "docs/tutorial.md"
 mode = "stale-claims"
 unit = "010944884c315934"
 copies = 1
-note = "read against judgment-agent.md, configuring.md's fail_on_unmarked section and installation.md: all three claims hold"
-by = "claims:reading-agent (sonnet)"
+note = "configuring.md#blocking-a-commit-on-unmarked-findings and installation.md#install say what the bullets do, and judgment-agent reads the code a candidate cites"
+by = "claims:reading-agent (sonnet), batched"
 approved_by = "Kevin Rogers"
-subjects = { "docs/checks/judgment-agent.md" = "e3e7f922a1f39d30" }
+subjects = { "docs/checks/judgment-agent.md" = "0a229b2658be12de" }
 
 [[mark]]
 file = "docs/tutorial.md"
@@ -1517,20 +2280,21 @@ file = "docs/tutorial.md"
 mode = "stale-claims"
 unit = "6ae46cb7870f12d1"
 copies = 1
-note = "read against the tutorial fixture, hooks, scripts/tutorial.py, claim-words.md, executable-claims.md, installation.md and configuring.md: all claims hold"
-by = "claims:reading-agent (sonnet)"
+note = "the setup anchor and capture, .gitignore, the start files, the grant file, the hooks and setup's local git config hold against scripts/tutorial.py and examples/tutorial/; not checked: uv fetching hatchling on first run"
+by = "claims:reading-agent (sonnet), batched"
 approved_by = "Kevin Rogers"
-subjects = { "docs/captures/tutorial/setup.txt" = "7faa4273bf1a080f", "docs/checks/claim-words.md" = "82e15f94290c47fe", "docs/checks/executable-claims.md" = "5e693c5b0ecdb270", "examples/tutorial/start/RELEASING.md" = "e01339a3ebd32f1e", "examples/tutorial/start/claims.toml" = "cd5a281197f64651", "examples/tutorial/start/scripts/release.sh" = "fc0532d805206c82", "examples/tutorial/steps.sh" = "48ecb8d10295eb50" }
+extent = "partial"
+subjects = { "docs/captures/tutorial/setup.txt" = "7faa4273bf1a080f", "docs/checks/claim-words.md" = "82e15f94290c47fe", "docs/checks/executable-claims.md" = "1951d594661e2765", "examples/tutorial/start/RELEASING.md" = "e01339a3ebd32f1e", "examples/tutorial/start/claims.toml" = "cd5a281197f64651", "examples/tutorial/start/scripts/release.sh" = "fc0532d805206c82", "examples/tutorial/steps.sh" = "48ecb8d10295eb50" }
 
 [[mark]]
 file = "docs/tutorial.md"
 mode = "stale-claims"
 unit = "741ad6f8e4e6d148"
 copies = 1
-note = "read against steps.sh, the start and commit RELEASING.md states, the commit capture, claim-words.md and check-file-refs.md: all six claims hold"
-by = "claims:reading-agent (sonnet)"
+note = "the commit step's state file, steps.sh anchor and capture match: the check-file-refs gate refuses it and the claim-words advisory blocks nothing"
+by = "claims:reading-agent (sonnet), batched"
 approved_by = "Kevin Rogers"
-subjects = { "docs/captures/tutorial/commit.txt" = "0305347ccd1fd713", "docs/checks/check-file-refs.md" = "db3236482a102adf", "docs/checks/claim-words.md" = "82e15f94290c47fe", "examples/tutorial/states/commit/RELEASING.md" = "68c12144274c1c45", "examples/tutorial/steps.sh" = "48ecb8d10295eb50" }
+subjects = { "docs/captures/tutorial/commit.txt" = "0305347ccd1fd713", "docs/checks/check-file-refs.md" = "1f3f4264176d8743", "docs/checks/claim-words.md" = "82e15f94290c47fe", "examples/tutorial/states/commit/RELEASING.md" = "68c12144274c1c45", "examples/tutorial/steps.sh" = "48ecb8d10295eb50" }
 
 [[mark]]
 file = "docs/tutorial.md"
@@ -1547,10 +2311,10 @@ file = "docs/tutorial.md"
 mode = "stale-claims"
 unit = "de7af9d67f54c752"
 copies = 1
-note = "read against steps.sh, the fix and commit captures, both RELEASING.md states, tutorial.py's setup, concepts.md and claim-words.md: all six claims hold"
-by = "claims:reading-agent (sonnet)"
+note = "the fix state, steps.sh anchor and capture match: the corrected path resolves, the unchanged claim-words sentence prints again, and the commit lands"
+by = "claims:reading-agent (sonnet), batched"
 approved_by = "Kevin Rogers"
-subjects = { "docs/captures/tutorial/fix.txt" = "4467a8c86ce6d181", "docs/checks/check-file-refs.md" = "db3236482a102adf", "docs/checks/claim-words.md" = "82e15f94290c47fe", "examples/tutorial/states/fix/RELEASING.md" = "f52d505b8f15b03e", "examples/tutorial/steps.sh" = "48ecb8d10295eb50" }
+subjects = { "docs/captures/tutorial/fix.txt" = "4467a8c86ce6d181", "docs/checks/check-file-refs.md" = "1f3f4264176d8743", "docs/checks/claim-words.md" = "82e15f94290c47fe", "examples/tutorial/states/fix/RELEASING.md" = "f52d505b8f15b03e", "examples/tutorial/steps.sh" = "48ecb8d10295eb50" }
 
 [[mark]]
 file = "examples/spliced-docs/Sources/Room.swift"

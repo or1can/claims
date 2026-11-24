@@ -29,7 +29,7 @@ from pathlib import Path
 from unittest import mock
 
 from claims.checked import Mark, _render, load_marks, marks_at, write_marks
-from claims.checks import claim_words, restatement, spliced_docs, stale_claims
+from claims.checks import check_file_refs, check_links, claim_words, restatement, spliced_docs, stale_claims
 from claims.cli import main
 from claims.config import ConfigError
 from claims.gate import decide_repo
@@ -2051,6 +2051,90 @@ class SortedSidecarTests(unittest.TestCase):
         self.assertEqual(
             self.files(), ["docs/a.md", *(f"docs/{n}.md" for n in "bcdefghijklmnop"), "docs/z.md"]
         )
+
+
+class DemotedHistoricalMarkTests(RegistryClearingTestCase):
+    """ADR 0020: a reference in a `historical` file that held at its
+    writing is a `<check>-historical` advisory finding, which a checked
+    mark keeps quiet and `--fail-on-unmarked` covers."""
+
+    TOML = (
+        '[check-file-refs]\nhistorical = ["CHANGELOG.md"]\n'
+        '[check-links]\nhistorical = ["CHANGELOG.md"]\n'
+    )
+
+    def setUp(self) -> None:
+        super().setUp()
+        register_check(check_file_refs.NAME, check_file_refs.check)
+        register_check(check_links.NAME, check_links.check)
+        self.repo = Repo().__enter__()
+        self.addCleanup(self.repo.__exit__)
+        self.repo.write("claims.toml", self.TOML)
+        self.repo.write("docs/old.md", "# Old\n")
+        self.repo.write("CHANGELOG.md", "- Added `docs/old.md` and [a link](docs/old.md).\n")
+        self.repo.commit()
+        self.repo.rm("docs/old.md")
+        self.repo.commit()
+
+    run_cli = CheckedMarkTests.run_cli
+    mark = CheckedMarkTests.mark
+
+    def test_an_unmarked_demoted_finding_fails_under_the_flag_until_it_is_marked(self) -> None:
+        code, out, _ = self.run_cli("--fail-on-unmarked")
+        self.assertEqual(code, 3, out)
+        self.assertIn("CHANGELOG.md:1 (check-file-refs-historical)", out)
+        self.assertIn("CHANGELOG.md:1 (check-links-historical)", out)
+
+        code, out, err = self.mark(
+            "CHANGELOG.md:1 check-file-refs-historical past: docs/old.md was added there",
+            "CHANGELOG.md:1 check-links-historical past: docs/old.md was added there",
+            kind="past",
+        )
+        self.assertEqual(code, 0, out + err)
+
+        code, out, _ = self.run_cli("--fail-on-unmarked")
+        self.assertEqual(code, 0, out)
+        self.assertTrue(out.endswith(", 2 quiet while checked, 0 unmarked\n"), out)
+
+    def test_the_flag_names_a_demoted_mode_by_its_check(self) -> None:
+        self.assertEqual(self.run_cli("--fail-on-unmarked=check-links")[0], 3)
+        self.assertEqual(self.run_cli("--fail-on-unmarked=claim-words")[0], 0)
+
+    def test_rewording_the_line_orphans_the_mark_and_gates_the_reference(self) -> None:
+        # Reworded, the line is the working tree's, where the path is gone
+        # and was gone at `HEAD` too (ADR 0002): no reading settles that.
+        self.mark(
+            "CHANGELOG.md:1 check-file-refs-historical past: docs/old.md was added there",
+            kind="past",
+        )
+        self.repo.write("CHANGELOG.md", "- Added `docs/old.md` and [a link](docs/old.md) too.\n")
+
+        code, out, _ = self.run_cli("--fail-on-unmarked=check-file-refs")
+
+        self.assertEqual(code, 1, out)
+        self.assertIn("[GATE] CHANGELOG.md:1 (check-file-refs) ", out)
+        self.assertIn("(checked-mark)", out)
+
+    def test_a_gate_finding_of_the_same_check_still_cant_be_marked(self) -> None:
+        self.repo.write("README.md", "See `docs/nope.md`.\n")
+
+        code, _, err = self.mark("README.md:1 check-file-refs read it")
+
+        self.assertEqual(code, 1)
+        self.assertIn("a gate finding can't be marked", err)
+
+    def test_the_checks_other_advisory_finding_cant_be_marked(self) -> None:
+        # A dangling example marker is `check-file-refs`' own advisory
+        # finding, settled by deleting the marker; only the demoted mode
+        # takes a mark.
+        self.repo.write("README.md", "No path here <!-- example -->.\n")
+
+        code, out, _ = self.run_cli("--fail-on-unmarked=check-file-refs")
+        self.assertIn("README.md:1 (check-file-refs)", out)
+        code, _, err = self.mark("README.md:1 check-file-refs read it")
+
+        self.assertEqual(code, 1)
+        self.assertIn("check-file-refs findings can't be marked", err)
 
 
 if __name__ == "__main__":

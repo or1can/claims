@@ -89,12 +89,3 @@
   changes `judgment-agent`'s output contract and its page; worth doing
   if a session handling both agents' results keeps translating between
   them.
-- `historical` has two meanings
-  (`decisions/0019-claims-are-intended-current-superseded-or-past.md`): to
-  `check-file-refs` and `check-links` a mention resolves at the commit
-  that wrote it, a past claim's tree; to `restatement` and
-  `judgment-agent` only the lines a diff adds are read. Worth splitting
-  into two keys (#264). The first is a file-level stand-in for a
-  claim's kind, so a current claim in a `historical` file, such as a
-  decision's link, passes if it held at its writing; a split could
-  narrow that.

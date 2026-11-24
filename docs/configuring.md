@@ -54,8 +54,8 @@ uninstalling the hook:
 enabled = false
 ```
 
-With that set, the hook runs no check and `git commit` is never gated,
-and the plugin no longer reminds you that the hook is missing. The skill
+With that set, the hook runs no check, and `git commit` is gated only
+while `claims.toml` itself is invalid, and the plugin no longer reminds you that the hook is missing. The skill
 and the plain CLI are unaffected, and keep reporting every finding on
 demand.
 
@@ -151,11 +151,17 @@ the CLI exits with it, until it is fixed. A key other than
 a gate finding under the mode `config`, naming the key.
 
 Append-only is a property of the file, not of one check: `stale-claims`
-and checked marks both read it. It says nothing about how a line *in*
-the file is judged, which is what a check's own `historical` key is
-for, so a project can list a changelog in both. [ADR
-0011](../decisions/0011-append-only-is-a-property-of-the-file.md) has
-why the two are kept apart.
+and checked marks both read it, and so do
+[`restatement`](checks/restatement.md#configuration) and
+[`judgment-agent`](checks/judgment-agent.md#configuration), for which a
+line the diff didn't add in such a file is never a finding, since its
+shipped entries are never reworded. It says nothing about where a reference *in* the file
+resolves, which is what [`check-links`](checks/check-links.md#configuration)'
+and [`check-file-refs`](checks/check-file-refs.md#configuration)'
+`historical` key is for, so a project can list a changelog in both.
+[ADR 0011](../decisions/0011-append-only-is-a-property-of-the-file.md)
+and [ADR 0020](../decisions/0020-a-historical-reference-that-moved-is-a-markable-finding.md)
+have why the two are kept apart.
 
 ## Navigation pages
 

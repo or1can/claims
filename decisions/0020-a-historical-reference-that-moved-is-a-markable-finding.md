@@ -48,8 +48,9 @@ ADR 0005 naming `src/grpc/mod.rs`<!-- example -->.
 ## Decision
 
 **Gate and advisory are defined by what settles them.** A gate finding
-is settled only by a change to the text, a fix or a marker beside the
-claim, and always fails the run. An advisory finding may also be settled
+is settled only by a change: to the text, a fix or a marker beside the
+claim, or to the configuration scoping the check. It always fails the
+run. An advisory finding may also be settled
 by a reading, recorded as a checked mark. An unmarked one fails the run
 only where the caller asks for that (ADR 0012).
 

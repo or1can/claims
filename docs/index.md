@@ -22,8 +22,8 @@ way that answer is available: by going and looking.
 ## What it does with an answer
 
 Thirteen checks run over a commit's own diff. Most of what they report is
-*advisory*: surfaced alongside the commit and never failing the run,
-because the check ranks, samples or suspects rather than decides. A finding
+*advisory*: surfaced alongside the commit, and failing the run only
+where you ask it to, because the check ranks, samples or suspects rather than decides. A finding
 that names a claim the tool has actually disproved — a link with no target,
 a cited symbol the repository no longer declares, a command whose real
 output differs from the block beneath it — is a *gate*, and blocks the

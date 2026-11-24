@@ -29,6 +29,7 @@ import subprocess
 import tempfile
 import unittest
 from pathlib import Path
+from unittest import mock
 
 from claims.checks import check_file_refs
 from claims.checks.check_links import NAME, check
@@ -575,22 +576,36 @@ class HistoricalFileTests(RegistryClearingTestCase):
     def _write_untracked_config(self, repo: Repo) -> None:
         (repo.root / "claims.toml").write_text(self.HISTORICAL)
 
-    def test_a_link_valid_when_its_line_was_written_passes_after_the_target_is_deleted(
+    def _assert_demoted(self, findings: list[Finding], citation: str, held: str) -> None:
+        """ADR 0020: a link that held at its writing, or whose line predates
+        the adoption commit, is a markable advisory finding, not a pass."""
+
+        self.assertEqual(
+            [(f.citation, f.mode, f.gate) for f in findings],
+            [(citation, "check-links-historical", False)],
+        )
+        self.assertIn(held, findings[0].message)
+
+    def test_a_link_valid_when_its_line_was_written_is_demoted_after_the_target_is_deleted(
         self,
     ) -> None:
         with Repo() as repo:
             repo.write("docs/OLD.md", "# Old Page\n")
             repo.write("CHANGELOG.md", "- See [old](docs/OLD.md#old-page).\n")
             repo.commit()
+            written = repo.short_head()
             (repo.root / "docs" / "OLD.md").unlink()
             repo.commit()
             self._write_untracked_config(repo)
 
             findings = self._findings(repo.root)
 
-        self.assertEqual(findings, [])
+        self._assert_demoted(
+            findings, "CHANGELOG.md:1", f"; it held at {written} where this line was written)"
+        )
+        self.assertIn("broken link: `docs/OLD.md#old-page` (not in the working tree; ", findings[0].message)
 
-    def test_an_anchor_valid_when_its_line_was_written_passes_after_the_heading_moves(
+    def test_an_anchor_valid_when_its_line_was_written_is_demoted_after_the_heading_moves(
         self,
     ) -> None:
         with Repo() as repo:
@@ -603,7 +618,12 @@ class HistoricalFileTests(RegistryClearingTestCase):
 
             findings = self._findings(repo.root)
 
-        self.assertEqual(findings, [])
+        self._assert_demoted(findings, "CHANGELOG.md:1", "; it held at ")
+        self.assertIn(
+            "broken anchor: `docs/PAGE.md#old-heading` "
+            "(docs/PAGE.md has no heading with that slug; it held at ",
+            findings[0].message,
+        )
 
     def test_a_link_broken_when_its_line_was_written_is_still_flagged(self) -> None:
         with Repo() as repo:
@@ -678,23 +698,27 @@ class HistoricalFileTests(RegistryClearingTestCase):
         self.assertEqual(len(findings), 1)
         self.assertEqual(findings[0].citation, "CHANGELOG.md:1")
 
-    def test_a_line_recording_a_removal_in_the_removing_commit_passes(self) -> None:
+    def test_a_line_recording_a_removal_in_the_removing_commit_is_demoted(self) -> None:
         # #116: the line is written in the commit that deletes the page, so
         # the link is broken there too; it held in the tree just before.
         with Repo() as repo:
             repo.write("docs/OLD.md", "# Old Page\n")
             repo.write("CHANGELOG.md", "# Changelog\n")
             repo.commit()
+            before = repo.short_head()
             (repo.root / "docs" / "OLD.md").unlink()
             repo.write(
                 "CHANGELOG.md", "# Changelog\n- Delete [old](docs/OLD.md#old-page).\n"
             )
             repo.commit()
+            written = repo.short_head()
             self._write_untracked_config(repo)
 
             findings = self._findings(repo.root)
 
-        self.assertEqual(findings, [])
+        self._assert_demoted(
+            findings, "CHANGELOG.md:2", f"; it held at {before}, just before {written} wrote this line)"
+        )
 
     def test_a_misspelled_removal_in_the_removing_commit_still_gates(self) -> None:
         with Repo() as repo:
@@ -718,7 +742,7 @@ class HistoricalFileTests(RegistryClearingTestCase):
             findings[0].message,
         )
 
-    def test_an_uncommitted_line_recording_a_removal_passes_at_head(self) -> None:
+    def test_an_uncommitted_line_recording_a_removal_is_demoted_at_head(self) -> None:
         with Repo() as repo:
             repo.write("docs/OLD.md", "# Old Page\n")
             repo.write("CHANGELOG.md", "# Changelog\n")
@@ -731,7 +755,7 @@ class HistoricalFileTests(RegistryClearingTestCase):
 
             findings = self._findings(repo.root)
 
-        self.assertEqual(findings, [])
+        self._assert_demoted(findings, "CHANGELOG.md:2", "(not in the working tree; it held at HEAD)")
 
     def test_a_misspelled_uncommitted_removal_still_gates_naming_head(self) -> None:
         with Repo() as repo:
@@ -774,18 +798,25 @@ class HistoricalFileTests(RegistryClearingTestCase):
             findings[0].message,
         )
 
-    def test_a_line_older_than_the_commit_adopting_the_plugin_is_skipped(self) -> None:
-        # Never gated when written, so it may have been broken then and can't
-        # be fixed under the same append-only rule now.
+    def test_a_line_older_than_the_commit_adopting_the_plugin_is_demoted_though_it_never_held(self) -> None:
+        # Never gated when written, so it may have been broken then: a
+        # reading says whether it ever held (ADR 0020).
         with Repo() as repo:
             repo.write("CHANGELOG.md", "- See [gone](docs/NOPE.md).\n")
             repo.commit()
+            written = repo.short_head()
             repo.write("claims.toml", self.HISTORICAL)
             repo.commit()
+            adoption = repo.short_head()
 
             findings = self._findings(repo.root)
 
-        self.assertEqual(findings, [])
+        self._assert_demoted(
+            findings,
+            "CHANGELOG.md:1",
+            f"(not in the working tree, nor at {written} where this line was written; "
+            f"this line predates claims.toml's adoption at {adoption})",
+        )
 
     def test_a_line_written_after_adopting_the_plugin_is_checked(self) -> None:
         with Repo() as repo:
@@ -798,6 +829,26 @@ class HistoricalFileTests(RegistryClearingTestCase):
 
         self.assertEqual(len(findings), 1)
         self.assertEqual(findings[0].citation, "CHANGELOG.md:1")
+        self.assertEqual((findings[0].mode, findings[0].gate), ("check-links", True))
+
+    def test_records_that_all_resolve_run_no_history_lookup(self) -> None:
+        # ADR 0002: a project whose records all still resolve pays nothing
+        # for listing them, not even the adoption commit or `HEAD`.
+        with Repo() as repo:
+            repo.write("docs/PAGE.md", "# Page\n")
+            repo.write("CHANGELOG.md", "- See [page](docs/PAGE.md#page).\n")
+            repo.commit()
+            self._write_untracked_config(repo)
+
+            with (
+                mock.patch("claims.historical.first_commit_adding") as adoption,
+                mock.patch("claims.historical.head_commit") as head,
+            ):
+                findings = self._findings(repo.root)
+
+        self.assertEqual(findings, [])
+        adoption.assert_not_called()
+        head.assert_not_called()
 
     def test_a_non_historical_file_is_unaffected(self) -> None:
         with Repo() as repo:
@@ -813,7 +864,7 @@ class HistoricalFileTests(RegistryClearingTestCase):
         self.assertEqual(len(findings), 1)
         self.assertEqual(findings[0].citation, "README.md:1")
 
-    def test_a_source_file_link_valid_when_written_passes_after_it_is_deleted(
+    def test_a_source_file_link_valid_when_written_is_demoted_after_it_is_deleted(
         self,
     ) -> None:
         # Ticket #91: a non-`.md` target held if it was a file at the
@@ -828,9 +879,9 @@ class HistoricalFileTests(RegistryClearingTestCase):
 
             findings = self._findings(repo.root)
 
-        self.assertEqual(findings, [])
+        self._assert_demoted(findings, "CHANGELOG.md:1", "; it held at ")
 
-    def test_a_directory_link_valid_when_written_passes_after_it_is_deleted(
+    def test_a_directory_link_valid_when_written_is_demoted_after_it_is_deleted(
         self,
     ) -> None:
         with Repo() as repo:
@@ -843,7 +894,7 @@ class HistoricalFileTests(RegistryClearingTestCase):
 
             findings = self._findings(repo.root)
 
-        self.assertEqual(findings, [])
+        self._assert_demoted(findings, "CHANGELOG.md:1", "; it held at ")
 
     def test_a_source_file_link_never_valid_is_still_flagged(self) -> None:
         with Repo() as repo:

@@ -405,45 +405,41 @@ class JudgmentAgentTests(RegistryClearingTestCase):
         self.assertEqual([f.mode for f in findings], [MODE_REMOVED, MODE_ADDED])
 
     # Ticket #174: on or1can/ratect, shipped CHANGELOG.md/RELEASES.md
-    # entries drew 23 of 78 candidates, none of them actionable.
-    def _historical_citations(self, historical: object) -> list[str]:
+    # entries drew 23 of 78 candidates, none of them actionable. ADR 0020
+    # moved the skip from a `historical` key to `[subjects] append_only`.
+    def _append_only_citations(self, record: str, claims_toml: str = "") -> list[str]:
         with Repo() as repo:
+            (repo.root / "claims.toml").write_text(claims_toml)
             repo.write("Sources/Room.swift", "func loadWidget() -> Widget {}\n")
-            repo.write("CHANGELOG.md", "## [1.0.0]\n\n- Added `loadWidget`.\n")
+            repo.write(record, "## [1.0.0]\n\n- Added `loadWidget`.\n")
             repo.commit()
             repo.write("Sources/Room.swift", "func loadGadget() -> Gadget {}\n")
             repo.write(
-                "CHANGELOG.md",
+                record,
                 "## [Unreleased]\n\n- Renamed `loadWidget` to `loadGadget`.\n\n"
                 "## [1.0.0]\n\n- Added `loadWidget`.\n",
             )
 
-            findings = list(
-                run(repo.root, "HEAD", {NAME: {"historical": historical}}).findings
-            )
+            findings = list(run(repo.root, "HEAD", {NAME: {}}).findings)
 
         return sorted(f"{f.citation} {f.message.split('`')[1]}" for f in findings)
 
-    def test_a_historical_files_untouched_line_is_not_a_candidate(self) -> None:
+    def test_a_changelogs_untouched_line_is_not_a_candidate(self) -> None:
         self.assertEqual(
-            self._historical_citations(["CHANGELOG.md"]),
+            self._append_only_citations("CHANGELOG.md"),
             ["CHANGELOG.md:3 loadGadget", "CHANGELOG.md:3 loadWidget"],
         )
 
-    def test_a_bare_string_historical_is_one_glob(self) -> None:
+    def test_a_listed_append_only_files_untouched_line_is_not_a_candidate(self) -> None:
         self.assertEqual(
-            self._historical_citations("CHANGELOG.md"),
-            ["CHANGELOG.md:3 loadGadget", "CHANGELOG.md:3 loadWidget"],
+            self._append_only_citations("RELEASES.md", '[subjects]\nappend_only = "RELEASES.md"\n'),
+            ["RELEASES.md:3 loadGadget", "RELEASES.md:3 loadWidget"],
         )
 
-    def test_without_historical_every_line_is_read(self) -> None:
+    def test_every_line_of_a_file_that_isnt_append_only_is_read(self) -> None:
         self.assertEqual(
-            self._historical_citations([]),
-            [
-                "CHANGELOG.md:3 loadGadget",
-                "CHANGELOG.md:3 loadWidget",
-                "CHANGELOG.md:7 loadWidget",
-            ],
+            self._append_only_citations("RELEASES.md"),
+            ["RELEASES.md:3 loadGadget", "RELEASES.md:3 loadWidget", "RELEASES.md:7 loadWidget"],
         )
 
 

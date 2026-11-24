@@ -5,7 +5,9 @@ file or directory it names is tracked by git, and where it names a heading
 anchor in a Markdown page, a heading in that page has that anchor. A link
 that fails either test is a gate finding. The claim "this page exists,
 with this section" has been disproved, and the commit is refused until it
-holds again.
+holds again. The one exception is a link in an append-only record that
+held when its line was written, which is
+[advisory](#configuration) instead.
 
 ## What it checks
 
@@ -115,23 +117,32 @@ historical = ["CHANGELOG.md", "RELEASES.md", "decisions/*.md"]
 | `known_untracked` | list of glob strings; a bare string is a one-element list | `[]`, every target must be tracked | A link names a file that is real but deliberately never added to git, such as a git-ignored per-machine settings file, and should not gate like a link to nothing. A match must still exist on disk inside the repository, and a Markdown page reached this way still has its anchor checked. |
 | `historical` | list of glob strings; a bare string is a one-element list | `[]`, every link resolves against the working tree | A file is an append-only record, such as a changelog or a set of decision records, whose shipped entries your own rules forbid editing, and you still want to rename or restructure the pages it links to. |
 
-A `historical` file's links get one more chance. A link that fails against
-the working tree is re-resolved against the tree at the commit that wrote
-its line, as `git blame` attributes it, and against the tree just before
-that commit, and passes if it held in either: for a Markdown page, that
-the page and its heading were in that tree; for anything else, that a
-file or directory was at that path. The tree just before is what lets a
-line recording a removal land in the same commit as the removal, where
-the page it names is already gone. `known_untracked` plays no part in
-that second lookup, since a file never added to git is in no commit's
-tree. The record's shipped entries stay what they were without leaving a
-stub heading behind at every old destination. A link that held nowhere
-is still a finding, and its message says where it was tested: not in the
-working tree, nor at the commit where the line was written or just
-before it, named by its short hash.
+A link in a `historical` file that fails against the working tree is
+looked up again in the tree at the commit that wrote its line, as `git
+blame` attributes it, and in the tree just before that commit: for a
+Markdown page, whether the page and its heading were in that tree; for
+anything else, whether a file or directory was at that path. The tree
+just before is what lets a line recording a removal land in the same
+commit as the removal, where the page it names is already gone.
+`known_untracked` plays no part in that second lookup, since a file never
+added to git is in no commit's tree.
 
-Three consequences follow, and all three are the same rule read
-consistently rather than special cases:
+A link that held there is reported as an advisory finding, not a gate
+one, under the mode `check-links-historical`, and its message names the
+commit it held at. Whether the line around it is a record of what was,
+true when written, or a claim about what is, now false, takes a reading,
+so the finding can be [marked as checked](../checked-marks.md): a
+past claim's mark is written once and expires only when the line is
+reworded. A link on a line older than the commit that first added
+`claims.toml` is reported the same way, held or not, since nothing gated
+it when it was written; its message says whether it held. A project
+with no tracked `claims.toml` has no such commit. The record's
+shipped entries stay as they were, with no stub heading left at every
+old destination, and the first run after a move lists each line that
+named it, once. A link that held nowhere, on a line written since, is
+still a gate finding, and its message names the commit it was tested at.
+
+Two consequences follow from the same rule:
 
 - An uncommitted line resolves against the working tree like any other
   file, and failing that against `HEAD`, the tree just before it. A
@@ -140,17 +151,13 @@ consistently rather than special cases:
 - A line a later commit touched is attributed to that commit and must
   hold as of it. Deliberately retargeting an old link, should your rules
   allow one, is checked against the tree it was retargeted in.
-- A line older than the commit that first added `claims.toml` is skipped
-  when it fails. It was written before anything gated it, may have been
-  broken then, and the append-only rule means nothing can fix it now. A
-  project with no tracked `claims.toml` has no cutoff, and every line is
-  checked.
 
 The working-tree check always runs first and history is consulted only on
 a failure, so a project whose records all still resolve pays no `git
-blame` for listing them. The reasoning behind the mechanism, and the alternatives it
-was chosen over, are in
-[ADR 0002](../../decisions/0002-historical-links-resolve-at-their-own-commit.md).
+blame` for listing them. The reasoning behind the mechanism, and the
+alternatives it was chosen over, are in
+[ADR 0002](../../decisions/0002-historical-links-resolve-at-their-own-commit.md)
+and [ADR 0020](../../decisions/0020-a-historical-reference-that-moved-is-a-markable-finding.md).
 
 `enabled`, which takes this check out of the commit gate while leaving it
 in the on-demand skill and the CLI, is shared by every check and covered

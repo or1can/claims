@@ -35,6 +35,12 @@ CONFIG_FILENAME = "claims.toml"
 LOCAL_CONFIG_FILENAME = "claims.local.toml"
 
 
+# The checks that took `historical` to mean "read only the lines a diff
+# adds", which ADR 0020 moved to `[subjects] append_only`. Refused rather
+# than ignored, so a project's list doesn't silently stop doing anything.
+_NO_HISTORICAL = ("restatement", "judgment-agent")
+
+
 class ConfigError(Exception):
     """Raised when a config file exists but can't be parsed."""
 
@@ -52,12 +58,22 @@ def _load_toml(path: Path) -> dict[str, dict[str, object]]:
 def load_config(repo_root: Path) -> dict[str, dict[str, object]]:
     """`claims.toml`'s tables. Raises `ConfigError` for a file that doesn't
     parse, or whose `[subjects]` is the wrong shape: that table belongs to
-    no one check, so no check's own crash finding would name it."""
+    no one check, so no check's own crash finding would name it. Also for
+    a `historical` key on a check that no longer takes one."""
 
     config = _load_toml(repo_root / CONFIG_FILENAME)
     _append_only_patterns(config)
     _navigation_patterns(config)
+    for name in _NO_HISTORICAL:
+        section = config.get(name, {})
+        if isinstance(section, Mapping) and "historical" in section:
+            raise ConfigError(
+                f"`[{name}] historical` is no longer read: {name} skips the lines a diff "
+                "didn't add in every file `[subjects] append_only` lists, CHANGELOG.md "
+                "built in, so list the file there instead"
+            )
     return config
+
 
 
 def has_config(repo_root: Path) -> bool:

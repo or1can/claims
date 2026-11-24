@@ -19,22 +19,27 @@ the plain CLI.
 
 ## Gate versus advisory
 
-A **gate** finding blocks the commit it is attached to. Through the hook,
-the `git commit` is stopped, with every finding of the run printed as the
-reason; through the CLI, the run exits non-zero. A check is a gate when what it reports is a
-claim it has actually disproved: a link with no target, a cited symbol the
-repository no longer declares, a bare path mention that resolves to no
-tracked file, a command whose real output no longer matches the block
-beneath it.
+A **gate** finding is one no reading settles: only a change settles it,
+to the text, by fixing it or putting a marker beside the claim, or to the
+configuration that scopes the check. It always fails the run. Through the
+hook, the `git commit` is stopped, with every finding of the run printed
+as the reason; through the CLI, the run exits non-zero. A check is a gate
+when what it reports is a claim it has actually disproved: a link with no
+target, a cited symbol the repository no longer declares, a bare path
+mention that resolves to no tracked file, a command whose real output no
+longer matches the block beneath it.
 
-An **advisory** finding is surfaced alongside the commit and never fails
-the run. A check is advisory when it ranks, samples, or suspects rather
-than decides: a churn-ranked section, a totalising word, a doc comment that
-might be spliced. An advisory check can be certain of what it saw and still
-be advisory, because what it saw is a place to look rather than a claim
-proved false.
+An **advisory** finding is one a reading may settle, as well as a fix,
+where its check's findings can be recorded as a
+[checked mark](checked-marks.md). It is surfaced
+alongside the commit, and an unmarked one fails the run only where the
+caller asks for that. A check is advisory when it ranks, samples, or
+suspects rather than decides: a churn-ranked section, a totalising word,
+a doc comment that might be spliced. An advisory check can be certain of
+what it saw and still be advisory, because what it saw is a place to look
+rather than a claim proved false.
 
-There is one exception, and a run has to ask for it. With
+A run asks for that in one of two ways. With
 `--fail-on-unmarked`, the CLI fails on an advisory finding that no
 [checked mark](checked-marks.md#failing-a-run-on-unmarked-findings) keeps
 quiet, so a CI run can require that each one is read. The commit hook
@@ -51,7 +56,11 @@ command that times out is reported advisory by an otherwise gate check,
 because a timeout is no answer rather than a wrong one; a grant file that
 has been committed is reported as a gate by an otherwise advisory check,
 because that is a compromise indicator whatever the check's own severity.
-Each check states its own severity and its own exceptions.
+A reference in a `historical` file that held when its line was written,
+or whose line predates the project's adoption of `claims`, is reported
+advisory by the two gate checks that take that key, because whether the
+line still claims it is a reading's to say. Each
+check states its own severity and its own exceptions.
 
 One gate finding belongs to no check at all: a top-level `claims.toml`
 table naming no check is reported under the fixed mode `config`.
@@ -106,8 +115,10 @@ A **past claim** says what was, as a record, and is true or false of the
 tree as it was when the claim was written, or just before. A changelog
 entry is one, and so is the count in a decision record's motivation:
 both describe the tree on the day they were written, and are correct
-about that day forever. This is much the tree a
-[`historical`](checks/check-file-refs.md) file's references resolve at.
+about that day forever. This is the tree a
+[`historical`](checks/check-file-refs.md) file's references are looked
+up at, to tell a reference that held when it was written, which a
+reading of its kind settles, from one that never held.
 
 A claim typically moves from intended to current, and then to superseded
 or past; an intended claim never delivered skips current. The kind is

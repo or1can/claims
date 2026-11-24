@@ -63,7 +63,8 @@ Five invocation surfaces, same underlying checks:
   no hook installed, it says the gate isn't active.
 - **On demand, mid-task.** The `check-claims` skill runs the same checks
   outside of commit time — ask an agent to check claims, or invoke it
-  directly, and it reports every finding the same way the hook would. The
+  directly, and it reports every finding the hook would, handing each
+  `judgment-agent` candidate to that subagent for a verdict. The
   same skill also has a separate, explicit-ask-only capability: reviewing
   whether a project's own `claims.toml` values are actually doing
   anything (a stale `exclude` glob matching nothing, say) — reasoned
