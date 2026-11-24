@@ -11,6 +11,13 @@ reached you, not just that one was pushed upstream.
 
 ## [Unreleased]
 
+## [0.37.1] - 2026-11-24
+
+- Fixed: a commit that changes the file a symlink points to now raises
+  the marked finding that names the symlink in that commit's own run,
+  not only in the branch's. A symlink pointing out of the repository is
+  still never read.
+
 ## [0.37.0] - 2026-11-24
 
 - Changed: after marking, the check-claims skill lists notable

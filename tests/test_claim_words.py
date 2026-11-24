@@ -23,6 +23,9 @@ Project B's `tools/claim-words.py` (same author, relicensed).
 
 from __future__ import annotations
 
+import hashlib
+import tempfile
+from dataclasses import replace
 from pathlib import Path
 from unittest import mock
 
@@ -577,6 +580,7 @@ class ClaimWordsTests(RegistryClearingTestCase):
 
 
 CLAIM = "Every flag in `src/tool.py` is documented."
+LINKED_CLAIM = "Every flag in `link.py` is documented."
 
 
 class ExpiredMarkTests(RegistryClearingTestCase):
@@ -694,6 +698,54 @@ class ExpiredMarkTests(RegistryClearingTestCase):
             self._add_and_mark(repo)
             repo.write("src/tool.py", "flags = 2\n")
             findings = list(run(repo.root, "HEAD", {NAME: {"files": ["docs/*.md"]}}).findings)
+
+        self.assertEqual(findings, [])
+
+    # #270: at the range's old side, a symlinked subject is read as the
+    # file it points to when that is inside the repository, as the
+    # working tree reads it, and never read when it points out of it.
+
+    def test_changing_a_symlinked_subjects_target_raises_the_finding(self) -> None:
+        with Repo() as repo:
+            repo.write("src/tool.py", "flags = 1\n")
+            (repo.root / "link.py").symlink_to("src/tool.py")
+            repo.write("README.md", "# Tool\n\nseed\n")
+            repo.commit()
+            base = repo.short_head()
+            repo.write("README.md", f"# Tool\n\n{LINKED_CLAIM}\n")
+            self._mark(repo.root, self._run(repo.root))
+            self.assertIn('"link.py"', (repo.root / "claims.checked.toml").read_text())
+            repo.commit()
+            repo.write("src/tool.py", "flags = 2\n")
+            own_b = self._run(repo.root)
+            repo.commit()
+            branch = self._run(repo.root, f"{base}..HEAD")
+
+        self.assertEqual(self._shown(own_b), [("README.md:3", MODE_TOTALISING, LINKED_CLAIM)])
+        self.assertEqual(self._shown(own_b), self._shown(branch))
+
+    def test_a_subject_symlinked_out_of_the_repository_is_never_read(self) -> None:
+        # The mark records the outside file's hash, as a reader would if
+        # the guard regressed: at the old side it must still read as
+        # nothing, so the mark is never current there to be raised.
+        with tempfile.TemporaryDirectory() as outside, Repo() as repo:
+            target = Path(outside) / "tool.py"
+            target.write_text("flags = 1\n")
+            (repo.root / "link.py").symlink_to(target)
+            repo.write("README.md", "# Tool\n\nseed\n")
+            repo.commit()
+            repo.write("README.md", f"# Tool\n\n{LINKED_CLAIM}\n")
+            findings = self._run(repo.root)
+            marks, problems = new_marks(
+                repo.root, findings, self.CONFIG, [f"{f.citation} {f.mode} read it" for f in findings], None
+            )
+            self.assertEqual((problems, [m.subjects for m in marks]), ([], [{}]))
+            recorded = hashlib.sha256(target.read_bytes()).hexdigest()[:16]
+            write_marks(repo.root, [replace(m, subjects={"link.py": recorded}) for m in marks])
+            repo.commit()
+            # The target is left as recorded: a read of it at the old
+            # side would make the mark current there, and raise it.
+            findings = self._run(repo.root)
 
         self.assertEqual(findings, [])
 
