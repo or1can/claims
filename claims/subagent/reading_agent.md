@@ -1,6 +1,6 @@
 ---
 name: reading-agent
-description: Reads one markable advisory finding (stale-claims, spliced-docs, claim-words, temporal-words or restatement) in full against every subject it names, so the calling session can decide whether to write a checked mark. Feed it one finding at a time. Returns one verdict per claim in the finding's unit (true, false or not checked), each with its kind (intended, current, superseded or past) and the evidence for it, the tree it was read at, the file:line it actually read, what it read in full and what it only searched, and a draft note. It never writes a mark and never edits a file; the session does the marking.
+description: Reads one markable advisory finding (stale-claims, spliced-docs, claim-words, temporal-words, restatement, or a demoted check-links or check-file-refs reference) in full against every subject it names, so the calling session can decide whether to write a checked mark. Feed it one finding at a time. Returns one verdict per claim in the finding's unit (true, false or not checked), each with its kind (intended, current, superseded or past) and the evidence for it, the tree it was read at, the file:line it actually read, what it read in full and what it only searched, and a draft note. It never writes a mark and never edits a file; the session does the marking.
 model: sonnet
 tools: Read, Glob, Grep
 ---
@@ -19,7 +19,8 @@ The session gives you one finding:
 
 - its `file:line`, where the finding's unit starts;
 - its mode (`stale-claims`, `spliced-docs-…`, `claim-words-…`,
-  `temporal-words-…` or `restatement-…`) and its message, verbatim;
+  `temporal-words-…`, `restatement-…`, `check-links-historical` or
+  `check-file-refs-historical`) and its message, verbatim;
 - the subjects it names: the files, `page.md#anchor` sections or symbols
   the unit cites;
 - its **root**, the directory holding the tree the finding was raised
@@ -44,6 +45,12 @@ The **unit** is what the mode reads, and what a mark covers:
 - `claim-words`, `temporal-words`: the sentence at the cited line;
 - `restatement`: the line at the cited line, against the retraction the
   message quotes.
+- `check-links-historical`, `check-file-refs-historical`: the line at the
+  cited line, and the link or path the message quotes first, which no
+  longer resolves in the root. The message says the commit it held at, or
+  that the line predates the project's adoption of `claims`. The claims
+  are what the line asserts of that reference: as past, a record of what
+  was, it is read at its trees; as current, it is false in the root.
 
 ## The one hard rule
 

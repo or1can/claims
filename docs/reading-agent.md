@@ -9,8 +9,8 @@ mark and never edits a file. The session that called it reads its report
 and decides what to mark.
 
 It reads findings from every markable mode except `judgment-agent`'s:
-`stale-claims`, `spliced-docs`, `claim-words`, `temporal-words` and
-`restatement`. A `judgment-agent` candidate goes to its own subagent, as
+`stale-claims`, `spliced-docs`, `claim-words`, `temporal-words`,
+`restatement`, `check-links-historical` and `check-file-refs-historical`. A `judgment-agent` candidate goes to its own subagent, as
 its [page](checks/judgment-agent.md) describes.
 
 ## What it is given
@@ -21,7 +21,8 @@ tree the finding was raised in: the project itself, or, for a range
 ending at a commit, a `git worktree` the session makes at it. The
 finding's **unit** is what it reads first: a `stale-claims` section from
 its heading to the next heading, a whole `spliced-docs` doc comment, a
-`claim-words` or `temporal-words` sentence, or a `restatement` line. A mark
+`claim-words` or `temporal-words` sentence, a `restatement` line, or the
+line holding a demoted `check-links` link or `check-file-refs` path. A mark
 covers that unit, so the agent reads all of it, never only the cited
 line.
 

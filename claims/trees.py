@@ -48,6 +48,7 @@ from .git import (
     toplevel,
     tracked_files,
 )
+from .lines import git_lines, tracked_text
 
 # The kinds `claim_trees` names trees for; a current or intended claim is
 # read in the tree as it stands.
@@ -125,7 +126,7 @@ def claim_trees(repo_root: Path, rel: str, line_no: int, kind: str) -> list[Tree
     doesn't have."""
 
     try:
-        count = len((repo_root / rel).read_text(encoding="utf-8", errors="replace").splitlines())
+        count = len(git_lines(tracked_text(repo_root / rel, errors="replace")))
     except OSError:
         count = 0
     if not 1 <= line_no <= count:

@@ -118,6 +118,9 @@ CITATION = "sentence or fenced line"
 HEADING = "heading"
 LINE = "surviving line"
 DOC_COMMENT = "doc comment"
+# A demoted historical reference (ADR 0020): the line, and the path or
+# link its message quotes first, since one line can name several.
+REFERENCE = "reference"
 
 # Which unit each markable check's findings are keyed by, by check name;
 # a mode is that name or `name-suffix`, as `gate._finding_check` reads it.
@@ -128,6 +131,16 @@ UNITS = {
     "stale-claims": HEADING,
     "restatement": LINE,
     "spliced-docs": DOC_COMMENT,
+    "check-links": REFERENCE,
+    "check-file-refs": REFERENCE,
+}
+
+# A check whose only markable findings are one mode of it: a gate check's
+# demoted historical reference (ADR 0020), and not, say, `check-file-refs`'
+# dangling example marker, which deleting the marker settles.
+_ONLY_MODE = {
+    "check-links": "check-links-historical",
+    "check-file-refs": "check-file-refs-historical",
 }
 
 # `stale-claims`' own section split: a heading-shaped line starts one,
@@ -154,7 +167,8 @@ def markable_check(mode: str) -> str | None:
 
     for name in UNITS:
         if mode == name or mode.startswith(f"{name}-"):
-            return name
+            only = _ONLY_MODE.get(name)
+            return name if only is None or mode == only else None
     return None
 
 
@@ -268,7 +282,7 @@ def _only_grew(old: Sequence[str], new: Sequence[str]) -> bool:
 def _in_file(unit_hash: str) -> str:
     """The part of a mark's `unit` that has to still exist in its file,
     and that copies are counted by: all of it but a `restatement`
-    message's hash."""
+    message's hash, or a demoted reference's."""
 
     return unit_hash.split("-")[0]
 
@@ -334,7 +348,7 @@ def _units(kind: str, lines: Sequence[str]) -> list[_Unit]:
             seen[words] += 1
             units.append(_Unit(start, start, digest, "\n".join(lines[start:end])))
         return units
-    if kind == LINE:
+    if kind in (LINE, REFERENCE):
         return [
             _Unit(i, i, _words_digest(line), line) for i, line in enumerate(lines) if normalise(line)
         ]
@@ -422,6 +436,10 @@ class _Tree:
         digest = unit.digest
         if kind == LINE:
             digest += "-" + message_hash(finding.message)
+        elif kind == REFERENCE and cited:
+            # Not the whole message: it names commits, which a rebase or
+            # the line's own commit landing would change.
+            digest += "-" + _digest(cited[0])
         return unit, digest
 
     def counts(self, subject: str) -> bool:

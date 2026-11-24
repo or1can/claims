@@ -11,6 +11,21 @@ reached you, not just that one was pushed upstream.
 
 ## [Unreleased]
 
+## [0.36.0] - 2026-11-23
+
+- Changed: in a `[check-links] historical` or `[check-file-refs]
+  historical` file, a reference that held where its line was written, or
+  whose line predates your adoption of `claims`, is now an advisory
+  finding (`check-links-historical`, `check-file-refs-historical`)
+  rather than a pass, so you can read it and mark it. Expect a one-time
+  batch for references that have moved; a past one takes a past mark
+  once (`docs/checks/check-file-refs.md#configuration`).
+- Changed: `restatement` and `judgment-agent` read only the lines a diff
+  adds in every `[subjects] append_only` file, `CHANGELOG.md` built in,
+  and no longer take a `historical` key: one left in either table makes
+  `claims.toml` invalid. Move its list to `[subjects] append_only`
+  (`docs/configuring.md#append-only-files`).
+
 ## [0.35.0] - 2026-11-23
 
 - Added: a `claims` command, so `uvx --from

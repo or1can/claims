@@ -29,6 +29,13 @@ On or1can/ratect, released `CHANGELOG.md`/`RELEASES.md` entries produced
 candidates, and none of them was actionable, since that project's rules
 forbid editing a shipped entry. The section is revised to match.
 
+Amended by `decisions/0020-a-historical-reference-that-moved-is-a-markable-finding.md`
+(#264): a reference that held where its line was written, or whose line
+predates the adoption commit, is no longer passed but reported as a
+markable advisory finding, and only one that held at neither is still a
+gate. `restatement` and `judgment-agent` lose the key: their added-lines
+skip applies to every `[subjects] append_only` file instead.
+
 ## Context
 
 `check-links` is a gate: a commit is refused while any internal Markdown

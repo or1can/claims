@@ -184,7 +184,10 @@ differs — whether the path was a file in that commit's tree
 tries both resolution bases the working tree does, so a citing-relative
 mention in a record isn't flagged for a reason unrelated to history.
 `known_untracked` is not consulted there: a deliberately untracked file
-was never in any commit's tree, so it has no commit-time meaning.
+was never in any commit's tree, so it has no commit-time meaning. Since
+ADR 0020, a mention that held there, or sits on a line older than the
+adoption commit, is reported advisory under `MODE_HISTORICAL` rather
+than passed, as `check-links` reports a link.
 """
 
 from __future__ import annotations
@@ -285,7 +288,13 @@ def _excluded(start: int, spans: Sequence[tuple[int, int]]) -> bool:
     return any(span_start <= start < span_end for span_start, span_end in spans)
 
 
-def _finding(rel: str, line_no: int, candidate: str, where: str = "") -> Finding:
+# ADR 0020: a mention in a `historical` file that held where its line
+# was written, or whose line predates the adoption commit, is reported
+# under a mode of its own, advisory and markable.
+MODE_HISTORICAL = f"{NAME}-historical"
+
+
+def _finding(rel: str, line_no: int, candidate: str, where: str = "", gate: bool = True) -> Finding:
     message = f"`{candidate}` does not resolve to a tracked file"
     if where:
         message += f" (not in the working tree{where})"
@@ -293,8 +302,8 @@ def _finding(rel: str, line_no: int, candidate: str, where: str = "") -> Finding
         file=rel,
         line=line_no,
         message=message,
-        mode=NAME,
-        gate=True,
+        mode=NAME if gate else MODE_HISTORICAL,
+        gate=gate,
     )
 
 
@@ -395,16 +404,13 @@ def check(repo_root: Path, diff_range: str, config: Mapping[str, object]) -> lis
                     continue
                 if any(untracked_on_disk(path) for path in paths):
                     continue
-                where = ""
-                if file_resolver is not None:
-                    verdict = file_resolver.held_when_written(
-                        rel, line_no, lambda commit: held_at(commit, paths)
-                    )
-                    if verdict is True:
-                        continue
-                    if isinstance(verdict, str):
-                        where = f", nor at {verdict}"
-                findings.append(_finding(rel, line_no, raw, where))
+                if file_resolver is None:
+                    findings.append(_finding(rel, line_no, raw))
+                    continue
+                gate, where = file_resolver.resolve(
+                    rel, line_no, lambda commit: held_at(commit, paths)
+                )
+                findings.append(_finding(rel, line_no, raw, where, gate))
             for marker in EXAMPLE_MARKER_RE.finditer(line):
                 if marker.start() not in consumed_marker_starts:
                     findings.append(_dangling_marker_finding(rel, line_no))

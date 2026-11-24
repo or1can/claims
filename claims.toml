@@ -2,20 +2,31 @@
 # (ticket 25). See `claims/config.py` and each check's own page under
 # `docs/checks/` for what a check's defaults are, otherwise.
 
-# The commit gate blocks on an unmarked finding from these four. The
+# The commit gate blocks on an unmarked finding from these six. The
 # first three are brought in by the commit's own edit, a sentence it
 # added or one it retracted that another file still asserts, so that
 # commit is where it is cheapest to fix or mark. `stale-claims` ranks
 # sections the commit didn't write, but an agent marks what its own
 # pre-commit run shows in that same commit rather than in a marks commit
 # at the end of the branch (ADR 0015), so the gate holds it to that; a
-# `--pending` mark is enough to let the commit through. A pre-commit run
+# `--pending` mark is enough to let the commit through. `check-links`
+# and `check-file-refs` are listed for their one markable mode, a moved
+# reference in a `historical` file (ADR 0020): the commit that moves the
+# file is the one that raises it, so it is read and marked there. A
+# pre-commit run
 # can't count the commit being made, so some of its findings still
 # surface only at pre-push or in CI. `spliced-docs` and `judgment-agent` fail only
 # at pre-push and in CI, which pass `--fail-on-unmarked` for every
 # markable check (ADR 0012).
 [hook]
-fail_on_unmarked = ["claim-words", "temporal-words", "restatement", "stale-claims"]
+fail_on_unmarked = [
+    "claim-words",
+    "temporal-words",
+    "restatement",
+    "stale-claims",
+    "check-links",
+    "check-file-refs",
+]
 
 # `.scratch/claims-consolidation/` is historical design-notes prior art —
 # it discusses other real projects (`ratect`) and hypothetical example
@@ -24,9 +35,11 @@ fail_on_unmarked = ["claim-words", "temporal-words", "restatement", "stale-claim
 #
 # `decisions/` is checked, but as `historical`: an ADR is frozen at its
 # decision's date, so a path it names that has since moved — the
-# pre-move `docs/adr/` since ADR 0004 — resolves at the commit that wrote
-# the line (ADR 0002). Its hypothetical paths carry an example marker
-# instead, which binds to the one mention rather than the whole file.
+# pre-move `docs/adr/` since ADR 0004 — is looked up at the commit that
+# wrote the line (ADR 0002), and one that held there is an advisory
+# finding to read and mark rather than a gate (ADR 0020). Its
+# hypothetical paths carry an example marker instead, which binds to the
+# one mention rather than the whole file.
 [check-file-refs]
 exclude = [".scratch/*", "examples/*"]
 historical = ["decisions/*.md"]
@@ -52,8 +65,8 @@ exclude = [".scratch/*", "examples/*"]
 # that takes a path-scoped `exclude` gets one here rather than being
 # switched off, so the rest of the tree stays covered. `check-file-refs`
 # and `check-cli-flags` carry theirs above. Of the checks with no
-# `exclude`, `check-citations` reads no config at all, `judgment-agent`
-# reads only `historical`, and `claim-words`, `temporal-words` and
+# `exclude`, `check-citations` and `judgment-agent` read no config of
+# their own, and `claim-words`, `temporal-words` and
 # `check-config-defaults` sweep only what a project names, which
 # `examples/` isn't.
 [check-links]
@@ -95,7 +108,9 @@ exclude_sections = [
 # switch changed none of the 9 findings either way. Excluding it first
 # traded 31 suppressed findings for 3 new ones — two in `.scratch/`,
 # and one genuine duplicate the changelog had been masking in
-# `claims/hook.py`, since deleted.
+# `claims/hook.py`, since deleted. Since ADR 0020 that skip is the
+# file's property, `[subjects] append_only`, where `CHANGELOG.md` is
+# built in, so this table no longer lists it.
 #
 # `.scratch/*` is excluded for the reason `stale-claims` gives above: the
 # archive is frozen, so a retracted line still asserted there will never
@@ -105,7 +120,6 @@ exclude_sections = [
 # archive had been holding under `duplication_threshold`.
 [restatement]
 exclude = ["examples/*", ".scratch/*"]
-historical = ["CHANGELOG.md"]
 
 [check-env-vars]
 exclude = ["examples/*"]

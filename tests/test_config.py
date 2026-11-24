@@ -16,10 +16,13 @@
 
 from __future__ import annotations
 
+import contextlib
+import io
 import tempfile
 import unittest
 from pathlib import Path
 
+from claims.cli import main
 from claims.config import ConfigError, append_only, load_config, load_local_config, navigation
 
 
@@ -100,6 +103,42 @@ class AppendOnlyTests(unittest.TestCase):
         ):
             with self.subTest(claims_toml=claims_toml), self.assertRaises(ConfigError):
                 self._load(claims_toml)
+
+
+class RemovedHistoricalKeyTests(unittest.TestCase):
+    """ADR 0020: `restatement` and `judgment-agent` skip a line the diff
+    didn't add in every append-only file, and take no `historical` key."""
+
+    def test_a_historical_key_on_either_check_is_invalid_config_naming_its_replacement(
+        self,
+    ) -> None:
+        for check in ("restatement", "judgment-agent"):
+            with self.subTest(check=check), tempfile.TemporaryDirectory() as repo_root:
+                (Path(repo_root) / "claims.toml").write_text(
+                    f'[{check}]\nhistorical = ["CHANGELOG.md"]\n'
+                )
+                with self.assertRaisesRegex(
+                    ConfigError, rf"\[{check}\] historical.*\[subjects\] append_only"
+                ):
+                    load_config(Path(repo_root))
+
+    def test_the_cli_exits_2_on_it(self) -> None:
+        with tempfile.TemporaryDirectory() as repo_root:
+            (Path(repo_root) / "claims.toml").write_text('[restatement]\nhistorical = "RELEASES.md"\n')
+            err = io.StringIO()
+            with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(err):
+                code = main(["--repo-root", repo_root])
+
+        self.assertEqual(code, 2)
+        self.assertIn("[subjects] append_only", err.getvalue())
+
+    def test_the_gate_checks_keep_the_key(self) -> None:
+        with tempfile.TemporaryDirectory() as repo_root:
+            (Path(repo_root) / "claims.toml").write_text(
+                '[check-links]\nhistorical = ["CHANGELOG.md"]\n'
+                '[check-file-refs]\nhistorical = ["CHANGELOG.md"]\n'
+            )
+            load_config(Path(repo_root))
 
 
 class NavigationTests(unittest.TestCase):

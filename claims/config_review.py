@@ -46,7 +46,7 @@ from .git import tracked_files
 # compute at all, so including them would only ever report a false zero.
 GLOB_CONFIG_KEYS: Mapping[str, Sequence[str]] = {
     "executable-claims": ("exclude",),
-    "restatement": ("exclude", "historical"),
+    "restatement": ("exclude",),
     "check-links": ("exclude", "historical"),
     "check-file-refs": ("exclude", "historical"),
     "claim-words": ("files",),
@@ -54,7 +54,6 @@ GLOB_CONFIG_KEYS: Mapping[str, Sequence[str]] = {
     "check-cli-flags": ("exclude",),
     "stale-claims": ("module_reference_scope", "exclude", "exclude_sections"),
     "temporal-words": ("files",),
-    "judgment-agent": ("historical",),
     # Not a check: `[subjects]`, which `stale-claims` and checked marks read
     # (ADRs 0011, 0013). `[hook]`, the other non-check table, has no glob.
     "subjects": ("append_only", "navigation"),
@@ -79,13 +78,15 @@ EXTENSION_CONFIG_KEYS: Mapping[str, Sequence[str]] = {
 # glob/extension-shaped at all (`check-citations` reads no config;
 # `spliced-docs`'s `modes` names a fixed enum; `check-config-defaults`'
 # own section is itself a setting-name -> file:line mapping, not a glob or
-# extension list). Listed explicitly, not left as "everything else" —
-# `test_config_review.py`'s own completeness test checks every registered
-# check name appears in exactly one of the three sets, so a future check
-# adding a path-shaped key without updating this module fails loud (a red
-# test) instead of the check simply never being reviewed by this helper.
+# extension list; `judgment-agent` reads no config since ADR 0020 moved
+# its `historical` skip to `[subjects] append_only`). Listed explicitly,
+# not left as "everything else" — `test_config_review.py`'s own
+# completeness test checks every registered check name appears in
+# exactly one of the three sets, so a future check adding a path-shaped
+# key without updating this module fails loud (a red test) instead of the
+# check simply never being reviewed by this helper.
 NO_PATH_SHAPED_CONFIG = frozenset(
-    {"check-citations", "spliced-docs", "check-config-defaults"}
+    {"check-citations", "spliced-docs", "check-config-defaults", "judgment-agent"}
 )
 
 

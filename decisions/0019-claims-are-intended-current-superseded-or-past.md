@@ -6,6 +6,13 @@ Accepted. Issue #261; amends
 `decisions/0005-live-and-dated-claims.md` and
 `decisions/0010-checked-marks-expire-on-their-own.md`.
 
+Amended by `decisions/0020-a-historical-reference-that-moved-is-a-markable-finding.md`
+(#264), which replaces the Consequences bullet on `historical` and the
+Decision's Scope list of modes. A `historical` reference that held at
+its writing is now a markable finding rather than a pass, `restatement`
+and `judgment-agent` take no `historical` key, and the reading agent
+also reads `check-links-historical` and `check-file-refs-historical`.
+
 ## Context
 
 A reader settles a claim by reading it against the tree as it stands. A

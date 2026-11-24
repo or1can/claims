@@ -5,7 +5,9 @@ that resolves to no tracked file. The mention is not written as a Markdown
 link; it is a path-shaped run of text with a recognised extension, and
 the sentence around it asserts that the file exists. When it does not,
 that is a gate finding, and the commit is refused until the mention names
-a file the repository has.
+a file the repository has. The one exception is a mention in an
+append-only record that held when its line was written, which is
+[advisory](#configuration) instead.
 
 ## What it checks
 
@@ -142,22 +144,32 @@ historical = ["CHANGELOG.md", "decisions/*.md"]
 | `known_untracked` | list of glob strings; a bare string is a one-element list | `[]`, every candidate must be tracked | A correctly cited file is real but deliberately never added to git, such as a git-ignored per-machine settings file, and should not gate identically to a typo. A match must still exist on disk inside the repository. |
 | `historical` | list of glob strings; a bare string is a one-element list | `[]`, every mention resolves against the working tree | A file is an append-only record, such as a changelog or a set of decision records, whose shipped entries your own rules forbid editing, and you still want to rename or move the files it names. |
 
-A `historical` file's mentions get one more chance. A mention that fails
-against the working tree is looked up again in the tree at the commit
-that wrote its line, as `git blame` attributes it, and in the tree just
-before that commit, and passes if a file was in either, taken from
-either the repository root or the citing file's directory, as in the
-working tree. A shipped entry that named a file before it moved stays
-as written, and the move does not have to leave the old path behind. A
-line recording a removal can land in the same commit as the removal,
-since the file was there just before it. A mention found nowhere is
-still a finding, and its message names where it looked: not in the
-working tree, nor at the commit where the line was written or just
-before it, given by its short hash.
-`known_untracked` plays no part in that second lookup, since a file never
-added to git is in no commit's tree.
+A mention in a `historical` file that fails against the working tree is
+looked up again in the tree at the commit that wrote its line, as `git
+blame` attributes it, and in the tree just before that commit, taken
+from either the repository root or the citing file's directory, as in
+the working tree. The tree just before is what lets a line recording a
+removal land in the same commit as the removal. `known_untracked` plays
+no part in that second lookup, since a file never added to git is in no
+commit's tree.
 
-The same rule, read consistently, settles three edge cases:
+A mention found there is reported as an advisory finding, not a gate
+one, under the mode `check-file-refs-historical`, and its message names the
+commit it held at. Whether the line is a record of what was, true when
+written, or a claim about what is, now false, takes a reading, so the
+finding can be [marked as checked](../checked-marks.md): a past claim's
+mark is written once and expires only when the line is reworded. A
+mention on a line older than the commit that first added `claims.toml`
+is reported the same way, found or not, since nothing gated it when it
+was written; its message says whether it held. With no tracked
+`claims.toml` there is no such commit. A shipped entry that
+named a file before it moved stays as written, and the move does not
+have to leave the old path behind. A mention found nowhere, on a line
+written since, is still a gate finding, and its message names where it
+looked: not in the working tree, nor at the commit where the line was
+written or just before it, given by its short hash.
+
+Two consequences follow from the same rule:
 
 - An uncommitted line is checked against the working tree, and failing
   that against `HEAD`, the tree just before it. A changelog's unreleased
@@ -166,17 +178,14 @@ The same rule, read consistently, settles three edge cases:
 - A line a later commit touched belongs to that commit, and the mention
   has to have resolved there. Retargeting an old path, if your rules
   allow it, is checked against the tree it was retargeted in.
-- A line older than the commit that first added `claims.toml` is skipped
-  when it fails. Nothing gated it when it was written, so it may have
-  been wrong then, and the append-only rule leaves no way to fix it now.
-  With no tracked `claims.toml` there is no such commit, and every line
-  is checked.
 
 History is read only for a mention that has already failed against the
-working tree, so records whose mentions all still resolve cost nothing
-extra. [check-links](check-links.md) takes the same key for links, and
+working tree, so records whose mentions all still resolve pay no `git
+blame` for it. [check-links](check-links.md) takes the same key for
+links, and
 [ADR 0002](../../decisions/0002-historical-links-resolve-at-their-own-commit.md)
-has the reasoning, including which other checks it does and does not
+and [ADR 0020](../../decisions/0020-a-historical-reference-that-moved-is-a-markable-finding.md)
+have the reasoning, including which other checks it does and does not
 reach.
 
 `enabled`, which takes this check out of the commit gate while leaving it

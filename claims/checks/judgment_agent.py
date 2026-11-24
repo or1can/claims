@@ -83,13 +83,16 @@ narrower version of it). Scope is Markdown only, narrower than
 citing code, and every one of this consolidation's user stories about
 "architecture or intent" claims names documentation, not source comments.
 
-`historical` (#174) skips a citation on a line of a matching file that
-the diff didn't add: a shipped changelog entry cites the names its
-release touched, and the project's rules forbid editing it whatever the
-subagent concludes. A line the diff added, an `[Unreleased]` entry, is a
-candidate as before. Unlike `check-links`' key it re-tests nothing at the
-blamed commit, since a candidate comes from this diff's own delta, which
-a shipped line predates; and the diff is read only when the key is set.
+In an append-only file (`config.append_only`, `CHANGELOG.md` built in),
+a citation on a line the diff didn't add is skipped: a shipped changelog
+entry cites the names its release touched, and the project's rules
+forbid editing it whatever the subagent concludes. A line the diff
+added, an `[Unreleased]` entry, is a candidate as before. This was the
+check's own `historical` key (#174) until ADR 0020 made it the file's
+property. Unlike `check-links`' key it re-tests nothing at the blamed
+commit, since a candidate comes from this diff's own delta, which a
+shipped line predates; and the diff is read only once a citation sits
+in an append-only file.
 
 A citation in a unit whose checked mark the diff expired is a candidate
 though its name is in neither delta (`checked.expired_units`, #263): the
@@ -133,7 +136,7 @@ from pathlib import Path
 from typing import NamedTuple
 
 from ..checked import ExpiredUnit, expired_units
-from ..config import path_matches, string_list_config
+from ..config import append_only, load_config
 from ..git import QUOTEPATH_OFF, added_lines_by_file, tracked_files
 from ..lines import git_lines, tracked_text
 from ..runner import Finding, register_check
@@ -472,12 +475,16 @@ def check(
     if not removed and not added and not expired:
         return []
 
-    historical = string_list_config(config, "historical")
-    added_lines = added_lines_by_file(repo_root, diff_range) if historical else {}
+    project = load_config(repo_root)
+    # Read once, and only if some citation sits in an append-only file.
+    added_lines: Mapping[str, set[int]] | None = None
     candidates: list[_Candidate] = []
     for rel, line, name in _citations(repo_root):
-        if path_matches(rel, historical) and line not in added_lines.get(rel, set()):
-            continue
+        if append_only(project, rel):
+            if added_lines is None:
+                added_lines = added_lines_by_file(repo_root, diff_range)
+            if line not in added_lines.get(rel, set()):
+                continue
         subject: _Subject | None
         if name in removed:
             subject, mode, why = base_index[name], MODE_REMOVED, "removed by this diff"

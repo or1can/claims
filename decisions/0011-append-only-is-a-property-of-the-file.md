@@ -19,6 +19,11 @@ one a rebase or amend left dangling, expires the mark as a blob the
 store doesn't hold does. The store is per clone, so a dangling blob kept
 a mark alive locally that CI, which never had the blob, expired.
 
+Amended by `decisions/0020-a-historical-reference-that-moved-is-a-markable-finding.md`
+(#264): `restatement` and `judgment-agent` read only the lines a diff
+adds in an append-only file, which their own `historical` key said
+before, so the property now scopes those two checks as well.
+
 ## Context
 
 A changelog grows on almost every pull request, and two places read that

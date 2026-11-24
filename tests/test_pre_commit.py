@@ -184,9 +184,15 @@ class PreCommitTests(RegistryClearingTestCase):
             return self._run(repo, claims_toml=None)
 
     def test_recording_a_removal_in_the_commit_that_makes_it_is_allowed(self) -> None:
-        for line in ("- Delete `tools/a.py`.", "- Delete [a](tools/a.py)."):
+        # ADR 0020: allowed, with an advisory finding a reading can mark.
+        for line, mode in (
+            ("- Delete `tools/a.py`.", "check-file-refs-historical"),
+            ("- Delete [a](tools/a.py).", "check-links-historical"),
+        ):
             with self.subTest(line=line):
-                self.assertEqual(self._run_on_removal(line), (0, ""))
+                code, stderr = self._run_on_removal(line)
+                self.assertEqual(code, 0)
+                self.assertIn(f"[advisory] CHANGELOG.md:2 ({mode})", stderr)
 
     def test_a_misspelled_removal_is_still_blocked(self) -> None:
         for line in ("- Delete `tools/b.py`.", "- Delete [a](tools/b.py)."):
@@ -289,7 +295,7 @@ class PreCommitTests(RegistryClearingTestCase):
 
     def test_fail_on_unmarked_naming_no_markable_check_blocks_as_invalid(self) -> None:
         _register("claim-words", gate=False)
-        for value in ('["stale-claim"]', '["check-links"]', "true", "[1]"):
+        for value in ('["stale-claim"]', '["check-citations"]', "true", "[1]"):
             with self.subTest(value=value), Repo() as repo:
                 code, stderr = self._run(repo, f"[hook]\nfail_on_unmarked = {value}\n")
                 self.assertEqual(code, 1)

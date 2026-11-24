@@ -125,7 +125,8 @@ class ConfigValueMatchesTests(unittest.TestCase):
         # `historical` reached `check-links` (#50) and `check-file-refs`
         # (#57) without either landing here, so a mistyped glob in it
         # silently resolved every mention against the working tree only.
-        # `restatement` and `judgment-agent` took it in #174.
+        # `restatement` and `judgment-agent` took it in #174 and gave it up
+        # to `[subjects] append_only` under ADR 0020.
         with Repo() as repo:
             repo.write("real.md", "prose\n")
             matches = config_value_matches(
@@ -133,8 +134,6 @@ class ConfigValueMatchesTests(unittest.TestCase):
                 {
                     "check-links": {"historical": ["nonexistent.md"]},
                     "check-file-refs": {"historical": ["nonexistent.md"]},
-                    "restatement": {"historical": ["nonexistent.md"]},
-                    "judgment-agent": {"historical": ["nonexistent.md"]},
                 },
             )
         self.assertEqual(
@@ -142,8 +141,6 @@ class ConfigValueMatchesTests(unittest.TestCase):
             [
                 ("check-file-refs", "historical", ()),
                 ("check-links", "historical", ()),
-                ("judgment-agent", "historical", ()),
-                ("restatement", "historical", ()),
             ],
         )
 
