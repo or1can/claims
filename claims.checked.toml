@@ -120,17 +120,6 @@ subjects = { ".github/workflows/docs.yml" = "9174303cf04e3b3d", "README.md" = "7
 [[mark]]
 file = "AGENTS.md"
 mode = "stale-claims"
-unit = "8e4f8ea8f0f2e26d"
-copies = 1
-note = "read plugin.json, pyproject.toml, test_plugin_manifest.py, ADR 0004 and CHANGELOG.md: the bump, equal versions, changelog and retarget rules hold, current; Claude Code settled three claims the agent couldn't reach: Claude Code's plugin docs say claude plugin update keeps the cached copy while the manifest version is unchanged; installation.md pins rev and uvx to a tag; and git history shows 0.1.0 from ticket 18 to the 6eb231b bump after ticket 35, ticket 36 open but unfixed then; not checked: epr-wrench's install, a repository Claude Code can't access"
-by = "claims:reading-agent (sonnet), with Claude Code (claude-opus-5-5)"
-approved_by = "Kevin Rogers"
-extent = "partial"
-subjects = { ".claude-plugin/plugin.json" = "c08b5d37832c355d", "decisions/0004-docs-is-the-user-facing-tree.md" = "84534f73ba887979", "pyproject.toml" = "687170452362eec2", "tests/test_plugin_manifest.py" = "50834b11b663da44" }
-
-[[mark]]
-file = "AGENTS.md"
-mode = "stale-claims"
 unit = "a24aa63faff14f27"
 copies = 1
 note = "read TODO.md and claims.toml in full: the repo runs claims on itself and adopts what ships, with no unexplained gap in TODO.md, current; not checked: that a feature only ratect runs has a cost its shapers haven't paid, a judgement rather than a fact"
@@ -154,10 +143,10 @@ file = "AGENTS.md"
 mode = "stale-claims"
 unit = "f22baeb2d42ae875"
 copies = 1
-note = "read CONTEXT.md, ADR 0004 and agents/domain.md, globbed docs/ and decisions/: single-context layout, proceed silently, decisions/ over docs/adr/ all hold; current and true"
+note = "read CONTEXT.md, agents/domain.md and ADR 0004, globbed decisions/ and CONTEXT-MAP.md: single-context layout, the glossary, proceed silently and decisions/ over the skill's docs/adr/ default all hold; current and true"
 by = "claims:reading-agent (sonnet)"
 approved_by = "Kevin Rogers"
-subjects = { "CONTEXT.md" = "1c037c2446d63488", "agents/domain.md" = "b6a1dc40c62adb9a", "decisions/0004-docs-is-the-user-facing-tree.md" = "84534f73ba887979" }
+subjects = { "CONTEXT.md" = "1c037c2446d63488", "agents/domain.md" = "4699ac3fc44ff3f9", "decisions/0004-docs-is-the-user-facing-tree.md" = "84534f73ba887979" }
 
 [[mark]]
 file = "CONTEXT.md"
