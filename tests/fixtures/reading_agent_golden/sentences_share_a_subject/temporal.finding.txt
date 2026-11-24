@@ -1,0 +1,4 @@
+[advisory] docs/config.md:7 (temporal-words-cited) `retries` now defaults to 3.
+
+Subjects: settings.py
+Root: the working directory

@@ -89,3 +89,7 @@
   changes `judgment-agent`'s output contract and its page; worth doing
   if a session handling both agents' results keeps translating between
   them.
+- Split the check-claims skill's read-and-mark procedure into a skill of
+  its own, if sessions skip its steps or marking is wanted without a
+  check run first (#274). It stays in check-claims until one of those
+  shows up, since every marking session today starts from a check run.

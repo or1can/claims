@@ -126,6 +126,17 @@ a person, an agent session, or a subagent, named with its model. Never
 the approver, though one person can be both.
 _Avoid_: Marker, author, checker
 
+**Reading batch**:
+Findings that share subjects, handed to one reader at once, each read as
+if alone.
+_Avoid_: Batch (alone: a set of marks written together), group
+
+**Notable reading**:
+A reading a person should see before approving its mark: one that found a
+claim false or unsettled, read a claim at an old tree, or that the session
+had to correct.
+_Avoid_: Interesting finding, flagged finding
+
 **Partial mark**:
 A checked mark whose reader read only part of its section or doc comment,
 and said so.
