@@ -89,3 +89,12 @@
   changes `judgment-agent`'s output contract and its page; worth doing
   if a session handling both agents' results keeps translating between
   them.
+- Split the check-claims skill's read-and-mark procedure into a skill of
+  its own, if sessions skip its steps or marking is wanted without a
+  check run first (#274). It stays in check-claims until one of those
+  shows up, since every marking session today starts from a check run.
+- Partial marks written before the check-claims skill's "settle what
+  the agent couldn't reach" step (#274) may leave unchecked a claim the
+  session could have settled with a command, `git log` or `gh`. They
+  come back only when they expire; a sweep of `claims.checked.toml`'s
+  partial marks against that step would settle them sooner.

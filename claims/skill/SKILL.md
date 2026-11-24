@@ -166,93 +166,187 @@ mark is partial), never on the strength of the finding's own text. A
 itself: when you asked for the verdict, you may mark the finding once you
 have read the verdict's evidence, the same as any other finding.
 
-### Which findings to settle
+### Reading and marking, step by step
 
-Settle every finding your own pre-commit run shows before you commit:
-fix a gate finding, which can't be marked, and a false advisory one,
-and read and mark a true one from a check that takes marks (the
-plugin's `docs/checked-marks.md` lists them). Any other finding is
-yours to settle only when the user asks. Never mark a finding nobody
-has read, and never mark a false one: fix it instead.
+Work through these steps in order, each time you settle findings. Each
+step's detail follows it.
 
-Commit `claims.checked.toml` in the same commit as the change that
-raises the findings, not in a separate marks commit at the end of a
-branch: the mark then sits beside the edit it is about, and a person can
-fold their approval into that one commit with `fold-approvals`. A mark
-you find missing later, or a rejected mark's fix, goes in a `fixup!`
-commit for the commit it belongs to, so the fold folds it in there.
+1. **Choose the findings to settle.** Settle every finding your own
+   pre-commit run shows before you commit: fix a gate finding, which
+   can't be marked, and a false advisory one, and read and mark a true
+   one from a check that takes marks (the plugin's
+   `docs/checked-marks.md` lists them). Any other finding is yours to
+   settle only when the user asks. Never mark a finding nobody has read,
+   and never mark a false one: fix it instead.
 
-### Reading a finding before marking it
+   Commit `claims.checked.toml` in the same commit as the change that
+   raises the findings, not in a separate marks commit at the end of a
+   branch: the mark then sits beside the edit it is about, and a person
+   can fold their approval into that one commit with `fold-approvals`. A
+   mark you find missing later, or a rejected mark's fix, goes in a
+   `fixup!` commit for the commit it belongs to, so the fold folds it in
+   there.
 
-Hand each markable finding other than a `judgment-agent` candidate to the
-`claims:reading-agent` subagent before you mark it (its plugin-namespaced
-name — e.g. the Task tool's `subagent_type: "claims:reading-agent"`),
-once per finding, passing its finding line verbatim, the subjects it
-names, and its root: the directory holding the tree the finding was
-raised in. For a `--diff-range` reaching the working tree (`HEAD`, or
-any single ref), that is the project root; for `A..B`, it is a worktree
-at `B`, made outside the project with `git worktree add --detach <dir>
-B` and removed with `git worktree remove <dir>` once its findings are
-read. Its input and output contract is
-`claims/subagent/reading_agent.md`; the plugin's
-`docs/reading-agent.md` describes it. It returns one verdict per claim in
-the finding's unit — `true`, `false` or `not checked` — each with the
-claim's kind (`intended`, `current`, `superseded` or `past`) and the
-evidence for it, the tree it was read at and the `file:line` it read,
-and for the finding as a whole, what it read in full, what it only
-searched, and a draft note. It never marks anything.
+   Each finding's root is the directory holding the tree it was raised
+   in. For a `--diff-range` reaching the working tree (`HEAD`, or any
+   single ref), that is the project root; for `A..B`, it is a worktree at
+   `B`, made outside the project with `git worktree add --detach <dir>
+   B` and removed with `git worktree remove <dir>` once its findings are
+   read.
 
-The agent has no shell, so it reads a past or superseded claim in a copy
-of the tree its kind names, which you make. A claim it reports `not
-checked` with a `tree_line` needs one: run
+2. **Group them into reading batches.** Every markable finding other
+   than a `judgment-agent` candidate is read by the
+   `claims:reading-agent` subagent, in **reading batches**: findings
+   that share a subject go in one reading batch, transitively, so a
+   finding sharing a subject with any finding in a reading batch joins
+   it. A finding that shares no subject with another is a reading batch
+   of one. Never pack unrelated findings together to fill a reading
+   batch. A reading batch holds findings from one root only.
 
-```bash
-PYTHONPATH="${CLAUDE_PLUGIN_ROOT}" python3 -m claims.cli claim-trees --repo-root <path> --kind past|superseded <tree_line>
-```
+   A reading batch holds at most **1 finding**, so every finding is a
+   reading batch of its own. The cap is set by the reading agent's
+   batched golden run, which hands it 10 findings in one call and has
+   not yet passed on every repeat (the plugin's `docs/reading-agent.md`
+   records the runs). It is raised only to a size whose batched run
+   passes every repeat; a group larger than the cap is then split,
+   keeping together the findings that share the most subjects.
 
-which prints one tree per line, `<role> <commit> <root>`, with no root
-for `superseded`, the change the claim is read just before, and
-`working-tree` as the commit of a line not yet committed. It makes each
-copy once per commit and reuses it after. Hand the agent the finding
-again with those trees, and the `tree_line` each was named from.
-`tree-at <REV>` prints the root of one commit's copy, for a claim
-comparing a state the tree names to another. When you re-read an expired
-mark, pass its `kind` and `note` from its entry in `claims.checked.toml`:
-the agent infers the kind afresh, with them as context.
+   A `judgment-agent` candidate is never batched, as its own section
+   above says: its golden harness has no batched run at all to prove its
+   verdicts stay apart, where the reading agent's at least has one to
+   raise its cap by.
 
-Read its evidence, the kind evidence included: a claim read at an old
-tree on weak evidence is the costly mistake, since it holds there and
-its mark no longer expires with its subjects. Then:
+3. **Dispatch each reading batch.** Hand each reading batch to the
+   `claims:reading-agent` subagent (its plugin-namespaced name — e.g.
+   the Task tool's `subagent_type: "claims:reading-agent"`), one call
+   per reading batch, passing for each finding its finding line
+   verbatim, the subjects it names, and its root. When you re-read an
+   expired mark, pass its `kind` and `note` from its entry in
+   `claims.checked.toml`: the agent infers the kind afresh, with them as
+   context. Its input and output contract is
+   `claims/subagent/reading_agent.md`; the plugin's
+   `docs/reading-agent.md` describes it.
 
-- **Every claim `true`:** mark the finding, with `--by
-  "claims:reading-agent (<model>)"`, `<model>` being the model it ran on.
-- **Any claim `false`:** fix the prose; never mark it. Two exceptions,
-  each yours to decide, not the agent's. An intended claim that is
-  `false` may not be delivered yet: fix the code, or record a change of
-  direction, or, where the pull request's plan delivers it later, mark
-  it, saying in the note that it is not delivered. A past or superseded
-  claim that is `false` at its tree is in a record whose prose is not
-  rewritten: check its kind evidence, and settle it with the user.
-- **A claim `not checked`:** in a `stale-claims` section or a
-  `spliced-docs` doc comment, mark with `--partial` and name the
-  unchecked claim in the note, as long as at least one claim is `true`:
-  a mark on which nothing was checked records no reading at all. In any
-  other mode, don't mark on the agent's reading: read that claim's
-  subject yourself, or leave the finding unmarked. A full mark always means every claim was checked.
+   It returns a JSON array, one object per finding. Each object holds
+   one verdict per claim in the finding's unit — `true`, `false` or `not
+   checked` — each with the claim's kind (`intended`, `current`,
+   `superseded` or `past`) and the evidence for it, the tree it was read
+   at and the `file:line` it read, and for the finding as a whole, what
+   it read in full, what it only searched, and a draft note. It never
+   marks anything.
 
-Each claim is read at its own kind's tree, and the unit's verdicts
-combine as one claim's would: the unit is fully marked when every claim
-is `true` at its tree, whatever trees they were read at. Pass the unit's
-kind to `mark-checked` with `--kind`, the least settled of its claims'
-kinds: current if any claim is current (no `--kind`), else `intended`,
-else `superseded`, else `past`. For a superseded or past unit, pass
-`--evidence` once for each file or `page.md#anchor` section its claims'
-kinds rest on, such as a decision record's `#status`. A superseded unit
-needs at least one. Put each claim's kind, and the commit a past or superseded claim
-was read at, in the note. Marks of different kinds go in separate
-batches.
+4. **Check each reading batch's output.** It holds exactly one object
+   per finding you sent, matched by its `finding` field, the finding's
+   `file:line` and mode. An object naming a finding you didn't send
+   counts for none of yours: set it aside. Re-send alone each finding
+   with no object or two, and mark nothing from that reading batch
+   until every finding in it has exactly one object.
 
-When no subagent can be started, read the finding yourself, to the same
+5. **Re-send the findings that need trees.** The agent has no shell, so
+   it reads a past or superseded claim in a copy of the tree its kind
+   names, which you make. A claim it reports `not checked` with a
+   `tree_line` needs one: run
+
+   ```bash
+   PYTHONPATH="${CLAUDE_PLUGIN_ROOT}" python3 -m claims.cli claim-trees --repo-root <path> --kind past|superseded <tree_line>
+   ```
+
+   which prints one tree per line, `<role> <commit> <root>`, with no
+   root for `superseded`, the change the claim is read just before, and
+   `working-tree` as the commit of a line not yet committed. It makes
+   each copy once per commit and reuses it after. `tree-at <REV>` prints
+   the root of one commit's copy, for a claim comparing a state the tree
+   names to another.
+
+   Hand the agent that finding again with those trees, and the
+   `tree_line` each was named from, without the rest of its reading
+   batch. Several such findings that share subjects may go together,
+   grouped as in step 2. Every other finding's verdicts from the first
+   pass stand.
+
+6. **Read the evidence.** Read each object's evidence, the kind
+   evidence included: a claim read at an old tree on weak evidence is
+   the costly mistake, since it holds there and its mark no longer
+   expires with its subjects.
+
+7. **Settle what the agent couldn't reach.** A claim it reports `not
+   checked` is one it couldn't read, not one found wanting, and its
+   reasoning says what it would need. Route each by that:
+
+   - **a tree:** step 5;
+   - **a subject it wasn't given:** hand it the finding again with that
+     subject named;
+   - **a command's output, the history, an issue or the network:** read
+     or run it yourself, as the agent would have read a file: `git log`,
+     `gh issue view`, the command the claim describes. Then the claim
+     has a verdict from you, and the mark's `--by` names you beside the
+     agent, as `claims:reading-agent (<model>), with <session or agent
+     name> (<model>)`;
+   - **nothing you can reach either:** a past run's output you can't
+     reproduce, an incident that cites nothing to find it by, a
+     repository you can't access, a judgement rather than a fact. Only
+     this claim stays `not checked`.
+
+8. **Mark by kind, with `--pending`.** For each finding:
+
+   - **Every claim `true`:** mark the finding, with `--by
+     "claims:reading-agent (<model>)"`, `<model>` being the model it ran
+     on. A batched reading names the same reader: batching is how you
+     dispatched the work, not who read it.
+   - **Any claim `false`:** fix the prose; never mark it. Two
+     exceptions, each yours to decide, not the agent's. An intended
+     claim that is `false` may not be delivered yet: fix the code, or
+     record a change of direction, or, where the pull request's plan
+     delivers it later, mark it, saying in the note that it is not
+     delivered. A past or superseded claim that is `false` at its tree is
+     in a record whose prose is not rewritten: check its kind evidence,
+     and settle it with the user.
+   - **A claim still `not checked` after step 7:** in a `stale-claims`
+     section or a `spliced-docs` doc comment, mark with `--partial` and
+     name the unchecked claim in the note, and why nothing could settle
+     it, as long as at least one claim is `true`: a mark on which nothing
+     was checked records no reading at all. In any other mode, leave the
+     finding unmarked. A full mark always means every claim was
+     checked.
+
+   Each claim is read at its own kind's tree, and the unit's verdicts
+   combine as one claim's would: the unit is fully marked when every
+   claim is `true` at its tree, whatever trees they were read at. Pass
+   the unit's kind to `mark-checked` with `--kind`, the least settled of
+   its claims' kinds: current if any claim is current (no `--kind`),
+   else `intended`, else `superseded`, else `past`. For a superseded or
+   past unit, pass `--evidence` once for each file or `page.md#anchor`
+   section its claims' kinds rest on, such as a decision record's
+   `#status`. A superseded unit needs at least one. Put each claim's
+   kind, and the commit a past or superseded claim was read at, in the
+   note. Marks of different kinds go in separate batches. "Writing the
+   marks" below gives the command.
+
+9. **Report.** Tell the user which readings are **notable**, the ones a
+   person should see before approving a mark. A reading is notable if
+   any of these hold:
+
+   1. a claim came back `false`, so the prose was fixed: say what it
+      said, what the subject holds, and the fix;
+   2. a claim stayed `not checked` after step 7, so the finding got a
+      partial mark or none: say why nothing could settle it;
+   3. a claim's kind isn't current (past, superseded, or an intended
+      claim held as not delivered): give its kind evidence and the tree
+      it was read at;
+   4. a mark was written despite a `false` claim, the intended "not
+      delivered yet" exception;
+   5. a verdict rests on a subject the agent only searched, or one you
+      overrode, re-read or settled yourself in step 7: say what you did.
+
+   Every other reading is routine: every claim `true`, every claim
+   current, and every subject read in full. List the notable readings
+   first, each with its reason, then the routine ones as a count and one
+   line each. When the marks go in a pull request, put the notable list
+   in its body's evidence, where the person approving the marks sees it.
+   Routine marks are `--pending` like any other, and need a person's
+   approval just the same.
+
+When no subagent can be started, read each finding yourself, to the same
 rules: the whole unit and every subject it names, each opened in full,
 a search hit being a location rather than a reading. Then `--by` names
 you and your model, as `<session or agent name> (<model>)`. That

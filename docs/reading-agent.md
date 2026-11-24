@@ -2,9 +2,9 @@
 
 A [checked mark](checked-marks.md) says a finding was read against what it
 names and found true. The **reading agent**, `claims:reading-agent`, is the
-plugin's subagent for that reading. It takes one markable finding, reads
-it in full against every subject it names, and reports a verdict for
-each claim in it with the evidence behind each verdict. It never writes a
+plugin's subagent for that reading. It takes a list of markable
+findings, reads each in full against every subject it names, and reports
+a verdict for each claim in each with the evidence behind each verdict. It never writes a
 mark and never edits a file. The session that called it reads its report
 and decides what to mark.
 
@@ -15,10 +15,11 @@ its [page](checks/judgment-agent.md) describes.
 
 ## What it is given
 
-One finding: its `file:line`, its mode and message as the run printed
+A list of findings, each with its `file:line`, its mode and message as the run printed
 them, the subjects it names, and its root, the directory holding the
 tree the finding was raised in: the project itself, or, for a range
-ending at a commit, a `git worktree` the session makes at it. The
+ending at a commit, a `git worktree` the session makes at it. Every
+finding in one list has the same root. The
 finding's **unit** is what it reads first: a `stale-claims` section from
 its heading to the next heading, a whole `spliced-docs` doc comment, a
 `claim-words` or `temporal-words` sentence, a `restatement` line, or the
@@ -30,6 +31,41 @@ For a claim about a state that has gone, the session also gives it the
 trees that claim is read at, each a copy of a commit's tracked files
 with no `.git` (see [Kinds and trees](#kinds-and-trees)). For a finding
 whose mark expired, it gives the mark's kind and note, as context.
+
+## Reading batches
+
+The findings one commit raises usually name the same files: a change to
+a module raises a `stale-claims` finding on every section citing it, and
+a reader given one finding at a time opens that module once per finding.
+So the session hands the agent a **reading batch**: the findings that
+share a subject, transitively, so a finding sharing a subject with any
+finding in the reading batch joins it. A finding that shares no subject
+with another is a reading batch of one, and unrelated findings are never
+packed together to fill a reading batch.
+
+The agent reads each finding in a reading batch as if it were the only
+one. Each keeps its own unit, read in full, every subject it names, read
+in full, a verdict and a kind for each of its claims, and its own trees.
+The one thing a reading batch shares is a reading: a subject read in
+full once counts as read for every finding in the reading batch naming
+it, at the same tree. The same path at a different tree, such as a past
+claim's tree, is read again there.
+
+A reading batch holds at most one finding, so every finding is read in
+a call of its own. The cap is set by the batched golden run under [The
+model](#the-model), which hands the agent 10 findings in one call, and
+that run has not passed every time: a reading that is cheaper
+but sometimes wrong would write marks that hide false claims. The cap
+goes up only to a size whose batched run passes on every repeat. A group
+larger than the cap is then split, keeping together the findings that
+share the most subjects.
+
+The session checks that each reading batch's output holds exactly one
+report per finding it sent, matched by the finding's `file:line` and
+mode. It ignores a report naming a finding it didn't send, re-sends
+alone each finding with no report or two, and marks nothing from that
+reading batch until each has one. A finding that needs a tree is
+re-sent with its trees, without the rest of its reading batch.
 
 ## What it reads
 
@@ -101,7 +137,7 @@ tree.
 
 ## What it reports
 
-One JSON object, with:
+A JSON array, one object per finding, each with:
 
 - each claim in the unit, quoted, with a verdict of `true`, `false` or
   `not checked`, its kind and the `file:line` that kind rests on, the
@@ -125,30 +161,50 @@ and leaves that to the session.
 
 ## What the session does with it
 
-The `check-claims` skill hands each markable finding to the reading agent
-before marking it, and marks only after reading the agent's evidence:
+The `check-claims` skill hands each markable finding to the reading
+agent, in its reading batch, before marking it, and marks only after
+reading the agent's evidence:
 
 - Every claim `true`: a full mark, with `--by "claims:reading-agent
   (<model>)"`, so the mark names its reader and the model that read it.
+  A mark read in a reading batch names the same reader: the reading
+  batch is how the session handed the work over, not who read it.
 - Any claim `false`: no mark. The prose is fixed. An intended claim the
   pull request delivers later may be marked as not delivered, saying so
   in the note; a past or superseded claim false at its tree sits in a
   record whose prose is not rewritten, and the session settles it with
   the user.
-- A claim `not checked`, in a `stale-claims` section or a `spliced-docs`
-  doc comment: a [partial mark](checked-marks.md#partial-marks), whose
-  note names the claim left unchecked, as long as at least one claim is
-  `true`. In any other mode, no mark: the session reads that claim's
-  subject itself, or leaves the finding unmarked. A full mark always
-  means every claim was checked.
+- A claim `not checked`: the agent couldn't reach what settles it, and
+  says what it would need. For a tree or a subject it wasn't given, the
+  session hands the finding back with it. For a command's output, the
+  history or an issue, the session reads or runs that itself, and the
+  mark's `by` then names the session beside the agent. Only a claim
+  nobody can reach, such as a past run's output or a judgement, stays
+  unchecked. In a `stale-claims` section or a
+  `spliced-docs` doc comment that is a [partial
+  mark](checked-marks.md#partial-marks), whose note names the claim
+  left unchecked and why, as long as at least one claim is `true`. In
+  any other mode, no mark. A full mark always means every claim was
+  checked.
 
 A unit is fully marked when every claim holds at its own tree. Its mark
 records the unit's kind, the least settled of its claims': current if
 any is, else intended, else superseded, and past only when every claim
 is past. Each claim's kind goes in the note.
 
-The skill marks with `--pending`, so a person reviews each reading before
-it stands, and `pending-marks` prints the `by` of each mark beside it.
+Then the session reports its readings in two lists. A **notable**
+reading is one a person should see before approving its mark: a claim
+that came back `false`, so the prose was fixed; one nobody could
+check, so the mark is partial or absent; a claim whose kind isn't current, read at
+an old tree or held as not delivered; a mark written despite a `false`
+claim; and a verdict resting on a subject only searched for, or that the
+session overrode, read again or settled itself. Every other reading is
+**routine**: every claim true and current, and every subject read in
+full. The notable ones come first, each with its reason, and go in the
+pull request's description, where the person approving sees them.
+
+The skill marks with `--pending`, routine readings included, so a person
+reviews each reading before it stands, and `pending-marks` prints the `by` of each mark beside it.
 Approving records the approver in `approved_by` and leaves `by` as it is
 ([`decisions/0018-the-reader-and-the-approver-are-recorded-apart.md`](../decisions/0018-the-reader-and-the-approver-are-recorded-apart.md)
 says why), so the reader stays on record after approval.
@@ -164,8 +220,8 @@ to the agent as context, and it infers each kind afresh.
 
 ## The model
 
-The agent runs on sonnet. Its golden fixtures, under
-`tests/fixtures/reading_agent_golden/`, are six `stale-claims` sections
+The agent runs on sonnet. Its golden fixtures are under
+`tests/fixtures/reading_agent_golden/`. Six are `stale-claims` sections
 about one small cache module. Three are a design page's: one true
 throughout, one with a sentence left unfinished among true ones, and one
 claiming the cache evicts its oldest entry when the code evicts its
@@ -178,10 +234,35 @@ naming a list's bullets as replaced, and the list's lead-in has to come
 back superseded with them. Each fixture passes only when every claim
 gets the expected verdict and kind, the agent opened the section and the
 module with the file-reading tool, and no claim comes from outside the
-section. `python3 scripts/run_reading_agent_golden.py
---model <model>` runs them against the real model, one API call each.
+section.
 
-Sonnet passes all six. Haiku, over two runs of the first three,
+Four more come in pairs that share a subject and need opposite verdicts,
+so a verdict leaking from one finding into the other fails one of them.
+One pair is two pages' `Eviction` sections on the same cache module, one
+saying it evicts its oldest entry, which holds, and one its newest. The
+other is two sentences from one configuration page about one settings
+module, a `claim-words` sentence saying every setting has a default,
+when one has none, and a `temporal-words` sentence about a default that
+holds.
+
+`python3 scripts/run_reading_agent_golden.py --model <model>` runs each
+finding against the real model, one API call each. With `--batched`, it
+runs all ten as one reading batch in one call, each fixture's files
+under a prefix of their own in one root, and passes only when each
+finding comes back as it has to alone: one report per finding, the same
+verdicts and kinds, its unit and every subject listed as read, and no
+claim from outside its unit.
+
+Run alone, sonnet passes all ten. Batched, it passed two of four runs.
+One failed run listed a sentence from the next section as one of a
+section's claims, true but outside the unit; the sentence telling the
+agent never to list one was added after it. The other, after that
+sentence, reported the decision record's undelivered eviction claim
+without its intended kind. A reading that strays from its unit or
+misreads a kind is not one to mark from, so the skill's cap stays at one
+finding.
+
+Haiku, over two runs of the first three,
 gives the right verdict on every claim, both false ones included,
 but in three of its six fixture runs it also reports the sentence under
 the next heading as one of the section's claims, which fails that

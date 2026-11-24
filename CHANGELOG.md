@@ -11,6 +11,22 @@ reached you, not just that one was pushed upstream.
 
 ## [Unreleased]
 
+## [0.37.0] - 2026-11-24
+
+- Changed: after marking, the check-claims skill lists notable
+  readings, a claim found false or unchecked, read at an old tree, or
+  corrected by the session, before routine ones, and puts that list in
+  the pull request, for you to look at first when approving. Marks still
+  name `claims:reading-agent (<model>)` and are still `--pending`.
+- Changed: a claim the reading agent leaves `not checked` because it
+  needs a command, the history or an issue is now settled by the session
+  itself, so fewer findings end with a partial mark; one that does says
+  why nothing could settle it.
+- Changed: the reading agent takes a list of findings and returns one
+  report per finding. The skill still hands it one finding per call:
+  reading several findings in one call isn't yet reliable enough to
+  mark from (`docs/reading-agent.md#reading-batches`).
+
 ## [0.36.0] - 2026-11-23
 
 - Changed: in a `[check-links] historical` or `[check-file-refs]
