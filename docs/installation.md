@@ -66,10 +66,19 @@ the flag is omitted. That is fine for a quick personal try.
 Whichever scope is used, the marketplace registry itself is machine-wide
 and keyed by name, and the CLI has no way to register a marketplace under
 a name its listing does not declare. A later `claude plugin marketplace
-add` of a different source also named `claims`, from any project at any
-scope, replaces the source for each project on that machine. A checkout of
-this repository registered as a directory marketplace for its own
-development is the common way to hit that.
+add` of a different source also named `claims`, from any project, replaces
+the source for each project on that machine. So does opening a session in
+a trusted project whose `.claude/settings.json` declares a different
+source, and two such projects keep overwriting one another's entry. A
+source declared in user settings is kept instead: the CLI refuses a
+different one.
+
+With a git URL in one project and a directory in another, a session in the
+project declaring the directory can fail with `Plugin "claims" not
+cached`, and one in the project declaring the git URL can run the
+directory's working tree, its hooks included. Give each project on a
+machine the same source: the git URL above, with no `#<ref>` on it unless
+each project has the same one.
 
 Verify with:
 
