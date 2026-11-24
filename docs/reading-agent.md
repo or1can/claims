@@ -174,12 +174,18 @@ reading the agent's evidence:
   in the note; a past or superseded claim false at its tree sits in a
   record whose prose is not rewritten, and the session settles it with
   the user.
-- A claim `not checked`, in a `stale-claims` section or a `spliced-docs`
-  doc comment: a [partial mark](checked-marks.md#partial-marks), whose
-  note names the claim left unchecked, as long as at least one claim is
-  `true`. In any other mode, no mark: the session reads that claim's
-  subject itself, or leaves the finding unmarked. A full mark always
-  means every claim was checked.
+- A claim `not checked`: the agent couldn't reach what settles it, and
+  says what it would need. For a tree or a subject it wasn't given, the
+  session hands the finding back with it. For a command's output, the
+  history or an issue, the session reads or runs that itself, and the
+  mark's `by` then names the session beside the agent. Only a claim
+  nobody can reach, such as a past run's output or a judgement, stays
+  unchecked. In a `stale-claims` section or a
+  `spliced-docs` doc comment that is a [partial
+  mark](checked-marks.md#partial-marks), whose note names the claim
+  left unchecked and why, as long as at least one claim is `true`. In
+  any other mode, no mark. A full mark always means every claim was
+  checked.
 
 A unit is fully marked when every claim holds at its own tree. Its mark
 records the unit's kind, the least settled of its claims': current if
@@ -188,11 +194,11 @@ is past. Each claim's kind goes in the note.
 
 Then the session reports its readings in two lists. A **notable**
 reading is one a person should see before approving its mark: a claim
-that came back `false`, so the prose was fixed; one `not checked`, so
-the mark is partial or absent; a claim whose kind isn't current, read at
+that came back `false`, so the prose was fixed; one nobody could
+check, so the mark is partial or absent; a claim whose kind isn't current, read at
 an old tree or held as not delivered; a mark written despite a `false`
 claim; and a verdict resting on a subject only searched for, or that the
-session overrode or read again itself. Every other reading is
+session overrode, read again or settled itself. Every other reading is
 **routine**: every claim true and current, and every subject read in
 full. The notable ones come first, each with its reason, and go in the
 pull request's description, where the person approving sees them.

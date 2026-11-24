@@ -118,7 +118,7 @@ run.
 - `claims/subagent/reading_agent.md` takes a list and returns a bare
   JSON array, and the check-claims skill's marking section is a numbered
   procedure: choose, group, dispatch, check, re-send for trees, read
-  the evidence, mark, report.
+  the evidence, settle what the agent couldn't reach, mark, report.
 - `python3 scripts/run_reading_agent_golden.py --batched` is the run
   the cap rests on, recorded in `docs/reading-agent.md`. Until it passes
   every repeat at some size, a commit's findings cost what they did

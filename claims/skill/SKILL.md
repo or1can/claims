@@ -269,7 +269,25 @@ step's detail follows it.
    the costly mistake, since it holds there and its mark no longer
    expires with its subjects.
 
-7. **Mark by kind, with `--pending`.** For each finding:
+7. **Settle what the agent couldn't reach.** A claim it reports `not
+   checked` is one it couldn't read, not one found wanting, and its
+   reasoning says what it would need. Route each by that:
+
+   - **a tree:** step 5;
+   - **a subject it wasn't given:** hand it the finding again with that
+     subject named;
+   - **a command's output, the history, an issue or the network:** read
+     or run it yourself, as the agent would have read a file: `git log`,
+     `gh issue view`, the command the claim describes. Then the claim
+     has a verdict from you, and the mark's `--by` names you beside the
+     agent, as `claims:reading-agent (<model>), with <session or agent
+     name> (<model>)`;
+   - **nothing you can reach either:** a past run's output you can't
+     reproduce, an incident that cites nothing to find it by, a
+     repository you can't access, a judgement rather than a fact. Only
+     this claim stays `not checked`.
+
+8. **Mark by kind, with `--pending`.** For each finding:
 
    - **Every claim `true`:** mark the finding, with `--by
      "claims:reading-agent (<model>)"`, `<model>` being the model it ran
@@ -283,13 +301,13 @@ step's detail follows it.
      delivered. A past or superseded claim that is `false` at its tree is
      in a record whose prose is not rewritten: check its kind evidence,
      and settle it with the user.
-   - **A claim `not checked`:** in a `stale-claims` section or a
-     `spliced-docs` doc comment, mark with `--partial` and name the
-     unchecked claim in the note, as long as at least one claim is
-     `true`: a mark on which nothing was checked records no reading at
-     all. In any other mode, don't mark on the agent's reading: read that
-     claim's subject yourself, or leave the finding unmarked. A full mark
-     always means every claim was checked.
+   - **A claim still `not checked` after step 7:** in a `stale-claims`
+     section or a `spliced-docs` doc comment, mark with `--partial` and
+     name the unchecked claim in the note, and why nothing could settle
+     it, as long as at least one claim is `true`: a mark on which nothing
+     was checked records no reading at all. In any other mode, leave the
+     finding unmarked. A full mark always means every claim was
+     checked.
 
    Each claim is read at its own kind's tree, and the unit's verdicts
    combine as one claim's would: the unit is fully marked when every
@@ -304,21 +322,21 @@ step's detail follows it.
    note. Marks of different kinds go in separate batches. "Writing the
    marks" below gives the command.
 
-8. **Report.** Tell the user which readings are **notable**, the ones a
+9. **Report.** Tell the user which readings are **notable**, the ones a
    person should see before approving a mark. A reading is notable if
    any of these hold:
 
    1. a claim came back `false`, so the prose was fixed: say what it
       said, what the subject holds, and the fix;
-   2. a claim came back `not checked`, so the finding got a partial mark
-      or none: say what would settle it;
+   2. a claim stayed `not checked` after step 7, so the finding got a
+      partial mark or none: say why nothing could settle it;
    3. a claim's kind isn't current (past, superseded, or an intended
       claim held as not delivered): give its kind evidence and the tree
       it was read at;
    4. a mark was written despite a `false` claim, the intended "not
       delivered yet" exception;
    5. a verdict rests on a subject the agent only searched, or one you
-      overrode or re-read yourself: say what you did.
+      overrode, re-read or settled yourself in step 7: say what you did.
 
    Every other reading is routine: every claim `true`, every claim
    current, and every subject read in full. List the notable readings

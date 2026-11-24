@@ -18,6 +18,10 @@ reached you, not just that one was pushed upstream.
   corrected by the session, before routine ones, and puts that list in
   the pull request, for you to look at first when approving. Marks still
   name `claims:reading-agent (<model>)` and are still `--pending`.
+- Changed: a claim the reading agent leaves `not checked` because it
+  needs a command, the history or an issue is now settled by the session
+  itself, so fewer findings end with a partial mark; one that does says
+  why nothing could settle it.
 - Changed: the reading agent takes a list of findings and returns one
   report per finding. The skill still hands it one finding per call:
   reading several findings in one call isn't yet reliable enough to

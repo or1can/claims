@@ -3,11 +3,10 @@ file = ".out-of-scope/generated-subjects-and-history-weighting.md"
 mode = "stale-claims"
 unit = "dd656ffcd24a40a1"
 copies = 1
-note = "read TODO.md, ADR 0009, stale_claims.py and stale-claims.md: exclude and bare-stem behaviour, score-only ordering and the TODO pointer hold, current; not checked: what #199 reported and resolved (an issue), and the weighting judgment"
-by = "claims:reading-agent (sonnet)"
+note = "read TODO.md, ADR 0009, stale_claims.py and stale-claims.md: exclude, explicit paths, score-only ordering, the TODO pointer and the bare-stem rule hold; the agent left the #199 history not checked, and Claude Code settled it: #199 lists three suggested directions, and at ratect#810's head decisions/README.md and ADR 0003 name `doctor` bare and never the capture, whose stem no other tracked file has; current and true, the weighting judgement consistent with the unweighted score"
+by = "claims:reading-agent (sonnet), with Claude Code (claude-opus-5-5)"
 approved_by = "Kevin Rogers"
-extent = "partial"
-subjects = { "TODO.md" = "23425f98d5229151" }
+subjects = { "TODO.md" = "281d6a285c707a34" }
 
 [[mark]]
 file = ".out-of-scope/version-only-churn.md"
@@ -101,11 +100,11 @@ file = "AGENTS.md"
 mode = "stale-claims"
 unit = "3413ae0523a5bc76"
 copies = 1
-note = "read the section and TODO.md in full: the gardening rule, its fit with surgical changes and the TODO.md pointer hold, current; not checked: the load_project doc comment and the stale TODO.md behaviour, past incidents of history no single tree settles"
-by = "claims:reading-agent (sonnet)"
+note = "read the section and TODO.md in full: the gardening rule, its fit with surgical changes and the TODO.md pointer hold, current; not checked, and nothing could settle them: the load_project incident (Claude Code found load_project only in or1can/ratect, with no commit, PR or review cited to find the incident by) and TODO.md once describing deleted behaviour (no release or commit cited)"
+by = "claims:reading-agent (sonnet), with Claude Code (claude-opus-5-5)"
 approved_by = "Kevin Rogers"
 extent = "partial"
-subjects = { "TODO.md" = "23425f98d5229151" }
+subjects = { "TODO.md" = "281d6a285c707a34" }
 
 [[mark]]
 file = "AGENTS.md"
@@ -134,10 +133,11 @@ file = "AGENTS.md"
 mode = "stale-claims"
 unit = "a24aa63faff14f27"
 copies = 1
-note = "read TODO.md and claims.toml in full: the repo runs claims on itself and TODO.md holds no unexplained unadopted feature; current and true"
-by = "claims:reading-agent (sonnet)"
+note = "read TODO.md and claims.toml in full: the repo runs claims on itself and adopts what ships, with no unexplained gap in TODO.md, current; not checked: that a feature only ratect runs has a cost its shapers haven't paid, a judgement rather than a fact"
+by = "claims:reading-agent (sonnet), with Claude Code (claude-opus-5-5)"
 approved_by = "Kevin Rogers"
-subjects = { "TODO.md" = "23425f98d5229151" }
+extent = "partial"
+subjects = { "TODO.md" = "281d6a285c707a34" }
 
 [[mark]]
 file = "AGENTS.md"
@@ -262,10 +262,10 @@ file = "README.md"
 mode = "claim-words-counts"
 unit = "7df1301d46f4f60a"
 copies = 1
-note = "read SKILL.md, reading_agent.md and docs/reading-agent.md: the cap of 1 feeds one finding per call, the agent reads the unit and every subject in full and reports a verdict per claim with evidence, and never marks; current and true"
+note = "read SKILL.md, reading_agent.md and docs/reading-agent.md: the cap of 1 feeds one finding per call, the agent reads the unit and every subject in full, reports a verdict per claim with evidence and never marks; current and true"
 by = "claims:reading-agent (sonnet)"
 approved_by = "Kevin Rogers"
-subjects = { "docs/reading-agent.md" = "82905fb1eb2c7ebb" }
+subjects = { "docs/reading-agent.md" = "6f29e498daa668a5" }
 
 [[mark]]
 file = "README.md"
@@ -292,10 +292,10 @@ file = "README.md"
 mode = "claim-words-totalising"
 unit = "7df1301d46f4f60a"
 copies = 1
-note = "read SKILL.md, reading_agent.md and docs/reading-agent.md: the cap of 1 feeds one finding per call, the agent reads the unit and every subject in full and reports a verdict per claim with evidence, and never marks; current and true"
+note = "read SKILL.md, reading_agent.md and docs/reading-agent.md: the cap of 1 feeds one finding per call, the agent reads the unit and every subject in full, reports a verdict per claim with evidence and never marks; current and true"
 by = "claims:reading-agent (sonnet)"
 approved_by = "Kevin Rogers"
-subjects = { "docs/reading-agent.md" = "82905fb1eb2c7ebb" }
+subjects = { "docs/reading-agent.md" = "6f29e498daa668a5" }
 
 [[mark]]
 file = "README.md"
@@ -342,10 +342,10 @@ file = "README.md"
 mode = "stale-claims"
 unit = "4abe336640ffcdc1"
 copies = 1
-note = "read the section against reading-agent.md, installation.md, SKILL.md, judgment-agent.md, configuring.md and reading_agent.md: all seven claims hold, the cap of 1 keeping one finding at a time true; current and true"
-by = "claims:reading-agent (sonnet)"
+note = "read the section against installation.md, reading-agent.md, SKILL.md, both subagents, judgment-agent.md, configuring.md and runner.py: all claims hold; the agent only grepped checked-marks.md, and Claude Code relied on checked.py's markable map, which lists judgment-agent, read in full on this branch; current and true"
+by = "claims:reading-agent (sonnet), with Claude Code (claude-opus-5-5)"
 approved_by = "Kevin Rogers"
-subjects = { "docs/installation.md" = "b3b4c6c9afce46fc", "docs/reading-agent.md" = "82905fb1eb2c7ebb" }
+subjects = { "docs/installation.md" = "b3b4c6c9afce46fc", "docs/reading-agent.md" = "6f29e498daa668a5" }
 
 [[mark]]
 file = "README.md"
@@ -368,13 +368,23 @@ subjects = {}
 
 [[mark]]
 file = "TODO.md"
-mode = "claim-words-totalising"
-unit = "ad482222e28dd9d9"
+mode = "claim-words-about-elsewhere"
+unit = "eb08d25488b8250b"
 copies = 1
-note = "read SKILL.md in full: the read-and-mark procedure lives in check-claims and every marking path starts from a check run's findings; current and true"
-by = "claims:reading-agent (sonnet)"
+note = "read markdown.py and spliced_docs.py: the SENTENCE_RE fallback, the Rust walk and both fixes hold; the agent left four claims not checked, and Claude Code settled them: the two lines were added in PR 159 (closes #154, an abbreviation bug, so the tail is out of scope) and PR 170 (closes #168), and cargo doc documents both shapes while rustfmt rewrites both onto separate lines; current and true"
+by = "claims:reading-agent (sonnet), with Claude Code (claude-opus-5-5)"
 approved_by = "Kevin Rogers"
-subjects = {}
+subjects = { "CONTEXT.md" = "1c037c2446d63488", "decisions/0019-claims-are-intended-current-superseded-or-past.md" = "5dd8425615ea3a6d", "docs/checks/check-links.md" = "1016d0435261ddec" }
+
+[[mark]]
+file = "TODO.md"
+mode = "claim-words-counts"
+unit = "eb08d25488b8250b"
+copies = 1
+note = "read markdown.py and spliced_docs.py: the SENTENCE_RE fallback, the Rust walk and both fixes hold; the agent left four claims not checked, and Claude Code settled them: the two lines were added in PR 159 (closes #154, an abbreviation bug, so the tail is out of scope) and PR 170 (closes #168), and cargo doc documents both shapes while rustfmt rewrites both onto separate lines; current and true"
+by = "claims:reading-agent (sonnet), with Claude Code (claude-opus-5-5)"
+approved_by = "Kevin Rogers"
+subjects = { "CONTEXT.md" = "1c037c2446d63488", "decisions/0019-claims-are-intended-current-superseded-or-past.md" = "5dd8425615ea3a6d", "docs/checks/check-links.md" = "1016d0435261ddec" }
 
 [[mark]]
 file = "TODO.md"
@@ -483,9 +493,19 @@ subjects = {}
 [[mark]]
 file = "claims/skill/SKILL.md"
 mode = "claim-words-about-elsewhere"
-unit = "1b5d1a3752c54889"
+unit = "5ee1cb3aa4102315"
 copies = 1
-note = "read SKILL.md, reading_agent.md and CONTEXT.md's Notable reading: the five notable rules match step 7's marking rules and the agent's verdicts, kinds and read/searched; current and true"
+note = "read SKILL.md, ADR 0018 and docs/reading-agent.md: the session-settled by form sits beside the agent-only and session-only forms without conflict; current and true"
+by = "claims:reading-agent (sonnet)"
+approved_by = "Kevin Rogers"
+subjects = {}
+
+[[mark]]
+file = "claims/skill/SKILL.md"
+mode = "claim-words-about-elsewhere"
+unit = "8a5b152529baaed9"
+copies = 1
+note = "read SKILL.md steps 2-9 and reading_agent.md: a tree goes to step 5, a missing subject is re-sent, and what needs a shell or the network goes to the session, which the agent's tools can't reach; current and true"
 by = "claims:reading-agent (sonnet)"
 approved_by = "Kevin Rogers"
 subjects = {}
@@ -505,6 +525,16 @@ mode = "claim-words-about-elsewhere"
 unit = "a1197d0843cae326"
 copies = 1
 note = "read reading_agent.md, ADR 0019 and docs/reading-agent.md in full: each claim read at its own kind's tree, a unit fully marked when every claim holds at its tree; current and true"
+by = "claims:reading-agent (sonnet)"
+approved_by = "Kevin Rogers"
+subjects = {}
+
+[[mark]]
+file = "claims/skill/SKILL.md"
+mode = "claim-words-about-elsewhere"
+unit = "f527027a8ef4d556"
+copies = 1
+note = "read reading_agent.md's Verdicts and Output: not checked means it could not read what settles the claim, and it is told to say what it would need; current and true"
 by = "claims:reading-agent (sonnet)"
 approved_by = "Kevin Rogers"
 subjects = {}
@@ -532,22 +562,12 @@ subjects = {}
 [[mark]]
 file = "claims/skill/SKILL.md"
 mode = "claim-words-counts"
-unit = "0dc298479a663734"
-copies = 1
-note = "read SKILL.md 150-270, reading_agent.md, checked.py in full and cli.py's mark-checked parser; both claims hold. --partial is limited to stale-claims and spliced-docs, and the 'at least one true' condition is policy the code doesn't enforce. I didn't read runner.py."
-by = "claims:reading-agent (sonnet)"
-approved_by = "Kevin Rogers"
-subjects = {}
-
-[[mark]]
-file = "claims/skill/SKILL.md"
-mode = "claim-words-counts"
 unit = "1518befb2f366c02"
 copies = 1
-note = "read run_reading_agent_golden.py and docs/reading-agent.md, counted 10 fixture findings: --batched hands all 10 to one call, and the page records 2 of 4 batched runs passing; current and true"
+note = "read run_reading_agent_golden.py and docs/reading-agent.md, counted 10 fixture findings: --batched hands all 10 to one call and the page records 2 of 4 batched runs passing; current and true"
 by = "claims:reading-agent (sonnet)"
 approved_by = "Kevin Rogers"
-subjects = { "docs/reading-agent.md" = "82905fb1eb2c7ebb" }
+subjects = { "docs/reading-agent.md" = "6f29e498daa668a5" }
 
 [[mark]]
 file = "claims/skill/SKILL.md"
@@ -555,16 +575,6 @@ mode = "claim-words-counts"
 unit = "1a69b757ef1f8ad0"
 copies = 1
 note = "read cli.py's mark_checked and parse_mark_args plus docs/checked-marks.md's Writing marks; all three claims hold: one entry per line, a note required per entry, and the --diff-range the findings were reported over. The no-note rejection in checked.py was seen only through a Grep hit, but docs/checked-marks.md:24,149 states the same."
-by = "claims:reading-agent (sonnet)"
-approved_by = "Kevin Rogers"
-subjects = {}
-
-[[mark]]
-file = "claims/skill/SKILL.md"
-mode = "claim-words-counts"
-unit = "1b5d1a3752c54889"
-copies = 1
-note = "read SKILL.md, reading_agent.md and CONTEXT.md's Notable reading: the five notable rules match step 7's marking rules and the agent's verdicts, kinds and read/searched; current and true"
 by = "claims:reading-agent (sonnet)"
 approved_by = "Kevin Rogers"
 subjects = {}
@@ -592,9 +602,29 @@ subjects = {}
 [[mark]]
 file = "claims/skill/SKILL.md"
 mode = "claim-words-counts"
+unit = "51dbe0070fabaff3"
+copies = 1
+note = "read checked.py's UNITS and new_marks, cli.py's --partial, checked-marks.md and docs/reading-agent.md: --partial is accepted for stale-claims and spliced-docs only, and the note and at-least-one-true rules match the docs; current and true"
+by = "claims:reading-agent (sonnet)"
+approved_by = "Kevin Rogers"
+subjects = {}
+
+[[mark]]
+file = "claims/skill/SKILL.md"
+mode = "claim-words-counts"
 unit = "55ad370f124ab448"
 copies = 1
 note = "read docs/reading-agent.md and ADR 0021: both set the cap at 1, so every finding is a reading batch of its own; current and true"
+by = "claims:reading-agent (sonnet)"
+approved_by = "Kevin Rogers"
+subjects = {}
+
+[[mark]]
+file = "claims/skill/SKILL.md"
+mode = "claim-words-counts"
+unit = "57c5f312e1212313"
+copies = 1
+note = "read SKILL.md steps 7-9, reading_agent.md and CONTEXT.md's Notable reading: the five notable rules match step 8's marking rules and the agent's verdicts, kinds and searched list; current and true"
 by = "claims:reading-agent (sonnet)"
 approved_by = "Kevin Rogers"
 subjects = {}
@@ -721,20 +751,30 @@ subjects = {}
 
 [[mark]]
 file = "claims/skill/SKILL.md"
-mode = "claim-words-totalising"
-unit = "1518befb2f366c02"
+mode = "claim-words-counts"
+unit = "f527027a8ef4d556"
 copies = 1
-note = "read run_reading_agent_golden.py and docs/reading-agent.md, counted 10 fixture findings: --batched hands all 10 to one call, and the page records 2 of 4 batched runs passing; current and true"
+note = "read reading_agent.md's Verdicts and Output: not checked means it could not read what settles the claim, and it is told to say what it would need; current and true"
 by = "claims:reading-agent (sonnet)"
 approved_by = "Kevin Rogers"
-subjects = { "docs/reading-agent.md" = "82905fb1eb2c7ebb" }
+subjects = {}
 
 [[mark]]
 file = "claims/skill/SKILL.md"
 mode = "claim-words-totalising"
-unit = "1b5d1a3752c54889"
+unit = "1518befb2f366c02"
 copies = 1
-note = "read SKILL.md, reading_agent.md and CONTEXT.md's Notable reading: the five notable rules match step 7's marking rules and the agent's verdicts, kinds and read/searched; current and true"
+note = "read run_reading_agent_golden.py and docs/reading-agent.md, counted 10 fixture findings: --batched hands all 10 to one call and the page records 2 of 4 batched runs passing; current and true"
+by = "claims:reading-agent (sonnet)"
+approved_by = "Kevin Rogers"
+subjects = { "docs/reading-agent.md" = "6f29e498daa668a5" }
+
+[[mark]]
+file = "claims/skill/SKILL.md"
+mode = "claim-words-totalising"
+unit = "26350b4178ee56cb"
+copies = 1
+note = "read SKILL.md steps 7-8 and docs/reading-agent.md: only a claim nothing reachable can settle stays not checked; current and true"
 by = "claims:reading-agent (sonnet)"
 approved_by = "Kevin Rogers"
 subjects = {}
@@ -775,6 +815,16 @@ mode = "claim-words-totalising"
 unit = "55ad370f124ab448"
 copies = 1
 note = "read docs/reading-agent.md and ADR 0021: both set the cap at 1, so every finding is a reading batch of its own; current and true"
+by = "claims:reading-agent (sonnet)"
+approved_by = "Kevin Rogers"
+subjects = {}
+
+[[mark]]
+file = "claims/skill/SKILL.md"
+mode = "claim-words-totalising"
+unit = "57c5f312e1212313"
+copies = 1
+note = "read SKILL.md steps 7-9, reading_agent.md and CONTEXT.md's Notable reading: the five notable rules match step 8's marking rules and the agent's verdicts, kinds and searched list; current and true"
 by = "claims:reading-agent (sonnet)"
 approved_by = "Kevin Rogers"
 subjects = {}
@@ -1374,21 +1424,20 @@ file = "decisions/0005-live-and-dated-claims.md"
 mode = "stale-claims"
 unit = "073c1634c496cdb6"
 copies = 1
-note = "read ADR 0005, ADR 0019, CONTEXT.md and TODO.md: the amendment's scope, the four kinds, the tombstone on all four entries and the Dated rationale hold, current; not checked: Ticket #77, which cites an issue"
-by = "claims:reading-agent (sonnet)"
+note = "read ADR 0005, ADR 0019, CONTEXT.md and TODO.md: the amendment's scope, the four kinds, the tombstone and the Dated rationale hold; the agent left Ticket #77 not checked, and Claude Code read it with gh: #77 is the claim-words recommendation issue whose tension this record's Decision settles; current and true"
+by = "claims:reading-agent (sonnet), with Claude Code (claude-opus-5-5)"
 approved_by = "Kevin Rogers"
-extent = "partial"
-subjects = { "TODO.md" = "23425f98d5229151", "decisions/0019-claims-are-intended-current-superseded-or-past.md" = "5dd8425615ea3a6d" }
+subjects = { "TODO.md" = "281d6a285c707a34", "decisions/0019-claims-are-intended-current-superseded-or-past.md" = "5dd8425615ea3a6d" }
 
 [[mark]]
 file = "decisions/0005-live-and-dated-claims.md"
 mode = "stale-claims"
 unit = "86ae35d58a6aa3b5"
 copies = 1
-note = "current: record-like retired, the retired quote redefined, designation per file and the claim-words recommendation hold at the root; superseded, at 0bd963f just before 61479e9: the live/dated bullets with their lead-in, the TODO.md axis sentence and the two-entry tombstone hold; past, at a6de882 and 78a958e: the retired quote was tied to record-like files before and untied at its writing (Claude Code read both CONTEXT.md entries the agent had only grepped)"
-by = "claims:reading-agent (sonnet), with Claude Code (claude-opus-5-5)"
+note = "current: record-like retired, the retired quote unanchored, files' mechanics unchanged in claim_words.py and the claim-words recommendation hold; superseded, at 0bd963f just before 61479e9: the live/dated bullets with their lead-in, the TODO.md axis sentence and the two-entry tombstone held; past, at a6de882: ADR 0003 tied its style to record-like files"
+by = "claims:reading-agent (sonnet)"
 approved_by = "Kevin Rogers"
-subjects = { "CONTEXT.md" = "1c037c2446d63488", "TODO.md" = "23425f98d5229151" }
+subjects = { "CONTEXT.md" = "1c037c2446d63488", "TODO.md" = "281d6a285c707a34" }
 
 [[mark]]
 file = "decisions/0008-a-command-names-its-own-environment.md"
@@ -1671,10 +1720,10 @@ file = "decisions/0017-an-approval-is-folded-into-the-commit-that-wrote-the-mark
 mode = "stale-claims"
 unit = "de00163e80311042"
 copies = 1
-note = "read ADR 0015, TODO.md, fold.py and cli.py: the fold route, its force-with-lease and the deferred merge driver hold; current and true"
+note = "read ADR 0015, TODO.md, fold.py and cli.py in full: ADR 0015's sentence stands, fold-approvals rebases and prints a force-with-lease push, and the ordinary merge driver stays deferred; current and true"
 by = "claims:reading-agent (sonnet)"
 approved_by = "Kevin Rogers"
-subjects = { "TODO.md" = "23425f98d5229151" }
+subjects = { "TODO.md" = "281d6a285c707a34" }
 
 [[mark]]
 file = "decisions/0018-the-reader-and-the-approver-are-recorded-apart.md"
@@ -1764,21 +1813,20 @@ file = "decisions/0019-claims-are-intended-current-superseded-or-past.md"
 mode = "stale-claims"
 unit = "86ae35d58a6aa3b5"
 copies = 1
-note = "current: the four kinds, inference, reading each kind, marks, expiry and approval claims hold against reading_agent.md, SKILL.md, CONTEXT.md and checked.py, and judgment-agent carries no kind; superseded, at 05d6499 just before 307ee91: the Scope list of five modes held; Claude Code read the files rows of claim-words.md and temporal-words.md the agent had only searched, both file-level glob lists declaring no kind"
-by = "claims:reading-agent (sonnet), with Claude Code (claude-opus-5-5)"
+note = "current: the four kinds, inference, reading each kind, marks, expiry, approval and the rest of Scope hold against reading_agent.md, SKILL.md, CONTEXT.md, checked.py, judgment_agent.py and the claim-words and temporal-words pages; superseded, at 05d6499 just before 307ee91: the Scope list of five modes held"
+by = "claims:reading-agent (sonnet)"
 approved_by = "Kevin Rogers"
-subjects = { "CONTEXT.md" = "1c037c2446d63488", "TODO.md" = "23425f98d5229151", "claims/historical.py" = "6a37d1e75977cece" }
+subjects = { "CONTEXT.md" = "1c037c2446d63488", "TODO.md" = "281d6a285c707a34", "claims/historical.py" = "6a37d1e75977cece" }
 
 [[mark]]
 file = "decisions/0019-claims-are-intended-current-superseded-or-past.md"
 mode = "stale-claims"
 unit = "de00163e80311042"
 copies = 1
-note = "current: the 0005 and 0010 amendments, 0004 past by its Status, the defaults, mark expiry, orphaning, retired quotes and the verdict sets hold; superseded, at 0bd963f: 0005's replaced sentences held; superseded, at 05d6499 just before 307ee91: the historical bullet held; Claude Code read the two subagents' verdict sets the agent had only grepped; not checked: 0004's Consequences at their writing (no tree for that commit) and what #261 built and settled (cites an issue)"
+note = "current: the 0005 and 0010 amendments, 0004 past by its Status, the defaults, mark expiry, orphaning, retired quotes, the verdict sets and the TODO pointer hold; superseded, at 0bd963f: 0005's replaced sentences held; superseded, at 05d6499: the historical bullet held (Claude Code read restatement.py and judgment_agent.py's added-lines skip the agent had only grepped); the agent left three claims not checked, and Claude Code settled them: 0004's approved past mark read every claim at 00b497d and 7aad789, partial only for commit and issue citations; #264 is the historical issue ADR 0020 settled; and #261 closed through PRs 269 and 272, which built the mark kinds, expiry, approval flag, tree copies and claim-trees, each with a failing test first, and re-marked the stuck findings"
 by = "claims:reading-agent (sonnet), with Claude Code (claude-opus-5-5)"
 approved_by = "Kevin Rogers"
-extent = "partial"
-subjects = { "TODO.md" = "23425f98d5229151", "claims/historical.py" = "6a37d1e75977cece" }
+subjects = { "TODO.md" = "281d6a285c707a34", "claims/historical.py" = "6a37d1e75977cece" }
 
 [[mark]]
 file = "decisions/0020-a-historical-reference-that-moved-is-a-markable-finding.md"
@@ -2441,6 +2489,26 @@ note = "read against cli.py, runner.py, gate.py, pre_commit.py, pyproject.toml, 
 by = "claims:reading-agent (sonnet), with Claude Code (claude-opus-5-5)"
 approved_by = "Kevin Rogers"
 subjects = { "docs/checks/judgment-agent.md" = "0a229b2658be12de", "uv.lock" = "ad2c48ee32f0745c" }
+
+[[mark]]
+file = "docs/reading-agent.md"
+mode = "restatement-ngram"
+unit = "361f71cc9e67840e-e2168fc34d49b001"
+copies = 1
+note = "not a restatement: the n-gram joins the end of the Any claim false bullet to the start of the rewritten not checked bullet; neither restates the removed rule, and both match SKILL.md steps 7 and 8; current and true"
+by = "claims:reading-agent (sonnet)"
+approved_by = "Kevin Rogers"
+subjects = {}
+
+[[mark]]
+file = "docs/reading-agent.md"
+mode = "restatement-ngram"
+unit = "c667cc4f6864e5f6-2862e2c16f8987a5"
+copies = 1
+note = "not a restatement: the n-gram joins the end of the Any claim false bullet, which still matches SKILL.md step 8, to the start of the rewritten not checked bullet, which matches steps 7 and 8; current and true"
+by = "claims:reading-agent (sonnet)"
+approved_by = "Kevin Rogers"
+subjects = {}
 
 [[mark]]
 file = "docs/reading-agent.md"
