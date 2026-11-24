@@ -327,6 +327,16 @@ class CheckLinksTests(RegistryClearingTestCase):
 
         self.assertEqual(findings, [])
 
+    def test_link_syntax_inside_a_double_backtick_code_span_is_not_checked(self) -> None:
+        with Repo() as repo:
+            repo.write("README.md", "Write it as `` `[text](path)` ``, not [bare](nope.md).\n")
+            repo.commit()
+
+            findings = self._findings(repo.root)
+
+        self.assertEqual(len(findings), 1)
+        self.assertIn("nope.md", findings[0].message)
+
     def test_a_real_link_with_code_in_its_text_is_still_checked(self) -> None:
         with Repo() as repo:
             repo.write("README.md", "See [`notes`](nope.md).\n")

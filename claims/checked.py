@@ -425,7 +425,7 @@ class _Tree:
         # Two sentences can share a line. `claim-words` and
         # `temporal-words` quote their sentence; `judgment-agent` quotes
         # the name it cites, which its sentence holds.
-        cited = CODE_SPAN_RE.findall(finding.message)
+        cited = [m["code"] for m in CODE_SPAN_RE.finditer(finding.message)]
         unit = next(
             (u for u in covering if u.body == finding.message),
             next(
