@@ -11,6 +11,16 @@ reached you, not just that one was pushed upstream.
 
 ## [Unreleased]
 
+## [0.37.2] - 2026-11-24
+
+- Fixed: a code span opened by two or more backticks is read as one
+  span. `check-links` no longer gates on link syntax inside one, and
+  `claim-words` and `temporal-words` no longer read the text after one
+  as a single long sentence, or the code inside it as prose.
+- Changed: a checked mark on a sentence that now splits differently is
+  reported as orphaned: read the new sentences and mark them, and remove
+  the old mark with `mark-checked --prune`.
+
 ## [0.37.1] - 2026-11-24
 
 - Fixed: a commit that changes the file a symlink points to now raises

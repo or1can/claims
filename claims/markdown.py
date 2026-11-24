@@ -60,7 +60,10 @@ from .lines import git_lines
 
 FENCE_RE = re.compile(r"^\s*(`{3,})")
 
-CODE_SPAN_RE = re.compile(r"`([^`]+)`")
+# CommonMark's: opened by a run of backticks and closed by the next run of
+# as many, so a span opened by two can hold one. A run no equal run closes
+# opens nothing.
+CODE_SPAN_RE = re.compile(r"(?<!`)(?P<run>`+)(?!`)(?P<code>.+?)(?<!`)(?P=run)(?!`)", re.DOTALL)
 
 # An inline link's destination, the `(...)` straight after a `]`, angle
 # brackets and a title included, holding at most one level of balanced
@@ -192,7 +195,7 @@ def mask_code_spans(text: str) -> str:
     result is an offset into `text`.
     """
 
-    return CODE_SPAN_RE.sub(lambda m: "`" + _MASK * len(m.group(1)) + "`", text)
+    return CODE_SPAN_RE.sub(lambda m: m["run"] + _MASK * len(m["code"]) + m["run"], text)
 
 
 def mask_link_destinations(text: str) -> str:
@@ -280,10 +283,10 @@ def _sentence_spans(para_text: str) -> list[tuple[int, int]]:
     unread, so the rules lean towards not splitting.
     """
 
-    # Each span's delimiters excluded: `[` and `]`, or the two backticks.
+    # Each span's delimiters excluded: `[` and `]`, or its runs of backticks.
     # Brackets are looked for with code spans masked, so a `[` in code
     # opens nothing.
-    enclosed = [(m.start() + 1, m.end() - 1) for m in CODE_SPAN_RE.finditer(para_text)]
+    enclosed = [m.span("code") for m in CODE_SPAN_RE.finditer(para_text)]
     enclosed += [(m.start() + 1, m.end() - 1) for m in BRACKETED_RE.finditer(mask_code_spans(para_text))]
 
     # Each search starts at the match's own start, not the paragraph's: a

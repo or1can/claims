@@ -58,6 +58,28 @@ class MaskCodeSpansTests(unittest.TestCase):
         # to write over, and the text is returned as it came.
         self.assertEqual(mask_code_spans("A stray ` and 1.2.3"), "A stray ` and 1.2.3")
 
+    def test_a_span_closes_at_a_run_of_as_many_backticks_as_opened_it(self) -> None:
+        for text, hidden, kept in (
+            ("See `` `1.2.3` `` and 4.5.6.", "1.2.3", "4.5.6"),
+            ("See ``1.2.3 ` 2.3.4`` and 4.5.6.", "2.3.4", "4.5.6"),
+            ("See ```1.2.3 `` 2.3.4``` and 4.5.6.", "2.3.4", "4.5.6"),
+            ("See `1.2.3 `` 2.3.4` and 4.5.6.", "2.3.4", "4.5.6"),
+        ):
+            with self.subTest(text=text):
+                masked = mask_code_spans(text)
+                self.assertNotIn(hidden, masked)
+                self.assertNotIn("1.2.3", masked)
+                self.assertIn(kept, masked)
+                self.assertEqual(len(masked), len(text))
+                self.assertTrue(CODE_SPAN_RE.search(masked))
+
+    def test_a_run_no_equal_run_closes_masks_nothing(self) -> None:
+        for text in ("A stray `` and 1.2.3 ` here", "Opened `` with 1.2.3 and ``` closed"):
+            with self.subTest(text=text):
+                self.assertEqual(mask_code_spans(text), text)
+        # Nor does it stop a span after it from being one.
+        self.assertEqual(mask_code_spans("A `` then `1.2.3`.").count("1.2.3"), 0)
+
 
 class SentencesFromTableTests(unittest.TestCase):
     def test_each_table_row_is_its_own_sentence_on_its_own_line(self) -> None:
@@ -170,6 +192,23 @@ class SentencesFromSplitTests(unittest.TestCase):
         self.assertEqual(
             sentences_from("Run `make. Then` here. Next.\n"),
             [Sentence("Run `make. Then` here.", 0, 0), Sentence("Next.", 0, 0)],
+        )
+
+    def test_a_double_backtick_span_hides_no_later_sentence_end(self) -> None:
+        self.assertEqual(
+            sentences_from("A name (`` `a` ``, `` `b` ``) is `bare`. It runs. X `c` is. End.\n"),
+            [
+                Sentence("A name (`` `a` ``, `` `b` ``) is `bare`.", 0, 0),
+                Sentence("It runs.", 0, 0),
+                Sentence("X `c` is.", 0, 0),
+                Sentence("End.", 0, 0),
+            ],
+        )
+
+    def test_a_terminator_inside_a_double_backtick_span_does_not_end_a_sentence(self) -> None:
+        self.assertEqual(
+            sentences_from("Run `` make `x`. Then `` here. Next.\n"),
+            [Sentence("Run `` make `x`. Then `` here.", 0, 0), Sentence("Next.", 0, 0)],
         )
 
 
