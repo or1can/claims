@@ -45,10 +45,10 @@ Two lines a future request has to respect:
   linked as "see there", and putting a manifest in it bends the term.
 
 The score part of the request is weaker than it looks. Since ADR 0009
-the score only orders the sections that are reported, and a section is
-ranked only when the range changes one of its subjects, so a pull
-request that leaves the version files alone never shows these sections
-(`generated-subjects-and-history-weighting.md`).
+the score only orders the sections that are reported
+(`generated-subjects-and-history-weighting.md`), and a section is ranked
+only when the range changes one of its subjects, so a pull request that
+changes none of a section's subjects never shows it.
 
 ## Prior requests
 
