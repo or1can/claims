@@ -13,21 +13,21 @@ file = ".out-of-scope/version-only-churn.md"
 mode = "stale-claims"
 unit = "d892c3a16ef8ce1a"
 copies = 1
-note = "read the section and stale_claims.py in full, pyproject.toml and ADR 0009: a version line counts, ranks its sections and is told apart nowhere; the agent left mark expiry to ADR 0009, and Claude Code read checked.py's content-hash comparison, which this release's own bump triggered; current and true"
+note = "read the section, stale_claims.py, checked.py, pyproject.toml and ADR 0009 in full: a version line counts, ranks its sections, expires a mark and is told apart nowhere; the agent also listed the next section's claims, set aside; current and true"
 by = "claims:reading-agent (sonnet), with Claude Code (claude-opus-5-5)"
 approved_by = "Kevin Rogers"
-subjects = { "pyproject.toml" = "af5f80c9d6c43109" }
+subjects = { "pyproject.toml" = "b6b987bc51795415" }
 
 [[mark]]
 file = ".out-of-scope/version-only-churn.md"
 mode = "stale-claims"
 unit = "dd656ffcd24a40a1"
 copies = 1
-note = "read the section, the sibling pages, stale_claims.py in full, config.py, ADRs 0009 and 0013, plugin.json and pyproject.toml: current claims hold; Claude Code settled #228, 6c645e5c's files, ratect's 170 marks with no version-file subject at af8ffa5f, the four sections' notes at 0054b7e and plugin.json's history; not checked: that 24 sections ranked and 1 named Cargo.toml, a past run's output with that day's claims, and that fruitless re-reads can teach marking without reading, a judgement"
+note = "read the section, the sibling pages, stale_claims.py, config.py, ADRs 0009 and 0013, plugin.json and pyproject.toml in full: current claims hold; Claude Code read #228, 6c645e5c's files, ratect's 170 marks with no Cargo file as a subject at af8ffa5f, the four sections' notes at 0054b7e and plugin.json's history (107 of 111 commits version-only); not checked: that 24 sections ranked and 1 named Cargo.toml, a past run's output, and that fruitless re-reads can teach marking without reading, a judgement"
 by = "claims:reading-agent (sonnet), with Claude Code (claude-opus-5-5)"
 approved_by = "Kevin Rogers"
 extent = "partial"
-subjects = { ".claude-plugin/plugin.json" = "82285e379764f27f", ".out-of-scope/adr-status-notes-as-churn.md" = "7bc84c78d3c4041e", ".out-of-scope/comment-only-churn.md" = "a8fc5351b734ef48", ".out-of-scope/generated-subjects-and-history-weighting.md" = "07ee72d09c6f005a", "pyproject.toml" = "af5f80c9d6c43109", "tests/fixtures/judgment_agent_golden/count_consistency_known_false/repo/ROADMAP.md" = "24be61be2e348715" }
+subjects = { ".claude-plugin/plugin.json" = "31256758fc9a5165", ".out-of-scope/adr-status-notes-as-churn.md" = "7bc84c78d3c4041e", ".out-of-scope/comment-only-churn.md" = "a8fc5351b734ef48", ".out-of-scope/generated-subjects-and-history-weighting.md" = "07ee72d09c6f005a", "pyproject.toml" = "b6b987bc51795415", "tests/fixtures/judgment_agent_golden/count_consistency_known_false/repo/ROADMAP.md" = "24be61be2e348715" }
 
 [[mark]]
 file = "AGENTS.md"
@@ -121,10 +121,10 @@ file = "AGENTS.md"
 mode = "stale-claims"
 unit = "8e4f8ea8f0f2e26d"
 copies = 1
-note = "read plugin.json, pyproject.toml, ADR 0004, test_plugin_manifest.py and CHANGELOG.md's top entries: bump, changelog and retarget rules hold and both versions are 0.37.2, pinned equal; Claude Code found the v0.37.1 tag on origin, ran uvx at it, and had Claude Code's plugin docs read: a set version, not the commit, decides an update (a plugin loaded in place from a local path excepted); current and true"
+note = "read plugin.json, pyproject.toml, ADR 0004 and test_plugin_manifest.py in full and CHANGELOG.md's top entries: bump, changelog and retarget rules hold and both versions are 0.37.3, pinned equal; Claude Code found the v0.37.2 tag on origin, ran uvx at it, and had Claude Code's plugin docs read: a set version, not the commit, decides an update (a plugin loaded in place from a local path excepted); current and true"
 by = "claims:reading-agent (sonnet), with Claude Code (claude-opus-5-5)"
 approved_by = "Kevin Rogers"
-subjects = { ".claude-plugin/plugin.json" = "82285e379764f27f", "decisions/0004-docs-is-the-user-facing-tree.md" = "84534f73ba887979", "pyproject.toml" = "af5f80c9d6c43109", "tests/test_plugin_manifest.py" = "50834b11b663da44" }
+subjects = { ".claude-plugin/plugin.json" = "31256758fc9a5165", "decisions/0004-docs-is-the-user-facing-tree.md" = "84534f73ba887979", "pyproject.toml" = "b6b987bc51795415", "tests/test_plugin_manifest.py" = "50834b11b663da44" }
 
 [[mark]]
 file = "AGENTS.md"
@@ -142,10 +142,10 @@ file = "AGENTS.md"
 mode = "stale-claims"
 unit = "c4e83690fc1a828d"
 copies = 1
-note = "read pyproject.toml, uv.lock's pin, ADR 0008 and pyright's _utils.py guard: the pin and the -q convention hold; Claude Code ran the documented command, which printed exactly the block, read the nag's print and guard, and ran uv with another VIRTUAL_ENV: it warned on stderr, and -q silenced it; current and true"
+note = "read the section, pyproject.toml and ADR 0008, and searched uv.lock for the pyright pin: the pin and the -q convention hold; Claude Code read uv.lock's diff (the version line alone) and pyright's _utils.py print and guard, ran the documented command, which printed exactly the block, and ran uv with another VIRTUAL_ENV, which warned on stderr until -q; current and true"
 by = "claims:reading-agent (sonnet), with Claude Code (claude-opus-5-5)"
 approved_by = "Kevin Rogers"
-subjects = { "decisions/0008-a-command-names-its-own-environment.md" = "44a8e0ed95bc0e7e", "pyproject.toml" = "af5f80c9d6c43109", "uv.lock" = "b779556b228b2cf6" }
+subjects = { "decisions/0008-a-command-names-its-own-environment.md" = "44a8e0ed95bc0e7e", "pyproject.toml" = "b6b987bc51795415", "uv.lock" = "1c3ac6aa327bf8c5" }
 
 [[mark]]
 file = "AGENTS.md"
@@ -260,10 +260,10 @@ file = "README.md"
 mode = "claim-words-counts"
 unit = "7df1301d46f4f60a"
 copies = 1
-note = "read SKILL.md, reading_agent.md and docs/reading-agent.md: the cap of 1 feeds one finding per call, the agent reads the unit and every subject in full, reports a verdict per claim with evidence and never marks; current and true"
-by = "claims:reading-agent (sonnet)"
+note = "read SKILL.md, reading_agent.md and docs/reading-agent.md: the cap of 1 feeds one finding per call, the agent reads the unit and every subject in full, reports a verdict per claim and never marks; Claude Code reworded the page's The model section after the reading, which nothing here rests on; current and true"
+by = "claims:reading-agent (sonnet), with Claude Code (claude-opus-5-5)"
 approved_by = "Kevin Rogers"
-subjects = { "docs/reading-agent.md" = "6f29e498daa668a5" }
+subjects = { "docs/reading-agent.md" = "5efde7a80770356f" }
 
 [[mark]]
 file = "README.md"
@@ -290,10 +290,10 @@ file = "README.md"
 mode = "claim-words-totalising"
 unit = "7df1301d46f4f60a"
 copies = 1
-note = "read SKILL.md, reading_agent.md and docs/reading-agent.md: the cap of 1 feeds one finding per call, the agent reads the unit and every subject in full, reports a verdict per claim with evidence and never marks; current and true"
-by = "claims:reading-agent (sonnet)"
+note = "read SKILL.md, reading_agent.md and docs/reading-agent.md: the cap of 1 feeds one finding per call, the agent reads the unit and every subject in full, reports a verdict per claim and never marks; Claude Code reworded the page's The model section after the reading, which nothing here rests on; current and true"
+by = "claims:reading-agent (sonnet), with Claude Code (claude-opus-5-5)"
 approved_by = "Kevin Rogers"
-subjects = { "docs/reading-agent.md" = "6f29e498daa668a5" }
+subjects = { "docs/reading-agent.md" = "5efde7a80770356f" }
 
 [[mark]]
 file = "README.md"
@@ -340,10 +340,10 @@ file = "README.md"
 mode = "stale-claims"
 unit = "4abe336640ffcdc1"
 copies = 1
-note = "the agent read the section against installation.md, reading-agent.md, checked.py, checked-marks.md, SKILL.md, both subagents, judgment_agent.py and gate.py in full, and searched cli.py for run(); Claude Code read cli.py's main and gate.py's decide_repo, which both call run(), and wrote the installation.md paragraph that changed after the reading; current and true"
+note = "read the section against installation.md, reading-agent.md, SKILL.md, both subagents, plugin.json, cli.py and gate.py in full, and checked.py's UNITS only: all eight claims hold; Claude Code read hooks.json, whose three hooks are the reminder, and reworded reading-agent.md's The model section after the reading, which nothing here rests on; current and true"
 by = "claims:reading-agent (sonnet), with Claude Code (claude-opus-5-5)"
 approved_by = "Kevin Rogers"
-subjects = { "docs/installation.md" = "ab434920e25708a3", "docs/reading-agent.md" = "6f29e498daa668a5" }
+subjects = { "docs/installation.md" = "ab434920e25708a3", "docs/reading-agent.md" = "5efde7a80770356f" }
 
 [[mark]]
 file = "README.md"
@@ -538,16 +538,6 @@ subjects = {}
 [[mark]]
 file = "claims/skill/SKILL.md"
 mode = "claim-words-counts"
-unit = "1518befb2f366c02"
-copies = 1
-note = "read run_reading_agent_golden.py and docs/reading-agent.md, counted 10 fixture findings: --batched hands all 10 to one call and the page records 2 of 4 batched runs passing; current and true"
-by = "claims:reading-agent (sonnet)"
-approved_by = "Kevin Rogers"
-subjects = { "docs/reading-agent.md" = "6f29e498daa668a5" }
-
-[[mark]]
-file = "claims/skill/SKILL.md"
-mode = "claim-words-counts"
 unit = "1a69b757ef1f8ad0"
 copies = 1
 note = "read cli.py's mark_checked and parse_mark_args plus docs/checked-marks.md's Writing marks; all three claims hold: one entry per line, a note required per entry, and the --diff-range the findings were reported over. The no-note rejection in checked.py was seen only through a Grep hit, but docs/checked-marks.md:24,149 states the same."
@@ -734,16 +724,6 @@ note = "read reading_agent.md's Verdicts and Output: not checked means it could 
 by = "claims:reading-agent (sonnet)"
 approved_by = "Kevin Rogers"
 subjects = {}
-
-[[mark]]
-file = "claims/skill/SKILL.md"
-mode = "claim-words-totalising"
-unit = "1518befb2f366c02"
-copies = 1
-note = "read run_reading_agent_golden.py and docs/reading-agent.md, counted 10 fixture findings: --batched hands all 10 to one call and the page records 2 of 4 batched runs passing; current and true"
-by = "claims:reading-agent (sonnet)"
-approved_by = "Kevin Rogers"
-subjects = { "docs/reading-agent.md" = "6f29e498daa668a5" }
 
 [[mark]]
 file = "claims/skill/SKILL.md"
@@ -997,6 +977,16 @@ subjects = {}
 [[mark]]
 file = "claims/skill/SKILL.md"
 mode = "claim-words-totalising"
+unit = "df63a5d6b3522c90"
+copies = 1
+note = "read SKILL.md's step 2, docs/reading-agent.md and ADR 0021: no failed run in 20 and the split of a larger group hold; Claude Code reworded the page's The model section and the ADR's account of the runs after the reading, neither the 20-run rule; current and true"
+by = "claims:reading-agent (sonnet), with Claude Code (claude-opus-5-5)"
+approved_by = "Kevin Rogers"
+subjects = {}
+
+[[mark]]
+file = "claims/skill/SKILL.md"
+mode = "claim-words-totalising"
 unit = "e169ee8562381e46"
 copies = 1
 note = "read reading_agent.md's Output: one object per finding, its finding field the file:line and mode; current and true"
@@ -1010,16 +1000,6 @@ mode = "claim-words-totalising"
 unit = "ebc342c06ff308b1"
 copies = 1
 note = "read SKILL.md in full, plus reading_agent.md and docs/reading-agent.md; the rule 'false claim: fix prose, never mark' matches the other two files and SKILL.md:210, with no exception. Did not read claims/checked.py, so I did not check whether the tool itself refuses such a mark; the claim is a procedure, not a code behaviour."
-by = "claims:reading-agent (sonnet)"
-approved_by = "Kevin Rogers"
-subjects = {}
-
-[[mark]]
-file = "claims/skill/SKILL.md"
-mode = "claim-words-totalising"
-unit = "ec9d0681542c840f"
-copies = 1
-note = "read ADR 0021 and docs/reading-agent.md: the cap rises only to a size passing every repeat, and a larger group splits keeping the most-shared subjects together; current and true"
 by = "claims:reading-agent (sonnet)"
 approved_by = "Kevin Rogers"
 subjects = {}
@@ -1420,10 +1400,10 @@ file = "decisions/0008-a-command-names-its-own-environment.md"
 mode = "stale-claims"
 unit = "86ae35d58a6aa3b5"
 copies = 1
-note = "read the ADR, pyproject.toml, executable_claims.py's run and compare code and check_cli_flags.py's command building: every claim holds; Claude Code ran uv with another VIRTUAL_ENV (a stderr warning, silenced by -q), both example shebangs and this repo's granted marker; current and true"
+note = "read the ADR, pyproject.toml, executable_claims.py and check_cli_flags.py in full: every claim read holds; Claude Code ran uv with another VIRTUAL_ENV, a stderr warning that -q silences; current and true"
 by = "claims:reading-agent (sonnet), with Claude Code (claude-opus-5-5)"
 approved_by = "Kevin Rogers"
-subjects = { "pyproject.toml" = "af5f80c9d6c43109" }
+subjects = { "pyproject.toml" = "b6b987bc51795415" }
 
 [[mark]]
 file = "decisions/0009-stale-claims-is-diff-scoped.md"
@@ -1895,6 +1875,19 @@ subjects = { "CONTEXT.md" = "1c037c2446d63488", "claims/historical.py" = "6a37d1
 
 [[mark]]
 file = "decisions/0021-a-reading-batch-is-only-as-large-as-a-golden-run-proves.md"
+mode = "restatement-ngram"
+unit = "86ce5d28ba8f6d38-698fa0fe58b6d1f8"
+copies = 1
+note = "superseded by the Status (#281), read at 398a9b3 just before it: --batched was the run the cap rests on and docs/reading-agent.md recorded it; Claude Code reflowed the Status after the reading, its --batched sentence unchanged"
+by = "claims:reading-agent (sonnet), with Claude Code (claude-opus-5-5)"
+approved_by = "Kevin Rogers"
+kind = "superseded"
+text = "86ce5d28ba8f6d38"
+evidence = { "decisions/0021-a-reading-batch-is-only-as-large-as-a-golden-run-proves.md#status" = "cccc5402bf577a2d" }
+subjects = { "scripts/run_reading_agent_golden.py" = "801cbef92d34e8b3" }
+
+[[mark]]
+file = "decisions/0021-a-reading-batch-is-only-as-large-as-a-golden-run-proves.md"
 mode = "stale-claims"
 unit = "073c1634c496cdb6"
 copies = 1
@@ -1902,6 +1895,16 @@ note = "read the Status against ADRs 0018 and 0019: both builds-on claims hold; 
 by = "claims:reading-agent (sonnet), with Claude Code (claude-opus-5-5)"
 approved_by = "Kevin Rogers"
 subjects = { "decisions/0018-the-reader-and-the-approver-are-recorded-apart.md" = "50487915a0cbd9ae", "decisions/0019-claims-are-intended-current-superseded-or-past.md" = "f27ce5ba82baa739" }
+
+[[mark]]
+file = "decisions/0021-a-reading-batch-is-only-as-large-as-a-golden-run-proves.md"
+mode = "stale-claims"
+unit = "de00163e80311042"
+copies = 1
+note = "read the section, reading_agent.md, SKILL.md, CONTEXT.md, the harness, docs/reading-agent.md, checked.py, fold.py and cli.py in full: current and true, save the --batched bullet, superseded by the Status (#281) and true at 398a9b3; the kept suffix was searched for in claims.checked.toml; Claude Code reworded the page, the harness docstring and the Status after the reading, not the mode names"
+by = "claims:reading-agent (sonnet), with Claude Code (claude-opus-5-5)"
+approved_by = "Kevin Rogers"
+subjects = { "CONTEXT.md" = "1c037c2446d63488", "claims/subagent/reading_agent.md" = "b64a85b5ea498174", "docs/reading-agent.md" = "5efde7a80770356f", "scripts/run_reading_agent_golden.py" = "801cbef92d34e8b3" }
 
 [[mark]]
 file = "docs/SUMMARY.md"
@@ -2458,10 +2461,10 @@ file = "docs/installation.md"
 mode = "claim-words-about-elsewhere"
 unit = "22469f6668f40d33"
 copies = 1
-note = "read the CI block, pyproject.toml, uv.lock and cli.py's __main__ guard: no runtime dependencies, uv.lock locks dev tools only; Claude Code ran python3 -S -m claims.cli with PYTHONPATH at the checkout, which imports every check and needs no uv or site-packages; current and true"
+note = "read the CI block, pyproject.toml, uv.lock and cli.py's imports and __main__ guard, parts of cli.py only: no runtime dependencies; Claude Code ran python3 -S -m claims.cli with PYTHONPATH at the checkout, which imports every check; current and true"
 by = "claims:reading-agent (sonnet), with Claude Code (claude-opus-5-5)"
 approved_by = "Kevin Rogers"
-subjects = { "uv.lock" = "b779556b228b2cf6" }
+subjects = { "uv.lock" = "1c3ac6aa327bf8c5" }
 
 [[mark]]
 file = "docs/installation.md"
@@ -2488,10 +2491,10 @@ file = "docs/installation.md"
 mode = "stale-claims"
 unit = "12f337ae2821f577"
 copies = 1
-note = "read lines 232-310, after a first reading stopped at 295, against cli.py, runner.py, gate.py, pre_commit.py, config.py, pyproject.toml, uv.lock, judgment-agent.md and SKILL.md: every claim holds; Claude Code ran uvx at v0.37.1 from another directory and found actions/checkout's v7 tag; current and true"
+note = "read lines 241-319 against cli.py, runner.py, gate.py, pre_commit.py, config.py, pyproject.toml, uv.lock, judgment-agent.md and SKILL.md in full and checked-marks.md 481-562: every claim read holds; Claude Code ran uvx at v0.37.2 from another directory and found actions/checkout's v7 tag; current and true"
 by = "claims:reading-agent (sonnet), with Claude Code (claude-opus-5-5)"
 approved_by = "Kevin Rogers"
-subjects = { "docs/checks/judgment-agent.md" = "0a229b2658be12de", "uv.lock" = "b779556b228b2cf6" }
+subjects = { "docs/checks/judgment-agent.md" = "0a229b2658be12de", "uv.lock" = "1c3ac6aa327bf8c5" }
 
 [[mark]]
 file = "docs/installation.md"

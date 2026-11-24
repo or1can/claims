@@ -1,0 +1,7 @@
+[advisory] docs/history.md:1 (stale-claims) 'Eviction order' names code 67% changed since last touched — cache.py 2 commits (67% of its history)
+
+Subjects: cache.py
+Root: the working directory
+Trees, named from docs/history.md:4:
+written 5b0c7e2f94a1d8363f7ae20c915d48b6e7f1a3c2 {root}/.claims/trees/5b0c7e2f94a1d8363f7ae20c915d48b6e7f1a3c2
+before c83d1f6a07e94b5d22a6f0e8b1749c3d5ea6f718 {root}/.claims/trees/c83d1f6a07e94b5d22a6f0e8b1749c3d5ea6f718

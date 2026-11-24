@@ -1,0 +1,1 @@
+{"false_claims": [], "not_checked": ["is written to disk"], "outside_unit": ["A restart"], "kinds": {"returns `None`": "current", "is written to disk": "superseded"}, "reads": ["decisions/0003-no-disk.md"]}

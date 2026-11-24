@@ -11,6 +11,12 @@ reached you, not just that one was pushed upstream.
 
 ## [Unreleased]
 
+## [0.37.3] - 2026-11-24
+
+- Changed: the skill says what a larger reading batch has to pass before
+  its cap goes up: no failed run in 20 golden runs at that size. The cap
+  is still one finding.
+
 ## [0.37.2] - 2026-11-24
 
 - Fixed: a code span opened by two or more backticks is read as one

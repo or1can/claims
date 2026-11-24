@@ -1,0 +1,4 @@
+[advisory] docs/settings.md:4 (claim-words-totalising) Every name in `SETTINGS` has an entry in `DEFAULTS`.
+
+Subjects: settings.py
+Root: the working directory
