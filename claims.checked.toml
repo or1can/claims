@@ -330,20 +330,20 @@ file = "README.md"
 mode = "stale-claims"
 unit = "427ab7d67f9acf9c"
 copies = 1
-note = "read Installing against installation.md, marketplace.json and configuring.md's [hook]: the git-URL install, pinning, separate hook (pre-commit or uvx from a tag), claims.toml opt-in, [hook] enabled and both pointers hold; all current and true"
-by = "claims:reading-agent (sonnet)"
+note = "the agent read Installing against installation.md, both marketplace manifests it found, .pre-commit-hooks.yaml and configuring.md's [hook], and only searched CHANGELOG.md's headings; Claude Code read gate.py's decide_repo and pre_commit.py, and wrote the installation.md paragraph that changed after the reading: \"no marketplace listing\" is short for no central one; current and true"
+by = "claims:reading-agent (sonnet), with Claude Code (claude-opus-5-5)"
 approved_by = "Kevin Rogers"
-subjects = { "docs/installation.md" = "b3b4c6c9afce46fc" }
+subjects = { "docs/installation.md" = "ab434920e25708a3" }
 
 [[mark]]
 file = "README.md"
 mode = "stale-claims"
 unit = "4abe336640ffcdc1"
 copies = 1
-note = "read the section against installation.md, reading-agent.md, SKILL.md, both subagents, judgment-agent.md, configuring.md and runner.py: all claims hold; the agent only grepped checked-marks.md, and Claude Code relied on checked.py's markable map, which lists judgment-agent, read in full on this branch; current and true"
+note = "the agent read the section against installation.md, reading-agent.md, checked.py, checked-marks.md, SKILL.md, both subagents, judgment_agent.py and gate.py in full, and searched cli.py for run(); Claude Code read cli.py's main and gate.py's decide_repo, which both call run(), and wrote the installation.md paragraph that changed after the reading; current and true"
 by = "claims:reading-agent (sonnet), with Claude Code (claude-opus-5-5)"
 approved_by = "Kevin Rogers"
-subjects = { "docs/installation.md" = "b3b4c6c9afce46fc", "docs/reading-agent.md" = "6f29e498daa668a5" }
+subjects = { "docs/installation.md" = "ab434920e25708a3", "docs/reading-agent.md" = "6f29e498daa668a5" }
 
 [[mark]]
 file = "README.md"
@@ -388,10 +388,10 @@ file = "agents/docs.md"
 mode = "stale-claims"
 unit = "53f9fac61c746451"
 copies = 1
-note = "read the section against capture.py, tutorial.py, steps.sh, tutorial.md, test_captures.py, test_tutorial.py, support.py and installation.md: rules 1-3, capture, history, local, config and tutorial claims hold; the agent settled no colour by search, and Claude Code ran the CLI piped and under a terminal, with no escape byte in either, and read git.py's tracked_files, the rest of git.py only as this change's diff; current and true"
+note = "the agent read the section against capture.py, tutorial.py, steps.sh, tutorial.md, test_captures.py, test_tutorial.py, support.py, git.py and installation.md: all hold but no colour, which it only searched for; Claude Code ran the CLI piped and under a terminal, with no escape byte in either, and wrote the installation.md paragraph that changed after the reading, which the section does not touch; current and true"
 by = "claims:reading-agent (sonnet), with Claude Code (claude-opus-5-5)"
 approved_by = "Kevin Rogers"
-subjects = { "claims/git.py" = "70dd577e5efb1523", "docs/installation.md" = "b3b4c6c9afce46fc", "docs/tutorial.md" = "454c6bd10f8e4dff", "examples/tutorial/steps.sh" = "48ecb8d10295eb50", "scripts/capture.py" = "14d2b4164af212d6", "scripts/tutorial.py" = "4127a928e43432f6", "tests/test_captures.py" = "7193d8987d213229", "tests/test_tutorial.py" = "0648a0f0d960676a" }
+subjects = { "claims/git.py" = "70dd577e5efb1523", "docs/installation.md" = "ab434920e25708a3", "docs/tutorial.md" = "454c6bd10f8e4dff", "examples/tutorial/steps.sh" = "48ecb8d10295eb50", "scripts/capture.py" = "14d2b4164af212d6", "scripts/tutorial.py" = "4127a928e43432f6", "tests/test_captures.py" = "7193d8987d213229", "tests/test_tutorial.py" = "0648a0f0d960676a" }
 
 [[mark]]
 file = "agents/docs.md"
@@ -2465,6 +2465,26 @@ subjects = { "uv.lock" = "b779556b228b2cf6" }
 
 [[mark]]
 file = "docs/installation.md"
+mode = "claim-words-counts"
+unit = "0a6b6cd103c2d81a"
+copies = 1
+note = "the agent read settings.json and marketplace.json and could not reach Claude Code's behaviour; Claude Code ran 2.1.311 in a throwaway config with two trusted projects, one declaring the git URL and one a directory: a session in each logged the overwrite and changed the entry, in both directions, repeatedly; current and true"
+by = "claims:reading-agent (sonnet), with Claude Code (claude-opus-5-5)"
+approved_by = "Kevin Rogers"
+subjects = { ".claude/settings.json" = "378ba4ac0188d4e2" }
+
+[[mark]]
+file = "docs/installation.md"
+mode = "claim-words-counts"
+unit = "ddc92b05a36532b5"
+copies = 1
+note = "the agent read hooks.json, plugin.json and marketplace.json and could not reach Claude Code's behaviour; Claude Code ran 2.1.311 in a throwaway config: the directory project's session failed with that message while the entry was git, and the git project's loaded the skill, agents and claims.nudge hook from the directory while it was directory; current and true"
+by = "claims:reading-agent (sonnet), with Claude Code (claude-opus-5-5)"
+approved_by = "Kevin Rogers"
+subjects = {}
+
+[[mark]]
+file = "docs/installation.md"
 mode = "stale-claims"
 unit = "12f337ae2821f577"
 copies = 1
@@ -2472,6 +2492,16 @@ note = "read lines 232-310, after a first reading stopped at 295, against cli.py
 by = "claims:reading-agent (sonnet), with Claude Code (claude-opus-5-5)"
 approved_by = "Kevin Rogers"
 subjects = { "docs/checks/judgment-agent.md" = "0a229b2658be12de", "uv.lock" = "b779556b228b2cf6" }
+
+[[mark]]
+file = "docs/installation.md"
+mode = "stale-claims"
+unit = "68e255ba9ce5f536"
+copies = 1
+note = "the agent read the section and settings.json and could settle none of it; Claude Code ran git commit against a failing hook (--no-verify and -n both skip it), had Claude Code's permissions page read for deny rules, and read the wildcard matcher in the 2.1.311 binary, * becoming .* over the whole command: the rule matches the flag with or without text before it, and not -n, git -C . commit or sh -c; not tried as a live deny; current and true"
+by = "claims:reading-agent (sonnet), with Claude Code (claude-opus-5-5)"
+approved_by = "Kevin Rogers"
+subjects = { ".claude/settings.json" = "378ba4ac0188d4e2" }
 
 [[mark]]
 file = "docs/reading-agent.md"

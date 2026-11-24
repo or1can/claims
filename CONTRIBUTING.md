@@ -38,6 +38,22 @@ must read exactly:
 pyright on PyPI" nag, which would otherwise break that exact-match check —
 see `AGENTS.md`'s Typechecking section.
 
+Claude Code loads this repository's plugin from the released git URL in
+`.claude/settings.json`, as a consuming project does, once it is installed
+in the clone, and stays on that release until it is updated:
+
+```bash
+claude plugin marketplace add https://github.com/or1can/claims.git --scope project
+claude plugin install claims@claims --scope project
+claude plugin update claims@claims --scope project   # after a release
+```
+
+To run the checkout's own skill, agents and reminder instead, start the
+session with `claude --plugin-dir .`, which overrides the installed copy
+for that session only. Don't declare the checkout as a `directory`
+marketplace: `docs/installation.md`'s "Install" says what that does to
+other projects on the machine.
+
 ## Conventions
 
 - **Commits**: imperative summary, present tense (`Fix ...`, `Add ...`), a

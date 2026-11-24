@@ -1,13 +1,13 @@
 {
+  "enabledPlugins": {
+    "claims@claims": true
+  },
   "extraKnownMarketplaces": {
     "claims": {
       "source": {
-        "source": "directory",
-        "path": "."
+        "source": "git",
+        "url": "https://github.com/or1can/claims.git"
       }
     }
-  },
-  "enabledPlugins": {
-    "claims@claims": true
   }
 }
