@@ -390,11 +390,33 @@ def blob_text(repo_root: Path, commit: str, rel: str) -> str | None:
     return result.stdout if result.returncode == 0 else None
 
 
+_BLOB_HEADER_RE = re.compile(rb"[0-9a-f]{40,64} blob (\d+)")
+"""The header `cat-file --batch` gives a blob it found: its id, at either
+hash length, its type and its size in bytes."""
+
+
 def blob_bytes(repo_root: Path, commit: str, rel: str) -> bytes | None:
     """`rel`'s content as of `commit`, byte for byte, or `None` if it had
-    no such path."""
+    no file there. A symlink is followed to the file it points to in
+    `commit`'s tree; one out of the tree, or to a directory, dangling or
+    in a loop, holds no file (#270). A path with a newline in it is read
+    as named, a link's own text included: `--batch` reads one name a
+    line."""
 
-    return read_blob(repo_root, f"{commit}:{rel}")
+    if "\n" in rel:
+        return read_blob(repo_root, f"{commit}:{rel}")
+    result = subprocess.run(
+        ["git", "-C", str(repo_root), "cat-file", "--batch", "--follow-symlinks"],
+        input=f"{commit}:{rel}\n".encode(),
+        capture_output=True,
+    )
+    # `<oid> blob <size>\n<content>\n`, or a header such as `symlink
+    # <size>` or `<name> missing` for anything that isn't a file.
+    header, _, rest = result.stdout.partition(b"\n")
+    found = _BLOB_HEADER_RE.fullmatch(header)
+    if result.returncode != 0 or found is None:
+        return None
+    return rest[: int(found.group(1))]
 
 
 def blob_id(repo_root: Path, rel: str, data: bytes) -> str | None:

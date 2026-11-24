@@ -1,5 +1,13 @@
 # TODO
 
+- A symlink whose target leaves the repository and comes back in, by
+  a `..` path through the repository's own directory or an absolute
+  path into it, is read in the working tree, where
+  `checked._regular_file` resolves it on disk, but not at a range's old
+  side, where `git cat-file --follow-symlinks` calls it out of the tree
+  (`git.blob_bytes`). A mark naming such a link looks already expired
+  at the old side, so the range that expires it raises nothing. Found
+  reviewing #270.
 - `stale-claims` has no output cap (`top = N`) or churn floor
   (`min_percent`). Diff-scoping it (#155,
   `decisions/0009-stale-claims-is-diff-scoped.md`) removed the fixed
