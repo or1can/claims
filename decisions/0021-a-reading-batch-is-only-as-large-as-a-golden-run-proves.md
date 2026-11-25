@@ -30,6 +30,13 @@ was not the other finding's, and that finding alone had no failed run in
 unrelated findings failed 16 of 20. `docs/reading-agent.md` holds the
 runs. Whether any failure should reject a size is open, as #287.
 
+Amended by #290: a `true` verdict resting on a search alone, a claim of
+absence included, is settled or made `not checked` before its finding is
+marked, not only reported, and so is one citing lines the agent didn't
+open, or no file. A finding whose named subject wasn't
+opened in full is re-sent, or the session reads the subject. Each such
+reading is notable, beside those the Decision lists.
+
 ## Context
 
 The reading agent took one finding per call, and the skill called it
