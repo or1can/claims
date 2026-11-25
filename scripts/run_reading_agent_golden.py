@@ -20,7 +20,8 @@ deterministic across model versions, so this is not collected by
 `unittest discover`.
 
     python3 scripts/run_reading_agent_golden.py [--model sonnet|haiku|...]
-        [--batch-size 2|3|5|10 | --stress] [--repeat N] [--output-dir DIR]
+        [--batch-size 2|3|5|10 | --stress | --only NAME ...] [--repeat N]
+        [--output-dir DIR]
 
 A fixture under `tests/fixtures/reading_agent_golden/` holds `repo/`, the
 files its findings cite, and one or more findings, each a `finding.txt`,
@@ -50,7 +51,10 @@ agent exists to prevent. Every problem in every finding is reported, each
 of a type: `verdict`, `kind`, `unit`, `read`, `matching`, or `call` for a
 call that returned no message to judge.
 
-With no mode, each finding of every fixture is run alone. `--batch-size`
+With no mode, each finding of every fixture is run alone. `--only`, which
+may be repeated, runs alone only the findings of the fixture it names, or
+the one finding, named as a run prints it, such as
+`shared_subject_batch/02-faq.finding.txt`. `--batch-size`
 runs the first that many findings of `shared_subject_batch` in one call,
 a reading batch as the check-claims skill forms one: findings from one
 root that share subjects. One thing differs: the third finding carries
@@ -429,6 +433,7 @@ def _modes(args: argparse.Namespace) -> list[tuple[str, Callable[[Path], list[Fi
         (f"alone {f.name}", lambda root, d=d, i=i: [_copied(d, root)[i]])
         for d in _fixture_dirs()
         for i, f in enumerate(_findings(d))
+        if not args.only or {d.name, f.name} & set(args.only)
     ]
 
 
@@ -450,11 +455,21 @@ def main(argv: list[str] | None = None) -> int:
         "--batch-size", type=int, choices=SIZES, help="Hand one call a reading batch of this many findings."
     )
     mode.add_argument("--stress", action="store_true", help="Hand one call the unrelated fixtures' findings.")
+    mode.add_argument(
+        "--only",
+        action="append",
+        metavar="NAME",
+        help="Run alone only this fixture's findings, or only this finding. May be repeated.",
+    )
     parser.add_argument("--repeat", type=int, default=1, help="How many times to run the mode (default: 1).")
     parser.add_argument("--output-dir", type=Path, help="A new or empty directory to save each run to.")
     args = parser.parse_args(argv)
     if args.repeat < 1:
         parser.error("--repeat has to be at least 1")
+    names = {name for d in _fixture_dirs() for f in _findings(d) for name in (d.name, f.name)}
+    for name in args.only or []:
+        if name not in names:
+            parser.error(f"--only {name} is no fixture or finding")
     if args.output_dir is not None:
         if args.output_dir.exists() and (not args.output_dir.is_dir() or any(args.output_dir.iterdir())):
             parser.error(f"--output-dir {args.output_dir} is not a new or empty directory")
