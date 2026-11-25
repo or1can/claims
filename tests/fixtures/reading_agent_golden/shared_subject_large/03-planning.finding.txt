@@ -1,0 +1,4 @@
+[advisory] docs/planning.md:5 (stale-claims) 'Size of a plan' names code 67% changed since last touched — depot/ledger.py 2 commits (67% of its history), depot/planner.py 2 commits (67% of its history)
+
+Subjects: depot/ledger.py, depot/planner.py
+Root: the working directory

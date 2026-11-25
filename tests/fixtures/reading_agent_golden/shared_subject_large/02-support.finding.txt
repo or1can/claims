@@ -1,0 +1,4 @@
+[advisory] docs/support.md:5 (stale-claims) 'Which hold is filled' names code 67% changed since last touched — depot/ledger.py 2 commits (67% of its history)
+
+Subjects: depot/ledger.py
+Root: the working directory

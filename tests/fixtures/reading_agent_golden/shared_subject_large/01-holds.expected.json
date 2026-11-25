@@ -1,0 +1,1 @@
+{"false_claims": [], "outside_unit": ["keeps stock back", "stored with the hold"], "kinds": {"returns the hold with the highest priority": "current", "it returns the one placed first": "current"}, "settled_by": {"it returns the one placed first": "depot/ledger.py:323-327"}}

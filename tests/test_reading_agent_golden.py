@@ -24,6 +24,7 @@ itself is a script that records how it was called.
 from __future__ import annotations
 
 import contextlib
+import copy
 import io
 import json
 import os
@@ -31,6 +32,7 @@ import re
 import sys
 import tempfile
 import unittest
+from collections.abc import Iterator
 from dataclasses import replace
 from pathlib import Path
 from typing import Any
@@ -40,24 +42,38 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "scripts"))
 
 from scripts.run_reading_agent_golden import (  # noqa: E402
     BATCH,
+    COMPARED,
+    COUNTED,
+    EFFORT,
     FIXTURES_DIR,
+    REJECTING,
     REPO_ROOT,
+    ROOTS,
     SIZES,
     Finding,
     Problem,
+    _bound,
     _copied,
     _extract_array,
     _findings,
     _fixture_dirs,
     _judge,
     _judge_batch,
+    _opened,
     _prefixed,
+    _short_of_the_bar,
+    _summary,
     _realistic_batch,
     _stress_batch,
     _unit,
+    _unopened,
     _unread,
     main,
 )
+
+
+SMALL = ROOTS["small"]
+LARGE = ROOTS["large"]
 
 
 def _finding(path: str = "docs/design.md", line: int = 1, mode: str = "stale-claims") -> Finding:
@@ -164,8 +180,66 @@ RECORDED_SWAP: list[dict[str, Any]] = [
 ]
 
 
+# The reports of #284's batch of 2, run 5, as saved, less the fields no
+# judging reads: the first lists the next section's sentence.
+RECORDED_EXTRA_SENTENCE: list[dict[str, Any]] = [
+    {
+        "finding": "docs/design.md:1 (stale-claims)",
+        "claims": [
+            {
+                "claim": "When the cache is full, `put` of a new key evicts the oldest entry first.",
+                "verdict": "true",
+                "kind": "current",
+                "tree": "root (working directory)",
+                "evidence": "cache.py:9-13",
+            },
+            {
+                "claim": "`get` never evicts anything.",
+                "verdict": "true",
+                "kind": "current",
+                "tree": "root (working directory)",
+                "evidence": "cache.py:6-7",
+            },
+            {
+                "claim": "Nothing is written to disk.",
+                "verdict": "true",
+                "kind": "current",
+                "tree": "root (working directory)",
+                "evidence": "cache.py:1-16",
+                "reasoning": "This sentence is in the next section ('Storage'), outside the unit.",
+            },
+        ],
+        "read": ["docs/design.md", "cache.py"],
+    },
+    {
+        "finding": "docs/faq.md:1 (stale-claims)",
+        "claims": [
+            {
+                "claim": "When the cache is full, `put` of a new key evicts the newest entry first.",
+                "verdict": "false",
+                "kind": "current",
+                "tree": "root (working directory)",
+                "evidence": "cache.py:10-12",
+            },
+            {
+                "claim": "`get` never evicts anything.",
+                "verdict": "true",
+                "kind": "current",
+                "tree": "root (working directory)",
+                "evidence": "cache.py:6-7",
+            },
+        ],
+        "read": ["docs/faq.md", "cache.py"],
+    },
+]
+
+
 def _types(problems: list[Problem]) -> list[tuple[str, str]]:
     return [(p.finding, p.type) for p in problems]
+
+
+def _classes(problems: list[Problem]) -> list[tuple[str, str]]:
+    return [(p.type, p.problem_class) for p in problems]
 
 
 class JudgeBatchTest(unittest.TestCase):
@@ -227,6 +301,25 @@ class JudgeBatchTest(unittest.TestCase):
             ],
         )
 
+    def test_the_recorded_verdict_swap_is_rejecting_for_the_false_claim_returned_true(self) -> None:
+        pair = [_prefixed(f, "f06") for f in _findings(FIXTURES_DIR / "shared_subject_opposite_verdicts")]
+        self.assertEqual(
+            [p.problem_class for p in _judge_batch(RECORDED_SWAP, pair)],
+            [COUNTED, REJECTING],
+        )
+
+    def test_the_recorded_extra_sentence_is_counted(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            problems = _judge_batch(RECORDED_EXTRA_SENTENCE, _realistic_batch(Path(tmp).resolve(), 2, SMALL))
+        self.assertEqual(
+            [(p.finding, p.type, p.problem_class) for p in problems],
+            [("shared_subject_batch/01-design.finding.txt", "unit-own-page", COUNTED)],
+        )
+
+    def test_a_matching_problem_is_counted(self) -> None:
+        for reports in (self.first, [self.second], [self.first, self.first, self.second], ["x", self.first, self.second]):
+            self.assertEqual(_classes(_judge_batch(reports, self.findings)), [("matching", COUNTED)])
+
 
 class JudgeTest(unittest.TestCase):
     """One report, judged against its finding."""
@@ -258,12 +351,66 @@ class JudgeTest(unittest.TestCase):
         self.report["read"] = ["cache.py"]
         self.assertEqual(
             sorted(p.type for p in _judge(self.report, self.finding)),
-            ["kind", "read", "unit", "verdict", "verdict", "verdict"],
+            ["kind", "read", "unit-own-page", "verdict", "verdict", "verdict"],
         )
 
     def test_a_claim_from_outside_the_unit_is_one_problem(self) -> None:
         self.report["claims"].append({"claim": "Nothing is written to disk.", "verdict": "false"})
-        self.assertEqual([p.type for p in _judge(self.report, self.finding)], ["unit"])
+        self.assertEqual(_classes(_judge(self.report, self.finding)), [("unit-own-page", COUNTED)])
+
+    def test_another_findings_claim_is_rejecting_though_it_is_on_the_same_page(self) -> None:
+        finding = replace(self.finding, expected={**self.finding.expected, "elsewhere": ["written to disk"]})
+        self.report["claims"].append({"claim": "Nothing is written to disk.", "verdict": "false"})
+        self.assertEqual(_classes(_judge(self.report, finding)), [("unit-other", REJECTING)])
+
+    def test_a_verdict_is_classed_by_what_it_would_hide(self) -> None:
+        for index, verdict, problem_class in (
+            (1, "true", REJECTING),
+            (1, "not checked", REJECTING),
+            (0, "false", COUNTED),
+            (0, "not checked", REJECTING),
+            (2, "true", REJECTING),
+            (2, "false", REJECTING),
+        ):
+            report = copy.deepcopy(self.report)
+            report["claims"][index]["verdict"] = verdict
+            self.assertEqual(_classes(_judge(report, self.finding)), [("verdict", problem_class)], (index, verdict))
+
+    def test_a_kind_is_classed_by_whether_it_sends_the_reading_to_an_old_tree(self) -> None:
+        finding = replace(
+            self.finding,
+            expected={**self.finding.expected, "kinds": {"oldest": "intended", "reload": "past"}},
+        )
+        self.report["claims"][2]["kind"] = "past"
+        self.assertEqual(_judge(self.report, finding), [])
+        for index, kind, problem_class in (
+            (0, "past", REJECTING),
+            (0, "superseded", REJECTING),
+            (0, "intended", COUNTED),
+            (1, "superseded", REJECTING),
+            (1, "past", REJECTING),
+            (1, "current", COUNTED),
+            (2, "current", COUNTED),
+            (2, "superseded", COUNTED),
+        ):
+            report = copy.deepcopy(self.report)
+            report["claims"][index]["kind"] = kind
+            self.assertEqual(_classes(_judge(report, finding)), [("kind", problem_class)], (index, kind))
+
+    def test_a_claim_not_reported_is_rejecting(self) -> None:
+        for claim in (1, 2):
+            report = copy.deepcopy(self.report)
+            del report["claims"][claim]
+            self.assertEqual({p.problem_class for p in _judge(report, self.finding)}, {REJECTING})
+
+    def test_a_problem_in_no_list_is_rejecting(self) -> None:
+        no_evidence, no_claims, malformed, unlisted = (copy.deepcopy(self.report) for _ in range(4))
+        no_evidence["claims"][0]["evidence"] = ""
+        no_claims["claims"] = []
+        malformed["claims"].append("not an object")
+        unlisted["read"] = ["docs/design.md"]
+        for report, type_ in ((no_evidence, "verdict"), (no_claims, "verdict"), (malformed, "verdict"), (unlisted, "read")):
+            self.assertEqual(_classes(_judge(report, self.finding)), [(type_, REJECTING)])
 
     def test_a_report_listing_no_claims_is_one_verdict_problem(self) -> None:
         self.report["claims"] = []
@@ -324,20 +471,145 @@ class JudgeTest(unittest.TestCase):
             self.assertEqual([p.type for p in _judge(self.report, finding)], ["read"] * missing, entry)
 
 
-class UnreadTest(unittest.TestCase):
+class ReadingTest(unittest.TestCase):
     """The agent's own `Read` calls, whatever its report lists."""
 
-    def test_every_path_no_read_call_opened_is_reported(self) -> None:
-        tree_copy = ".claims/trees/4f1c2d3e/cache.py"
-        finding = replace(_finding(), expected={**_finding().expected, "reads": [tree_copy]})
-        problems = _unread([finding], [f"{finding.repo}/{tree_copy}"])
-        self.assertEqual([p.type for p in problems], ["read", "read"])
+    def setUp(self) -> None:
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        self.root = Path(tmp.name).resolve()
+        self.tree_copy = ".claims/trees/4f1c2d3e/cache.py"
+        for path, text in (
+            ("docs/design.md", "# Design\n\nAbout it.\n\n## Caching\n\n`get` returns `None`.\n\n## Storage\n\nNone.\n"),
+            ("cache.py", "x\n" * 40),
+            ("other.py", "x\n" * 40),
+            (self.tree_copy, "x\n" * 40),
+        ):
+            (self.root / path).parent.mkdir(parents=True, exist_ok=True)
+            (self.root / path).write_text(text, encoding="utf-8")
+        self.finding = replace(_finding(line=5), repo=self.root)
+
+    def _opened(self, *reads: tuple[str, int, int]) -> dict[str, set[int]]:
+        return _opened([{"file_path": path, "lines": [first, last]} for path, first, last in reads], self.root)
+
+
+class UnreadTest(ReadingTest):
+    def test_every_path_no_read_call_opened_is_rejecting(self) -> None:
+        finding = replace(self.finding, expected={**self.finding.expected, "reads": [self.tree_copy]})
+        problems = _unread([finding], self._opened((f"{self.root}/{self.tree_copy}", 1, 40)))
+        self.assertEqual(_classes(problems), [("read", REJECTING), ("read", REJECTING)])
         self.assertIn("docs/design.md", problems[0].detail)
         self.assertIn("'cache.py'", problems[1].detail)
 
     def test_relative_and_absolute_read_calls_both_count(self) -> None:
-        finding = _finding()
-        self.assertEqual(_unread([finding], ["docs/design.md", f"{finding.repo}/cache.py"]), [])
+        opened = self._opened(("docs/design.md", 1, 11), (f"{self.root}/cache.py", 1, 40))
+        self.assertEqual(_unread([self.finding], opened), [])
+
+    def test_a_subject_only_partly_read_is_rejecting(self) -> None:
+        problems = _unread([self.finding], self._opened(("docs/design.md", 1, 11), ("cache.py", 1, 30)))
+        self.assertEqual(_classes(problems), [("read", REJECTING)])
+        self.assertIn("31", problems[0].detail)
+
+    def test_a_tree_only_partly_read_is_rejecting(self) -> None:
+        finding = replace(self.finding, expected={**self.finding.expected, "reads": [self.tree_copy]})
+        opened = self._opened(("docs/design.md", 1, 11), ("cache.py", 1, 40), (self.tree_copy, 2, 40))
+        self.assertEqual(_classes(_unread([finding], opened)), [("read", REJECTING)])
+
+    def test_several_reads_together_cover_a_subject(self) -> None:
+        opened = self._opened(("docs/design.md", 1, 11), ("cache.py", 1, 20), ("cache.py", 21, 41))
+        self.assertEqual(_unread([self.finding], opened), [])
+
+    def test_the_unit_is_read_by_its_own_lines_not_its_whole_page(self) -> None:
+        self.assertEqual(_unread([self.finding], self._opened(("docs/design.md", 5, 7), ("cache.py", 1, 40))), [])
+        problems = _unread([self.finding], self._opened(("docs/design.md", 5, 6), ("cache.py", 1, 40)))
+        self.assertEqual(_classes(problems), [("read", REJECTING)])
+
+    def test_a_read_call_that_failed_opened_nothing(self) -> None:
+        opened = _opened([{"file_path": "cache.py"}], self.root)
+        self.assertEqual([p.type for p in _unread([self.finding], opened)], ["read", "read"])
+
+
+class UnopenedTest(ReadingTest):
+    """What a `true` verdict cites, against the lines `Read` opened."""
+
+    def _types(self, evidence: Any, *reads: tuple[str, int, int], verdict: str = "true", tree: str = "root") -> list[str]:
+        claim = {"claim": "x", "verdict": verdict, "tree": tree, "evidence": evidence}
+        problems = _unopened({"claims": [claim]}, self.finding, self._opened(*reads))
+        self.assertLessEqual({p.problem_class for p in problems}, {COMPARED})
+        return [p.type for p in problems]
+
+    def test_evidence_in_lines_a_read_covered_has_no_problem(self) -> None:
+        for evidence in (
+            "cache.py:9-13",
+            "cache.py:9",
+            "cache.py",
+            "./cache.py:9-13 (put)",
+            f"{self.root}/cache.py:9",
+            "cache.py:L9-L13",
+            "cache.py lines 9-13",
+            "cache.py:9–13",
+            "cache.py:7-9, 12-13",
+            "cache.py:7-9 (get, at 99) and 12-13",
+            "read in full, at cache.py:9.",
+            "cache.py:9 calls self._entries.get",
+        ):
+            self.assertEqual(self._types(evidence, ("cache.py", 7, 13)), [], evidence)
+
+    def test_evidence_in_a_file_no_read_opened_is_compared(self) -> None:
+        for evidence in ("cache.py:9-13", "cache.py", "cache.py:9; other.py:3"):
+            self.assertEqual(self._types(evidence, ("docs/design.md", 1, 9)), ["unopened"], evidence)
+
+    def test_evidence_in_lines_no_read_covered_is_compared(self) -> None:
+        for evidence in (
+            "cache.py:14",
+            "cache.py:9-14",
+            "cache.py:9, 14",
+            "cache.py lines 12-14",
+            "cache.py:9; cache.py:20",
+            "cache.py:9 and 14-15",
+            "cache.py:9 (get, line 1), 14 (put)",
+            "cache.py:9-10 (get), plus 14",
+            "cache.py:9-10; 14",
+            "`cache.py`:14",
+            "`cache.py:9`, `cache.py:14`",
+            "cache.py (lines 9-14)",
+            "cache.py, lines 9-14",
+            "cache.py, line 14",
+            "cache.py#L9-L14",
+            "lines 9-14 of cache.py",
+            "line 14 in `cache.py`",
+        ):
+            self.assertEqual(self._types(evidence, ("cache.py", 7, 13)), ["unopened"], evidence)
+
+    def test_one_cited_file_opened_is_enough_when_another_was_not(self) -> None:
+        self.assertEqual(self._types("other.py:3; cache.py:9", ("cache.py", 7, 13)), [])
+
+    def test_evidence_naming_no_file_is_its_own_type(self) -> None:
+        for evidence in ("the code", "missing.py:3", "self._entries.get", ["grep"], "cache:9", "../cache.py:1", "docs"):
+            self.assertEqual(self._types(evidence, ("cache.py", 1, 40)), ["unresolved"], evidence)
+
+    def test_a_cited_line_of_no_file_there_is_reported_beside_one_that_resolves(self) -> None:
+        for evidence in ("cache.py:9; missing.py:3", "`missing.py`:3, cache.py:9"):
+            self.assertEqual(self._types(evidence, ("cache.py", 7, 13)), ["unresolved"], evidence)
+
+    def test_only_a_true_verdict_is_held_to_it_and_only_where_it_cites_something(self) -> None:
+        for verdict in ("false", "not checked"):
+            self.assertEqual(self._types("cache.py:9", verdict=verdict), [])
+        self.assertEqual(self._types(""), [])
+
+    def test_evidence_is_read_at_the_claims_own_tree(self) -> None:
+        commit = "4f1c2d3e"
+        self.finding = replace(self.finding, text=f"x\nbefore {commit} {self.root}/.claims/trees/{commit}\n")
+        for tree in ("before 4f1c2d3", "the before tree"):
+            self.assertEqual(self._types("cache.py:9", ("cache.py", 1, 40), tree=tree), ["unopened"], tree)
+            self.assertEqual(self._types("cache.py:9", (self.tree_copy, 1, 40), tree=tree), [], tree)
+            self.assertEqual(self._types("other.py:9", ("other.py", 1, 40), tree=tree), [], tree)
+        self.assertEqual(self._types(f"{self.tree_copy}:9", (self.tree_copy, 1, 40)), [])
+        self.assertEqual(self._types("cache.py:9", ("cache.py", 1, 40), tree="root and before 4f1c2d3"), [])
+
+    def test_a_malformed_claim_or_none_is_no_evidence_problem(self) -> None:
+        for report in ({}, {"claims": "x"}, {"claims": ["x"]}):
+            self.assertEqual(_unopened(report, self.finding, {}), [])
 
 
 def _opposite_verdicts(batch: list[Finding]) -> bool:
@@ -356,10 +628,18 @@ class StressBatchTest(unittest.TestCase):
 
     def test_it_is_every_unrelated_fixtures_findings(self) -> None:
         self.assertEqual(len(self.batch), 10)
-        self.assertNotIn("shared_subject_batch", {f.name.split("/")[0] for f in self.batch})
+        self.assertFalse({d.name for d in ROOTS.values()} & {f.name.split("/")[0] for f in self.batch})
 
     def test_a_pair_shares_a_subject_and_needs_opposite_verdicts(self) -> None:
         self.assertTrue(_opposite_verdicts(self.batch))
+
+    def test_a_claim_of_another_page_is_rejecting_though_no_kinds_list_it(self) -> None:
+        design = next(f for f in self.batch if f.name.startswith("shared_subject_opposite_verdicts/design"))
+        report = {
+            "claims": [{"claim": "it evicts the newest entry", "verdict": "true", "kind": "current", "evidence": "x"}],
+            "read": design.must_read,
+        }
+        self.assertEqual(_classes(_judge(report, design)), [("unit-other", REJECTING)])
 
     def test_each_findings_paths_exist_in_its_root(self) -> None:
         for finding in self.batch:
@@ -369,46 +649,64 @@ class StressBatchTest(unittest.TestCase):
 
 
 class RealisticBatchTest(unittest.TestCase):
-    def _batch(self, size: int) -> list[Finding]:
+    def _batch(self, size: int, fixture_dir: Path = SMALL) -> list[Finding]:
         tmp = tempfile.TemporaryDirectory()
         self.addCleanup(tmp.cleanup)
-        return _realistic_batch(Path(tmp.name).resolve(), size)
+        return _realistic_batch(Path(tmp.name).resolve(), size, fixture_dir)
+
+    def _each(self) -> Iterator[tuple[Path, int, list[Finding]]]:
+        for fixture_dir in (SMALL, LARGE):
+            for size in SIZES:
+                yield fixture_dir, size, self._batch(size, fixture_dir)
 
     def test_the_sizes_are_those_the_cap_is_measured_at(self) -> None:
         self.assertEqual(SIZES, (2, 3, 5, 10))
 
     def test_each_size_holds_that_many_findings(self) -> None:
-        for size in SIZES:
-            self.assertEqual(len(self._batch(size)), size)
+        for _, size, batch in self._each():
+            self.assertEqual(len(batch), size)
 
     def test_each_size_holds_a_pair_needing_opposite_verdicts(self) -> None:
-        for size in SIZES:
-            self.assertTrue(_opposite_verdicts(self._batch(size)), size)
+        for fixture_dir, size, batch in self._each():
+            self.assertTrue(_opposite_verdicts(batch), (fixture_dir.name, size))
 
     def test_no_size_packs_unrelated_findings(self) -> None:
-        for size in SIZES:
-            batch = self._batch(size)
+        for _, size, batch in self._each():
             joined = {batch[0]}
             while more := {f for f in batch if f not in joined and any(set(f.subjects) & set(j.subjects) for j in joined)}:
                 joined |= more
             self.assertEqual(len(joined), size)
 
     def test_every_finding_has_the_fixtures_one_root_and_its_paths_exist_there(self) -> None:
-        batch = self._batch(10)
-        self.assertEqual(len({f.repo for f in batch}), 1)
-        for finding in batch:
-            for path in finding.must_read:
-                self.assertTrue((finding.repo / path).is_file(), path)
+        for fixture_dir in (SMALL, LARGE):
+            batch = self._batch(10, fixture_dir)
+            self.assertEqual(len({f.repo for f in batch}), 1)
+            for finding in batch:
+                for path in finding.must_read:
+                    self.assertTrue((finding.repo / path).is_file(), path)
 
     def test_the_root_is_outside_this_repository(self) -> None:
         self.assertFalse(self._batch(2)[0].repo.is_relative_to(REPO_ROOT))
 
+    def test_a_claim_of_another_page_is_not_also_a_sentence_of_the_findings_own(self) -> None:
+        for fixture_dir in (SMALL, LARGE):
+            batch = self._batch(10, fixture_dir)
+            for finding in batch:
+                page = " ".join((finding.repo / finding.path).read_text(encoding="utf-8").split())
+                other_pages = [x for f in batch if f.path != finding.path for x in f.expected["kinds"]]
+                for fragment in finding.expected["elsewhere"]:
+                    if fragment in other_pages:
+                        self.assertNotIn(fragment, page, finding.name)
+
     def test_every_expected_fragment_is_in_its_unit_and_no_outside_one_is(self) -> None:
-        for finding in self._batch(10):
+        for finding in self._batch(10) + self._batch(10, LARGE):
             expected = finding.expected
             for fragment in [*expected["false_claims"], *expected.get("not_checked", []), *expected["kinds"]]:
                 self.assertIn(fragment, _unit(finding), finding.name)
             for fragment in expected["outside_unit"]:
+                self.assertNotIn(fragment, _unit(finding), finding.name)
+                self.assertIn(fragment, (finding.repo / finding.path).read_text(encoding="utf-8"), finding.name)
+            for fragment in expected["elsewhere"]:
                 self.assertNotIn(fragment, _unit(finding), finding.name)
 
     def test_a_claim_of_another_findings_is_from_outside_the_unit(self) -> None:
@@ -422,7 +720,18 @@ class RealisticBatchTest(unittest.TestCase):
             report = _passing_report(batch[into])
             self.assertEqual(_judge(report, batch[into]), [])
             report["claims"].append({"claim": leaked, "verdict": "true", "kind": "current", "evidence": "x:1"})
-            self.assertEqual([p.type for p in _judge(report, batch[into])], ["unit"], leaked)
+            self.assertEqual(_classes(_judge(report, batch[into])), [("unit-other", REJECTING)], leaked)
+
+    def test_a_claim_of_a_finding_not_in_the_call_is_the_pages_own_sentence(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            finding = _copied(SMALL, Path(tmp).resolve())[6]
+        for leaked, type_, problem_class in (
+            ("`delete` now ignores a key the cache doesn't hold.", "unit-own-page", COUNTED),
+            ("`put` of a new key evicts the oldest entry first.", "unit-other", REJECTING),
+        ):
+            report = _passing_report(finding)
+            report["claims"].append({"claim": leaked, "verdict": "true", "kind": "current", "evidence": "x:1"})
+            self.assertEqual(_classes(_judge(report, finding)), [(type_, problem_class)], leaked)
 
     def test_one_finding_carries_a_tree_where_a_shared_path_differs(self) -> None:
         batch = self._batch(10)
@@ -443,15 +752,242 @@ class RealisticBatchTest(unittest.TestCase):
                 self.assertTrue(Path(named).is_dir(), named)
 
 
+class LargeRootTest(unittest.TestCase):
+    """What the large root's findings hold, which the small root's don't."""
+
+    def setUp(self) -> None:
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        self.batch = _realistic_batch(Path(tmp.name).resolve(), 10, LARGE)
+
+    def _settled(self, finding: Finding) -> dict[str, tuple[str, int, int]]:
+        """Where each claim `settled_by` lists is settled: a file, and its first and last line."""
+
+        settled: dict[str, tuple[str, int, int]] = {}
+        for fragment, place in finding.expected.get("settled_by", {}).items():
+            path, _, lines = place.partition(":")
+            first, _, last = lines.partition("-")
+            settled[fragment] = (path, int(first), int(last))
+        return settled
+
+    def test_every_subject_is_hundreds_of_lines(self) -> None:
+        for path in {s for f in self.batch for s in f.subjects}:
+            length = len((self.batch[0].repo / path).read_text(encoding="utf-8").splitlines())
+            self.assertGreater(length, 200, path)
+
+    def test_each_place_a_claim_is_settled_is_there(self) -> None:
+        for finding in self.batch:
+            for fragment, (path, first, last) in self._settled(finding).items():
+                self.assertIn(fragment, _unit(finding), finding.name)
+                lines = (finding.repo / path).read_text(encoding="utf-8").splitlines()
+                self.assertLessEqual(1, first)
+                self.assertLessEqual(first, last)
+                self.assertLessEqual(last, len(lines), finding.name)
+
+    def test_false_claims_depend_on_code_late_in_a_subject(self) -> None:
+        late = [
+            f.name
+            for f in self.batch
+            for fragment, (path, first, _) in self._settled(f).items()
+            if fragment in f.expected["false_claims"] and path in f.subjects and first > 190
+        ]
+        self.assertGreaterEqual(len(late), 4, late)
+
+    def test_claims_true_and_false_are_settled_by_a_file_the_finding_does_not_name(self) -> None:
+        for size in (3, 5, 10):
+            unnamed = [f for f in self.batch[:size] if any(p not in f.must_read for p, _, _ in self._settled(f).values())]
+            self.assertTrue(unnamed, size)
+        verdicts = {
+            fragment in f.expected["false_claims"]
+            for f in self.batch
+            for fragment, (path, _, _) in self._settled(f).items()
+            if path not in f.must_read
+        }
+        self.assertEqual(verdicts, {True, False})
+
+    def test_an_absence_claim_is_true_in_one_finding_and_false_in_another(self) -> None:
+        for size in (5, 10):
+            absent = {x in f.expected["false_claims"] for f in self.batch[:size] for x in f.expected.get("absent", [])}
+            self.assertEqual(absent, {True, False}, size)
+
+
 class AloneTest(unittest.TestCase):
     def test_every_fixtures_every_finding_is_run_alone(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             roots = [Path(tmp).resolve() / d.name for d in _fixture_dirs()]
             found = [f for d, root in zip(_fixture_dirs(), roots, strict=True) for f in _copied(d, root)]
-            self.assertEqual(len(found), 20)
+            self.assertEqual(len(found), 30)
             for finding in found:
                 for path in finding.must_read:
                     self.assertTrue((finding.repo / path).is_file(), path)
+
+
+def _record(findings: list[Finding], *problems: tuple[int, str, str], **fields: Any) -> dict[str, Any]:
+    """A run as it is saved, with a problem of a type and class in each finding named by its index."""
+
+    return {
+        "model": "sonnet",
+        "effort": EFFORT,
+        "findings": [f.name for f in findings],
+        "claims": {f.name: 2 for f in findings},
+        "problems": [
+            {"finding": findings[i].name, "type": type_, "problem_class": class_, "detail": "x"} for i, type_, class_ in problems
+        ],
+        **fields,
+    }
+
+
+UNOPENED = ("unopened", COMPARED)
+# A reading batch's calls, and calls of one finding, none with the compared problem.
+CLEAN_BATCHES = [(0, 2)] * 60
+CLEAN_ALONE = [(0, 1)] * 60
+
+
+class BoundTest(unittest.TestCase):
+    """The one-sided 95% upper bound on the batched rate less the alone rate.
+    Each call is its findings with the compared problem, and its findings."""
+
+    def test_none_in_sixty_calls_is_bounded_under_five_points_not_at_zero(self) -> None:
+        self.assertAlmostEqual(_bound(CLEAN_BATCHES, CLEAN_ALONE), 0.0487, places=4)
+
+    def test_none_in_twenty_calls_is_too_few(self) -> None:
+        self.assertAlmostEqual(_bound(CLEAN_BATCHES[:20], CLEAN_ALONE), 0.1391, places=4)
+
+    def test_a_rate_that_is_the_same_batched_and_alone_is_bounded_by_its_spread(self) -> None:
+        # 6 of 120 either way: 1.645 * sqrt(0.5 * 0.5 * 0.1 * 0.9 / 60 + 0.05 * 0.95 / 120) is 0.046.
+        bound = _bound([(1, 2)] * 6 + [(0, 2)] * 54, [(1, 1)] * 6 + [(0, 1)] * 114)
+        self.assertAlmostEqual(bound, 0.046, delta=0.008)
+
+    def test_whole_calls_are_resampled_so_problems_in_one_call_count_for_less(self) -> None:
+        apart = _bound([(1, 2)] * 12 + [(0, 2)] * 48, CLEAN_ALONE)
+        together = _bound([(2, 2)] * 6 + [(0, 2)] * 54, CLEAN_ALONE)
+        # 0.1 + 1.645 * sqrt(0.25 * 0.2 * 0.8 / 60), and 0.1 + 1.645 * sqrt(0.1 * 0.9 / 60).
+        self.assertAlmostEqual(apart, 0.142, delta=0.012)
+        self.assertAlmostEqual(together, 0.164, delta=0.012)
+
+    def test_one_reading_with_the_problem_is_bounded_no_lower_than_none(self) -> None:
+        ten = [(0, 10)] * 60
+        self.assertGreaterEqual(_bound([(1, 10), *ten[1:]], CLEAN_ALONE), _bound(ten, CLEAN_ALONE))
+
+    def test_the_same_counts_give_the_same_bound(self) -> None:
+        calls = [(1, 2)] * 6 + [(0, 2)] * 54
+        self.assertEqual(_bound(calls, CLEAN_ALONE), _bound(calls, CLEAN_ALONE))
+
+
+class BarTest(unittest.TestCase):
+    """Whether saved runs of a size pass ADR 0021's bar, and if not, why."""
+
+    def setUp(self) -> None:
+        self.batch = _findings(LARGE)[:2]
+        self.batched = [_record(self.batch) for _ in range(60)]
+        self.alone = [_record([f]) for f in self.batch for _ in range(30)]
+
+    def _short(self) -> str:
+        return "; ".join(_short_of_the_bar(self.batched, self.alone))
+
+    def test_sixty_clean_runs_against_as_many_clean_readings_alone_pass(self) -> None:
+        self.assertEqual(self._short(), "")
+
+    def test_one_rejecting_problem_rejects(self) -> None:
+        self.batched[7] = _record(self.batch, (1, "verdict", REJECTING))
+        self.assertIn("1 of 60 runs with a rejecting problem", self._short())
+
+    def test_counted_problems_never_reject(self) -> None:
+        self.batched = [_record(self.batch, (0, "unit-own-page", COUNTED)) for _ in range(60)]
+        self.assertEqual(self._short(), "")
+
+    def test_fewer_than_sixty_runs_are_too_few(self) -> None:
+        del self.batched[0]
+        self.assertIn("59 runs", self._short())
+
+    def test_a_run_that_returned_no_object_for_a_finding_is_not_one_of_the_sixty(self) -> None:
+        self.batched[0] = _record(self.batch, (1, "matching", COUNTED), claims={self.batch[0].name: 2})
+        self.assertIn("59 runs", self._short())
+
+    def test_runs_that_returned_nothing_readable_do_not_pass(self) -> None:
+        self.batched = [_record(self.batch, claims={}) for _ in range(60)]
+        self.assertIn("0 runs", self._short())
+
+    def test_a_compared_rate_above_the_alone_rates_margin_does_not_pass(self) -> None:
+        self.batched[:12] = [_record(self.batch, (0, *UNOPENED)) for _ in range(12)]
+        self.assertIn("margin 0.050", self._short())
+
+    def test_the_margin_is_the_alone_rate_once_that_is_five_points(self) -> None:
+        self.batched[:12] = [_record(self.batch, (0, *UNOPENED)) for _ in range(12)]
+        self.alone[:12] = [_record([self.batch[0]], (0, *UNOPENED)) for _ in range(12)]
+        # 0.1 batched against 0.2 alone, whose margin is 0.2.
+        self.assertEqual(self._short(), "")
+
+    def test_evidence_naming_no_file_weighs_against_the_batch_and_not_for_the_alone_rate(self) -> None:
+        unresolved = ("unresolved", COMPARED)
+        self.batched[:12] = [_record(self.batch, (0, *unresolved)) for _ in range(12)]
+        self.alone[:12] = [_record([self.batch[0]], (0, *unresolved)) for _ in range(12)]
+        self.assertIn("margin 0.050", self._short())
+
+    def test_one_finding_with_the_problem_twice_is_one_reading(self) -> None:
+        self.batched[:2] = [_record(self.batch, *[(0, *UNOPENED)] * 5) for _ in range(2)]
+        self.alone[:6] = [_record([self.batch[0]], (0, *UNOPENED)) for _ in range(6)]
+        self.assertEqual(self._short(), "")
+
+    def test_the_alone_rate_is_of_the_same_findings_each_read_as_often(self) -> None:
+        other = _findings(LARGE)[2]
+        self.alone += [_record([other], (0, *UNOPENED)) for _ in range(30)]
+        self.assertEqual(self._short(), "")
+        self.alone += [_record([self.batch[0]])]
+        self.assertIn("not each read alone as often", self._short())
+
+    def test_the_runs_of_a_size_are_not_readings_alone(self) -> None:
+        self.alone = self.batched
+        self.assertIn("0 readings alone", self._short())
+
+    def test_too_few_readings_alone_do_not_pass(self) -> None:
+        self.alone = [_record([f]) for f in self.batch for _ in range(29)]
+        self.assertIn("58 readings alone", self._short())
+
+    def test_an_alone_call_that_returned_nothing_is_no_reading(self) -> None:
+        self.alone[0] = _record([self.batch[0]], (0, "call", REJECTING), claims={})
+        self.assertIn("not each read alone as often", self._short())
+
+    def test_the_small_root_alone_does_not_pass(self) -> None:
+        batch = _findings(SMALL)[:2]
+        self.batched = [_record(batch) for _ in range(60)]
+        self.alone = [_record([f]) for f in batch for _ in range(30)]
+        self.assertIn("the large root", self._short())
+
+    def test_the_stress_pack_does_not_pass(self) -> None:
+        batch = [f for d in _fixture_dirs() if d not in ROOTS.values() for f in _findings(d)]
+        self.batched = [_record(batch) for _ in range(60)]
+        self.alone = [_record([f]) for f in batch for _ in range(30)]
+        self.assertIn("the large root", self._short())
+
+    def test_runs_that_differ_in_findings_model_or_effort_are_not_compared(self) -> None:
+        for changed in (
+            [_record(self.batch[:1])],
+            [_record(self.batch, model="haiku")],
+            [_record(self.batch, effort="high")],
+        ):
+            self.assertIn("differ", "; ".join(_short_of_the_bar(self.batched + changed, self.alone)), changed)
+        self.alone = [{**r, "effort": "high"} for r in self.alone]
+        self.assertIn("differ", self._short())
+
+    def test_the_summary_counts_failed_runs_by_class_and_claims_per_finding(self) -> None:
+        self.batched[0] = _record(self.batch, (0, "unit-own-page", COUNTED), (1, "verdict", REJECTING))
+        self.batched[1] = _record(self.batch, (0, "unit-own-page", COUNTED), (0, "unit-own-page", COUNTED))
+        self.batched[2] = _record(self.batch, (0, "unresolved", COMPARED), claims={f.name: 5 for f in self.batch})
+        out = "\n".join(_summary(self.batched, self.alone))
+        self.assertIn("failed runs of 60: 1 rejecting, 1 compared, 2 counted", out)
+        self.assertIn("2 x shared_subject_large/01-holds.finding.txt: unit-own-page (counted)", out)
+        self.assertIn("evidence naming no file: 1 reading", out)
+        self.assertIn("claims listed per finding: 2.05, alone 2.00", out)
+        self.assertIn("doesn't pass the bar", out)
+
+    def test_the_summary_of_a_passing_size_says_so_with_its_bound(self) -> None:
+        out = "\n".join(_summary(self.batched, self.alone))
+        self.assertIn("batched 0.000, alone 0.000, upper bound on the difference 0.049, margin 0.050", out)
+        self.assertIn("passes the bar", out)
+
+    def test_the_summary_without_alone_runs_gives_no_verdict(self) -> None:
+        self.assertNotIn("the bar", "\n".join(_summary(self.batched, [])))
 
 
 # Stands in for the `claude` binary: records how it was called, and prints
@@ -461,15 +997,22 @@ import json, os, sys
 from pathlib import Path
 here = Path(__file__).parent
 with (here / "calls.jsonl").open("a") as calls:
-    calls.write(json.dumps({{"argv": sys.argv[1:], "cwd": os.getcwd()}}) + "\\n")
+    effort = os.environ.get("CLAUDE_CODE_EFFORT_LEVEL")
+    calls.write(json.dumps({{"argv": sys.argv[1:], "cwd": os.getcwd(), "effort": effort}}) + "\\n")
 reply = json.loads((here / "reply.json").read_text())
 if "exit" in reply:
     print(reply["exit"], file=sys.stderr)
     raise SystemExit(1)
 print(json.dumps({{"type": "system", "subtype": "init"}}))
-for path in reply["reads"]:
-    block = {{"type": "tool_use", "name": "Read", "input": {{"file_path": path}}}}
+for number, path in enumerate(reply["reads"]):
+    block = {{"type": "tool_use", "id": f"t{{number}}", "name": "Read", "input": {{"file_path": path}}}}
     print(json.dumps({{"type": "assistant", "message": {{"content": [block]}}}}))
+    result = {{"type": "tool_result", "tool_use_id": f"t{{number}}", "content": ""}}
+    event = {{"type": "user", "message": {{"content": [result]}}, "tool_use_result": "Error: File does not exist."}}
+    if os.path.exists(path):
+        lines = len(Path(path).read_text().splitlines()[: reply.get("limit")])
+        event["tool_use_result"] = {{"type": "text", "file": {{"filePath": path, "startLine": 1, "numLines": lines}}}}
+    print(json.dumps(event))
 print(json.dumps({{"type": "result", "result": reply["message"], "usage": {{"output_tokens": 7}}}}))
 """
 
@@ -478,7 +1021,7 @@ def _passing_report(finding: Finding) -> dict[str, Any]:
     expected = finding.expected
     verdicts = {f: "false" for f in expected["false_claims"]} | {f: "not checked" for f in expected.get("not_checked", [])}
     claims = [
-        {"claim": f, "verdict": verdicts.get(f, "true"), "kind": expected.get("kinds", {}).get(f, "current"), "evidence": "x:1"}
+        {"claim": f, "verdict": verdicts.get(f, "true"), "kind": expected.get("kinds", {}).get(f, "current"), "evidence": f"{finding.subjects[0]}:1"}
         for f in dict.fromkeys([*verdicts, *expected.get("kinds", {})])
     ]
     return {"finding": f"{finding.path}:{finding.line} ({finding.mode})", "claims": claims, "read": finding.must_read}
@@ -502,8 +1045,8 @@ class MainTest(unittest.TestCase):
         self.batch = _findings(FIXTURES_DIR / "shared_subject_batch")[:2]
         self._reply([_passing_report(f) for f in self.batch], [p for f in self.batch for p in f.must_read])
 
-    def _reply(self, reports: Any, reads: list[str]) -> None:
-        reply = {"message": json.dumps(reports), "reads": reads}
+    def _reply(self, reports: Any, reads: list[str], limit: int | None = None) -> None:
+        reply = {"message": json.dumps(reports), "reads": reads, "limit": limit}
         (self.bin / "reply.json").write_text(json.dumps(reply), encoding="utf-8")
 
     def _main(self, *args: str) -> tuple[int, str]:
@@ -520,7 +1063,7 @@ class MainTest(unittest.TestCase):
         return [json.loads(line) for line in recorded.read_text().splitlines()] if recorded.exists() else []
 
     def test_a_call_has_only_the_contract_and_the_three_tools(self) -> None:
-        self._main("--batch-size", "2")
+        self._main("--root", "small", "--batch-size", "2")
         (call,) = self._calls()
         argv: list[str] = call["argv"]
         self.assertIn("--safe-mode", argv)
@@ -532,18 +1075,70 @@ class MainTest(unittest.TestCase):
         self.assertNotIn("--mcp-config", argv)
         self.assertFalse(Path(call["cwd"]).resolve().is_relative_to(REPO_ROOT))
 
+    def test_a_calls_effort_is_pinned_whatever_the_environment_sets(self) -> None:
+        with mock.patch.dict(os.environ, {"CLAUDE_CODE_EFFORT_LEVEL": "max"}):
+            self._main("--root", "small", "--batch-size", "2", "--output-dir", str(self.out))
+        (call,) = self._calls()
+        argv: list[str] = call["argv"]
+        self.assertEqual(argv[argv.index("--effort") + 1], "medium")
+        self.assertEqual(call["effort"], "medium")
+        (saved,) = self.out.iterdir()
+        self.assertEqual(json.loads(saved.read_text(encoding="utf-8"))["effort"], "medium")
+
+    def test_the_claims_each_finding_listed_are_saved(self) -> None:
+        self._main("--root", "small", "--batch-size", "2", "--output-dir", str(self.out))
+        (saved,) = self.out.iterdir()
+        run = json.loads(saved.read_text(encoding="utf-8"))
+        self.assertEqual(run["claims"], {f.name: 2 for f in self.batch})
+
+    def test_saved_runs_are_summarised_against_saved_alone_runs_with_no_call(self) -> None:
+        batch = _findings(LARGE)[:2]
+        for directory, records in (
+            ("batched", [_record(batch)] * 30),
+            ("more", [_record(batch)] * 30),
+            ("alone", [_record([f]) for f in batch for _ in range(30)]),
+        ):
+            (self.out / directory).mkdir(parents=True)
+            for i, record in enumerate(records):
+                (self.out / directory / f"{i}.json").write_text(json.dumps(record), encoding="utf-8")
+        code, out = self._main(
+            "--saved", str(self.out / "batched"), "--saved", str(self.out / "more"), "--alone", str(self.out / "alone")
+        )
+        self.assertEqual(self._calls(), [])
+        self.assertEqual(code, 0, out)
+        self.assertIn("failed runs of 60: 0 rejecting", out)
+        self.assertIn("passes the bar", out)
+
+    def test_saved_runs_of_the_earlier_harness_are_refused(self) -> None:
+        self.out.mkdir()
+        (self.out / "old.json").write_text(json.dumps({"findings": [], "problems": []}), encoding="utf-8")
+        for option in ("--saved", "--alone"):
+            code, out = self._main(option, str(self.out))
+            self.assertEqual(code, 2)
+            self.assertIn("old.json", out)
+        code, _ = self._main("--saved", str(self.out / "none"))
+        self.assertEqual(code, 2)
+        self.assertEqual(self._calls(), [])
+
+    def test_a_run_with_only_a_counted_problem_does_not_fail_the_command(self) -> None:
+        self._reply([_passing_report(self.batch[0])], [p for f in self.batch for p in f.must_read])
+        code, out = self._main("--root", "small", "--batch-size", "2")
+        self.assertEqual(code, 0, out)
+        self.assertIn("[COUNTED] sonnet small-batch-2 1/1", out)
+        self.assertIn("failed runs of 1: 0 rejecting, 0 compared, 1 counted", out)
+
     def test_every_finding_alone_is_isolated_too(self) -> None:
         self._main()
         calls = self._calls()
-        self.assertEqual(len(calls), 20)
-        self.assertEqual(len({c["cwd"] for c in calls}), 20)
+        self.assertEqual(len(calls), 30)
+        self.assertEqual(len({c["cwd"] for c in calls}), 30)
         for call in calls:
             self.assertIn("--safe-mode", call["argv"])
             self.assertFalse(Path(call["cwd"]).resolve().is_relative_to(REPO_ROOT))
 
     def test_only_a_fixtures_findings_are_run_alone_when_it_is_named(self) -> None:
         _, out = self._main("--only", "shared_subject_batch", "--output-dir", str(self.out))
-        self.assertIn("of 10\n", out)
+        self.assertIn("failed runs of 10: ", out)
         self.assertEqual(len(self._calls()), 10)
         names = [json.loads(p.read_text(encoding="utf-8"))["findings"] for p in sorted(self.out.iterdir())]
         self.assertEqual(names, [[f.name] for f in _findings(FIXTURES_DIR / "shared_subject_batch")])
@@ -566,43 +1161,69 @@ class MainTest(unittest.TestCase):
         self.assertFalse(self.out.exists())
 
     def test_a_batch_passes_when_each_finding_does(self) -> None:
-        code, out = self._main("--batch-size", "2")
+        code, out = self._main("--root", "small", "--batch-size", "2")
         self.assertEqual(code, 0, out)
-        self.assertIn("failed runs: 0 of 1", out)
+        self.assertIn("failed runs of 1: 0 rejecting, 0 compared, 0 counted", out)
 
     def test_repeats_count_failed_runs_and_failures_by_finding_and_type(self) -> None:
         reports = [_passing_report(f) for f in self.batch]
         for report in reports:
             report["claims"][0]["verdict"] = "not checked"
         self._reply(reports, [p for f in self.batch for p in f.must_read])
-        code, out = self._main("--batch-size", "2", "--repeat", "3")
+        code, out = self._main("--root", "small", "--batch-size", "2", "--repeat", "3")
         self.assertEqual(code, 1)
         self.assertEqual(len(self._calls()), 3)
-        self.assertIn("failed runs: 3 of 3", out)
+        self.assertIn("failed runs of 3: 3 rejecting, 0 compared, 0 counted", out)
         self.assertIn("3 x shared_subject_batch/01-design.finding.txt: verdict", out)
         self.assertIn("3 x shared_subject_batch/02-faq.finding.txt: verdict", out)
 
     def test_a_run_whose_call_fails_is_a_failed_run_of_its_own_type(self) -> None:
         (self.bin / "reply.json").write_text(json.dumps({"exit": "usage limit"}), encoding="utf-8")
-        code, out = self._main("--batch-size", "2", "--repeat", "2")
+        code, out = self._main("--root", "small", "--batch-size", "2", "--repeat", "2")
         self.assertEqual(code, 1)
-        self.assertIn("failed runs: 2 of 2", out)
+        self.assertIn("failed runs of 2: 2 rejecting, 0 compared, 0 counted", out)
         self.assertIn("2 x the whole call: call", out)
         self.assertIn("usage limit", out)
 
+    def test_a_subject_the_call_read_part_of_rejects_the_run(self) -> None:
+        self._reply([_passing_report(f) for f in self.batch], [p for f in self.batch for p in f.must_read], limit=8)
+        code, out = self._main("--root", "small", "--batch-size", "2")
+        self.assertEqual(code, 1)
+        self.assertIn("only partly read", out)
+
+    def test_evidence_the_call_did_not_open_is_reported_with_its_class(self) -> None:
+        report = _passing_report(self.batch[0])
+        report["claims"][0]["evidence"] = "settings.py:3"
+        report["claims"][1]["evidence"] = "the code"
+        self._reply([report, _passing_report(self.batch[1])], [p for f in self.batch for p in f.must_read])
+        code, out = self._main("--root", "small", "--batch-size", "2", "--output-dir", str(self.out))
+        self.assertEqual(code, 0, out)
+        (saved,) = self.out.iterdir()
+        run = json.loads(saved.read_text(encoding="utf-8"))
+        self.assertEqual(
+            [(p["type"], p["problem_class"]) for p in run["problems"]], [("unopened", COMPARED), ("unresolved", COMPARED)]
+        )
+
+    def test_a_read_call_that_failed_is_saved_with_no_lines(self) -> None:
+        self._reply([], ["missing.py"])
+        self._main("--root", "small", "--batch-size", "2", "--output-dir", str(self.out))
+        (saved,) = self.out.iterdir()
+        self.assertEqual(json.loads(saved.read_text(encoding="utf-8"))["reads"], [{"file_path": "missing.py"}])
+
     def test_each_runs_message_and_reads_are_saved(self) -> None:
-        self._main("--batch-size", "2", "--repeat", "2", "--output-dir", str(self.out))
+        self._main("--root", "small", "--batch-size", "2", "--repeat", "2", "--output-dir", str(self.out))
         saved = sorted(self.out.iterdir())
         self.assertEqual(len(saved), 2)
         run = json.loads(saved[0].read_text(encoding="utf-8"))
         self.assertEqual(json.loads(run["message"]), [_passing_report(f) for f in self.batch])
         self.assertEqual([r["file_path"] for r in run["reads"]], [p for f in self.batch for p in f.must_read])
+        self.assertEqual(run["reads"][0]["lines"], [1, 8])
         self.assertEqual(run["usage"], {"output_tokens": 7})
         self.assertEqual(run["problems"], [])
 
     def test_a_failed_runs_message_is_saved_with_its_problems(self) -> None:
         self._reply([], [])
-        self._main("--batch-size", "2", "--output-dir", str(self.out))
+        self._main("--root", "small", "--batch-size", "2", "--output-dir", str(self.out))
         (saved,) = self.out.iterdir()
         run = json.loads(saved.read_text(encoding="utf-8"))
         self.assertEqual(run["message"], "[]")
@@ -610,7 +1231,7 @@ class MainTest(unittest.TestCase):
 
     def test_every_finding_alone_is_saved_to_a_file_of_its_own(self) -> None:
         self._main("--output-dir", str(self.out))
-        self.assertEqual(len(list(self.out.iterdir())), 20)
+        self.assertEqual(len(list(self.out.iterdir())), 30)
 
     def test_a_call_failing_for_a_finding_alone_is_reported_against_it(self) -> None:
         (self.bin / "reply.json").write_text(json.dumps({"exit": "usage limit"}), encoding="utf-8")
@@ -627,7 +1248,7 @@ class MainTest(unittest.TestCase):
     def test_an_output_directory_holding_files_is_refused_before_any_call(self) -> None:
         self.out.mkdir()
         (self.out / "earlier.json").write_text("{}", encoding="utf-8")
-        code, _ = self._main("--batch-size", "2", "--output-dir", str(self.out))
+        code, _ = self._main("--root", "small", "--batch-size", "2", "--output-dir", str(self.out))
         self.assertEqual(code, 2)
         self.assertEqual(self._calls(), [])
 
@@ -638,6 +1259,7 @@ class MainTest(unittest.TestCase):
             ["--batch-size", "2", "--stress"],
             ["--batch-size", "2", "--only", "known_true"],
             ["--stress", "--only", "known_true"],
+            ["--saved", "x", "--stress"],
         ):
             code, _ = self._main(*args)
             self.assertEqual(code, 2, args)

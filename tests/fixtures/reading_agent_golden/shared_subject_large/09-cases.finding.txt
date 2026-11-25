@@ -1,0 +1,4 @@
+[advisory] docs/cases.md:5 (stale-claims) 'Whole cases' names code 67% changed since last touched — depot/planner.py 2 commits (67% of its history)
+
+Subjects: depot/planner.py
+Root: the working directory

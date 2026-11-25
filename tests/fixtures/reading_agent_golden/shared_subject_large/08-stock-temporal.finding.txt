@@ -1,0 +1,4 @@
+[advisory] docs/stock.md:7 (temporal-words-cited) `snapshot` now leaves out a bin that holds nothing.
+
+Subjects: depot/ledger.py
+Root: the working directory

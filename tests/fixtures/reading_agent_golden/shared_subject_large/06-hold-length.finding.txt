@@ -1,0 +1,4 @@
+[advisory] decisions/0001-hold-length.md:11 (stale-claims) 'Decision' names code 67% changed since last touched — depot/ledger.py 2 commits (67% of its history)
+
+Subjects: depot/ledger.py
+Root: the working directory

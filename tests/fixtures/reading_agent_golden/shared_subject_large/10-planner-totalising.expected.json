@@ -1,0 +1,1 @@
+{"false_claims": ["Every method of `Planner`"], "outside_unit": ["before it is sent", "is signed"], "kinds": {"Every method of `Planner`": "current"}, "settled_by": {"Every method of `Planner`": "depot/planner.py:196-201"}}

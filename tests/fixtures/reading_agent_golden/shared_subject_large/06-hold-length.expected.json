@@ -1,0 +1,1 @@
+{"false_claims": ["past 60 minutes"], "outside_unit": ["left open for days", "collect sooner"], "kinds": {"lasts 15 minutes": "current", "past 60 minutes": "intended"}, "settled_by": {"lasts 15 minutes": "depot/limits.py:1-1", "past 60 minutes": "depot/ledger.py:310-314"}}
