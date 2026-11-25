@@ -11,6 +11,13 @@ reached you, not just that one was pushed upstream.
 
 ## [Unreleased]
 
+## [0.37.5] - 2026-11-25
+
+- Changed: the skill says a larger reading batch has to pass the bar on
+  the reading-agent page, in at least 60 golden runs, before its cap goes
+  up. The bar weighs a failure by what it would do to a mark. The cap is
+  still one finding.
+
 ## [0.37.4] - 2026-11-25
 
 - Fixed: the skill no longer lets a mark rest on a `true` verdict whose

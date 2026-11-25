@@ -1,0 +1,4 @@
+[advisory] docs/stock.md:4 (claim-words-totalising) Every method of `Ledger` that changes a bin's quantities records a movement.
+
+Subjects: depot/ledger.py
+Root: the working directory

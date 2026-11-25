@@ -1,0 +1,4 @@
+[advisory] docs/planner.md:4 (claim-words-totalising) Every method of `Planner` that returns a plan keeps it to `MAX_PLAN_LINES` lines.
+
+Subjects: depot/planner.py
+Root: the working directory

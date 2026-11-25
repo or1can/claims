@@ -1,0 +1,1 @@
+{"false_claims": ["at most 40 lines"], "outside_unit": ["each morning", "once a day"], "kinds": {"less the skipped ones": "current", "at most 40 lines": "current", "The items past that": "current"}, "settled_by": {"at most 40 lines": "depot/limits.py:3-3"}}

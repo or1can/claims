@@ -28,7 +28,7 @@ past the end of its own section, with every verdict right; the sentence
 was not the other finding's, and that finding alone had no failed run in
 20, so the batch isn't shown to have caused it. The stress pack of
 unrelated findings failed 16 of 20. `docs/reading-agent.md` holds the
-runs. Whether any failure should reject a size is open, as #287.
+runs.
 
 Amended by #290: a `true` verdict resting on a search alone, a claim of
 absence included, is settled or made `not checked` before its finding is
@@ -36,6 +36,44 @@ marked, not only reported, and so is one citing lines the agent didn't
 open, or no file. A finding whose named subject wasn't
 opened in full is re-sent, or the session reads the subject. Each such
 reading is notable, beside those the Decision lists.
+
+Amended by #287, which replaces the bar. It was changed after #284's
+result was known, and departs from #281's rule that any failure rejects a
+size, so #284's runs don't count towards it. No rule of the agent's
+contract is relaxed. The cap stays at 1, and no size has been measured
+against the new bar. A problem now weighs what it would do to a mark:
+
+- **Rejecting**, any one of which rejects a size: a false claim returned
+  `true` or not reported; another finding's claim listed; a current or
+  intended claim called past or superseded; and the unit, a named subject
+  or a needed tree not opened, or only partly read. So is any problem in
+  none of these lists, such as missing evidence or a `not checked` that
+  should have been settled.
+- **Compared** with its rate alone: a `true` verdict none of whose cited
+  files was opened with `Read`, or citing lines of an opened one that no
+  `Read` covered. Evidence that names no file there is, or lines of one
+  that isn't, is reported apart. It weighs against the reading batch as
+  this does, and not for the rate alone.
+- **Counted**, and only recorded: a sentence from the finding's own page
+  outside its unit; a true claim returned `false`; any other error of
+  kind; and a `matching` error, a finding with no object or two or an
+  object for none.
+
+A `call` failure from outside the agent is still discarded and run again,
+and any other is rejecting. A size passes with no rejecting problem in at
+least 60 runs that each return an object for every finding, and with the
+compared problem's rate no worse than its margin allows. That rate is
+measured per finding read, on the same findings each read alone equally
+often, at least 60 readings in all. The one-sided 95% upper bound on the
+batched rate less the alone rate, resampling whole calls, has to be
+within the alone rate itself, so at most double, or within 5 percentage
+points where the alone rate is below 5%. Resampling bounds a few rare
+problems too low, and none at all at 0, so the bound is never below the
+one for none, where the batched rate is the highest with a 5% chance of
+seeing none in that many calls. Too few runs to reach the margin is a
+size not accepted. Claims listed per finding are recorded, batched and
+alone, and effort is pinned. No cap above 1 rests on the small root
+alone.
 
 ## Context
 

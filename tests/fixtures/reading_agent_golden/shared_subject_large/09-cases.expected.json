@@ -1,0 +1,1 @@
+{"false_claims": [], "outside_unit": ["on pallets", "sent back"], "kinds": {"rounded up to whole cases": "current", "case holds 12": "current"}, "settled_by": {"rounded up to whole cases": "depot/units.py:10-11", "case holds 12": "depot/limits.py:5-9"}}

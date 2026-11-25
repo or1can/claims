@@ -55,10 +55,9 @@ A reading batch holds at most one finding, so every finding is read in
 a call of its own. The cap is set by the golden runs of whole reading
 batches under [The model](#the-model), and no larger size has been shown
 to pass them: a reading that is cheaper but sometimes wrong would write
-marks that hide false claims. The cap goes up only to a size with no
-failed run in 20, and any failure rejects a size, whether it is a
-verdict, a kind, the unit or another. A group larger than the cap is
-then split, keeping together the findings that share the most subjects.
+marks that hide false claims. The cap goes up only to a size that passes
+the [bar](#the-bar). A group larger than the cap is then split, keeping
+together the findings that share the most subjects.
 
 The session checks that each reading batch's output holds exactly one
 report per finding it sent, matched by the finding's `file:line` and
@@ -250,10 +249,10 @@ delivered claim reported current. One has a Status naming one of its
 sentences as replaced, which has to come back superseded and `not
 checked` with no tree given, beside a current claim. One has a Status
 naming a list's bullets as replaced, and the list's lead-in has to come
-back superseded with them. Each fixture passes only when every claim
-gets the expected verdict and kind, the agent opened the section and the
-module with the file-reading tool, and no claim comes from outside the
-section.
+back superseded with them. A run of one has no problem only when every
+claim gets the expected verdict and kind, the agent opened the section
+and the module in full with the file-reading tool, and no claim comes
+from outside the section.
 
 Four more come in pairs that share a subject and need opposite verdicts,
 so a verdict leaking from one finding into the other fails one of them.
@@ -264,8 +263,8 @@ module, a `claim-words` sentence saying every setting has a default,
 when one has none, and a `temporal-words` sentence about a default that
 holds.
 
-One more fixture is a root of ten findings that share subjects, as a
-reading batch's do. They name one cache module, one settings module, or
+One more fixture is a small root of ten findings that share subjects, as
+a reading batch's do. They name one cache module, one settings module, or
 both, across design pages, decision records and single sentences. The
 first two are a pair like the `Eviction` one above. The third carries
 trees for a past claim, and the cache module in one of them evicts its
@@ -275,28 +274,91 @@ apart from the rest; here it stays, so that one path at two trees meets
 in one call. A finding fails if it lists another's claim as its own, and
 the kind of every claim is judged.
 
+The last is a large root of ten findings that share subjects, and the
+kind of every claim in it is judged too. They name a stock ledger of 358
+lines, a planner of 213, or both, and the first two are a pair needing
+opposite verdicts. Four findings hold a false claim that depends on code
+late in one of those files. Others hold a claim settled only by a file
+the finding doesn't name: a limit a page gives as 40 lines that the code
+sets at 25, or a case size that is right. Two say that nothing uses
+something: that nothing calls a method, which is true, and that nothing
+reads a field, which another file does.
+
 `python3 scripts/run_reading_agent_golden.py --model <model>` runs each
-of the twenty findings alone against the real model, one API call each.
+of the thirty findings alone against the real model, one API call each.
 `--only` runs just the fixture or the finding it names, and may be repeated.
-`--batch-size`, with 2, 3, 5 or 10, hands that many of the shared root's
-findings, the first in order, to one call. `--stress` hands the ten
+`--batch-size`, with 2, 3, 5 or 10, hands that many of the large root's
+findings, the first in order, to one call, or of the small root's with
+`--root small`. `--stress` hands the ten
 findings of the other fixtures to one call, each fixture's files under a
 prefix of their own. Those are from eight unrelated roots, which no
-reading batch is, so a stress run is recorded and never sets the cap. A run passes only when each
-finding comes back as it has to alone: one report per finding, the same
-verdicts and kinds, its unit and every subject listed as read and opened,
-and no claim from outside its unit. Otherwise it reports every problem in
-every finding. `--repeat` runs a mode several times and counts the failed
-runs, and the failures by finding and type. `--output-dir` saves each
-run's final message and the files it opened.
+reading batch is, so a stress run is recorded and never sets the cap.
+
+Each finding is judged by whether it comes back as it has to alone: one
+report per finding, the same verdicts and kinds, its unit and every
+subject listed as read and opened to the last line with the file-reading
+tool, no claim from outside its unit, and no `true` verdict resting on
+lines it didn't open. Every problem in every finding is reported with its class, and a run is
+labelled by its worst. The command fails only on a rejecting problem.
+`--repeat` runs a mode several times, and the summary counts the failed
+runs by class, the failures by finding and type, and the claims listed
+per finding. `--output-dir` saves each run's final message, the lines of
+each file it opened, its effort and its problems. `--saved` summarises
+runs saved earlier, and makes no call. `--alone` names saved runs of the
+same findings alone, and the summary then says whether the size passes
+the bar, or why it doesn't.
+
+### The bar
+
+A problem weighs what it would do to a mark.
+
+- **Rejecting.** One in any run rejects the size: a false claim returned
+  `true` or not reported; another finding's claim listed; a current or
+  intended claim called past or superseded; the unit, a named subject or
+  a needed tree not opened, or only partly read. A problem in none of
+  these lists, such as missing evidence, is rejecting too.
+- **Compared** with its rate alone: a `true` verdict none of whose cited
+  files was opened, or citing lines of an opened one that the agent
+  didn't read. Evidence naming no file in the root, or lines of one that
+  isn't there, can't be judged so. It is reported apart, and counts
+  against the reading batch but not in the rate alone.
+- **Counted**, only recorded: a sentence from the finding's own page
+  outside its unit, a true claim returned `false`, any other error of
+  kind, and a finding with no report or two, or a report for none.
+
+A call that returns no message is rejecting, unless a person reads its
+cause as from outside the agent, such as a usage limit. Its run is then
+discarded and made again.
+
+A size passes with no rejecting problem in at least 60 runs that each
+return a report for every finding, and with the compared problem's rate
+within a margin of its rate alone. The rate alone is measured on the same
+findings, each read alone equally often and at least 60 times in all. The
+one-sided 95% upper bound on the batched rate less the rate alone has to
+be within the rate alone itself, so a reading batch has it at most twice
+as often, or within 5 percentage points where the rate alone is under 5%.
+The bound resamples whole calls, since one call's findings share a
+context. Resampling a few rare problems bounds them too low, and none at
+all at 0, so the bound is never lower than the one for none. There the
+batched rate is taken as the highest with a 5% chance of seeing none in
+that many calls. Too few runs to bring the bound within the margin is a
+size not accepted. The runs of a size are all of one model
+and one effort, and the runs have to be of the large root: none rests on
+the small root alone.
+
+### The runs
 
 Each call is isolated: the agent's contract is its whole system prompt,
 Read, Glob and Grep are its only tools, it loads no hook, skill, plugin,
-MCP server or `CLAUDE.md`, and its root is outside the repository. A
-call in a real project does load that project's `CLAUDE.md`. Leaving it
-out keeps one run comparable with another.
+MCP server or `CLAUDE.md`, its effort is medium whatever the environment
+sets, and its root is outside the repository. A call in a real project
+does load that project's `CLAUDE.md`. Leaving it out keeps one run comparable with another.
 
-Run alone and isolated, sonnet passes all twenty, one run each.
+Run alone and isolated, sonnet passes the twenty findings outside the
+large root, one run each, judged without the lines opened or the evidence
+cited. Of the large root's ten, run alone once each on Claude Code
+2.1.311, nine have no problem. The tenth has a counted one: the decision record's undelivered claim came back
+`false`, as it has to, but of kind current rather than intended.
 
 Measured with `claude-sonnet-5-5` on Claude Code 2.1.311, in the isolated
 context, a batch of 2 failed on its fifth run, so it was stopped there
@@ -305,17 +367,17 @@ and 3, 5 and 10 were not run. On the first finding the agent listed
 a claim, while saying in its reasoning that it was outside the unit. The
 sentence was not the other finding's, and every verdict in that run was
 right. The same finding run alone 20 times had no failed run. One failure
-in 5 against none in 20 doesn't show that the batch caused it. Any
-failure rejects a size, whatever caused it, so the cap stays at one
-finding. Whether the bar should be that strict is an open question: a
-real finding read alone has had a sentence listed from past its section
-too, and a real reading of one finding isn't held to the bar.
+in 5 against none in 20 doesn't show that the batch caused it. By the
+[bar](#the-bar)'s classes that failure is counted, and rejects nothing,
+but these runs don't count towards it: they are few, of the small root,
+and judged without the lines opened or the evidence cited. With no runs
+that do, the cap stays at one finding.
 
 Counting input, cache and output tokens, a finding in that batch cost
 about 8,300, about 7,200 of them cache reads, over the five runs. The
 first finding alone averaged 19,100 over its 20 runs, 17,400 of them
 cache reads, and ranged from 15,700 to 32,600. The ten findings of the
-shared root, run alone once each, all passed, at 15,600 to 25,900. The
+small root, run alone once each, all passed, at 15,600 to 25,900. The
 isolated call starts smaller than one in a real project, so a project
 would see a different difference.
 

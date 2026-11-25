@@ -207,9 +207,9 @@ step's detail follows it.
    reading batch of its own. The cap is set by the reading agent's
    golden runs of whole reading batches, and no larger size has been
    shown to pass them (the plugin's `docs/reading-agent.md` records the
-   runs). It is raised only to a size with no failed run in 20; a group
-   larger than the cap is then split, keeping together the findings that
-   share the most subjects.
+   runs). It is raised only to a size that passes the bar that page
+   gives, in at least 60 runs; a group larger than the cap is then split,
+   keeping together the findings that share the most subjects.
 
    A `judgment-agent` candidate is never batched, as its own section
    above says: its golden harness has no batched run at all to prove its
