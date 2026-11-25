@@ -303,8 +303,11 @@ labelled by its worst. The command fails only on a rejecting problem.
 `--repeat` runs a mode several times, and the summary counts the failed
 runs by class, the failures by finding and type, and the claims listed
 per finding. `--output-dir` saves each run's final message, the lines of
-each file it opened, its effort and its problems. `--saved` summarises
-runs saved earlier, and makes no call. `--alone` names saved runs of the
+each file it opened, its effort and its problems, with the ID of each
+model that answered and the Claude Code version, both as the call's own
+output names them. `--saved` summarises
+runs saved earlier, and makes no call. A run saved without those two is
+refused. `--alone` names saved runs of the
 same findings alone, and the summary then says whether the size passes
 the bar, or why it doesn't.
 
@@ -342,9 +345,14 @@ context. Resampling a few rare problems bounds them too low, and none at
 all at 0, so the bound is never lower than the one for none. There the
 batched rate is taken as the highest with a 5% chance of seeing none in
 that many calls. Too few runs to bring the bound within the margin is a
-size not accepted. The runs of a size are all of one model
-and one effort, and the runs have to be of the large root: none rests on
-the small root alone.
+size not accepted. The runs of a size, and the runs alone they are
+compared with, have to agree in model alias, effort, model ID and Claude
+Code version: an alias can come to name another model, and Claude Code
+can update itself, part way through them. The summary names each that
+differs. A failed call is compared only on what it named, and a size
+none of whose runs names a model ID, or none a version, doesn't pass.
+The runs of a size also have to be of the large root: none rests on the
+small root alone.
 
 ### The runs
 

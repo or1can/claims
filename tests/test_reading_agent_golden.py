@@ -828,6 +828,8 @@ def _record(findings: list[Finding], *problems: tuple[int, str, str], **fields: 
     return {
         "model": "sonnet",
         "effort": EFFORT,
+        "model_id": "claude-sonnet-5-5",
+        "claude_code_version": "2.1.311",
         "findings": [f.name for f in findings],
         "claims": {f.name: 2 for f in findings},
         "problems": [
@@ -970,6 +972,50 @@ class BarTest(unittest.TestCase):
         self.alone = [{**r, "effort": "high"} for r in self.alone]
         self.assertIn("differ", self._short())
 
+    def _differs(self, batched: list[dict[str, Any]], alone: list[dict[str, Any]]) -> str:
+        """The one line of the summary that says the runs differ, or `""`."""
+
+        lines = _summary(batched, alone)
+        if "passes the bar" in lines:
+            return ""
+        (line,) = [x for x in lines if x.startswith("doesn't pass the bar: the runs differ")]
+        return line
+
+    def test_runs_that_differ_in_model_id_or_version_alone_do_not_pass_and_the_summary_says_which(self) -> None:
+        for field, value, said, unsaid in (
+            ("model_id", "claude-sonnet-5-6", "model ID", "version"),
+            ("claude_code_version", "2.1.312", "Claude Code version", "model"),
+        ):
+            changed = _record(self.batch, **{field: value})
+            among_batched = self._differs([*self.batched, changed], self.alone)
+            against_alone = self._differs(self.batched, [{**r, field: value} for r in self.alone])
+            among_alone = self._differs(self.batched, [*self.alone[1:], {**self.alone[0], field: value}])
+            for line in (among_batched, against_alone, among_alone):
+                self.assertIn(said, line)
+                self.assertNotIn(unsaid, line)
+
+    def test_runs_that_differ_in_both_say_both(self) -> None:
+        line = self._differs([*self.batched, _record(self.batch, model_id="m", claude_code_version="v")], self.alone)
+        self.assertIn("model ID", line)
+        self.assertIn("Claude Code version", line)
+
+    def test_a_failed_call_that_names_neither_is_no_difference(self) -> None:
+        neither = {"model_id": "", "claude_code_version": "", "claims": {}}
+        failed = _record(self.batch, (0, "call", REJECTING), **neither)
+        short = "; ".join(_short_of_the_bar([*self.batched, failed], self.alone))
+        self.assertEqual(short, "1 of 61 runs with a rejecting problem")
+        alone_failed = _record([self.batch[0]], (0, "call", REJECTING), **neither)
+        self.assertEqual(_short_of_the_bar(self.batched, [*self.alone, alone_failed]), [])
+
+    def test_a_failed_calls_own_version_is_still_compared(self) -> None:
+        failed = _record(self.batch, (0, "call", REJECTING), model_id="", claude_code_version="2.1.312", claims={})
+        self.assertIn("Claude Code version", self._differs([*self.batched, failed], self.alone))
+
+    def test_calls_that_returned_a_message_without_naming_one_are_not_taken_to_agree(self) -> None:
+        for field, said in (("model_id", "model ID"), ("claude_code_version", "Claude Code version")):
+            runs, alone = ([{**r, field: ""} for r in x] for x in (self.batched, self.alone))
+            self.assertEqual(_short_of_the_bar(runs, alone), [f"the runs don't say their {said}"])
+
     def test_the_summary_counts_failed_runs_by_class_and_claims_per_finding(self) -> None:
         self.batched[0] = _record(self.batch, (0, "unit-own-page", COUNTED), (1, "verdict", REJECTING))
         self.batched[1] = _record(self.batch, (0, "unit-own-page", COUNTED), (0, "unit-own-page", COUNTED))
@@ -1003,17 +1049,23 @@ reply = json.loads((here / "reply.json").read_text())
 if "exit" in reply:
     print(reply["exit"], file=sys.stderr)
     raise SystemExit(1)
-print(json.dumps({{"type": "system", "subtype": "init"}}))
+models = reply.get("models", ["claude-sonnet-5-5"])
+init = {{"type": "system", "subtype": "init", "model": "claude-asked-for", "claude_code_version": "2.1.311"}}
+print(json.dumps(init))
 for number, path in enumerate(reply["reads"]):
     block = {{"type": "tool_use", "id": f"t{{number}}", "name": "Read", "input": {{"file_path": path}}}}
-    print(json.dumps({{"type": "assistant", "message": {{"content": [block]}}}}))
+    print(json.dumps({{"type": "assistant", "message": {{"model": models[0], "content": [block]}}}}))
     result = {{"type": "tool_result", "tool_use_id": f"t{{number}}", "content": ""}}
     event = {{"type": "user", "message": {{"content": [result]}}, "tool_use_result": "Error: File does not exist."}}
     if os.path.exists(path):
         lines = len(Path(path).read_text().splitlines()[: reply.get("limit")])
         event["tool_use_result"] = {{"type": "text", "file": {{"filePath": path, "startLine": 1, "numLines": lines}}}}
     print(json.dumps(event))
-print(json.dumps({{"type": "result", "result": reply["message"], "usage": {{"output_tokens": 7}}}}))
+for model in models:
+    block = {{"type": "text", "text": reply["message"]}}
+    print(json.dumps({{"type": "assistant", "message": {{"model": model, "content": [block]}}}}))
+result = {{"type": "result", "result": reply["message"], "usage": {{"output_tokens": 7}}}}
+print(json.dumps({{**result, "is_error": reply.get("is_error", False)}}))
 """
 
 
@@ -1045,8 +1097,8 @@ class MainTest(unittest.TestCase):
         self.batch = _findings(FIXTURES_DIR / "shared_subject_batch")[:2]
         self._reply([_passing_report(f) for f in self.batch], [p for f in self.batch for p in f.must_read])
 
-    def _reply(self, reports: Any, reads: list[str], limit: int | None = None) -> None:
-        reply = {"message": json.dumps(reports), "reads": reads, "limit": limit}
+    def _reply(self, reports: Any, reads: list[str], limit: int | None = None, **fields: Any) -> None:
+        reply = {"message": json.dumps(reports), "reads": reads, "limit": limit, **fields}
         (self.bin / "reply.json").write_text(json.dumps(reply), encoding="utf-8")
 
     def _main(self, *args: str) -> tuple[int, str]:
@@ -1085,6 +1137,30 @@ class MainTest(unittest.TestCase):
         (saved,) = self.out.iterdir()
         self.assertEqual(json.loads(saved.read_text(encoding="utf-8"))["effort"], "medium")
 
+    def _saved_identity(self) -> tuple[str, str]:
+        self._main("--root", "small", "--batch-size", "2", "--output-dir", str(self.out))
+        (saved,) = self.out.iterdir()
+        run = json.loads(saved.read_text(encoding="utf-8"))
+        self.assertEqual(run["model"], "sonnet")
+        return run["model_id"], run["claude_code_version"]
+
+    def test_the_model_that_answered_and_the_version_that_called_it_are_saved(self) -> None:
+        self.assertEqual(self._saved_identity(), ("claude-sonnet-5-5", "2.1.311"))
+
+    def test_each_model_that_answered_one_call_is_saved(self) -> None:
+        self._reply([], ["missing.py"], models=["claude-sonnet-5-5", "claude-opus-5-5"])
+        self.assertEqual(self._saved_identity(), ("claude-sonnet-5-5, claude-opus-5-5", "2.1.311"))
+
+    def test_an_error_message_no_model_wrote_saves_no_model(self) -> None:
+        self._reply([], [], models=["<synthetic>"], is_error=True)
+        self.assertEqual(self._saved_identity(), ("", "2.1.311"))
+
+    def test_a_call_that_returned_neither_is_saved_as_a_call_problem(self) -> None:
+        (self.bin / "reply.json").write_text(json.dumps({"exit": "usage limit"}), encoding="utf-8")
+        self.assertEqual(self._saved_identity(), ("", ""))
+        (saved,) = self.out.iterdir()
+        self.assertEqual([p["type"] for p in json.loads(saved.read_text(encoding="utf-8"))["problems"]], ["call"])
+
     def test_the_claims_each_finding_listed_are_saved(self) -> None:
         self._main("--root", "small", "--batch-size", "2", "--output-dir", str(self.out))
         (saved,) = self.out.iterdir()
@@ -1116,6 +1192,13 @@ class MainTest(unittest.TestCase):
             code, out = self._main(option, str(self.out))
             self.assertEqual(code, 2)
             self.assertIn("old.json", out)
+            for field in ("model_id", "claude_code_version"):
+                run = _record(_findings(LARGE)[:1])
+                del run[field]
+                (self.out / "old.json").write_text(json.dumps(run), encoding="utf-8")
+                code, out = self._main(option, str(self.out))
+                self.assertEqual(code, 2, field)
+                self.assertIn("old.json was saved by an earlier harness", out)
         code, _ = self._main("--saved", str(self.out / "none"))
         self.assertEqual(code, 2)
         self.assertEqual(self._calls(), [])

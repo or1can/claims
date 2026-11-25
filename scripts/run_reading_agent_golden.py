@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Golden-fixture harness for the reading-agent subagent (#259, #281, #287).
+"""Golden-fixture harness for the reading-agent subagent (#259, #281, #287, #293).
 
 Run by hand, like `scripts/run_judgment_agent_golden.py`: each run is a
 live `claude -p` call, which costs a real API call and is not guaranteed
@@ -99,12 +99,20 @@ finding names moved with it. Those fixtures are unrelated, which no
 reading batch's findings are, so a stress run never sets the skill's
 cap. `--repeat` runs the mode N times, and `--output-dir` saves each
 run's final message, `Read` calls, token usage, problems, effort and how
-many claims each finding listed.
+many claims each finding listed. With them it saves what the call's own
+output names: the ID of each model that answered, which the alias
+`--model` gives may resolve to at one time and not at another, and the
+Claude Code version. A call that failed may name neither.
 
 The summary counts the failed runs by class. With `--alone`, the saved
 runs of the same findings alone, it says whether the runs pass the bar,
-or each way they fall short of it (`_short_of_the_bar`). `--saved` makes
-no call, and summarises runs saved earlier.
+or each way they fall short of it (`_short_of_the_bar`). Runs, batched and
+alone together, that differ in model alias, effort, model ID or Claude
+Code version don't pass, and the summary names each that differs. A
+failed call is compared only on what it names, and runs none of which
+names a model ID, or none a version, don't pass.
+`--saved` makes no call, and summarises runs saved earlier. It and
+`--alone` refuse a run saved without its model ID and version.
 
 Each call is isolated (`_claude_args`) and its root is a temporary
 directory outside this repository.
@@ -140,6 +148,8 @@ ROOTS = {
 }
 # The effort every call runs at, whatever its user's is.
 EFFORT = "medium"
+# What made a call, as its output names it, and the field of a saved run holding it.
+IDENTITY = {"model ID": "model_id", "Claude Code version": "claude_code_version"}
 # The fewest runs of a size, and readings alone, its bar is judged on, and
 # the margin on the compared problem's rate when its alone rate is below it.
 MIN_RUNS = 60
@@ -485,12 +495,17 @@ def _claude_args(prompt: str, system_prompt: str, model: str) -> list[str]:
 class Reply:
     """What one call returned: its final message, the input of each `Read`
     call, with the first and last of the `lines` it opened unless it opened
-    none, and its token usage, or, in `error`, why there is no message."""
+    none, and its token usage, or, in `error`, why there is no message. With
+    it, what its own output names: the Claude Code version, and the ID of
+    the model that answered, or of each in turn. A call that failed may name
+    neither."""
 
     message: str
     reads: list[dict[str, Any]]
     usage: dict[str, Any]
     error: str = ""
+    model_id: str = ""
+    claude_code_version: str = ""
 
 
 def _lines_opened(events: list[dict[str, Any]]) -> dict[str, list[int]]:
@@ -531,7 +546,15 @@ def _call(prompt: str, system_prompt: str, model: str, root: Path) -> Reply:
         if call.get("name") == "Read"
     ]
     result = next((e for e in events if e.get("type") == "result"), {})
-    reply = Reply(str(result.get("result", "")), reads, result.get("usage", {}))
+    answered = [e.get("message", {}).get("model", "") for e in events if e.get("type") == "assistant"]
+    reply = Reply(
+        str(result.get("result", "")),
+        reads,
+        result.get("usage", {}),
+        # Claude Code gives `<synthetic>` as the model of an error it words itself.
+        model_id=", ".join(dict.fromkeys(m for m in answered if m not in {"", "<synthetic>"})),
+        claude_code_version=next((e["claude_code_version"] for e in events if "claude_code_version" in e), ""),
+    )
     if done.returncode != 0:
         return replace(reply, error=f"claude exited {done.returncode}: {done.stderr.strip() or reply.message}")
     if not result or result.get("is_error"):
@@ -714,11 +737,13 @@ def _short_of_the_bar(runs: list[dict[str, Any]], alone: list[dict[str, Any]]) -
     """Each way `runs`, of one size, fall short of ADR 0021's bar against `alone`."""
 
     alone = _same_findings(runs, alone)
-    if len({(*r["findings"], r["model"], r["effort"]) for r in runs}) > 1 or len(
-        {(r["model"], r["effort"]) for r in runs + alone}
-    ) > 1:
-        return ["the runs differ in their findings, model or effort"]
-    short: list[str] = []
+    values: dict[str, set[Any]] = {"findings": {tuple(r["findings"]) for r in runs}}
+    for name, field in (("model alias", "model"), ("effort", "effort"), *IDENTITY.items()):
+        # A call that failed may name neither its model ID nor its version.
+        values[name] = {r[field] for r in runs + alone if r[field] or all(p["type"] != "call" for p in r["problems"])}
+    if differing := [name for name, found in values.items() if len(found) > 1]:
+        return [f"the runs differ in their {' and '.join(differing)}"]
+    short = [f"the runs don't say their {name}" for name, found in values.items() if found == {""}]
     findings: list[str] = runs[0]["findings"]
     if len(findings) not in SIZES or not all(name.startswith(f"{ROOTS['large'].name}/") for name in findings):
         short.append("they aren't a reading batch of the large root, which a cap has to rest on")
@@ -780,7 +805,7 @@ def _saved(directories: list[Path], parser: argparse.ArgumentParser) -> list[dic
             parser.error(f"{directory} holds no saved run")
         for file in files:
             run = json.loads(file.read_text(encoding="utf-8"))
-            if "claims" not in run:
+            if not {"claims", *IDENTITY.values()} <= run.keys():
                 parser.error(f"{file} was saved by an earlier harness, whose runs aren't judged by this bar")
             runs.append(run)
     return runs
