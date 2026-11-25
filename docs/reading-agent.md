@@ -258,6 +258,7 @@ the kind of every claim is judged.
 
 `python3 scripts/run_reading_agent_golden.py --model <model>` runs each
 of the twenty findings alone against the real model, one API call each.
+`--only` runs just the fixture or the finding it names, and may be repeated.
 `--batch-size`, with 2, 3, 5 or 10, hands that many of the shared root's
 findings, the first in order, to one call. `--stress` hands the ten
 findings of the other fixtures to one call, each fixture's files under a
@@ -277,6 +278,34 @@ call in a real project does load that project's `CLAUDE.md`. Leaving it
 out keeps one run comparable with another.
 
 Run alone and isolated, sonnet passes all twenty, one run each.
+
+Measured with `claude-sonnet-5-5` on Claude Code 2.1.311, in the isolated
+context, a batch of 2 failed on its fifth run, so it was stopped there
+and 3, 5 and 10 were not run. On the first finding the agent listed
+`Nothing is written to disk.`, from the next section of the same page, as
+a claim, while saying in its reasoning that it was outside the unit. The
+sentence was not the other finding's, and every verdict in that run was
+right. The same finding run alone 20 times had no failed run. One failure
+in 5 against none in 20 doesn't show that the batch caused it. Any
+failure rejects a size, whatever caused it, so the cap stays at one
+finding. Whether the bar should be that strict is an open question: a
+real finding read alone has had a sentence listed from past its section
+too, and a real reading of one finding isn't held to the bar.
+
+Counting input, cache and output tokens, a finding in that batch cost
+about 8,300, about 7,200 of them cache reads, over the five runs. The
+first finding alone averaged 19,100 over its 20 runs, 17,400 of them
+cache reads, and ranged from 15,700 to 32,600. The ten findings of the
+shared root, run alone once each, all passed, at 15,600 to 25,900. The
+isolated call starts smaller than one in a real project, so a project
+would see a different difference.
+
+The stress pack failed 16 of its 20 runs, in four findings. The decision
+record's undelivered claim came back current rather than intended in 11
+runs, and in two others claims were listed from outside its section. The
+first pair of opposite verdicts came back with each other's verdict in
+five, and one true claim came back `false` in another. None of it decides
+the cap.
 
 Handed those ten findings from unrelated roots in one call, before the
 calls were isolated, it passed two of four runs.

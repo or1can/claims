@@ -541,6 +541,30 @@ class MainTest(unittest.TestCase):
             self.assertIn("--safe-mode", call["argv"])
             self.assertFalse(Path(call["cwd"]).resolve().is_relative_to(REPO_ROOT))
 
+    def test_only_a_fixtures_findings_are_run_alone_when_it_is_named(self) -> None:
+        _, out = self._main("--only", "shared_subject_batch", "--output-dir", str(self.out))
+        self.assertIn("of 10\n", out)
+        self.assertEqual(len(self._calls()), 10)
+        names = [json.loads(p.read_text(encoding="utf-8"))["findings"] for p in sorted(self.out.iterdir())]
+        self.assertEqual(names, [[f.name] for f in _findings(FIXTURES_DIR / "shared_subject_batch")])
+
+    def test_only_the_findings_named_are_run_alone_each_repeat(self) -> None:
+        named = ["shared_subject_batch/02-faq.finding.txt", "known_true/finding.txt"]
+        _, out = self._main("--only", named[0], "--only", named[1], "--repeat", "3")
+        self.assertEqual(len(self._calls()), 6)
+        for name in named:
+            self.assertEqual(out.count(f"alone {name} "), 3, out)
+
+    def test_a_name_no_finding_has_is_refused_before_any_call(self) -> None:
+        for name in ("shared_subject", "shared_subject_batch/02-faq"):
+            code, _ = self._main("--only", "known_true", "--only", name)
+            self.assertEqual(code, 2, name)
+        self.assertEqual(self._calls(), [])
+
+    def test_a_name_no_finding_has_leaves_no_output_directory(self) -> None:
+        self._main("--only", "shared_subject", "--output-dir", str(self.out))
+        self.assertFalse(self.out.exists())
+
     def test_a_batch_passes_when_each_finding_does(self) -> None:
         code, out = self._main("--batch-size", "2")
         self.assertEqual(code, 0, out)
@@ -608,7 +632,13 @@ class MainTest(unittest.TestCase):
         self.assertEqual(self._calls(), [])
 
     def test_a_size_the_cap_is_not_measured_at_no_repeats_and_two_modes_are_refused(self) -> None:
-        for args in (["--batch-size", "4"], ["--repeat", "0"], ["--batch-size", "2", "--stress"]):
+        for args in (
+            ["--batch-size", "4"],
+            ["--repeat", "0"],
+            ["--batch-size", "2", "--stress"],
+            ["--batch-size", "2", "--only", "known_true"],
+            ["--stress", "--only", "known_true"],
+        ):
             code, _ = self._main(*args)
             self.assertEqual(code, 2, args)
         self.assertEqual(self._calls(), [])

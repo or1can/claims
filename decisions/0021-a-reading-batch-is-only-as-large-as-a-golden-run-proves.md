@@ -21,6 +21,15 @@ Consequences name is now `--stress`, and never sets the cap; the runs
 the cap rests on are `--batch-size`'s, of findings from one root that
 share subjects.
 
+Amended by #284, which measured them and leaves the cap at 1: on sonnet
+(`claude-sonnet-5-5`, Claude Code 2.1.311) a batch of 2 failed on its
+fifth run, and no larger size was run. One finding listed a sentence from
+past the end of its own section, with every verdict right; the sentence
+was not the other finding's, and that finding alone had no failed run in
+20, so the batch isn't shown to have caused it. The stress pack of
+unrelated findings failed 16 of 20. `docs/reading-agent.md` holds the
+runs. Whether any failure should reject a size is open, as #287.
+
 ## Context
 
 The reading agent took one finding per call, and the skill called it

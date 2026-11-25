@@ -260,10 +260,10 @@ file = "README.md"
 mode = "claim-words-counts"
 unit = "7df1301d46f4f60a"
 copies = 1
-note = "read SKILL.md, reading_agent.md and docs/reading-agent.md: the cap of 1 feeds one finding per call, the agent reads the unit and every subject in full, reports a verdict per claim and never marks; Claude Code reworded the page's The model section after the reading, which nothing here rests on; current and true"
+note = "read reading_agent.md and docs/reading-agent.md in full: the agent reads the unit and every subject in full, reports a verdict per claim with evidence and never marks; the agent only searched SKILL.md for the cap of 1, which Claude Code read; all four claims current and true"
 by = "claims:reading-agent (sonnet), with Claude Code (claude-opus-5-5)"
 approved_by = "Kevin Rogers"
-subjects = { "docs/reading-agent.md" = "5efde7a80770356f" }
+subjects = { "docs/reading-agent.md" = "6ce76fc3743e25d5" }
 
 [[mark]]
 file = "README.md"
@@ -290,10 +290,10 @@ file = "README.md"
 mode = "claim-words-totalising"
 unit = "7df1301d46f4f60a"
 copies = 1
-note = "read SKILL.md, reading_agent.md and docs/reading-agent.md: the cap of 1 feeds one finding per call, the agent reads the unit and every subject in full, reports a verdict per claim and never marks; Claude Code reworded the page's The model section after the reading, which nothing here rests on; current and true"
+note = "read reading_agent.md and docs/reading-agent.md in full: the agent reads the unit and every subject in full, reports a verdict per claim with evidence and never marks; the agent only searched SKILL.md for the cap of 1, which Claude Code read; all four claims current and true"
 by = "claims:reading-agent (sonnet), with Claude Code (claude-opus-5-5)"
 approved_by = "Kevin Rogers"
-subjects = { "docs/reading-agent.md" = "5efde7a80770356f" }
+subjects = { "docs/reading-agent.md" = "6ce76fc3743e25d5" }
 
 [[mark]]
 file = "README.md"
@@ -340,10 +340,10 @@ file = "README.md"
 mode = "stale-claims"
 unit = "4abe336640ffcdc1"
 copies = 1
-note = "read the section against installation.md, reading-agent.md, SKILL.md, both subagents, plugin.json, cli.py and gate.py in full, and checked.py's UNITS only: all eight claims hold; Claude Code read hooks.json, whose three hooks are the reminder, and reworded reading-agent.md's The model section after the reading, which nothing here rests on; current and true"
-by = "claims:reading-agent (sonnet), with Claude Code (claude-opus-5-5)"
+note = "read the section against installation.md, reading-agent.md, SKILL.md, both subagents, judgment-agent.md, plugin.json, hooks.json and gate.py in full, cli.py's first 160 lines and checked.py's UNITS only: all ten claims hold; current and true"
+by = "claims:reading-agent (sonnet)"
 approved_by = "Kevin Rogers"
-subjects = { "docs/installation.md" = "ab434920e25708a3", "docs/reading-agent.md" = "5efde7a80770356f" }
+subjects = { "docs/installation.md" = "ab434920e25708a3", "docs/reading-agent.md" = "6ce76fc3743e25d5" }
 
 [[mark]]
 file = "README.md"
@@ -1053,6 +1053,16 @@ note = "cli.py imports claims.checks, which registers every check; config_review
 by = "claims:reading-agent (sonnet), batched"
 approved_by = "Kevin Rogers"
 subjects = { "claims/config_review.py" = "b5474535b80d7bf3", "tests/test_config_review.py" = "476aa7bf4bf3217c" }
+
+[[mark]]
+file = "claims/skill/SKILL.md"
+mode = "stale-claims"
+unit = "fddcda6e930f8c54"
+copies = 1
+note = "read the unit against docs/reading-agent.md, docs/checked-marks.md, reading_agent.md and run_reading_agent_golden.py in full: all claims current and true; the agent only searched cli.py's claim-trees, stale_claims.py's range comment and the judgment harness, which an earlier agent reading of this section opened; Claude Code ran claim-trees and its --help, and read the range comment"
+by = "claims:reading-agent (sonnet), with Claude Code (claude-opus-5-5)"
+approved_by = "Kevin Rogers"
+subjects = { "claims/subagent/reading_agent.md" = "b64a85b5ea498174", "docs/checked-marks.md" = "976d132e765cbdfe", "docs/reading-agent.md" = "6ce76fc3743e25d5" }
 
 [[mark]]
 file = "claims/subagent/reading_agent.md"
@@ -1901,10 +1911,10 @@ file = "decisions/0021-a-reading-batch-is-only-as-large-as-a-golden-run-proves.m
 mode = "stale-claims"
 unit = "de00163e80311042"
 copies = 1
-note = "read the section, reading_agent.md, SKILL.md, CONTEXT.md, the harness, docs/reading-agent.md, checked.py, fold.py and cli.py in full: current and true, save the --batched bullet, superseded by the Status (#281) and true at 398a9b3; the kept suffix was searched for in claims.checked.toml; Claude Code reworded the page, the harness docstring and the Status after the reading, not the mode names"
+note = "read the section, reading_agent.md, CONTEXT.md, the harness and docs/reading-agent.md in full, and SKILL.md lines 150-359: current and true, save the --batched bullet, superseded by the Status (#281) and true at 398a9b3; the kept suffix and the use of by were searched for in claims.checked.toml and claims/, and Claude Code read checked.py's by validation and searched every other use"
 by = "claims:reading-agent (sonnet), with Claude Code (claude-opus-5-5)"
 approved_by = "Kevin Rogers"
-subjects = { "CONTEXT.md" = "1c037c2446d63488", "claims/subagent/reading_agent.md" = "b64a85b5ea498174", "docs/reading-agent.md" = "5efde7a80770356f", "scripts/run_reading_agent_golden.py" = "801cbef92d34e8b3" }
+subjects = { "CONTEXT.md" = "1c037c2446d63488", "claims/subagent/reading_agent.md" = "b64a85b5ea498174", "docs/reading-agent.md" = "6ce76fc3743e25d5", "scripts/run_reading_agent_golden.py" = "060a8c4359b094ec" }
 
 [[mark]]
 file = "docs/SUMMARY.md"
