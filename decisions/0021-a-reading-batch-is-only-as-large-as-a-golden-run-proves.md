@@ -75,6 +75,11 @@ size not accepted. Claims listed per finding are recorded, batched and
 alone, and effort is pinned. No cap above 1 rests on the small root
 alone.
 
+Amended by #289, before any of its runs: the cap rises only to 5 or 10.
+Size 5 is run first and 10 only if 5 passes, each at a fixed 60 runs, so
+2 and 3 are not measured and set no cap. This tightens #287's bar and
+relaxes nothing in it.
+
 ## Context
 
 The reading agent took one finding per call, and the skill called it
