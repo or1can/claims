@@ -11,6 +11,14 @@ reached you, not just that one was pushed upstream.
 
 ## [Unreleased]
 
+## [0.37.4] - 2026-11-25
+
+- Fixed: the skill no longer lets a mark rest on a `true` verdict whose
+  evidence nobody opened. Before marking, the session compares each
+  claim's evidence with what the reading agent lists as read, and
+  settles what it didn't open. Expect more marks whose `by` names
+  the session beside the agent, and more notable readings.
+
 ## [0.37.3] - 2026-11-24
 
 - Changed: the skill says what a larger reading batch has to pass before

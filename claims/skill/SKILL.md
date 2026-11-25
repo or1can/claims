@@ -269,30 +269,67 @@ step's detail follows it.
    the costly mistake, since it holds there and its mark no longer
    expires with its subjects.
 
-7. **Settle what the agent couldn't reach.** A claim it reports `not
-   checked` is one it couldn't read, not one found wanting, and its
-   reasoning says what it would need. Route each by that:
+   Then compare each `true` claim's `evidence` with the `read` of the
+   same object. The agent sometimes returns `true` from a search alone.
+   These are **unsettled**, for step 7 to settle:
+
+   - **a named subject not opened in full:** one the finding names that
+     `read` lacks, or gives only part of, whatever its claims cite. A
+     subject opened before a step 5 re-send stays opened, and one the
+     root no longer holds can't be;
+   - **a claim citing a file that isn't in `read`**, at the claim's own
+     tree, or lines outside the lines or section its `read` entry gives,
+     even where its other cited files were read;
+   - **a claim whose evidence names no file;**
+   - **a claim that something is absent or unused** ("nothing reads X")
+     resting on a search, whatever else was read.
+
+7. **Settle what the agent couldn't reach or didn't open.** For each
+   unsettled item from step 6, in this order:
+
+   - **a named subject not opened in full:** hand the agent the finding
+     again, alone, with any trees it had, and go back to step 4 with what
+     it returns, whose verdict on a claim replaces the earlier one. Or
+     read the subject in full yourself, against each claim that rests on
+     it, as you do when a re-send leaves it unopened again;
+   - **a file or lines it didn't open:** open the cited lines yourself,
+     with enough around them to settle the claim;
+   - **no file named:** find what settles the claim and open that;
+   - **something absent or unused:** search the tracked files yourself,
+     such as with `git grep`, which takes a commit for an old tree, open
+     every hit, and name the search in the note.
+
+   Work at the claim's own tree. What you find becomes the verdict. A
+   claim you find `false` whose `kind_evidence` is a decision record's
+   Decision, or wording that decides, has kind `intended`. A claim you
+   can't settle is `not checked`.
+
+   A claim the agent itself reports `not checked` is one it couldn't
+   read, not one found wanting, and its reasoning says what it would
+   need. Route each by that:
 
    - **a tree:** step 5;
    - **a subject it wasn't given:** hand it the finding again with that
-     subject named;
+     subject named, and go back to step 4 with what it returns;
    - **a command's output, the history, an issue or the network:** read
      or run it yourself, as the agent would have read a file: `git log`,
-     `gh issue view`, the command the claim describes. Then the claim
-     has a verdict from you, and the mark's `--by` names you beside the
-     agent, as `claims:reading-agent (<model>), with <session or agent
-     name> (<model>)`;
+     `gh issue view`, the command the claim describes;
    - **nothing you can reach either:** a past run's output you can't
      reproduce, an incident that cites nothing to find it by, a
      repository you can't access, a judgement rather than a fact. Only
      this claim stays `not checked`.
 
-8. **Mark by kind, with `--pending`.** For each finding:
+   Where you settled a claim or read a subject yourself, the mark's
+   `--by` names you beside the agent, as `claims:reading-agent (<model>),
+   with <session or agent name> (<model>)`.
+
+8. **Mark by kind, with `--pending`.** For each finding, from its
+   verdicts as step 7 left them:
 
    - **Every claim `true`:** mark the finding, with `--by
      "claims:reading-agent (<model>)"`, `<model>` being the model it ran
-     on. A batched reading names the same reader: batching is how you
-     dispatched the work, not who read it.
+     on, or step 7's form. A batched reading names the same reader:
+     batching is how you dispatched the work, not who read it.
    - **Any claim `false`:** fix the prose; never mark it. Two
      exceptions, each yours to decide, not the agent's. An intended
      claim that is `false` may not be delivered yet: fix the code, or
@@ -319,8 +356,8 @@ step's detail follows it.
    section its claims' kinds rest on, such as a decision record's
    `#status`. A superseded unit needs at least one. Put each claim's
    kind, and the commit a past or superseded claim was read at, in the
-   note. Marks of different kinds go in separate batches. "Writing the
-   marks" below gives the command.
+   note. Marks of different kinds, or with a different `--by`, go in
+   separate batches. "Writing the marks" below gives the command.
 
 9. **Report.** Tell the user which readings are **notable**, the ones a
    person should see before approving a mark. A reading is notable if
@@ -335,14 +372,15 @@ step's detail follows it.
       it was read at;
    4. a mark was written despite a `false` claim, the intended "not
       delivered yet" exception;
-   5. a verdict rests on a subject the agent only searched, or one you
-      overrode, re-read or settled yourself in step 7: say what you did.
+   5. step 6 found something unsettled, or you overrode, re-read or
+      settled a verdict yourself: say what was opened, by you or by the
+      agent when re-sent, and what it showed. Reporting it doesn't settle
+      it: step 7 does.
 
-   Every other reading is routine: every claim `true`, every claim
-   current, and every subject read in full. List the notable readings
-   first, each with its reason, then the routine ones as a count and one
-   line each. When the marks go in a pull request, put the notable list
-   in its body's evidence, where the person approving the marks sees it.
+   Every other reading is routine. List the notable readings first, each
+   with its reason, then the routine ones as a count and one line each.
+   When the marks go in a pull request, put the notable list in its
+   body's evidence, where the person approving the marks sees it.
    Routine marks are `--pending` like any other, and need a person's
    approval just the same.
 

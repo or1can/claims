@@ -163,7 +163,28 @@ and leaves that to the session.
 
 The `check-claims` skill hands each markable finding to the reading
 agent, in its reading batch, before marking it, and marks only after
-reading the agent's evidence:
+reading the agent's evidence and comparing it with what the agent lists
+as read. The agent sometimes returns `true` from a search alone, so
+before marking:
+
+- A finding naming a subject that wasn't opened in full is unsettled. It
+  is re-sent alone, and a claim's verdict then replaces its earlier one,
+  or the session reads the subject in full itself.
+- A `true` claim citing a file not listed as read at the claim's own
+  tree, or lines outside what was read of it, is unsettled, even where
+  its other cited files were read. The session opens the cited lines
+  itself, with enough around them to settle the claim, at that tree.
+- A `true` claim whose evidence names no file is unsettled too. The
+  session finds what settles it and opens that.
+- A claim that something is absent or unused, resting on a search, is
+  unsettled whatever else was read. The session searches the tracked
+  files itself, such as with `git grep`, opens every hit, and names the
+  search in the note.
+
+What the session finds becomes the verdict, and a claim it can't settle
+is `not checked`. Where it settled a claim or read a subject itself, the
+mark's `by` names it beside the agent. Each finding is then handled by
+its verdicts:
 
 - Every claim `true`: a full mark, with `--by "claims:reading-agent
   (<model>)"`, so the mark names its reader and the model that read it.
@@ -174,18 +195,16 @@ reading the agent's evidence:
   in the note; a past or superseded claim false at its tree sits in a
   record whose prose is not rewritten, and the session settles it with
   the user.
-- A claim `not checked`: the agent couldn't reach what settles it, and
-  says what it would need. For a tree or a subject it wasn't given, the
-  session hands the finding back with it. For a command's output, the
-  history or an issue, the session reads or runs that itself, and the
-  mark's `by` then names the session beside the agent. Only a claim
-  nobody can reach, such as a past run's output or a judgement, stays
-  unchecked. In a `stale-claims` section or a
-  `spliced-docs` doc comment that is a [partial
-  mark](checked-marks.md#partial-marks), whose note names the claim
-  left unchecked and why, as long as at least one claim is `true`. In
-  any other mode, no mark. A full mark always means every claim was
-  checked.
+- A claim `not checked`: where the agent couldn't reach what settles it,
+  it says what it would need. For a tree or a subject it wasn't given,
+  the session hands the finding back with it. For a command's output,
+  the history or an issue, the session reads or runs that itself. Only a
+  claim nobody can settle, such as a past run's output or a judgement,
+  stays unchecked. In a `stale-claims` section or a `spliced-docs` doc
+  comment that is a [partial mark](checked-marks.md#partial-marks),
+  whose note names the claim left unchecked and why, as long as at least
+  one claim is `true`. In any other mode, no mark. A full mark always
+  means every claim was checked.
 
 A unit is fully marked when every claim holds at its own tree. Its mark
 records the unit's kind, the least settled of its claims': current if
@@ -197,11 +216,11 @@ reading is one a person should see before approving its mark: a claim
 that came back `false`, so the prose was fixed; one nobody could
 check, so the mark is partial or absent; a claim whose kind isn't current, read at
 an old tree or held as not delivered; a mark written despite a `false`
-claim; and a verdict resting on a subject only searched for, or that the
-session overrode, read again or settled itself. Every other reading is
-**routine**: every claim true and current, and every subject read in
-full. The notable ones come first, each with its reason, and go in the
-pull request's description, where the person approving sees them.
+claim; one that came back with a claim unsettled or a named subject not
+opened in full, saying what was then opened; and a verdict the session
+overrode, read again or settled itself. Every other reading is
+**routine**. The notable ones come first, each with its reason, and go
+in the pull request's description, where the person approving sees them.
 
 The skill marks with `--pending`, routine readings included, so a person
 reviews each reading before it stands, and `pending-marks` prints the `by` of each mark beside it.
