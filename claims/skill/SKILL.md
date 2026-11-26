@@ -203,13 +203,12 @@ step's detail follows it.
    of one. Never pack unrelated findings together to fill a reading
    batch. A reading batch holds findings from one root only.
 
-   A reading batch holds at most **1 finding**, so every finding is a
-   reading batch of its own. The cap is set by the reading agent's
-   golden runs of whole reading batches, and no larger size has been
-   shown to pass them (the plugin's `docs/reading-agent.md` records the
-   runs). It is raised only to a size that passes the bar that page
-   gives, in at least 60 runs; a group larger than the cap is then split,
-   keeping together the findings that share the most subjects.
+   A reading batch holds at most **5 findings**. The cap is set by the
+   reading agent's golden runs of whole reading batches: a batch of 5
+   passed the bar the plugin's `docs/reading-agent.md` gives, in 60
+   runs, and a batch of 10 did not (that page records the runs). A group
+   larger than the cap is split, keeping together the findings that
+   share the most subjects.
 
    A `judgment-agent` candidate is never batched, as its own section
    above says: its golden harness has no batched run at all to prove its

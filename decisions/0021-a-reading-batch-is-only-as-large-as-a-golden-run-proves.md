@@ -75,6 +75,23 @@ size not accepted. Claims listed per finding are recorded, batched and
 alone, and effort is pinned. No cap above 1 rests on the small root
 alone.
 
+Amended by #289, before any of its runs: the cap rises only to 5 or 10.
+Size 5 is run first and 10 only if 5 passes, each at a fixed 60 runs, so
+2 and 3 are not measured and set no cap. This tightens #287's bar and
+relaxes nothing in it.
+
+Amended again by #289's runs, which set the cap at 5. On sonnet
+(`claude-sonnet-5-5`, Claude Code 2.1.311, effort medium), the large
+root's ten findings were each read alone 30 times, with no rejecting or
+`unopened` problem, so each size's margin is 5 percentage points. A
+batch of 5 then passed in 60 runs, with no rejecting problem and a
+bound of 0.049 on the compared problem's difference. A batch of 10 had
+no rejecting problem in 60 runs, but its bound of 0.052 is over the
+margin, so it isn't accepted. Every compared problem was one finding's
+absence claim returned `true` on evidence citing a file without its
+directory, or no line.
+`docs/reading-agent.md` holds the runs.
+
 ## Context
 
 The reading agent took one finding per call, and the skill called it

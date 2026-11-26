@@ -277,9 +277,10 @@ The exit code is:
   [Checked marks](checked-marks.md#failing-a-run-on-unmarked-findings)
   describes.
 
-The commit hook and the CLI differ in two respects. The hook runs only in
-a repository with a root `claims.toml`, and the CLI runs anywhere, with
-every check on its defaults where the file is missing. The hook also
+The commit hook and the CLI differ in where they run and in what they
+honour. The hook runs only in a repository with a root
+`claims.toml`, and the CLI runs anywhere, with every check on its
+defaults where the file is missing. The hook also
 honours the switches that take a check, or the gate as a whole, out of the
 commit-time decision, and the CLI ignores both, so a check silenced at
 commit time is still reported here. Those switches are on

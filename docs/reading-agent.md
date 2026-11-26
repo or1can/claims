@@ -51,13 +51,13 @@ full once counts as read for every finding in the reading batch naming
 it, at the same tree. The same path at a different tree, such as a past
 claim's tree, is read again there.
 
-A reading batch holds at most one finding, so every finding is read in
-a call of its own. The cap is set by the golden runs of whole reading
-batches under [The model](#the-model), and no larger size has been shown
-to pass them: a reading that is cheaper but sometimes wrong would write
-marks that hide false claims. The cap goes up only to a size that passes
-the [bar](#the-bar). A group larger than the cap is then split, keeping
-together the findings that share the most subjects.
+A reading batch holds at most five findings. The cap is set by the
+golden runs of whole reading batches under [The model](#the-model): a
+batch of 5 passed the [bar](#the-bar) and a batch of 10 did not. A
+reading that is cheaper but sometimes wrong would write marks that hide
+false claims, so the cap is only a size that passes. A group larger than
+the cap is split, keeping together the findings that share the most
+subjects.
 
 The session checks that each reading batch's output holds exactly one
 report per finding it sent, matched by the finding's `file:line` and
@@ -378,8 +378,8 @@ right. The same finding run alone 20 times had no failed run. One failure
 in 5 against none in 20 doesn't show that the batch caused it. By the
 [bar](#the-bar)'s classes that failure is counted, and rejects nothing,
 but these runs don't count towards it: they are few, of the small root,
-and judged without the lines opened or the evidence cited. With no runs
-that do, the cap stays at one finding.
+and judged without the lines opened or the evidence cited. They left
+the cap at one finding.
 
 Counting input, cache and output tokens, a finding in that batch cost
 about 8,300, about 7,200 of them cache reads, over the five runs. The
@@ -388,6 +388,102 @@ cache reads, and ranged from 15,700 to 32,600. The ten findings of the
 small root, run alone once each, all passed, at 15,600 to 25,900. The
 isolated call starts smaller than one in a real project, so a project
 would see a different difference.
+
+The runs the cap rests on were made on 25 and 26 November 2026,
+on `claude-sonnet-5-5`, Claude Code 2.1.311 and medium effort, with
+Claude Code's auto-update off. No call failed, so none was discarded or
+replaced, and every run returned a report for every finding. Each of the
+large root's ten findings was first read alone 30 times. None of the
+300 had a rejecting problem or an `unopened` one, so the compared rate
+alone is 0 for both sizes and each margin is 5 percentage points. In 28
+readings the decision record's undelivered claim came back `false`, as
+it has to, but current rather than intended, which is counted. Two
+readings of the cases finding cited `planner.py` without its `depot/`
+prefix, evidence naming no file, which is reported apart.
+
+The readings alone were made with `python3
+scripts/run_reading_agent_golden.py --only shared_subject_large --repeat
+30 --output-dir <alone>`. Each batched run was a call of its own, `python3
+scripts/run_reading_agent_golden.py --batch-size 5 --output-dir <run>`,
+into a new directory each time, stopping at the first run with a
+rejecting problem, on which the harness exits 1. Size 10 was run the same
+way, with `--batch-size 10`.
+
+A batch of 5, the first five findings, passed in 60 runs.
+Captured from `python3 scripts/run_reading_agent_golden.py --saved <run>
+... --alone <alone>`, over the 60 runs of `--batch-size 5`, each saved
+to a directory of its own, and the 300 runs alone:
+
+```
+failed runs of 60: 0 rejecting, 9 compared, 0 counted
+    9 x shared_subject_large/04-audit.finding.txt: unresolved (compared)
+compared problem: batched 0.030, alone 0.000, upper bound on the difference 0.049, margin 0.050
+passes the bar
+```
+
+A batch of all ten had no rejecting problem in 60 runs, but wasn't
+accepted. Captured the same way, over the 60 runs of `--batch-size 10`:
+
+```
+failed runs of 60: 0 rejecting, 24 compared, 1 counted
+    24 x shared_subject_large/04-audit.finding.txt: unresolved (compared)
+    1 x shared_subject_large/06-hold-length.finding.txt: kind (counted)
+compared problem: batched 0.040, alone 0.000, upper bound on the difference 0.052, margin 0.050
+doesn't pass the bar: the bound 0.052 on the compared problem's difference is over its margin 0.050
+```
+
+So the cap is 5. Every compared problem in both sizes was the same one,
+in a finding that had none in its 30 readings alone: the claim that
+nothing in `depot` calls `rebuild` came back `true` on a search and a
+list of files read. Its evidence cited `ledger.py:240` without the
+`depot/` prefix in 27 of the 33, and no line at all in the rest. The
+cases finding's two readings alone were the same slip. A batch of 5
+passed the bound by 0.001. The decision record's undelivered claim, current rather than
+intended in 28 of 30 readings alone, came back intended in all 60
+batches of 10; the one counted problem there is its other, delivered
+claim called intended.
+
+The bound is the larger of two: the resampled bound, and the one for no
+problem at all in that many calls. Over 60 calls the second is 0.049,
+whatever the batch, so a margin of 0.05 leaves a size at 60 runs almost
+no room. A batch of 5's resampled bound was 0.047, so its bound is the
+one for none; a batch of 10's was 0.052. Over 120 calls the bound for
+none would be 0.025, and over 200, 0.015.
+
+The same five findings did worse in the batch of 10. Their compared rate
+was 0.080 there, all of it the audit finding, against 0.030 in the batch
+of 5. Their claims listed per finding were 2.20 in the batch of 5, 2.18
+in the batch of 10 and 2.20 alone; over all ten, 1.79 in the batch of 10
+against 1.80 alone. The first two findings sometimes listed their two
+sentences as one claim in the batch of 10:
+
+| Finding | Batch of 5 | Batch of 10 | Alone |
+| --- | --- | --- | --- |
+| 01-holds | 2.00 | 1.92 | 2.00 |
+| 02-support | 2.00 | 1.97 | 2.00 |
+| 03-planning | 3.00 | 3.00 | 3.00 |
+| 04-audit | 2.02 | 2.00 | 2.00 |
+| 05-privacy | 2.00 | 2.00 | 2.00 |
+| 06-hold-length | | 2.00 | 2.00 |
+| 07-stock-totalising | | 1.00 | 1.00 |
+| 08-stock-temporal | | 1.00 | 1.00 |
+| 09-cases | | 2.00 | 2.00 |
+| 10-planner-totalising | | 1.00 | 1.00 |
+
+A batch's tokens are its call's, so they are counted per finding as the
+call's total over its findings, against the same findings alone, which
+ranged from about 19,200 to 69,500 each:
+
+| | Tokens per finding | Of them cache reads |
+| --- | --- | --- |
+| Batch of 5 | 13,789 | 10,825 |
+| Its five findings alone | 43,344 | 35,392 |
+| Batch of 10 | 6,970 | 5,209 |
+| Its ten findings alone | 36,202 | 29,273 |
+
+Tokens count input, cache-creation, cache-read and output. The batches
+are of one root's findings in one order, in an isolated call, so a
+project's saving would differ.
 
 The stress pack failed 16 of its 20 runs, in four findings. The decision
 record's undelivered claim came back current rather than intended in 11
@@ -406,7 +502,7 @@ pair's two findings each other's verdict, so a false claim came back
 undelivered eviction claim `false`, as it has to be, but current rather
 than intended. A reading that strays from its unit or misreads a kind,
 or returns a false claim as true, is not one to mark from, so the skill's
-cap stays at one finding.
+cap stayed at one finding.
 
 Haiku, over two runs of the first three,
 gives the right verdict on every claim, both false ones included,

@@ -75,10 +75,11 @@ Five invocation surfaces, same underlying checks:
   never by pattern-matching the claim's own wording. Advisory only: its
   verdict never blocks a commit, and the check that feeds it blocks one
   only from a project that lists it under `[hook] fail_on_unmarked`.
-- **The `reading-agent` subagent.** Fed one markable finding at a time by
-  the skill, it reads the finding's section, sentence or doc comment and
-  every file it names in full, and reports a verdict per claim with
-  evidence, for the session to decide whether to mark it as checked — see
+- **The `reading-agent` subagent.** Handed up to five findings that share
+  subjects at a time by the skill, it reads each finding's section,
+  sentence or doc comment and every file it names in full, and reports a
+  verdict per claim with evidence, for the session to decide whether to
+  mark it as checked — see
   [`docs/reading-agent.md`](docs/reading-agent.md). It never writes a mark.
 - **Outside Claude Code entirely, as the git hook or a CI step.** The
   `pre-commit` hook needs no Claude Code session, and `claims.cli` is the
@@ -99,8 +100,8 @@ too.
 
 ## Installing
 
-Distributed as a direct git-URL Claude Code plugin — no marketplace listing
-— pinned at install rather than always-latest, so an unreviewed upstream
+Distributed as a direct git-URL Claude Code plugin — no central marketplace
+listing — pinned at install rather than always-latest, so an unreviewed upstream
 change can't silently start gating a commit differently mid-project. The
 commit gate is a git pre-commit hook, installed separately (pre-commit.com,
 or `uvx` from a release tag), and gates only a repository with a
