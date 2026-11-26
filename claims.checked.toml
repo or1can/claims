@@ -110,11 +110,10 @@ file = "AGENTS.md"
 mode = "stale-claims"
 unit = "6715f004a7dd6c85"
 copies = 1
-note = "book.toml's src, docs.yml's build and deploy, agents/docs.md's trigger and the two tests holding every check to a page, entry, index line and capture hold; not checked: \"stated there and only there\""
-by = "claims:reading-agent (sonnet), batched"
+note = "read the section against book.toml, docs.yml, agents/docs.md, SUMMARY.md, README.md, test_check_pages.py and test_captures.py in full: docs/ as the book's source, the agents/docs.md trigger, and the two tests holding every check to a page, entry, index line and capture hold; current and true"
+by = "claims:reading-agent (sonnet)"
 approved_by = "Kevin Rogers"
-extent = "partial"
-subjects = { ".github/workflows/docs.yml" = "9174303cf04e3b3d", "README.md" = "730bf014fcf43601", "agents/docs.md" = "77d100daaac19457", "book.toml" = "1944223542e98ac8", "docs/SUMMARY.md" = "a5180e869bbfd99d", "tests/test_captures.py" = "7193d8987d213229", "tests/test_check_pages.py" = "c472fae497911ddf" }
+subjects = { ".github/workflows/docs.yml" = "9174303cf04e3b3d", "README.md" = "cc0e39fb50b9a60c", "agents/docs.md" = "77d100daaac19457", "book.toml" = "1944223542e98ac8", "docs/SUMMARY.md" = "a5180e869bbfd99d", "tests/test_captures.py" = "7193d8987d213229", "tests/test_check_pages.py" = "c472fae497911ddf" }
 
 [[mark]]
 file = "AGENTS.md"
@@ -236,6 +235,17 @@ approved_by = "Kevin Rogers"
 subjects = { "docs/checked-marks.md" = "976d132e765cbdfe", "docs/concepts.md" = "35fb513ebf1797ca", "docs/configuring.md" = "3fef65658d43f0bf" }
 
 [[mark]]
+file = "CONTRIBUTING.md"
+mode = "stale-claims"
+unit = "9b4a78f293092bcf"
+copies = 1
+note = "the agent read the section against pyproject.toml, ci.yml, .pre-commit-config.yaml, .claude/settings.json, AGENTS.md's Typechecking and installation.md in full: the dev group, test and typecheck commands, the pre-commit hook, the released git URL and the directory-marketplace warning hold; Claude Code found pre-commit installed as a uv tool with pre-commit-uv, and claude --help giving --plugin-dir as for this session only; not checked: that it overrides the installed copy rather than loading beside it, which no help text or file states"
+by = "claims:reading-agent (sonnet), with Claude Code (claude-opus-5-5)"
+approved_by = "Kevin Rogers"
+extent = "partial"
+subjects = { ".claude/settings.json" = "378ba4ac0188d4e2", "docs/installation.md" = "2afa94cb7e216b34" }
+
+[[mark]]
 file = "README.md"
 mode = "claim-words-about-elsewhere"
 unit = "b00551c4c98a666b"
@@ -330,20 +340,20 @@ file = "README.md"
 mode = "stale-claims"
 unit = "427ab7d67f9acf9c"
 copies = 1
-note = "the agent read Installing against installation.md, both marketplace manifests it found, .pre-commit-hooks.yaml and configuring.md's [hook], and only searched CHANGELOG.md's headings; Claude Code read gate.py's decide_repo and pre_commit.py, and wrote the installation.md paragraph that changed after the reading: \"no marketplace listing\" is short for no central one; current and true"
+note = "the agent read Installing against installation.md, marketplace.json, gate.py, pre_commit.py and configuring.md in full and CHANGELOG.md's preamble: no central listing, the repository's own marketplace.json, the pinned install, the hook and its claims.toml opt-in, [hook] enabled = false and both pointers hold; Claude Code wrote the \"central\" fix in fb3db02 after the agent found \"no marketplace listing\" false; current and true"
 by = "claims:reading-agent (sonnet), with Claude Code (claude-opus-5-5)"
 approved_by = "Kevin Rogers"
-subjects = { "docs/installation.md" = "ab434920e25708a3" }
+subjects = { "docs/installation.md" = "2afa94cb7e216b34" }
 
 [[mark]]
 file = "README.md"
 mode = "stale-claims"
 unit = "4abe336640ffcdc1"
 copies = 1
-note = "the agent read the section, installation.md, reading-agent.md, SKILL.md, both subagents, hooks.json, gate.py, nudge.py and cli.py in full, and only searched checked.py; Claude Code opened its UNITS, markable_check and unmarkable_names (lines 120-190): all claims hold; current and true"
+note = "the agent read the section against installation.md, reading-agent.md, gate.py, nudge.py, hooks.json, cli.py, SKILL.md and both subagent contracts in full, and only searched checked.py; Claude Code opened checked.py's UNITS (lines 120-135), which holds judgment-agent: the five surfaces, the hook's gate and fail_on_unmarked, the nudge, both subagents with the cap of five, and the CLI hold; current and true"
 by = "claims:reading-agent (sonnet), with Claude Code (claude-opus-5-5)"
 approved_by = "Kevin Rogers"
-subjects = { "docs/installation.md" = "ab434920e25708a3", "docs/reading-agent.md" = "f1d5ef676c6ad52e" }
+subjects = { "docs/installation.md" = "2afa94cb7e216b34", "docs/reading-agent.md" = "a001e4065a2062b8" }
 
 [[mark]]
 file = "README.md"
@@ -388,21 +398,20 @@ file = "agents/docs.md"
 mode = "stale-claims"
 unit = "53f9fac61c746451"
 copies = 1
-note = "the agent read the section against capture.py, tutorial.py, steps.sh, tutorial.md, test_captures.py, test_tutorial.py, support.py, git.py and installation.md: all hold but no colour, which it only searched for; Claude Code ran the CLI piped and under a terminal, with no escape byte in either, and wrote the installation.md paragraph that changed after the reading, which the section does not touch; current and true"
+note = "the agent read the section against capture.py, tutorial.py, steps.sh, tutorial.md, test_captures.py, test_tutorial.py, support.py and installation.md in full: the capture and tutorial mechanisms and the three editorial rules, judged against the pages read, hold; Claude Code ran git grep over claims/ for escape sequences, with no hit, so no colour; current and true"
 by = "claims:reading-agent (sonnet), with Claude Code (claude-opus-5-5)"
 approved_by = "Kevin Rogers"
-subjects = { "claims/git.py" = "70dd577e5efb1523", "docs/installation.md" = "ab434920e25708a3", "docs/tutorial.md" = "454c6bd10f8e4dff", "examples/tutorial/steps.sh" = "48ecb8d10295eb50", "scripts/capture.py" = "14d2b4164af212d6", "scripts/tutorial.py" = "4127a928e43432f6", "tests/test_captures.py" = "7193d8987d213229", "tests/test_tutorial.py" = "0648a0f0d960676a" }
+subjects = { "claims/git.py" = "70dd577e5efb1523", "docs/installation.md" = "2afa94cb7e216b34", "docs/tutorial.md" = "454c6bd10f8e4dff", "examples/tutorial/steps.sh" = "48ecb8d10295eb50", "scripts/capture.py" = "14d2b4164af212d6", "scripts/tutorial.py" = "4127a928e43432f6", "tests/test_captures.py" = "7193d8987d213229", "tests/test_tutorial.py" = "0648a0f0d960676a" }
 
 [[mark]]
 file = "agents/docs.md"
 mode = "stale-claims"
 unit = "992ac522673fcb80"
 copies = 1
-note = "CHANGELOG.md holding versions, the ADR-for-reasoning example, every page's Next section and the index's drift framing hold; not checked: mdBook's previous and next buttons"
-by = "claims:reading-agent (sonnet), batched"
+note = "the agent read the section against index.md, SUMMARY.md, README.md and book.toml in full: CHANGELOG.md holding versions, ADR links for reasoning and every page's Next section hold; Claude Code ran git grep -il drift over docs/, whose only hits are index.md's framing and executable-claims.md's asides about the drift it finds; current and true"
+by = "claims:reading-agent (sonnet), with Claude Code (claude-opus-5-5)"
 approved_by = "Kevin Rogers"
-extent = "partial"
-subjects = { "CHANGELOG.md" = "3fca80ba39a7492e9643d4c63d46468910babda2", "README.md" = "730bf014fcf43601", "docs/SUMMARY.md" = "a5180e869bbfd99d", "docs/index.md" = "29ccb6b588e803c1" }
+subjects = { "CHANGELOG.md" = "b0525d8846365e0854dbf890bf3c0802d6fc6d03", "README.md" = "cc0e39fb50b9a60c", "docs/SUMMARY.md" = "a5180e869bbfd99d", "docs/index.md" = "29ccb6b588e803c1" }
 
 [[mark]]
 file = "agents/docs.md"
@@ -2101,10 +2110,10 @@ file = "docs/checks/check-file-refs.md"
 mode = "stale-claims"
 unit = "8652909ce0f49280"
 copies = 1
-note = "PATH_RE, the extension set, the four set-aside kinds, fence_state, the two resolution bases and known_untracked hold against check_file_refs.py, paths.py and markdown.py"
-by = "claims:reading-agent (sonnet), batched"
+note = "read the section against check_file_refs.py, paths.py and markdown.py's fence_state: candidates, extensions, the four set-aside kinds, fences, two resolutions, known_untracked and the whole-tree sweep hold, and no claim rests on README.md beyond the bare README example; current and true"
+by = "claims:reading-agent (sonnet)"
 approved_by = "Kevin Rogers"
-subjects = { "README.md" = "730bf014fcf43601" }
+subjects = { "README.md" = "cc0e39fb50b9a60c" }
 
 [[mark]]
 file = "docs/checks/check-file-refs.md"

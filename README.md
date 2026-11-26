@@ -99,8 +99,8 @@ too.
 
 ## Installing
 
-Distributed as a direct git-URL Claude Code plugin — no marketplace listing
-— pinned at install rather than always-latest, so an unreviewed upstream
+Distributed as a direct git-URL Claude Code plugin — no central marketplace
+listing — pinned at install rather than always-latest, so an unreviewed upstream
 change can't silently start gating a commit differently mid-project. The
 commit gate is a git pre-commit hook, installed separately (pre-commit.com,
 or `uvx` from a release tag), and gates only a repository with a
