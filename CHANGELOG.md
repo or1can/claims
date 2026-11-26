@@ -11,6 +11,14 @@ reached you, not just that one was pushed upstream.
 
 ## [Unreleased]
 
+## [0.37.7] - 2026-11-26
+
+- Changed: the reading agent gives every path in its report from the
+  project root, never as a bare file name, so a `true` verdict's evidence
+  always names a file the session can open. It also runs at medium
+  effort, the effort its golden runs are made at, whatever the calling
+  session's own, unless `CLAUDE_CODE_EFFORT_LEVEL` sets another.
+
 ## [0.37.6] - 2026-11-26
 
 - Changed: the skill hands the reading agent up to 5 findings that share

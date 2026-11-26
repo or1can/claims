@@ -25,6 +25,7 @@ from __future__ import annotations
 
 import contextlib
 import copy
+import hashlib
 import io
 import json
 import os
@@ -830,6 +831,7 @@ def _record(findings: list[Finding], *problems: tuple[int, str, str], **fields: 
         "effort": EFFORT,
         "model_id": "claude-sonnet-5-5",
         "claude_code_version": "2.1.311",
+        "contract": "c0ffee",
         "findings": [f.name for f in findings],
         "claims": {f.name: 2 for f in findings},
         "problems": [
@@ -994,6 +996,19 @@ class BarTest(unittest.TestCase):
                 self.assertIn(said, line)
                 self.assertNotIn(unsaid, line)
 
+    def test_runs_read_under_another_contract_do_not_pass_and_the_summary_says_so(self) -> None:
+        changed = _record(self.batch, contract="d1ff")
+        failed = _record(self.batch, (0, "call", REJECTING), model_id="", claude_code_version="", claims={}, contract="d1ff")
+        for line in (
+            self._differs([*self.batched, changed], self.alone),
+            self._differs(self.batched, [{**r, "contract": "d1ff"} for r in self.alone]),
+            self._differs(self.batched, [*self.alone[1:], {**self.alone[0], "contract": "d1ff"}]),
+            self._differs([*self.batched, failed], self.alone),
+        ):
+            self.assertIn("contract digest", line)
+            self.assertNotIn("model", line)
+            self.assertNotIn("version", line)
+
     def test_runs_that_differ_in_both_say_both(self) -> None:
         line = self._differs([*self.batched, _record(self.batch, model_id="m", claude_code_version="v")], self.alone)
         self.assertIn("model ID", line)
@@ -1155,6 +1170,15 @@ class MainTest(unittest.TestCase):
     def test_the_model_that_answered_and_the_version_that_called_it_are_saved(self) -> None:
         self.assertEqual(self._saved_identity(), ("claude-sonnet-5-5", "2.1.311"))
 
+    def test_the_digest_of_the_contract_a_call_ran_with_is_saved(self) -> None:
+        self._main("--root", "small", "--batch-size", "2", "--output-dir", str(self.out))
+        (call,) = self._calls()
+        argv: list[str] = call["argv"]
+        system_prompt = argv[argv.index("--system-prompt") + 1]
+        (saved,) = self.out.iterdir()
+        run = json.loads(saved.read_text(encoding="utf-8"))
+        self.assertEqual(run["contract"], hashlib.sha256(system_prompt.encode("utf-8")).hexdigest())
+
     def test_each_model_that_answered_one_call_is_saved(self) -> None:
         self._reply([], ["missing.py"], models=["claude-sonnet-5-5", "claude-opus-5-5"])
         self.assertEqual(self._saved_identity(), ("claude-sonnet-5-5, claude-opus-5-5", "2.1.311"))
@@ -1200,7 +1224,7 @@ class MainTest(unittest.TestCase):
             code, out = self._main(option, str(self.out))
             self.assertEqual(code, 2)
             self.assertIn("old.json", out)
-            for field in ("model_id", "claude_code_version"):
+            for field in ("model_id", "claude_code_version", "contract"):
                 run = _record(_findings(LARGE)[:1])
                 del run[field]
                 (self.out / "old.json").write_text(json.dumps(run), encoding="utf-8")
