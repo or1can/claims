@@ -11,6 +11,13 @@ reached you, not just that one was pushed upstream.
 
 ## [Unreleased]
 
+## [0.37.6] - 2026-11-26
+
+- Changed: the skill hands the reading agent up to 5 findings that share
+  subjects in one call, where it handed it one, so marking a commit's
+  findings takes fewer calls. In the golden runs a finding cost about a
+  third of its tokens alone.
+
 ## [0.37.5] - 2026-11-25
 
 - Changed: the skill says a larger reading batch has to pass the bar on
