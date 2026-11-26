@@ -517,6 +517,80 @@ Tokens count input, cache-creation, cache-read and output. The batches
 are of one root's findings in one order, in an isolated call, so a
 project's saving would differ.
 
+Size 10 was measured again under the contract that gives every path from
+the root, with the counts, chunks and pins fixed in ADR 0021's Status
+before the first run. The runs were made on 26 November 2026, from
+the merge commit that tightened the contract, on `claude-sonnet-5-5`, Claude Code 2.1.311 and
+medium effort, with auto-update off, and all 800 saved the same contract
+digest. No call failed, so none was discarded or replaced. Each of the
+large root's ten findings was read alone 60 times, as a chunk of its own,
+with `python3 scripts/run_reading_agent_golden.py --only <finding>
+--repeat 60 --output-dir <alone>/<finding>`. Size 10 was then run 200
+times with `--batch-size 10 --repeat <n> --output-dir <chunk>`, in three
+chunks of 20, 20 and 160 rather than the ten of 20 the Status names: the
+last was left running unattended, with the usage window judged to have
+room for it. The count is the one fixed in advance. Captured from
+`python3 scripts/run_reading_agent_golden.py --saved <chunk> ... --alone
+<alone>/<finding> ...`, over the three chunks and the ten findings'
+readings alone:
+
+```
+failed runs of 200: 0 rejecting, 4 compared, 9 counted
+    3 x shared_subject_large/01-holds.finding.txt: unit-own-page (counted)
+    1 x shared_subject_large/02-support.finding.txt: unit-own-page (counted)
+    4 x shared_subject_large/04-audit.finding.txt: unresolved (compared)
+    6 x shared_subject_large/06-hold-length.finding.txt: kind (counted)
+evidence naming no file: 4 readings
+claims listed per finding: 1.78, alone 1.80
+compared problem: batched 0.002, alone 0.000, upper bound on the difference 0.015, margin 0.050
+doesn't pass the bar: the findings were not each read alone as often
+```
+
+So the cap stays at 5. Every run returned a report for every finding,
+none had a rejecting problem, and the bound is well within its margin,
+but the bar asks for the findings each read alone equally often, and
+they weren't. One of the privacy finding's 60 readings alone returned
+no array: its final message began "Still checking the privacy claim",
+said a verdict was coming, and then gave that finding's report as a bare
+object, its verdicts right. That is a counted `matching` problem, and a
+run with no report is no reading, so the privacy finding was read 59
+times and the other nine 60. Captured from `python3
+scripts/run_reading_agent_golden.py --saved <alone>/<finding> ...` over
+the ten:
+
+```
+failed runs of 600: 0 rejecting, 0 compared, 51 counted
+    1 x shared_subject_large/05-privacy.finding.txt: matching (counted)
+    50 x shared_subject_large/06-hold-length.finding.txt: kind (counted)
+claims listed per finding: 1.80
+```
+
+The bare object is the far end of a slip that is common. The contract
+asks for one array and nothing else in the final message, and the
+harness takes an array behind a code fence or a line of prose too. Of
+the 600 replies alone, 515 were the array alone, 75 fenced it, 9 put
+prose before it and 1 gave a bare object. Of the 200 batches of 10, 152
+were the array alone, 43 fenced it and 5 put prose before it.
+
+The tightened contract did what the hypothesis above said it would. The
+audit finding's absence claim slipped in 4 of 200 batches of 10, against
+24 of 60 before, and none of the 4 named a file without its directory:
+each cited only the search, as `depot/ (grep for rebuild)` or a search
+for `\.rebuild\(` found no match, with no file or line. No reading alone
+slipped, the cases finding's included. Of the counted problems, the
+decision record's undelivered claim came back current rather than
+intended in 47 of its 60 readings alone and in no batch, and its other,
+delivered claim came back intended in 3 readings alone and 6 batches.
+The holds finding listed a sentence from the next section, true and said
+to be outside the unit, in 3 batches, and the support finding one in 1.
+Claims listed per finding were the same alone and batched for every
+finding except holds, at 1.86 batched against 2.00 alone, and support,
+at 1.99 against 2.00.
+
+A finding in a batch of 10 cost 7,110 tokens, 5,329 of them cache reads,
+against 37,090 and 30,070 for the same findings alone, which ranged from
+about 19,100 to 140,700 a reading.
+
 The stress pack failed 16 of its 20 runs, in four findings. The decision
 record's undelivered claim came back current rather than intended in 11
 runs, and in two others claims were listed from outside its section. The

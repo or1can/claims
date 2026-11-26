@@ -108,6 +108,22 @@ fixed in advance: a pause never ends the runs early, and a call that
 fails on a usage limit is a `call` failure from outside the agent,
 discarded and run again. This relaxes nothing in #287's bar.
 
+Amended again by #296's runs, which leave the cap at 5. All 800 ran on
+`claude-sonnet-5-5`, Claude Code 2.1.311, effort medium, under one
+contract digest, and no call failed. Size 10 was run in three chunks
+of 20, 20 and 160 rather than ten of 20, the count unchanged. Its 200
+calls each returned a report for every finding, with no rejecting
+problem and a bound of 0.015 on the compared problem's difference,
+within the 0.050 margin. It still doesn't pass: one of the privacy
+finding's 60 readings alone returned a bare object rather than an array,
+a counted `matching` problem leaving no reading, so the findings weren't
+each read alone equally often. Nothing was run again and no part of the
+bar was changed after the result. The tightened contract left no
+evidence naming a file without its directory; the 4 compared problems
+cited a search alone. #302 tracks the output slip, and how the bar
+counts a reading alone with no report, before size 10 is measured again.
+`docs/reading-agent.md` holds the runs.
+
 ## Context
 
 The reading agent took one finding per call, and the skill called it
