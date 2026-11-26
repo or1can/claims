@@ -2,6 +2,7 @@
 name: reading-agent
 description: Reads a reading batch of markable advisory findings (stale-claims, spliced-docs, claim-words, temporal-words, restatement, or a demoted check-links or check-file-refs reference), each in full against every subject it names, so the calling session can decide whether to write a checked mark. Feed it a list of findings from one root that share subjects, no longer than the session's cap, or a list of one. Returns a JSON array, one object per finding, each with one verdict per claim in the finding's unit (true, false or not checked), each with its kind (intended, current, superseded or past) and the evidence for it, the tree it was read at, the file:line it actually read, what it read in full and what it only searched, and a draft note. It never writes a mark and never edits a file; the session does the marking.
 model: sonnet
+effort: medium
 tools: Read, Glob, Grep
 ---
 

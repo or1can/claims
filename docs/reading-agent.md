@@ -238,7 +238,9 @@ to the agent as context, and it infers each kind afresh.
 
 ## The model
 
-The agent runs on sonnet. Its golden fixtures are under
+The agent runs on sonnet at medium effort, the effort its golden runs
+are made at, whatever the calling session's own. Claude Code lets a
+`CLAUDE_CODE_EFFORT_LEVEL` set in the environment override it. Its golden fixtures are under
 `tests/fixtures/reading_agent_golden/`. Six are `stale-claims` sections
 about one small cache module. Three are a design page's: one true
 throughout, one with a sentence left unfinished among true ones, and one

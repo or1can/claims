@@ -1137,6 +1137,14 @@ class MainTest(unittest.TestCase):
         (saved,) = self.out.iterdir()
         self.assertEqual(json.loads(saved.read_text(encoding="utf-8"))["effort"], "medium")
 
+    def test_the_agent_runs_at_the_effort_its_golden_runs_do(self) -> None:
+        # A session's own effort would otherwise set the reader's, and the
+        # cap rests on runs at this one (#296).
+        text = (REPO_ROOT / "claims" / "subagent" / "reading_agent.md").read_text(encoding="utf-8")
+        _, frontmatter, _ = text.split("---\n", 2)
+        fields = dict(line.split(": ", 1) for line in frontmatter.splitlines())
+        self.assertEqual(fields.get("effort"), EFFORT)
+
     def _saved_identity(self) -> tuple[str, str]:
         self._main("--root", "small", "--batch-size", "2", "--output-dir", str(self.out))
         (saved,) = self.out.iterdir()
