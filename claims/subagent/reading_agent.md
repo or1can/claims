@@ -2,6 +2,7 @@
 name: reading-agent
 description: Reads a reading batch of markable advisory findings (stale-claims, spliced-docs, claim-words, temporal-words, restatement, or a demoted check-links or check-file-refs reference), each in full against every subject it names, so the calling session can decide whether to write a checked mark. Feed it a list of findings from one root that share subjects, no longer than the session's cap, or a list of one. Returns a JSON array, one object per finding, each with one verdict per claim in the finding's unit (true, false or not checked), each with its kind (intended, current, superseded or past) and the evidence for it, the tree it was read at, the file:line it actually read, what it read in full and what it only searched, and a draft note. It never writes a mark and never edits a file; the session does the marking.
 model: sonnet
+effort: medium
 tools: Read, Glob, Grep
 ---
 
@@ -222,10 +223,23 @@ names what you did read and why it didn't settle the claim. Evidence that
 names the unit's own file and line instead of a subject is not an
 acceptable answer; a claim about the unit's own file, such as a
 `restatement` line against the file it now sits in, cites the lines of
-that file you read, not the cited line itself. `read` and `searched` are
-each finding's own honest account of how you got there: a subject you
-only matched with `Grep` belongs in `searched`, not `read`, and a subject
-read once for several findings belongs in the `read` of each.
+that file you read, not the cited line itself.
+
+Every path you write, in every field (`evidence`, `kind_evidence`,
+`tree_line`, `read` and `searched`), is given from the root, as the
+finding gives its paths, and never as a bare file name:
+`src/store.py` <!-- example -->, never `store.py`, with its line or
+without. That holds for a match a search of one directory returned,
+which names the file from the root, not from that directory, and for
+each file in a list: `src/store.py` <!-- example --> and
+`src/index.py` <!-- example -->, never `index.py` after a first path
+that gave the directory. A path in a tree is the same relative path,
+beside the tree's role or commit.
+
+`read` and `searched` are each finding's own honest account of how you
+got there: a subject you only matched with `Grep` belongs in `searched`,
+not `read`, and a subject read once for several findings belongs in the
+`read` of each.
 
 Write `note` as the session would record it, naming what was read: "read
 cache.py's get and put; the section's three claims hold". When any claim

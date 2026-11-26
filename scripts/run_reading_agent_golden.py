@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Golden-fixture harness for the reading-agent subagent (#259, #281, #287, #293).
+"""Golden-fixture harness for the reading-agent subagent (#259, #281, #287, #293, #296).
 
 Run by hand, like `scripts/run_judgment_agent_golden.py`: each run is a
 live `claude -p` call, which costs a real API call and is not guaranteed
@@ -102,17 +102,21 @@ run's final message, `Read` calls, token usage, problems, effort and how
 many claims each finding listed. With them it saves what the call's own
 output names: the ID of each model that answered, which the alias
 `--model` gives may resolve to at one time and not at another, and the
-Claude Code version. A call that failed may name neither.
+Claude Code version. A call that failed may name neither. Beside them
+it saves the digest of the system prompt the call ran with, the contract,
+which every run has.
 
 The summary counts the failed runs by class. With `--alone`, the saved
 runs of the same findings alone, it says whether the runs pass the bar,
 or each way they fall short of it (`_short_of_the_bar`). Runs, batched and
-alone together, that differ in model alias, effort, model ID or Claude
-Code version don't pass, and the summary names each that differs. A
+alone together, that differ in model alias, effort, contract digest,
+model ID or Claude Code version don't pass, and the summary names each
+that differs. A
 failed call is compared only on what it names, and runs none of which
 names a model ID, or none a version, don't pass.
 `--saved` makes no call, and summarises runs saved earlier. It and
-`--alone` refuse a run saved without its model ID and version.
+`--alone` refuse a run saved without its model ID, version or contract
+digest.
 
 Each call is isolated (`_claude_args`) and its root is a temporary
 directory outside this repository.
@@ -121,6 +125,7 @@ directory outside this repository.
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import math
 import os
@@ -150,6 +155,8 @@ ROOTS = {
 EFFORT = "medium"
 # What made a call, as its output names it, and the field of a saved run holding it.
 IDENTITY = {"model ID": "model_id", "Claude Code version": "claude_code_version"}
+# The field of a saved run holding the digest of the system prompt it ran with.
+CONTRACT = "contract"
 # The fewest runs of a size, and readings alone, its bar is judged on, and
 # the margin on the compared problem's rate when its alone rate is below it.
 MIN_RUNS = 60
@@ -668,6 +675,7 @@ def _run(batch: list[Finding], system_prompt: str, model: str) -> dict[str, Any]
     return {
         "model": model,
         "effort": EFFORT,
+        CONTRACT: hashlib.sha256(system_prompt.encode("utf-8")).hexdigest(),
         "findings": [f.name for f in batch],
         "problems": [asdict(p) for p in problems],
         "claims": {name: len(claims) if isinstance(claims, list) else 0 for name, claims in listed.items()},
@@ -738,7 +746,7 @@ def _short_of_the_bar(runs: list[dict[str, Any]], alone: list[dict[str, Any]]) -
 
     alone = _same_findings(runs, alone)
     values: dict[str, set[Any]] = {"findings": {tuple(r["findings"]) for r in runs}}
-    for name, field in (("model alias", "model"), ("effort", "effort"), *IDENTITY.items()):
+    for name, field in (("model alias", "model"), ("effort", "effort"), ("contract digest", CONTRACT), *IDENTITY.items()):
         # A call that failed may name neither its model ID nor its version.
         values[name] = {r[field] for r in runs + alone if r[field] or all(p["type"] != "call" for p in r["problems"])}
     if differing := [name for name, found in values.items() if len(found) > 1]:
@@ -805,7 +813,7 @@ def _saved(directories: list[Path], parser: argparse.ArgumentParser) -> list[dic
             parser.error(f"{directory} holds no saved run")
         for file in files:
             run = json.loads(file.read_text(encoding="utf-8"))
-            if not {"claims", *IDENTITY.values()} <= run.keys():
+            if not {"claims", CONTRACT, *IDENTITY.values()} <= run.keys():
                 parser.error(f"{file} was saved by an earlier harness, whose runs aren't judged by this bar")
             runs.append(run)
     return runs

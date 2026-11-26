@@ -147,6 +147,11 @@ A JSON array, one object per finding, each with:
   claim that is false or wasn't checked, and giving each claim's kind and
   tree where any is not current.
 
+Every path in it is given from the root, as the finding gives its own,
+and never as a bare file name: a file a search of one directory matched
+too, and each file in a list. A path in a tree is the same relative path,
+beside the tree's role or commit.
+
 `false` covers prose that doesn't finish as well as prose the subject
 contradicts: a sentence that trails off says nothing true, whatever its
 subject holds. `not checked` is for what reading alone can't settle, such
@@ -238,7 +243,9 @@ to the agent as context, and it infers each kind afresh.
 
 ## The model
 
-The agent runs on sonnet. Its golden fixtures are under
+The agent runs on sonnet at medium effort, the effort its golden runs
+are made at, whatever the calling session's own. Claude Code lets a
+`CLAUDE_CODE_EFFORT_LEVEL` set in the environment override it. Its golden fixtures are under
 `tests/fixtures/reading_agent_golden/`. Six are `stale-claims` sections
 about one small cache module. Three are a design page's: one true
 throughout, one with a sentence left unfinished among true ones, and one
@@ -305,8 +312,9 @@ runs by class, the failures by finding and type, and the claims listed
 per finding. `--output-dir` saves each run's final message, the lines of
 each file it opened, its effort and its problems, with the ID of each
 model that answered and the Claude Code version, both as the call's own
-output names them. `--saved` summarises
-runs saved earlier, and makes no call. A run saved without those two is
+output names them, and a digest of the contract the call ran with, its
+system prompt. `--saved` summarises
+runs saved earlier, and makes no call. A run saved without those three is
 refused. `--alone` names saved runs of the
 same findings alone, and the summary then says whether the size passes
 the bar, or why it doesn't.
@@ -346,9 +354,10 @@ all at 0, so the bound is never lower than the one for none. There the
 batched rate is taken as the highest with a 5% chance of seeing none in
 that many calls. Too few runs to bring the bound within the margin is a
 size not accepted. The runs of a size, and the runs alone they are
-compared with, have to agree in model alias, effort, model ID and Claude
-Code version: an alias can come to name another model, and Claude Code
-can update itself, part way through them. The summary names each that
+compared with, have to agree in model alias, effort, contract digest,
+model ID and Claude Code version: an alias can come to name another
+model, the contract can change, and Claude Code can update itself, part
+way through them. The summary names each that
 differs. A failed call is compared only on what it named, and a size
 none of whose runs names a model ID, or none a version, doesn't pass.
 The runs of a size also have to be of the large root: none rests on the
@@ -469,6 +478,29 @@ sentences as one claim in the batch of 10:
 | 08-stock-temporal | | 1.00 | 1.00 |
 | 09-cases | | 2.00 | 2.00 |
 | 10-planner-totalising | | 1.00 | 1.00 |
+
+Why the audit finding's slip grows with the batch is a hypothesis, read
+from these saved runs with no new call. Its place in the batch doesn't
+separate the readings that slipped from those that didn't: it is the
+fourth finding in every batch and its report the fourth in every array,
+and the readings that slipped made as many `Read` calls before opening
+its unit as those that didn't, 3.0 against 3.0 on average in the batch of
+5 and 4.5 against 4.6 in the batch of 10. Where its search for `rebuild`
+looked does more. Alone, 28 of its 30 readings searched the whole root,
+and 27 cited the match from the root, with its `depot/` prefix. Batched, the search was of
+`depot/` in 32 of the 60 batches of 5 and 45 of the 60 batches of 10, and
+the evidence named that directory as the search's and then the match
+from it: 31 of the 33 slips name `ledger.py` without its directory, and
+the other two name `depot/` and its files without theirs. In the batch of
+10, 21 of the 45 readings that searched `depot/` slipped, against 3 of
+the 15 that searched the root; in the batch of 5 it was 6 of 32 against 3
+of 18, so the search's place is not the whole of it. No other claim's
+evidence in any batch named a file without its directory. So the slip is
+the form an absence claim's evidence takes when it rests on a search,
+most often a search of one directory, written from that directory rather
+than the root. The contract says every path the agent writes is given
+from the root, a match from a search of one directory included, and it
+is that form the harness judges, not where the agent searched.
 
 A batch's tokens are its call's, so they are counted per finding as the
 call's total over its findings, against the same findings alone, which

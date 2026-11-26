@@ -92,6 +92,22 @@ absence claim returned `true` on evidence citing a file without its
 directory, or no line.
 `docs/reading-agent.md` holds the runs.
 
+Amended by #296, before any of its runs. The agent's contract is
+tightened: every path it writes, in every field of its report, is given
+from the root, never as a bare file name, and a path in a tree is the
+same relative path. The harness still counts a bare file name as
+evidence naming no file. The cap of 5 stands under that contract. Size
+10 is measured again, over 200 batched calls, against each of the large
+root's ten findings read alone 60 times, all on `claude-sonnet-5-5`,
+Claude Code 2.1.311, the version installed when this was written, at
+effort medium with auto-update off, every run saving the same contract
+digest. The runs are made in chunks: each finding's 60 readings alone
+as one chunk, then size 10 as ten chunks of `--repeat 20`, each chunk in
+its own `--output-dir`, and all are summarised together. The count is
+fixed in advance: a pause never ends the runs early, and a call that
+fails on a usage limit is a `call` failure from outside the agent,
+discarded and run again. This relaxes nothing in #287's bar.
+
 ## Context
 
 The reading agent took one finding per call, and the skill called it
