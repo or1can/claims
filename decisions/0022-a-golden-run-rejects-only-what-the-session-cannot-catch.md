@@ -11,6 +11,36 @@ amendment before it tightened the bar or left it as it was.
 Written before any run under it. The cap stays at 5 until runs under this
 bar set it.
 
+Amended by #308, reopened, before any run under it: each size's batches
+now hold all ten of the large root's findings. As written, a size read
+alone and batched only its own findings, and `--batch-size` takes the
+root's first N, so size 5 was always `01` to `05`. A cap of 5 would have
+rested on half the fixture, never on `06` to `10`, among them
+`06-hold-length`, the root's only claim that isn't current. Size 5 and
+size 10 couldn't be compared, since a failure at 10 could be the five
+extra findings as well as the larger batch. And 300 readings alone left
+almost no room: two problems not caught alone would have rejected size 5.
+`06` to `10` aren't one reading batch either. `06` to `08` name only the
+root's ledger, and `09` and `10` only its planner, so the check-claims
+skill's step 2 would send them as two.
+
+- **Size 5 is two named batches**, `5a`, of `01`, `02`, `04`, `05` and
+  `06`, which all name the ledger, and `5b`, of `03`, `07`, `08`,
+  `09` and `10`, joined through `03`, which names both files. Each is
+  run 100 times, so size 5 is still 200 calls and 1,000 readings.
+  **Size 10 is one batch**, `10`, of all ten, run 200 times.
+- **All ten findings are read alone 60 times**, re-runs as the Decision
+  sets them, and one set of runs alone serves every size. That is 600
+  readings alone, whose bound with none observed is about 0.0050.
+- The batches are named once, as the harness's `BATCHES`, and each is run
+  with `python3 scripts/run_reading_agent_golden.py --batch <name>`. Each
+  batch's `elsewhere` claims are the other findings in that batch.
+
+The Decision's runs are rewritten to say so, since none had been made
+under them. The bar is otherwise unchanged: the bound on problems not
+caught and the cost comparison, over a size's calls together, against the
+same findings alone. This amendment relaxes nothing in it.
+
 ## Context
 
 0021's bar rejected a size on any one rejecting problem. The agent
@@ -97,13 +127,15 @@ is set aside, so it costs nothing.
 
 **The runs are fixed now, before any of them:**
 
-- 200 batched calls per size, no more and no fewer. A call with no object
-  for a finding is still one of them. Its other findings are readings.
-- Each of the size's findings is read alone 60 times, as 0021 set out
-  through #304: a reading alone with no report is no reading, and the
-  finding is run alone again, at most 120 times in all. At size 5, that
-  is 300 readings alone, whose bound with none observed is 0.0099, just
-  inside 1%.
+- 200 batched calls per size, no more and no fewer, split evenly between
+  its named batches: 100 each of `5a` and `5b` for size 5, and 200 of
+  `10` for size 10. A call with no object for a finding is still one of
+  them. Its other findings are readings.
+- Each of the large root's ten findings is read alone 60 times, as 0021
+  set out through #304, and one set of runs alone serves every size: a
+  reading alone with no report is no reading, and the finding is run
+  alone again, at most 120 times in all. That is 600 readings alone,
+  whose bound with none observed is about 0.0050.
 - Size 5 is run first, and size 10 only if 5 passes. The cap becomes the
   largest size that passes, or 1 if 5 fails. Until then it stays at 5.
 - Pins as #302 set them: `claude-sonnet-5-5`, Claude Code 2.1.311 or the

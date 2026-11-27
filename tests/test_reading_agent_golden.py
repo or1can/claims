@@ -47,6 +47,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "scripts"))
 from scripts.run_reading_agent_golden import (  # noqa: E402
     ALONE_COUNT,
     BATCH,
+    BATCHES,
     BATCHED_RUNS,
     CAUGHT,
     COUNTED,
@@ -65,6 +66,7 @@ from scripts.run_reading_agent_golden import (  # noqa: E402
     _fixture_dirs,
     _judge,
     _judge_batch,
+    _named_batch,
     _one_line,
     _opened,
     _prefixed,
@@ -844,6 +846,36 @@ class RealisticBatchTest(unittest.TestCase):
                 self.assertTrue(Path(named).is_dir(), named)
 
 
+class NamedBatchTest(unittest.TestCase):
+    """The reading batches of the large root a size's cap rests on."""
+
+    def test_size_five_is_two_batches_and_size_ten_one(self) -> None:
+        self.assertEqual(sorted((len(b), name) for name, b in BATCHES.items()), [(5, "5a"), (5, "5b"), (10, "10")])
+
+    def test_a_sizes_batches_hold_every_finding_of_the_root_exactly_once(self) -> None:
+        everything = sorted(f.name for f in _findings(LARGE))
+        for size in {len(b) for b in BATCHES.values()}:
+            held = [name for b in BATCHES.values() if len(b) == size for name in b]
+            self.assertEqual(sorted(held), everything, size)
+
+    def test_each_batch_is_joined_by_shared_subjects_as_the_skill_joins_one(self) -> None:
+        subjects = {f.name: set(f.subjects) for f in _findings(LARGE)}
+        for name, batch in BATCHES.items():
+            joined = {batch[0]}
+            while more := {n for n in batch if n not in joined and subjects[n] & set().union(*(subjects[j] for j in joined))}:
+                joined |= more
+            self.assertEqual(joined, set(batch), name)
+
+    def test_a_named_batch_holds_its_findings_and_each_others_claims_are_elsewhere(self) -> None:
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        batch = _named_batch(Path(tmp.name).resolve(), BATCHES["5b"], LARGE)
+        self.assertEqual(tuple(f.name for f in batch), BATCHES["5b"])
+        others = {x for f in batch for x in f.expected.get("kinds", {})}
+        for f in batch:
+            self.assertLessEqual({x for x in others if x not in _unit(f)}, set(f.expected["elsewhere"]), f.name)
+
+
 class LargeRootTest(unittest.TestCase):
     """What the large root's findings hold, which the small root's don't."""
 
@@ -975,9 +1007,16 @@ class BarTest(unittest.TestCase):
     """Whether saved runs of a size pass ADR 0022's bar, and if not, why."""
 
     def setUp(self) -> None:
-        self.batch = _findings(LARGE)[:5]
-        self.batched = [_record(self.batch) for _ in range(BATCHED_RUNS)]
-        self.alone = [_record([f]) for f in self.batch for _ in range(ALONE_COUNT)]
+        findings = {f.name: f for f in _findings(LARGE)}
+        self.batch = [findings[name] for name in BATCHES["5a"]]
+        self.rest = [findings[name] for name in BATCHES["5b"]]
+        self.batched = self._size()
+        self.alone = [_record([f]) for f in self.batch + self.rest for _ in range(ALONE_COUNT)]
+
+    def _size(self, *problems: tuple[int, str, str], **fields: Any) -> list[dict[str, Any]]:
+        """Size 5's calls, half of each batch, each with `problems` and `fields`."""
+
+        return [_record(b, *problems, **fields) for b in (self.batch, self.rest) for _ in range(BATCHED_RUNS // 2)]
 
     def _short(self) -> str:
         return "; ".join(_short_of_the_bar(self.batched, self.alone))
@@ -997,7 +1036,7 @@ class BarTest(unittest.TestCase):
         self.assertIn("on problems not caught batched is over 0.01", self._short())
 
     def test_problems_not_caught_alone_are_held_to_the_same_bound(self) -> None:
-        self.alone[:2] = [_record([self.batch[0]], (0, *NOT_CAUGHT)) for _ in range(2)]
+        self.alone[:5] = [_record([self.batch[0]], (0, *NOT_CAUGHT)) for _ in range(5)]
         self.assertEqual(
             [s.split(" on ")[1] for s in _short_of_the_bar(self.batched, self.alone)], ["problems not caught alone is over 0.01"]
         )
@@ -1011,7 +1050,7 @@ class BarTest(unittest.TestCase):
         self.assertIn("on problems not caught batched is over 0.01", self._short())
 
     def test_a_failed_call_alone_is_no_reading_but_a_problem_not_caught(self) -> None:
-        self.alone += [_record([self.batch[0]], (0, "call", REJECTING), claims={}, usage={}) for _ in range(2)]
+        self.alone += [_record([self.batch[0]], (0, "call", REJECTING), claims={}, usage={}) for _ in range(5)]
         # Not short of the count, nor cheaper alone, but over the bound.
         self.assertEqual(
             [s.split(" on ")[1] for s in _short_of_the_bar(self.batched, self.alone)], ["problems not caught alone is over 0.01"]
@@ -1020,11 +1059,11 @@ class BarTest(unittest.TestCase):
 
     def test_a_caught_problem_costs_a_reading_alone_of_its_finding(self) -> None:
         # 140 a finding, and a re-send of one finding in each call, 300: 200.
-        self.batched = [_record(self.batch, (0, "read", CAUGHT), (0, "cited", CAUGHT)) for _ in range(BATCHED_RUNS)]
+        self.batched = self._size((0, "read", CAUGHT), (0, "cited", CAUGHT))
         self.assertEqual(self._short(), "")
         self.assertIn("tokens per finding: batched 200, with 200 re-sends; alone 300", _summary(self.batched, self.alone))
         # And of all five, 440.
-        self.batched = [_record(self.batch, *((i, "matching", CAUGHT) for i in range(5))) for _ in range(BATCHED_RUNS)]
+        self.batched = self._size(*((i, "matching", CAUGHT) for i in range(5)))
         self.assertEqual(self._short(), "a batch spends 440 tokens per finding with its re-sends, not below 300 alone")
 
     def test_a_batch_that_spends_no_less_than_alone_does_not_pass(self) -> None:
@@ -1032,12 +1071,20 @@ class BarTest(unittest.TestCase):
         self.assertEqual(self._short(), "a batch spends 300 tokens per finding with its re-sends, not below 300 alone")
 
     def test_counted_problems_never_fail(self) -> None:
-        self.batched = [_record(self.batch, (0, "unit-own-page", COUNTED)) for _ in range(BATCHED_RUNS)]
+        self.batched = self._size((0, "unit-own-page", COUNTED))
         self.assertEqual(self._short(), "")
 
     def test_the_batched_count_is_fixed(self) -> None:
         for runs in (self.batched[1:], [*self.batched, self.batched[0]]):
             self.assertIn(f"{len(runs)} batched calls, where the count is fixed at 200", "; ".join(_short_of_the_bar(runs, self.alone)))
+        uneven = [_record(self.batch) for _ in range(150)] + [_record(self.rest) for _ in range(50)]
+        self.assertEqual(
+            _short_of_the_bar(uneven, self.alone),
+            [
+                f"150 calls of batch 5a, where the count is fixed at {BATCHED_RUNS // 2}",
+                f"50 calls of batch 5b, where the count is fixed at {BATCHED_RUNS // 2}",
+            ],
+        )
 
     def test_a_run_that_returned_no_object_for_a_finding_is_still_one_of_the_calls(self) -> None:
         claims = {f.name: 2 for f in self.batch[1:]}
@@ -1045,13 +1092,13 @@ class BarTest(unittest.TestCase):
         self.assertEqual(self._short(), "")
 
     def test_the_alone_count_is_fixed(self) -> None:
-        self.alone = [_record([f]) for f in self.batch for _ in range(59)]
+        self.alone = [_record([f]) for f in self.batch + self.rest for _ in range(59)]
         self.assertIn("59 readings alone of a finding, where the count is fixed at 60", self._short())
-        self.alone = [_record([f]) for f in self.batch for _ in range(61)]
+        self.alone = [_record([f]) for f in self.batch + self.rest for _ in range(61)]
         self.assertEqual(self._short(), "61 readings alone of a finding, where the count is fixed at 60")
 
     def test_the_alone_runs_are_of_the_same_findings_each_read_as_often(self) -> None:
-        other = _findings(LARGE)[6]
+        other = _findings(SMALL)[0]
         self.alone += [_record([other], (0, *NOT_CAUGHT)) for _ in range(30)]
         self.assertEqual(self._short(), "")
         self.alone += [_record([self.batch[0]])]
@@ -1076,10 +1123,10 @@ class BarTest(unittest.TestCase):
         self.assertNotIn("run it alone again", self._short())
 
     def test_a_counted_format_problem_never_fails_a_size_and_is_in_the_summary(self) -> None:
-        self.batched = [_record(self.batch, (0, "format", COUNTED)) for _ in range(BATCHED_RUNS)]
+        self.batched = self._size((0, "format", COUNTED))
         out = "\n".join(_summary(self.batched, self.alone))
         self.assertIn("failed runs of 200: 0 rejecting, 0 caught, 200 counted", out)
-        self.assertIn(f"200 x {self.batch[0].name}: format (counted)", out)
+        self.assertIn(f"100 x {self.batch[0].name}: format (counted)", out)
         self.assertIn("passes the bar", out)
 
     def test_the_runs_of_a_size_are_not_readings_alone(self) -> None:
@@ -1093,9 +1140,23 @@ class BarTest(unittest.TestCase):
             self.alone = [_record([f]) for f in batch for _ in range(ALONE_COUNT)]
             self.assertIn("the large root", self._short())
 
-    def test_runs_that_differ_in_findings_model_or_effort_are_not_compared(self) -> None:
+    def test_runs_of_any_findings_but_a_sizes_batches_do_not_pass(self) -> None:
+        first_five = _findings(LARGE)[:5]
+        for batched in (
+            [_record(first_five) for _ in range(BATCHED_RUNS)],
+            [_record(self.batch) for _ in range(BATCHED_RUNS)],
+            [*self.batched, _record(self.batch[:1])],
+            [_record(self.batch + self.rest) for _ in range(100)] + self.batched[:100],
+        ):
+            self.assertIn("aren't a size's reading batches of the large root", "; ".join(_short_of_the_bar(batched, self.alone)))
+
+    def test_size_ten_is_one_batch_of_all_ten(self) -> None:
+        self.batched = [_record(_findings(LARGE)) for _ in range(BATCHED_RUNS)]
+        self.assertEqual([f.name for f in _findings(LARGE)], list(BATCHES["10"]))
+        self.assertEqual(self._short(), "")
+
+    def test_runs_that_differ_in_model_or_effort_are_not_compared(self) -> None:
         for changed in (
-            [_record(self.batch[:1])],
             [_record(self.batch, model="haiku")],
             [_record(self.batch, effort="high")],
         ):
@@ -1175,7 +1236,7 @@ class BarTest(unittest.TestCase):
 
     def test_the_summary_of_a_passing_size_says_so_with_its_bound(self) -> None:
         out = "\n".join(_summary(self.batched, self.alone))
-        self.assertIn("not caught per finding read: batched 0.0000, bound 0.0030; alone 0.0000, bound 0.0099; limit 0.01", out)
+        self.assertIn("not caught per finding read: batched 0.0000, bound 0.0030; alone 0.0000, bound 0.0050; limit 0.01", out)
         self.assertIn("tokens per finding: batched 140, with 0 re-sends; alone 300", out)
         self.assertIn("passes the bar", out)
 
@@ -1430,6 +1491,21 @@ class MainTest(unittest.TestCase):
         self.assertIn("alone 0.0000, bound 0.4507; limit 0.01", out)
         # 16 calls of 1000, and 6 re-sends of 400, over 80 findings.
         self.assertIn("tokens per finding: batched 230, with 6 re-sends; alone 400", out)
+
+    def test_a_named_batch_is_one_call_of_its_findings_and_its_saved_run_is_graded_again(self) -> None:
+        batch = [f for f in _findings(LARGE) if f.name in BATCHES["5b"]]
+        self._reply([_passing_report(f) for f in batch], [p for f in batch for p in dict.fromkeys(f.must_read)])
+        code, out = self._main("--batch", "5b", "--output-dir", str(self.out))
+        self.assertEqual(code, 0, out)
+        (call,) = self._calls()
+        prompt = call["argv"][call["argv"].index("-p") + 1]
+        self.assertTrue(all(f.text in prompt for f in batch))
+        (saved,) = self.out.iterdir()
+        self.assertEqual(saved.name, "large-batch-5b-01.json")
+        self.assertEqual(json.loads(saved.read_text(encoding="utf-8"))["findings"], list(BATCHES["5b"]))
+        code, out = self._main("--saved", str(self.out))
+        self.assertEqual(code, 0, out)
+        self.assertIn("failed runs of 1: 0 rejecting, 0 caught, 0 counted", out)
 
     def test_a_saved_run_of_findings_no_batch_holds_is_refused(self) -> None:
         batch = _findings(LARGE)[:5]
