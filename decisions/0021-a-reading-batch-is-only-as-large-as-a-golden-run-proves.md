@@ -124,6 +124,31 @@ cited a search alone. #302 tracks the output slip, and how the bar
 counts a reading alone with no report, before size 10 is measured again.
 `docs/reading-agent.md` holds the runs.
 
+Amended by #304, before any of the next runs, settling #302's first two
+items. It relaxes nothing in #287's bar:
+
+- A reading alone that returns no report still records its `matching`
+  problem. It is not counted as a reading, and the finding is run alone
+  again until it reaches the fixed count, so every finding is still read
+  alone equally often. The count is fixed in readings, not calls. The
+  harness takes it as the most readings any of the findings has alone.
+- Each finding is run alone at most twice the fixed count. A finding
+  that can't reach the count within that leaves the size not accepted.
+- A batch of one that returns a bare object stays a `matching` problem.
+  The contract is not relaxed to accept it.
+- A final message that holds the array but isn't only the array, fenced
+  or with prose before or after it, is a new counted problem, `format`,
+  recorded only. The array is still read from it.
+- #296's runs don't count towards the amended bar. Size 10 is measured
+  again with fresh runs under the amended contract, as #287 set out for
+  its own bar.
+
+The contract's output example was a fenced, pretty-printed single object.
+It is now an unfenced array of one object, beside a sentence saying the
+reply carries no fence, and the contract ends by restating that the final
+message is the array alone. The prompt the harness sends is unchanged, as
+it has to stay the session's own dispatch.
+
 ## Context
 
 The reading agent took one finding per call, and the skill called it
@@ -227,6 +252,10 @@ run.
 - **Mark a batched reading in `by`**, as the trial did. It records a
   dispatch detail as part of the reader's name, and splits one reader
   into two in every later count of who read what.
+- **Enforce the output's shape with `--json-schema`** (#304). The CLI's
+  structured output would hold the agent to an array, but the harness
+  doesn't use it: the plugin's real path is the Agent tool, which takes no
+  schema, so the golden runs would measure a call the session never makes.
 - **Batch the judgment agent too.** Its golden harness has no batched
   run, and its contract and the skill's "never batched" rule were set
   apart from this one. Left for a follow-up with its own measurements.

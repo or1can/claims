@@ -335,7 +335,11 @@ A problem weighs what it would do to a mark.
   against the reading batch but not in the rate alone.
 - **Counted**, only recorded: a sentence from the finding's own page
   outside its unit, a true claim returned `false`, any other error of
-  kind, and a finding with no report or two, or a report for none.
+  kind, and a finding with no report or two, or a report for none, as
+  when a final message gives a bare object rather than an array. So is a
+  final message holding the array and more, a code fence around it or
+  prose before or after it, recorded as `format`; the reports are still
+  read from the array.
 
 A call that returns no message is rejecting, unless a person reads its
 cause as from outside the agent, such as a usage limit. Its run is then
@@ -344,7 +348,11 @@ discarded and made again.
 A size passes with no rejecting problem in at least 60 runs that each
 return a report for every finding, and with the compared problem's rate
 within a margin of its rate alone. The rate alone is measured on the same
-findings, each read alone equally often and at least 60 times in all. The
+findings, each read alone equally often and at least 60 times in all. A
+run alone that returns no report is no reading: the finding is run alone
+again until it has as many readings as the finding read most, and the
+summary names each finding short of that count. A finding run alone more
+than twice the count leaves the size not accepted. The
 one-sided 95% upper bound on the batched rate less the rate alone has to
 be within the rate alone itself, so a reading batch has it at most twice
 as often, or within 5 percentage points where the rate alone is under 5%.
@@ -571,6 +579,14 @@ harness takes an array behind a code fence or a line of prose too. Of
 the 600 replies alone, 515 were the array alone, 75 fenced it, 9 put
 prose before it and 1 gave a bare object. Of the 200 batches of 10, 152
 were the array alone, 43 fenced it and 5 put prose before it.
+
+The bar and the contract were amended after these runs, which don't
+count towards the amended bar. The contract's one output example was a
+fenced single object, where it is an unfenced array of one, and the
+contract ends by restating that the final message is the array alone.
+The capture above ends on a line the harness no longer prints: a run
+alone with no report now leaves its finding short of the count, to be
+run again.
 
 The tightened contract did what the hypothesis above said it would. The
 audit finding's absence claim slipped in 4 of 200 batches of 10, against

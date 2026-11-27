@@ -60,10 +60,12 @@ from scripts.run_reading_agent_golden import (  # noqa: E402
     _fixture_dirs,
     _judge,
     _judge_batch,
+    _one_line,
     _opened,
     _prefixed,
     _short_of_the_bar,
     _summary,
+    _system_prompt,
     _realistic_batch,
     _stress_batch,
     _unit,
@@ -101,11 +103,24 @@ def _report(finding: str, verdict: str = "true", read: list[str] | None = None) 
 
 
 class ExtractArrayTest(unittest.TestCase):
-    def test_an_array_after_prose_is_read(self) -> None:
-        self.assertEqual(_extract_array('Here:\n```json\n[{"finding": "a.md:1"}]\n```'), [{"finding": "a.md:1"}])
+    REPORTS = [{"finding": "a.md:1"}]
+
+    def test_a_fenced_array_a_prose_first_one_and_a_bare_one_are_the_same_reports(self) -> None:
+        for message in (
+            '```json\n[\n  {"finding": "a.md:1"}\n]\n```',
+            'Here are the verdicts.\n[{"finding": "a.md:1"}]',
+            '[{"finding": "a.md:1"}] Done.',
+            '\n[{"finding": "a.md:1"}]\n',
+        ):
+            self.assertEqual(_extract_array(message)[0], self.REPORTS, message)
+
+    def test_only_a_message_that_is_the_array_alone_says_so(self) -> None:
+        self.assertTrue(_extract_array('\n[{"finding": "a.md:1"}]\n')[1])
+        for message in ('```json\n[{"finding": "a.md:1"}]\n```', 'Still checking.\n[{"finding": "a.md:1"}]'):
+            self.assertFalse(_extract_array(message)[1], message)
 
     def test_a_bare_object_is_not_read_as_its_claims_array(self) -> None:
-        self.assertIsNone(_extract_array('{"finding": "a.md:1", "claims": [{"claim": "x"}]}'))
+        self.assertIsNone(_extract_array('{"finding": "a.md:1", "claims": [{"claim": "x"}]}')[0])
 
 
 class PrefixedTest(unittest.TestCase):
@@ -938,7 +953,42 @@ class BarTest(unittest.TestCase):
         self.alone += [_record([other], (0, *UNOPENED)) for _ in range(30)]
         self.assertEqual(self._short(), "")
         self.alone += [_record([self.batch[0]])]
-        self.assertIn("not each read alone as often", self._short())
+        self.assertEqual(f"{self.batch[1].name} has 30 readings alone, short of the count of 31: run it alone again", self._short())
+
+    def test_a_reading_alone_with_no_report_leaves_its_finding_to_be_run_again(self) -> None:
+        self.batch = _findings(LARGE)[:3]
+        self.batched = [_record(self.batch) for _ in range(60)]
+        self.alone = [_record([f]) for f in self.batch for _ in range(60)]
+        self.alone[0] = _record([self.batch[0]], (0, "matching", COUNTED), claims={})
+        short = self._short()
+        self.assertEqual(f"{self.batch[0].name} has 59 readings alone, short of the count of 60: run it alone again", short)
+        self.alone.append(_record([self.batch[0]]))
+        self.assertEqual(self._short(), "")
+
+    def test_a_finding_run_alone_more_than_twice_the_count_leaves_the_size_not_accepted(self) -> None:
+        unreported = _record([self.batch[0]], (0, "matching", COUNTED), claims={})
+        self.alone[0] = unreported
+        self.alone += [unreported] * 30
+        # 29 readings in 60 runs: within twice the count, so run it again.
+        self.assertIn("short of the count of 30: run it alone again", self._short())
+        self.alone.append(unreported)
+        self.assertIn(
+            f"{self.batch[0].name} was run alone 61 times, over twice the count of 30, so the size isn't accepted",
+            self._short(),
+        )
+        self.assertNotIn("run it alone again", self._short())
+
+    def test_a_first_run_alone_with_no_report_is_no_run_over_the_cap(self) -> None:
+        self.alone = [_record([self.batch[0]], (0, "matching", COUNTED), claims={})]
+        self.assertEqual(self._short(), "0 readings alone, of the 60 needed")
+
+    def test_a_counted_format_problem_never_fails_a_size_and_is_in_the_summary(self) -> None:
+        self.batched = [_record(self.batch, (0, "format", COUNTED)) for _ in range(60)]
+        self.alone = [_record([f], (0, "format", COUNTED)) for f in self.batch for _ in range(30)]
+        out = "\n".join(_summary(self.batched, self.alone))
+        self.assertIn("failed runs of 60: 0 rejecting, 0 compared, 60 counted", out)
+        self.assertIn(f"60 x {self.batch[0].name}: format (counted)", out)
+        self.assertIn("passes the bar", out)
 
     def test_the_runs_of_a_size_are_not_readings_alone(self) -> None:
         self.alone = self.batched
@@ -950,7 +1000,7 @@ class BarTest(unittest.TestCase):
 
     def test_an_alone_call_that_returned_nothing_is_no_reading(self) -> None:
         self.alone[0] = _record([self.batch[0]], (0, "call", REJECTING), claims={})
-        self.assertIn("not each read alone as often", self._short())
+        self.assertIn(f"{self.batch[0].name} has 29 readings alone, short of the count of 30", self._short())
 
     def test_the_small_root_alone_does_not_pass(self) -> None:
         batch = _findings(SMALL)[:2]
@@ -1160,6 +1210,19 @@ class MainTest(unittest.TestCase):
         fields = dict(line.split(": ", 1) for line in frontmatter.splitlines())
         self.assertEqual(fields.get("effort"), EFFORT)
 
+    def test_the_contracts_output_example_is_an_unfenced_array_and_its_last_lines_restate_the_rule(self) -> None:
+        # The agent copied a fenced single-object example in #296's runs (#304).
+        body = _system_prompt()
+        self.assertFalse("```" in body, "the contract holds a Markdown fence")
+        example = re.search(r"\n\n((?: {4}.*\n|\n)+)", body[body.index("## Output") :])
+        assert example is not None
+        shown = example.group(1).split()
+        self.assertEqual((shown[0], shown[1], shown[2], shown[-2], shown[-1]), ("[", "{", '"finding":', "}", "]"))
+        last = _one_line(body.split("\n\n")[-1])
+        self.assertIn("array alone", last)
+        self.assertIn("first character `[`", last)
+        self.assertIn("last `]`", last)
+
     def _saved_identity(self) -> tuple[str, str]:
         self._main("--root", "small", "--batch-size", "2", "--output-dir", str(self.out))
         (saved,) = self.out.iterdir()
@@ -1241,6 +1304,36 @@ class MainTest(unittest.TestCase):
         self.assertEqual(code, 0, out)
         self.assertIn("[COUNTED] sonnet small-batch-2 1/1", out)
         self.assertIn("failed runs of 1: 0 rejecting, 0 compared, 1 counted", out)
+
+    def test_a_wrapped_array_is_read_as_the_same_reports_and_records_a_counted_format_problem(self) -> None:
+        array = json.dumps([_passing_report(f) for f in self.batch], indent=2)
+        for message in (f"```json\n{array}\n```", f"Here are the verdicts.\n\n{array}", f"{array}\n\nAll read."):
+            self._reply_message(message)
+            code, out = self._main("--root", "small", "--batch-size", "2", "--output-dir", str(self.out))
+            self.assertEqual(code, 0, out)
+            (saved,) = self.out.iterdir()
+            run = json.loads(saved.read_text(encoding="utf-8"))
+            saved.unlink()
+            self.assertEqual(run["claims"], {f.name: 2 for f in self.batch}, message)
+            self.assertEqual([(p["finding"], p["type"], p["problem_class"]) for p in run["problems"]], [(BATCH, "format", COUNTED)])
+            self.assertIn("failed runs of 1: 0 rejecting, 0 compared, 1 counted", out)
+            self.assertIn(f"1 x {BATCH}: format (counted)", out)
+
+    def test_an_array_alone_records_no_format_problem_and_a_bare_object_only_a_matching_one(self) -> None:
+        for message, types in (
+            (f"\n{json.dumps([_passing_report(self.batch[0])])}\n", []),
+            (json.dumps(_passing_report(self.batch[0])), ["matching"]),
+        ):
+            self._reply_message(message)
+            self._main("--only", self.batch[0].name, "--output-dir", str(self.out))
+            (saved,) = self.out.iterdir()
+            run = json.loads(saved.read_text(encoding="utf-8"))
+            saved.unlink()
+            self.assertEqual([p["type"] for p in run["problems"]], types, message)
+
+    def _reply_message(self, message: str) -> None:
+        reads = [p for f in self.batch for p in f.must_read]
+        (self.bin / "reply.json").write_text(json.dumps({"message": message, "reads": reads}), encoding="utf-8")
 
     def test_every_finding_alone_is_isolated_too(self) -> None:
         self._main()
