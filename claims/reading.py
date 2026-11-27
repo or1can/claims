@@ -172,11 +172,13 @@ NOT_SENT = "(not sent)"
 @dataclass(frozen=True)
 class Flag:
     """One item `check_reading` flags: the finding it is in, by its
-    `file:line` and mode, or `NOT_SENT`, its type, and what it is."""
+    `file:line` and mode, or `NOT_SENT`, its type, and what it is. A
+    `read` flag names, in `path`, the file it is about."""
 
     finding: str
     type: str
     detail: str
+    path: str = ""
 
     def __str__(self) -> str:
         return f"{self.finding} {self.type}: {self.detail}"
@@ -313,9 +315,9 @@ def _unread(report: dict[str, Any], sent: Sent) -> list[Flag]:
     for path, what, wanted in needed:
         covered = _covered(path, wanted, report_read, sent)
         if covered is None:
-            flags.append(Flag(sent.name, "read", f"{what}, {path}, is not in read"))
+            flags.append(Flag(sent.name, "read", f"{what}, {path}, is not in read", path))
         elif not covered:
-            flags.append(Flag(sent.name, "read", f"{what}, {path}, is listed with only part of it"))
+            flags.append(Flag(sent.name, "read", f"{what}, {path}, is listed with only part of it", path))
     return flags
 
 

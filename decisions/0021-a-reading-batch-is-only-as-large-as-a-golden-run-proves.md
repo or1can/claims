@@ -177,6 +177,10 @@ fell from 85 of 600 readings alone and 48 of 200 batches to 10 and none.
 #308 asks whether a problem the session's own checks catch before
 marking should reject a size. `docs/reading-agent.md` holds the runs.
 
+Superseded in its bar by
+`decisions/0022-a-golden-run-rejects-only-what-the-session-cannot-catch.md`
+(#308), which relaxes it.
+
 ## Context
 
 The reading agent took one finding per call, and the skill called it

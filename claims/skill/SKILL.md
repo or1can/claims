@@ -205,8 +205,9 @@ step's detail follows it.
 
    A reading batch holds at most **5 findings**. The cap is set by the
    reading agent's golden runs of whole reading batches: a batch of 5
-   passed the bar the plugin's `docs/reading-agent.md` gives, in 60
-   runs, and a batch of 10 did not (that page records the runs). A group
+   passed the bar ADR 0021 set then, in 60 runs, and a batch of 10 did
+   not (the plugin's `docs/reading-agent.md` records the runs). It stays
+   at 5 until runs under ADR 0022's bar, which replaced it, are made. A group
    larger than the cap is split, keeping together the findings that
    share the most subjects.
 

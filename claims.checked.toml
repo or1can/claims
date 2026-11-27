@@ -25,21 +25,22 @@ file = ".out-of-scope/version-only-churn.md"
 mode = "stale-claims"
 unit = "d892c3a16ef8ce1a"
 copies = 1
-note = "the agent read the page, pyproject.toml and stale_claims.py: a version-only commit counts and ranks its sections, with no version rule; Claude Code read checked.py, whose marks hash each subject's content, so the bump expires a mark; current and true"
-by = "claims:reading-agent (sonnet), with Claude Code (claude-opus-5-5)"
+note = "claims/checks/stale_claims.py counts every commit with no version-line filter, and ranks a section whenever a subject changes. Not checked: mark expiry, implemented outside the file read"
+by = "claims:reading-agent (sonnet)"
 approved_by = "Kevin Rogers"
-subjects = { "pyproject.toml" = "7a73ba85e45648e6" }
+extent = "partial"
+subjects = { "pyproject.toml" = "64e4c833fbeba4f8" }
 
 [[mark]]
 file = ".out-of-scope/version-only-churn.md"
 mode = "stale-claims"
 unit = "dd656ffcd24a40a1"
 copies = 1
-note = "the agent read the page, stale_claims.py, pyproject.toml and plugin.json: the pyright pin as a subject, the navigation meaning and ADR 0009's ranking hold; Claude Code read #228's three options and its 4 ranked sections, and found 114 of plugin.json's 118 commits change only its version; not checked: ratect's figures and the marks' notes, outside this repo"
-by = "claims:reading-agent (sonnet), with Claude Code (claude-opus-5-5)"
+note = "The pyright pin in pyproject.toml's dev group is a claim's subject (AGENTS.md:115), and stale_claims.py ranks a section only when a subject changes. Not checked: past records of #228, release counts here and in ratect, the marks observation, and plugin.json's history"
+by = "claims:reading-agent (sonnet)"
 approved_by = "Kevin Rogers"
 extent = "partial"
-subjects = { ".claude-plugin/plugin.json" = "95780e66aac663f0", ".out-of-scope/adr-status-notes-as-churn.md" = "7bc84c78d3c4041e", ".out-of-scope/comment-only-churn.md" = "a8fc5351b734ef48", ".out-of-scope/generated-subjects-and-history-weighting.md" = "07ee72d09c6f005a", "pyproject.toml" = "7a73ba85e45648e6", "tests/fixtures/judgment_agent_golden/count_consistency_known_false/repo/ROADMAP.md" = "24be61be2e348715" }
+subjects = { ".claude-plugin/plugin.json" = "23da64b2ba838353", ".out-of-scope/adr-status-notes-as-churn.md" = "7bc84c78d3c4041e", ".out-of-scope/comment-only-churn.md" = "a8fc5351b734ef48", ".out-of-scope/generated-subjects-and-history-weighting.md" = "07ee72d09c6f005a", "pyproject.toml" = "64e4c833fbeba4f8", "tests/fixtures/judgment_agent_golden/count_consistency_known_false/repo/ROADMAP.md" = "24be61be2e348715" }
 
 [[mark]]
 file = "AGENTS.md"
@@ -132,11 +133,11 @@ file = "AGENTS.md"
 mode = "stale-claims"
 unit = "8e4f8ea8f0f2e26d"
 copies = 1
-note = "the agent read plugin.json, pyproject.toml and test_plugin_manifest.py: both 0.38.0, pinned equal; Claude Code found v0.37.8 tagged on origin, the 0.38.0 changelog entry and ADR 0004's retargeting rule; not checked: that claude plugin update gates its refresh on the version string, Claude Code's own behaviour"
-by = "claims:reading-agent (sonnet), with Claude Code (claude-opus-5-5)"
+note = "plugin.json and pyproject.toml carry one version, 0.38.1, pinned equal by tests/test_plugin_manifest.py. Not checked: claude plugin update's cache gating and tag consumers, third-party, and the CHANGELOG pointer sentence (check-file-refs, ADR 0004 not read)"
+by = "claims:reading-agent (sonnet)"
 approved_by = "Kevin Rogers"
 extent = "partial"
-subjects = { ".claude-plugin/plugin.json" = "95780e66aac663f0", "decisions/0004-docs-is-the-user-facing-tree.md" = "84534f73ba887979", "pyproject.toml" = "7a73ba85e45648e6", "tests/test_plugin_manifest.py" = "50834b11b663da44" }
+subjects = { ".claude-plugin/plugin.json" = "23da64b2ba838353", "decisions/0004-docs-is-the-user-facing-tree.md" = "84534f73ba887979", "pyproject.toml" = "64e4c833fbeba4f8", "tests/test_plugin_manifest.py" = "50834b11b663da44" }
 
 [[mark]]
 file = "AGENTS.md"
@@ -153,20 +154,21 @@ file = "AGENTS.md"
 mode = "stale-claims"
 unit = "c4e83690fc1a828d"
 copies = 1
-note = "the agent read pyproject.toml, uv.lock and ADR 0008: pyright pinned at 1.1.414 in both; Claude Code ran the documented command, which printed exactly the block, read pyright's _utils.py, where PYRIGHT_PYTHON_IGNORE_WARNINGS skips the stdout new-version print, and ran uv run with a stray VIRTUAL_ENV, whose warning -q drops; current and true"
-by = "claims:reading-agent (sonnet), with Claude Code (claude-opus-5-5)"
+note = "pyright is pinned 1.1.414 in pyproject.toml's dev group and uv.lock, and ADR 0008 gives uv run -q's reason. Not checked: pyright-python's PyPI nag, third-party behaviour only a run shows"
+by = "claims:reading-agent (sonnet)"
 approved_by = "Kevin Rogers"
-subjects = { "decisions/0008-a-command-names-its-own-environment.md" = "44a8e0ed95bc0e7e", "pyproject.toml" = "7a73ba85e45648e6", "uv.lock" = "f1b0bd7678a55bf3" }
+extent = "partial"
+subjects = { "decisions/0008-a-command-names-its-own-environment.md" = "44a8e0ed95bc0e7e", "pyproject.toml" = "64e4c833fbeba4f8", "uv.lock" = "6e321a832fbc39b9" }
 
 [[mark]]
 file = "AGENTS.md"
 mode = "stale-claims"
 unit = "f22baeb2d42ae875"
 copies = 1
-note = "read CONTEXT.md, agents/domain.md and ADR 0004, globbed decisions/ and CONTEXT-MAP.md: single-context layout, the glossary, proceed silently and decisions/ over the skill's docs/adr/ default all hold; current and true"
+note = "CONTEXT.md is the root glossary, ADRs are in decisions/, agents/domain.md:11 says to proceed silently, and ADR 0004 keeps docs/ user-facing so the skill's docs/adr/ default is wrong here"
 by = "claims:reading-agent (sonnet)"
 approved_by = "Kevin Rogers"
-subjects = { "CONTEXT.md" = "1c037c2446d63488", "agents/domain.md" = "4699ac3fc44ff3f9", "decisions/0004-docs-is-the-user-facing-tree.md" = "84534f73ba887979" }
+subjects = { "CONTEXT.md" = "845dbf913360cf61", "agents/domain.md" = "4699ac3fc44ff3f9", "decisions/0004-docs-is-the-user-facing-tree.md" = "84534f73ba887979" }
 
 [[mark]]
 file = "CONTEXT.md"
@@ -292,10 +294,10 @@ file = "README.md"
 mode = "claim-words-counts"
 unit = "dcb39abe9bfde926"
 copies = 1
-note = "read docs/reading-agent.md and SKILL.md in full: up to five findings sharing subjects, unit and named files read in full, a verdict per claim with evidence, the session marking; current and true"
+note = "The cap is 5 findings sharing subjects (docs/reading-agent.md:54, SKILL.md step 2), every unit and subject is read in full, and the agent reports per-claim verdicts with evidence and never marks"
 by = "claims:reading-agent (sonnet)"
 approved_by = "Kevin Rogers"
-subjects = { "docs/reading-agent.md" = "577e5bbe19b1c986" }
+subjects = { "docs/reading-agent.md" = "c51ddfdea8cce913" }
 
 [[mark]]
 file = "README.md"
@@ -332,10 +334,10 @@ file = "README.md"
 mode = "claim-words-totalising"
 unit = "dcb39abe9bfde926"
 copies = 1
-note = "read docs/reading-agent.md and SKILL.md in full: up to five findings sharing subjects, unit and named files read in full, a verdict per claim with evidence, the session marking; current and true"
+note = "The cap is 5 findings sharing subjects (docs/reading-agent.md:54, SKILL.md step 2), every unit and subject is read in full, and the agent reports per-claim verdicts with evidence and never marks"
 by = "claims:reading-agent (sonnet)"
 approved_by = "Kevin Rogers"
-subjects = { "docs/reading-agent.md" = "577e5bbe19b1c986" }
+subjects = { "docs/reading-agent.md" = "c51ddfdea8cce913" }
 
 [[mark]]
 file = "README.md"
@@ -362,10 +364,11 @@ file = "README.md"
 mode = "stale-claims"
 unit = "4abe336640ffcdc1"
 copies = 1
-note = "read the section against docs/reading-agent.md, installation.md, judgment-agent.md and SKILL.md: five surfaces, the hook's gate and fail_on_unmarked, the skill, both subagents and the CLI outside Claude Code hold; current and true"
+note = "All eleven claims came back true against docs/reading-agent.md, docs/installation.md, docs/checks/judgment-agent.md and reading_agent.md. Partly read: the claims citing claims/gate.py, claims/checked.py, claims/cli.py and SKILL.md rest on parts of those files the agent's read doesn't list in full"
 by = "claims:reading-agent (sonnet)"
 approved_by = "Kevin Rogers"
-subjects = { "docs/installation.md" = "2afa94cb7e216b34", "docs/reading-agent.md" = "577e5bbe19b1c986" }
+extent = "partial"
+subjects = { "docs/installation.md" = "2afa94cb7e216b34", "docs/reading-agent.md" = "c51ddfdea8cce913" }
 
 [[mark]]
 file = "README.md"
@@ -431,10 +434,11 @@ file = "TODO.md"
 mode = "stale-claims"
 unit = "602fae580f5863ab"
 copies = 1
-note = "read every entry against the code it names: all hold; Claude Code settled what the agent couldn't reach: cargo doc documents both Rust shapes and rustfmt rewrites both, man gitattributes says a custom driver is defined in git config, and each Found-reviewing or deferred-from attribution traces to the PR that added its line (159, 170, 186, 232, 251, 262, 243, 278); the later .out-of-scope edit touches no entry; current and true"
-by = "claims:reading-agent (sonnet), with Claude Code (claude-opus-5-5)"
+note = "Against CONTEXT.md only: Verdict names neither agent's verdict set. Not checked: every other bullet, which describes code and pages beyond CONTEXT.md, the one subject the finding names"
+by = "claims:reading-agent (sonnet)"
 approved_by = "Kevin Rogers"
-subjects = { ".out-of-scope/generated-subjects-and-history-weighting.md" = "07ee72d09c6f005a", "CONTEXT.md" = "1c037c2446d63488", "decisions/0009-stale-claims-is-diff-scoped.md" = "2ccb40320358ff66", "decisions/0019-claims-are-intended-current-superseded-or-past.md" = "f27ce5ba82baa739", "docs/checks/check-links.md" = "1016d0435261ddec" }
+extent = "partial"
+subjects = { ".out-of-scope/generated-subjects-and-history-weighting.md" = "07ee72d09c6f005a", "CONTEXT.md" = "845dbf913360cf61", "decisions/0009-stale-claims-is-diff-scoped.md" = "2ccb40320358ff66", "decisions/0019-claims-are-intended-current-superseded-or-past.md" = "f27ce5ba82baa739", "docs/checks/check-links.md" = "1016d0435261ddec" }
 
 [[mark]]
 file = "agents/docs.md"
@@ -481,21 +485,21 @@ file = "agents/domain.md"
 mode = "stale-claims"
 unit = "57c8e234debc95bb"
 copies = 1
-note = "read domain.md and CONTEXT.md in full: CONTEXT.md, the absent CONTEXT-MAP.md and decisions/ hold, current; not checked: the external /domain-modeling skill creating the files lazily"
+note = "CONTEXT.md and decisions/ exist as the glossary and ADR directory, and ADR 0004 records that the skill defaults differ. Not checked: the third-party /domain-modeling skill's lazy file creation and routing, which no file here settles"
 by = "claims:reading-agent (sonnet)"
 approved_by = "Kevin Rogers"
 extent = "partial"
-subjects = { "CONTEXT.md" = "1c037c2446d63488" }
+subjects = { "CONTEXT.md" = "845dbf913360cf61" }
 
 [[mark]]
 file = "agents/domain.md"
 mode = "stale-claims"
 unit = "b1dea1bb81163f11"
 copies = 1
-note = "read agents/domain.md and CONTEXT.md in full: CONTEXT.md is a glossary with _Avoid_ lists and domain.md's /domain-modeling pointer stands; current and true"
+note = "CONTEXT.md is the root glossary and carries _Avoid_ lines, so the instruction to use its terms and avoid its synonyms holds"
 by = "claims:reading-agent (sonnet)"
 approved_by = "Kevin Rogers"
-subjects = { "CONTEXT.md" = "1c037c2446d63488" }
+subjects = { "CONTEXT.md" = "845dbf913360cf61" }
 
 [[mark]]
 file = "claims/checks/check_links.py"
@@ -625,16 +629,6 @@ note = "the agent read reading_agent.md's verdicts and reading.py's not-checked 
 by = "claims:reading-agent (sonnet), with Claude Code (claude-opus-5-5)"
 approved_by = "Kevin Rogers"
 subjects = {}
-
-[[mark]]
-file = "claims/skill/SKILL.md"
-mode = "claim-words-counts"
-unit = "3831c3ac88b0837c"
-copies = 1
-note = "read docs/reading-agent.md in full: the cap rests on whole-batch golden runs, size 5 passed the bar in 60 runs, size 10 failed each of its three measurements, all recorded there; current and true"
-by = "claims:reading-agent (sonnet)"
-approved_by = "Kevin Rogers"
-subjects = { "docs/reading-agent.md" = "577e5bbe19b1c986" }
 
 [[mark]]
 file = "claims/skill/SKILL.md"
@@ -809,9 +803,29 @@ subjects = {}
 [[mark]]
 file = "claims/skill/SKILL.md"
 mode = "claim-words-counts"
+unit = "d37952a9e4748617"
+copies = 1
+note = "docs/reading-agent.md and ADR 0021's Status record a batch of 5 passing 0021's bar in 60 runs (bound 0.049) and a batch of 10 not (0.052)"
+by = "claims:reading-agent (sonnet)"
+approved_by = "Kevin Rogers"
+subjects = { "docs/reading-agent.md" = "c51ddfdea8cce913" }
+
+[[mark]]
+file = "claims/skill/SKILL.md"
+mode = "claim-words-counts"
 unit = "d7895da375545b99"
 copies = 1
 note = "read reading_agent.md, checked-marks.md's units table and CONTEXT.md: every markable mode but judgment-agent is the reading agent's, and the transitive shared-subject grouping matches the glossary; current and true"
+by = "claims:reading-agent (sonnet)"
+approved_by = "Kevin Rogers"
+subjects = {}
+
+[[mark]]
+file = "claims/skill/SKILL.md"
+mode = "claim-words-counts"
+unit = "d8539192a21b8047"
+copies = 1
+note = "ADR 0022's Status and docs/reading-agent.md:418 keep the cap at 5 until runs under 0022's bar, which supersedes 0021's, are made"
 by = "claims:reading-agent (sonnet)"
 approved_by = "Kevin Rogers"
 subjects = {}
@@ -1122,16 +1136,6 @@ unit = "05dba27e2221b7f8-62b6e499d0187b09"
 copies = 1
 note = "the agent read reading_agent.md and docs/reading-agent.md in full and SKILL.md lines 200-329; Claude Code read the rest of SKILL.md: step 5's trees claim is not the sentence the diff removed, now reworded in step 7; current and true"
 by = "claims:reading-agent (sonnet), with Claude Code (claude-opus-5-5)"
-approved_by = "Kevin Rogers"
-subjects = {}
-
-[[mark]]
-file = "claims/skill/SKILL.md"
-mode = "restatement-ngram"
-unit = "2a994ebbcbd11b49-e9803c7db3ca203d"
-copies = 1
-note = "read SKILL.md, docs/reading-agent.md and ADR 0021 in full: a batch of 10 not passing is what the page's runs and the ADR's Status hold, and no line still gives a cap of 1; current and true"
-by = "claims:reading-agent (sonnet)"
 approved_by = "Kevin Rogers"
 subjects = {}
 
@@ -1511,20 +1515,22 @@ file = "decisions/0005-live-and-dated-claims.md"
 mode = "stale-claims"
 unit = "86ae35d58a6aa3b5"
 copies = 1
-note = "read with trees: record-like retired, the retired quote, designation and the claim-words recommendation current and true at the root; the live and dated bullets with their lead-in, the TODO.md axis and the tombstone sentence superseded, true at 0bd963f just before 61479e9; ADR 0003's drift past, true at a6de882 and 78a958e; files' mechanics identical across them"
+note = "Record-like is retired, retired quote stands alone, files designation and claim-words' recommendation hold against CONTEXT.md, docs/concepts.md and docs/checks/claim-words.md. Not checked: the live/dated, TODO-is-live and tombstone sentences, superseded by ADR 0019 and not read at a before tree, and the past ADR 0003 drift sentence"
 by = "claims:reading-agent (sonnet)"
 approved_by = "Kevin Rogers"
-subjects = { "CONTEXT.md" = "1c037c2446d63488", "TODO.md" = "1de6de470749c8d8" }
+extent = "partial"
+subjects = { "CONTEXT.md" = "845dbf913360cf61", "TODO.md" = "1de6de470749c8d8" }
 
 [[mark]]
 file = "decisions/0008-a-command-names-its-own-environment.md"
 mode = "stale-claims"
 unit = "86ae35d58a6aa3b5"
 copies = 1
-note = "read the ADR, executable_claims.py's run site, check_cli_flags.py's _runnable, pyproject.toml and uv.lock: verbatim run, stderr compared, ./ prefixing and this repo's uv run -q claim hold; current and true"
+note = "executable_claims.py and check_cli_flags.py run commands as written with inherited PATH; check-cli-flags builds <script> --help with ./; AGENTS.md's own claim names uv run -q. Not checked: uv's VIRTUAL_ENV warning, third-party behaviour"
 by = "claims:reading-agent (sonnet)"
 approved_by = "Kevin Rogers"
-subjects = { "pyproject.toml" = "7a73ba85e45648e6" }
+extent = "partial"
+subjects = { "pyproject.toml" = "64e4c833fbeba4f8" }
 
 [[mark]]
 file = "decisions/0009-stale-claims-is-diff-scoped.md"
@@ -1887,10 +1893,11 @@ file = "decisions/0019-claims-are-intended-current-superseded-or-past.md"
 mode = "stale-claims"
 unit = "86ae35d58a6aa3b5"
 copies = 1
-note = "read with trees: every Decision claim holds at the root against the contract, CONTEXT.md, checked-marks.md and reading-agent.md; the Scope list of modes superseded by ADR 0020, true at 05d6499; Claude Code read 61479e9's diff, which changes only a docstring word in claims/checks, so no check's matching changed"
-by = "claims:reading-agent (sonnet), with Claude Code (claude-opus-5-5)"
+note = "The four kinds, their glossary entries, what they replace in ADR 0005, reading each kind and the marks paragraph hold against CONTEXT.md, docs/concepts.md, claims/trees.py and claims/checked.py. Not checked: the kind-inference rules and least-settled rule (reading_agent.md not read in full), and the Scope list superseded by ADR 0020"
+by = "claims:reading-agent (sonnet)"
 approved_by = "Kevin Rogers"
-subjects = { "CONTEXT.md" = "1c037c2446d63488", "TODO.md" = "1de6de470749c8d8", "claims/historical.py" = "6a37d1e75977cece" }
+extent = "partial"
+subjects = { "CONTEXT.md" = "845dbf913360cf61", "TODO.md" = "1de6de470749c8d8", "claims/historical.py" = "6a37d1e75977cece" }
 
 [[mark]]
 file = "decisions/0019-claims-are-intended-current-superseded-or-past.md"
@@ -1990,10 +1997,88 @@ file = "decisions/0020-a-historical-reference-that-moved-is-a-markable-finding.m
 mode = "stale-claims"
 unit = "de00163e80311042"
 copies = 1
-note = "read against CONTEXT.md, concepts.md, historical.py and ADR 0011: all six Consequences hold; the agent only grepped config.py, and Claude Code read config.py's _NO_HISTORICAL and load_config, which refuse the key and point to append_only; current and true"
-by = "claims:reading-agent (sonnet), with Claude Code (claude-opus-5-5)"
+note = "CONTEXT.md and docs/concepts.md define Gate and Advisory by what settles them; claims/historical.py demotes moved and pre-adoption references; claims/config.py refuses historical on restatement and judgment-agent; ADR 0011:90 holds the quoted sentence"
+by = "claims:reading-agent (sonnet)"
 approved_by = "Kevin Rogers"
-subjects = { "CONTEXT.md" = "1c037c2446d63488", "claims/historical.py" = "6a37d1e75977cece", "docs/concepts.md" = "35fb513ebf1797ca" }
+subjects = { "CONTEXT.md" = "845dbf913360cf61", "claims/historical.py" = "6a37d1e75977cece", "docs/concepts.md" = "35fb513ebf1797ca" }
+
+[[mark]]
+file = "decisions/0021-a-reading-batch-is-only-as-large-as-a-golden-run-proves.md"
+mode = "restatement-ngram"
+unit = "188a7b613cfd7bb5-83a3d42f1883ad0e"
+copies = 1
+note = "superseded by ADR 0022; at before 2817b0e a non-outside call failure is rejecting and a size passes on 60 clean runs within the compared margin"
+by = "claims:reading-agent (sonnet)"
+approved_by = "Kevin Rogers"
+kind = "superseded"
+text = "188a7b613cfd7bb5"
+evidence = { "decisions/0021-a-reading-batch-is-only-as-large-as-a-golden-run-proves.md#status" = "d36aa5544fe88486", "decisions/0022-a-golden-run-rejects-only-what-the-session-cannot-catch.md#status" = "8f15b009ea6d4c2e" }
+subjects = {}
+
+[[mark]]
+file = "decisions/0021-a-reading-batch-is-only-as-large-as-a-golden-run-proves.md"
+mode = "restatement-ngram"
+unit = "29561ea1fd70753a-95196b94f04e8a89"
+copies = 1
+note = "superseded by ADR 0022; at before 2817b0e evidence naming no file is reported apart in the compared class"
+by = "claims:reading-agent (sonnet)"
+approved_by = "Kevin Rogers"
+kind = "superseded"
+text = "29561ea1fd70753a"
+evidence = { "decisions/0021-a-reading-batch-is-only-as-large-as-a-golden-run-proves.md#status" = "d36aa5544fe88486", "decisions/0022-a-golden-run-rejects-only-what-the-session-cannot-catch.md#status" = "8f15b009ea6d4c2e" }
+subjects = {}
+
+[[mark]]
+file = "decisions/0021-a-reading-batch-is-only-as-large-as-a-golden-run-proves.md"
+mode = "restatement-ngram"
+unit = "39e933f0718ed81b-44dc0ccd2bcd235d"
+copies = 1
+note = "superseded by ADR 0022 (0021:180); read at before 2817b0e, where #287's rejecting class is this text and docs/reading-agent.md's bar agrees"
+by = "claims:reading-agent (sonnet)"
+approved_by = "Kevin Rogers"
+kind = "superseded"
+text = "39e933f0718ed81b"
+evidence = { "decisions/0021-a-reading-batch-is-only-as-large-as-a-golden-run-proves.md#status" = "d36aa5544fe88486", "decisions/0022-a-golden-run-rejects-only-what-the-session-cannot-catch.md#status" = "8f15b009ea6d4c2e" }
+subjects = {}
+
+[[mark]]
+file = "decisions/0021-a-reading-batch-is-only-as-large-as-a-golden-run-proves.md"
+mode = "restatement-ngram"
+unit = "3f8fe82f112720f6-9b285c133a0744bc"
+copies = 1
+note = "superseded by ADR 0022; same margin sentence as line 67, holding at before 2817b0e"
+by = "claims:reading-agent (sonnet)"
+approved_by = "Kevin Rogers"
+kind = "superseded"
+text = "3f8fe82f112720f6"
+evidence = { "decisions/0021-a-reading-batch-is-only-as-large-as-a-golden-run-proves.md#status" = "d36aa5544fe88486", "decisions/0022-a-golden-run-rejects-only-what-the-session-cannot-catch.md#status" = "8f15b009ea6d4c2e" }
+subjects = {}
+
+[[mark]]
+file = "decisions/0021-a-reading-batch-is-only-as-large-as-a-golden-run-proves.md"
+mode = "restatement-ngram"
+unit = "4b7d8ce89c63018b-b493d6f4261b0994"
+copies = 1
+note = "superseded by ADR 0022; at before 2817b0e the floor is the batched rate with a 5% chance of none in that many calls"
+by = "claims:reading-agent (sonnet)"
+approved_by = "Kevin Rogers"
+kind = "superseded"
+text = "4b7d8ce89c63018b"
+evidence = { "decisions/0021-a-reading-batch-is-only-as-large-as-a-golden-run-proves.md#status" = "d36aa5544fe88486", "decisions/0022-a-golden-run-rejects-only-what-the-session-cannot-catch.md#status" = "8f15b009ea6d4c2e" }
+subjects = {}
+
+[[mark]]
+file = "decisions/0021-a-reading-batch-is-only-as-large-as-a-golden-run-proves.md"
+mode = "restatement-ngram"
+unit = "51c4eb8219e588f0-dffdf06a64b1f290"
+copies = 1
+note = "superseded by ADR 0022 (0021:180); at before 2817b0e the rejecting class lists these items, any one rejecting a size"
+by = "claims:reading-agent (sonnet)"
+approved_by = "Kevin Rogers"
+kind = "superseded"
+text = "51c4eb8219e588f0"
+evidence = { "decisions/0021-a-reading-batch-is-only-as-large-as-a-golden-run-proves.md#status" = "d36aa5544fe88486", "decisions/0022-a-golden-run-rejects-only-what-the-session-cannot-catch.md#status" = "8f15b009ea6d4c2e" }
+subjects = {}
 
 [[mark]]
 file = "decisions/0021-a-reading-batch-is-only-as-large-as-a-golden-run-proves.md"
@@ -2003,6 +2088,58 @@ copies = 1
 note = "read the ADR, docs/reading-agent.md and SKILL.md in full: one object per finding matched by file:line and mode, an object for none sent set aside, delivered by step 4; current and true"
 by = "claims:reading-agent (sonnet)"
 approved_by = "Kevin Rogers"
+subjects = {}
+
+[[mark]]
+file = "decisions/0021-a-reading-batch-is-only-as-large-as-a-golden-run-proves.md"
+mode = "restatement-ngram"
+unit = "5a4310c5a7ae4055-db89ceb9b73090a7"
+copies = 1
+note = "superseded by ADR 0022; at before 2817b0e the compared problem weighs against the batch via the margin, not for the alone rate"
+by = "claims:reading-agent (sonnet)"
+approved_by = "Kevin Rogers"
+kind = "superseded"
+text = "5a4310c5a7ae4055"
+evidence = { "decisions/0021-a-reading-batch-is-only-as-large-as-a-golden-run-proves.md#status" = "d36aa5544fe88486", "decisions/0022-a-golden-run-rejects-only-what-the-session-cannot-catch.md#status" = "8f15b009ea6d4c2e" }
+subjects = {}
+
+[[mark]]
+file = "decisions/0021-a-reading-batch-is-only-as-large-as-a-golden-run-proves.md"
+mode = "restatement-ngram"
+unit = "6da65db27fd8536e-99487edf01996f49"
+copies = 1
+note = "superseded by ADR 0022; at before 2817b0e too few runs to reach the margin is a size not accepted"
+by = "claims:reading-agent (sonnet)"
+approved_by = "Kevin Rogers"
+kind = "superseded"
+text = "6da65db27fd8536e"
+evidence = { "decisions/0021-a-reading-batch-is-only-as-large-as-a-golden-run-proves.md#status" = "d36aa5544fe88486", "decisions/0022-a-golden-run-rejects-only-what-the-session-cannot-catch.md#status" = "8f15b009ea6d4c2e" }
+subjects = {}
+
+[[mark]]
+file = "decisions/0021-a-reading-batch-is-only-as-large-as-a-golden-run-proves.md"
+mode = "restatement-ngram"
+unit = "75337767b897da0a-48ea00465000f579"
+copies = 1
+note = "the lead-in is superseded by ADR 0022 and holds at before 2817b0e; the past clause (cap stays at 1, no size measured against the new bar) the session read at written 253f7f8, where #287's amendment is the last and the cap is 1"
+by = "claims:reading-agent (sonnet), with Claude Code session (claude-opus-5-5)"
+approved_by = "Kevin Rogers"
+kind = "superseded"
+text = "75337767b897da0a"
+evidence = { "decisions/0021-a-reading-batch-is-only-as-large-as-a-golden-run-proves.md#status" = "d36aa5544fe88486", "decisions/0022-a-golden-run-rejects-only-what-the-session-cannot-catch.md#status" = "8f15b009ea6d4c2e" }
+subjects = {}
+
+[[mark]]
+file = "decisions/0021-a-reading-batch-is-only-as-large-as-a-golden-run-proves.md"
+mode = "restatement-ngram"
+unit = "7a8aa55f161c4aa6-a9a1e3fc35d26c6f"
+copies = 1
+note = "past record of #296's runs; at written 4ed0a53 the amendment and docs/reading-agent.md both record the privacy finding's bare object, 59 readings against 60"
+by = "claims:reading-agent (sonnet)"
+approved_by = "Kevin Rogers"
+kind = "past"
+text = "7a8aa55f161c4aa6"
+evidence = { "decisions/0021-a-reading-batch-is-only-as-large-as-a-golden-run-proves.md#status" = "d36aa5544fe88486" }
 subjects = {}
 
 [[mark]]
@@ -2021,11 +2158,102 @@ subjects = { "scripts/run_reading_agent_golden.py" = "801cbef92d34e8b3" }
 [[mark]]
 file = "decisions/0021-a-reading-batch-is-only-as-large-as-a-golden-run-proves.md"
 mode = "restatement-ngram"
+unit = "896bce4d7af2672d-f25eef4d42e0526a"
+copies = 1
+note = "superseded by ADR 0022; at before 2817b0e the unit, a subject or a tree not opened or partly read is rejecting"
+by = "claims:reading-agent (sonnet)"
+approved_by = "Kevin Rogers"
+kind = "superseded"
+text = "896bce4d7af2672d"
+evidence = { "decisions/0021-a-reading-batch-is-only-as-large-as-a-golden-run-proves.md#status" = "d36aa5544fe88486", "decisions/0022-a-golden-run-rejects-only-what-the-session-cannot-catch.md#status" = "8f15b009ea6d4c2e" }
+subjects = {}
+
+[[mark]]
+file = "decisions/0021-a-reading-batch-is-only-as-large-as-a-golden-run-proves.md"
+mode = "restatement-ngram"
+unit = "9863c1ad1289a83f-722225da1c98400d"
+copies = 1
+note = "superseded by ADR 0022; at before 2817b0e 0021 and docs/reading-agent.md give the 60-run pass rule with the compared margin"
+by = "claims:reading-agent (sonnet)"
+approved_by = "Kevin Rogers"
+kind = "superseded"
+text = "9863c1ad1289a83f"
+evidence = { "decisions/0021-a-reading-batch-is-only-as-large-as-a-golden-run-proves.md#status" = "d36aa5544fe88486", "decisions/0022-a-golden-run-rejects-only-what-the-session-cannot-catch.md#status" = "8f15b009ea6d4c2e" }
+subjects = {}
+
+[[mark]]
+file = "decisions/0021-a-reading-batch-is-only-as-large-as-a-golden-run-proves.md"
+mode = "restatement-ngram"
+unit = "b093ac896f2fb6d5-0aab673e725a1e33"
+copies = 1
+note = "superseded by ADR 0022; the 5-point margin clause holds at before 2817b0e"
+by = "claims:reading-agent (sonnet)"
+approved_by = "Kevin Rogers"
+kind = "superseded"
+text = "b093ac896f2fb6d5"
+evidence = { "decisions/0021-a-reading-batch-is-only-as-large-as-a-golden-run-proves.md#status" = "d36aa5544fe88486", "decisions/0022-a-golden-run-rejects-only-what-the-session-cannot-catch.md#status" = "8f15b009ea6d4c2e" }
+subjects = {}
+
+[[mark]]
+file = "decisions/0021-a-reading-batch-is-only-as-large-as-a-golden-run-proves.md"
+mode = "restatement-ngram"
+unit = "b6f1188093c49870-db5c74a4fa2de9c8"
+copies = 1
+note = "superseded by ADR 0022; at before 2817b0e a problem in none of the lists, missing evidence included, is rejecting"
+by = "claims:reading-agent (sonnet)"
+approved_by = "Kevin Rogers"
+kind = "superseded"
+text = "b6f1188093c49870"
+evidence = { "decisions/0021-a-reading-batch-is-only-as-large-as-a-golden-run-proves.md#status" = "d36aa5544fe88486", "decisions/0022-a-golden-run-rejects-only-what-the-session-cannot-catch.md#status" = "8f15b009ea6d4c2e" }
+subjects = {}
+
+[[mark]]
+file = "decisions/0021-a-reading-batch-is-only-as-large-as-a-golden-run-proves.md"
+mode = "restatement-ngram"
 unit = "c2a52ee8ded1b978-ffb7cf34b40f0bdb"
 copies = 1
 note = "read ADR 0021, reading_agent.md, SKILL.md and docs/reading-agent.md in full: the line is the agent's per-finding rule, still in force, not the routine definition the diff removed; current and true"
 by = "claims:reading-agent (sonnet)"
 approved_by = "Kevin Rogers"
+subjects = {}
+
+[[mark]]
+file = "decisions/0021-a-reading-batch-is-only-as-large-as-a-golden-run-proves.md"
+mode = "restatement-ngram"
+unit = "c51276cf4e89314d-f615c76e50848023"
+copies = 1
+note = "superseded by ADR 0022, which moves matching to caught; at before 2817b0e the counted class lists these four"
+by = "claims:reading-agent (sonnet)"
+approved_by = "Kevin Rogers"
+kind = "superseded"
+text = "c51276cf4e89314d"
+evidence = { "decisions/0021-a-reading-batch-is-only-as-large-as-a-golden-run-proves.md#status" = "d36aa5544fe88486", "decisions/0022-a-golden-run-rejects-only-what-the-session-cannot-catch.md#status" = "8f15b009ea6d4c2e" }
+subjects = {}
+
+[[mark]]
+file = "decisions/0021-a-reading-batch-is-only-as-large-as-a-golden-run-proves.md"
+mode = "restatement-ngram"
+unit = "c73abccc5df0b2c6-0b947273e7e30680"
+copies = 1
+note = "superseded by ADR 0022; at before 2817b0e another finding's claim and a current claim called past are rejecting"
+by = "claims:reading-agent (sonnet)"
+approved_by = "Kevin Rogers"
+kind = "superseded"
+text = "c73abccc5df0b2c6"
+evidence = { "decisions/0021-a-reading-batch-is-only-as-large-as-a-golden-run-proves.md#status" = "d36aa5544fe88486", "decisions/0022-a-golden-run-rejects-only-what-the-session-cannot-catch.md#status" = "8f15b009ea6d4c2e" }
+subjects = {}
+
+[[mark]]
+file = "decisions/0021-a-reading-batch-is-only-as-large-as-a-golden-run-proves.md"
+mode = "restatement-ngram"
+unit = "df3d17bbb3435aa9-f003209cbaab66dd"
+copies = 1
+note = "superseded by ADR 0022; at before 2817b0e the compared bullet covers lines no Read covered"
+by = "claims:reading-agent (sonnet)"
+approved_by = "Kevin Rogers"
+kind = "superseded"
+text = "df3d17bbb3435aa9"
+evidence = { "decisions/0021-a-reading-batch-is-only-as-large-as-a-golden-run-proves.md#status" = "d36aa5544fe88486", "decisions/0022-a-golden-run-rejects-only-what-the-session-cannot-catch.md#status" = "8f15b009ea6d4c2e" }
 subjects = {}
 
 [[mark]]
@@ -2050,6 +2278,58 @@ subjects = {}
 
 [[mark]]
 file = "decisions/0021-a-reading-batch-is-only-as-large-as-a-golden-run-proves.md"
+mode = "restatement-ngram"
+unit = "f951ee255255ec9d-b128400a107c8e98"
+copies = 1
+note = "superseded by ADR 0022, which retires the margin; at before 2817b0e the bound on the difference has to be within the alone rate or 5 points"
+by = "claims:reading-agent (sonnet)"
+approved_by = "Kevin Rogers"
+kind = "superseded"
+text = "f951ee255255ec9d"
+evidence = { "decisions/0021-a-reading-batch-is-only-as-large-as-a-golden-run-proves.md#status" = "d36aa5544fe88486", "decisions/0022-a-golden-run-rejects-only-what-the-session-cannot-catch.md#status" = "8f15b009ea6d4c2e" }
+subjects = {}
+
+[[mark]]
+file = "decisions/0021-a-reading-batch-is-only-as-large-as-a-golden-run-proves.md"
+mode = "restatement-ngram"
+unit = "fb7192a659e4669c-eaede1fd9a15d7bf"
+copies = 1
+note = "superseded by ADR 0022; at before 2817b0e the bound is floored at the bound for none"
+by = "claims:reading-agent (sonnet)"
+approved_by = "Kevin Rogers"
+kind = "superseded"
+text = "fb7192a659e4669c"
+evidence = { "decisions/0021-a-reading-batch-is-only-as-large-as-a-golden-run-proves.md#status" = "d36aa5544fe88486", "decisions/0022-a-golden-run-rejects-only-what-the-session-cannot-catch.md#status" = "8f15b009ea6d4c2e" }
+subjects = {}
+
+[[mark]]
+file = "decisions/0021-a-reading-batch-is-only-as-large-as-a-golden-run-proves.md"
+mode = "restatement-whole-line"
+unit = "4f254c77d33581c2-92dd6efd3b0014fb"
+copies = 1
+note = "superseded by ADR 0022, which retires the compared class; at before 2817b0e the compared class is defined so"
+by = "claims:reading-agent (sonnet)"
+approved_by = "Kevin Rogers"
+kind = "superseded"
+text = "4f254c77d33581c2"
+evidence = { "decisions/0021-a-reading-batch-is-only-as-large-as-a-golden-run-proves.md#status" = "d36aa5544fe88486", "decisions/0022-a-golden-run-rejects-only-what-the-session-cannot-catch.md#status" = "8f15b009ea6d4c2e" }
+subjects = {}
+
+[[mark]]
+file = "decisions/0021-a-reading-batch-is-only-as-large-as-a-golden-run-proves.md"
+mode = "restatement-whole-line"
+unit = "c73abccc5df0b2c6-8022f9d4d8013769"
+copies = 1
+note = "superseded by ADR 0022; the wrapped rejecting item holds at before 2817b0e"
+by = "claims:reading-agent (sonnet)"
+approved_by = "Kevin Rogers"
+kind = "superseded"
+text = "c73abccc5df0b2c6"
+evidence = { "decisions/0021-a-reading-batch-is-only-as-large-as-a-golden-run-proves.md#status" = "d36aa5544fe88486", "decisions/0022-a-golden-run-rejects-only-what-the-session-cannot-catch.md#status" = "8f15b009ea6d4c2e" }
+subjects = {}
+
+[[mark]]
+file = "decisions/0021-a-reading-batch-is-only-as-large-as-a-golden-run-proves.md"
 mode = "stale-claims"
 unit = "073c1634c496cdb6"
 copies = 1
@@ -2064,10 +2344,11 @@ file = "decisions/0021-a-reading-batch-is-only-as-large-as-a-golden-run-proves.m
 mode = "stale-claims"
 unit = "de00163e80311042"
 copies = 1
-note = "read with trees: the list contract and bare array, the nine-step procedure and both CONTEXT.md terms current and true; --batched as the run the cap rests on, and the cost until it passes, superseded by the Status (#281), true at 398a9b3; Claude Code read checked.py's by handling, which only stores and prints it, so nothing reads the batched suffix"
-by = "claims:reading-agent (sonnet), with Claude Code (claude-opus-5-5)"
+note = "The contract takes a list and returns a bare array; SKILL.md's nine numbered steps (opened by the session) match; CONTEXT.md:129 and 134 define Reading batch and Notable reading; 85 marks in claims.checked.toml keep \", batched\". Not checked: the --batched and \"until it passes\" sentences, which 0021's Status replaces, not read at a before tree"
+by = "claims:reading-agent (sonnet), with Claude Code session (claude-opus-5-5)"
 approved_by = "Kevin Rogers"
-subjects = { "CONTEXT.md" = "1c037c2446d63488", "claims/subagent/reading_agent.md" = "4a8f393aaafd8e10", "docs/reading-agent.md" = "577e5bbe19b1c986", "scripts/run_reading_agent_golden.py" = "de9ff0ec4ffa7681" }
+extent = "partial"
+subjects = { "CONTEXT.md" = "845dbf913360cf61", "claims/subagent/reading_agent.md" = "4a8f393aaafd8e10", "docs/reading-agent.md" = "c51ddfdea8cce913", "scripts/run_reading_agent_golden.py" = "5ceea65fda4a55c5" }
 
 [[mark]]
 file = "docs/SUMMARY.md"
@@ -2624,10 +2905,10 @@ file = "docs/installation.md"
 mode = "claim-words-about-elsewhere"
 unit = "22469f6668f40d33"
 copies = 1
-note = "read pyproject.toml and cli.py: no runtime dependencies and a module entry point, so a checkout on PYTHONPATH runs the CLI without uv; current and true"
-by = "claims:reading-agent (sonnet)"
+note = "python3 -m claims.cli runs from a checkout on PYTHONPATH: claims/cli.py has a __main__ guard and pyproject.toml:7 lists no dependencies (the session opened pyproject.toml, which the agent cited without reading)"
+by = "claims:reading-agent (sonnet), with Claude Code session (claude-opus-5-5)"
 approved_by = "Kevin Rogers"
-subjects = { "uv.lock" = "f1b0bd7678a55bf3" }
+subjects = { "uv.lock" = "6e321a832fbc39b9" }
 
 [[mark]]
 file = "docs/installation.md"
@@ -2654,11 +2935,11 @@ file = "docs/installation.md"
 mode = "stale-claims"
 unit = "12f337ae2821f577"
 copies = 1
-note = "read against cli.py, runner.py, gate.py, pre_commit.py, judgment_agent.py, pyproject.toml, uv.lock and SKILL.md: commands, defaults, summary, grouping, exit codes and hook-versus-CLI differences hold, current; not checked: what uvx does with a tagged git URL, third-party behaviour"
+note = "pyproject.toml has the claims script and no runtime dependencies, so uvx, uv run claims and python3 -m claims.cli all run it. Not checked: CLI defaults, summary line and exit codes, which rest on claims/cli.py, not uv.lock"
 by = "claims:reading-agent (sonnet)"
 approved_by = "Kevin Rogers"
 extent = "partial"
-subjects = { "docs/checks/judgment-agent.md" = "0a229b2658be12de", "uv.lock" = "f1b0bd7678a55bf3" }
+subjects = { "docs/checks/judgment-agent.md" = "0a229b2658be12de", "uv.lock" = "6e321a832fbc39b9" }
 
 [[mark]]
 file = "docs/installation.md"
@@ -2722,6 +3003,16 @@ subjects = {}
 
 [[mark]]
 file = "docs/reading-agent.md"
+mode = "restatement-ngram"
+unit = "f48645cb15679946-50c1489e187d5908"
+copies = 1
+note = "check_reading's matching flags a finding with no object or two, or one for none sent, and SKILL.md step 4 (opened by the session) re-sends it alone"
+by = "claims:reading-agent (sonnet), with Claude Code session (claude-opus-5-5)"
+approved_by = "Kevin Rogers"
+subjects = {}
+
+[[mark]]
+file = "docs/reading-agent.md"
 mode = "stale-claims"
 unit = "36cc7e3d6f620075"
 copies = 1
@@ -2735,11 +3026,11 @@ file = "docs/reading-agent.md"
 mode = "stale-claims"
 unit = "5917f9beccd79b00"
 copies = 1
-note = "read against the contract, ADR 0021 and the harness: isolation flags, the bound arithmetic, the from-the-root rule, fenced-array handling and the short-of-count message hold, current; not checked: the saved live runs' results and what Claude Code loads under --safe-mode, which need a live run"
+note = "The isolation of each call (contract as system prompt, three tools, pinned effort, root outside the repository), the counted class of that failure under the old bar, and the root-relative paths hold. Not checked: what --safe-mode loads (third-party), and every past run's recorded result, count and token figure, which no tree settles without the saved runs"
 by = "claims:reading-agent (sonnet)"
 approved_by = "Kevin Rogers"
 extent = "partial"
-subjects = { "CLAUDE.md" = "0d7c6a8e46000be3", "scripts/run_reading_agent_golden.py" = "de9ff0ec4ffa7681", "tests/fixtures/reading_agent_golden/shared_subject_large/repo/depot/ledger.py" = "3943c2f51fabb069" }
+subjects = { "CLAUDE.md" = "0d7c6a8e46000be3", "scripts/run_reading_agent_golden.py" = "5ceea65fda4a55c5", "tests/fixtures/reading_agent_golden/shared_subject_large/repo/depot/ledger.py" = "3943c2f51fabb069" }
 
 [[mark]]
 file = "docs/reading-agent.md"
@@ -2855,6 +3146,16 @@ unit = "06f02d5943c9b5b4"
 copies = 1
 note = "Deliberate splice: docs/checks/spliced-docs.md's worked example, captured by scripts/capture.py; lines 1-2 belong on load_project and must stay stranded above Manifest for the capture to show the finding."
 by = "Kevin Rogers"
+subjects = {}
+
+[[mark]]
+file = "scripts/run_reading_agent_golden.py"
+mode = "restatement-ngram"
+unit = "4649266f8473e4a3-7e474f55edca684f"
+copies = 1
+note = "_bound floors the resampled bound at the bound for none, per reading, as ADR 0022 keeps from 0021"
+by = "claims:reading-agent (sonnet)"
+approved_by = "Kevin Rogers"
 subjects = {}
 
 [[mark]]

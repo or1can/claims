@@ -53,7 +53,9 @@ claim's tree, is read again there.
 
 A reading batch holds at most five findings. The cap is set by the
 golden runs of whole reading batches under [The model](#the-model): a
-batch of 5 passed the [bar](#the-bar) and a batch of 10 did not. A
+batch of 5 passed the bar ADR 0021 set then, and a batch of 10 did not.
+It stays at 5 until runs under the [bar](#the-bar) that replaced it are
+made. A
 reading that is cheaper but sometimes wrong would write marks that hide
 false claims, so the cap is only a size that passes. A group larger than
 the cap is split, keeping together the findings that share the most
@@ -337,71 +339,87 @@ Each finding is judged by whether it comes back as it has to alone: one
 report per finding, the same verdicts and kinds, its unit and every
 subject listed as read and opened to the last line with the file-reading
 tool, no claim from outside its unit, and no `true` verdict resting on
-lines it didn't open. Every problem in every finding is reported with its class, and a run is
-labelled by its worst. The command fails only on a rejecting problem.
+lines it didn't open. Every problem in every finding is reported with its
+class, and a run is labelled by its worst.
 `--repeat` runs a mode several times, and the summary counts the failed
-runs by class, the failures by finding and type, and the claims listed
-per finding. `--output-dir` saves each run's final message, the lines of
-each file it opened, its effort and its problems, with the ID of each
-model that answered and the Claude Code version, both as the call's own
-output names them, and a digest of the contract the call ran with, its
-system prompt. `--saved` summarises
-runs saved earlier, and makes no call. A run saved without those three is
-refused. `--alone` names saved runs of the
-same findings alone, and the summary then says whether the size passes
-the bar, or why it doesn't.
+runs by class, the failures by finding and type, the claims listed per
+finding, and the rate of problems not caught per finding read, with its
+bound. `--output-dir` saves each run's final message, the lines of
+each file it opened, its token usage, its effort and its problems, with
+the ID of each model that answered and the Claude Code version, both as
+the call's own output names them, a digest of the contract the call ran
+with, its system prompt, and the root it ran in. `--saved` summarises
+runs saved earlier, and makes no call. It grades each again from its
+final message and the files it opened, so runs saved under an earlier
+bar are summarised under this one. A run saved without its model ID,
+version or digest is refused. `--alone` names saved runs of the same
+findings alone. The summary then gives their rate and bound too, the
+tokens per finding batched and alone, and whether the size passes the
+bar, or why it doesn't. The command fails when a size doesn't pass, or,
+with no `--alone`, on any problem not caught.
 
 ### The bar
 
-A problem weighs what it would do to a mark.
+The bar is
+[ADR 0022](../decisions/0022-a-golden-run-rejects-only-what-the-session-cannot-catch.md)'s.
+A problem weighs by whether the session's own check catches it before
+anything is marked. That check is `check-reading`, which the harness
+runs on every call's output, as the skill runs it on every reading
+batch's, plus any claim `not checked`.
 
-- **Rejecting.** One in any run rejects the size: a false claim returned
-  `true` or not reported; another finding's claim listed; a current or
-  intended claim called past or superseded; the unit, a named subject or
-  a needed tree not opened, or only partly read. A problem in none of
-  these lists, such as missing evidence, is rejecting too.
-- **Compared** with its rate alone: a `true` verdict none of whose cited
-  files was opened, or citing lines of an opened one that the agent
-  didn't read. Evidence naming no file in the root, or lines of one that
-  isn't there, can't be judged so. It is reported apart, and counts
-  against the reading batch but not in the rate alone.
-- **Counted**, only recorded: a sentence from the finding's own page
+- **Not caught, rejecting:** a false claim returned `true` or not
+  reported; a claim the finding holds that is never listed; a current or
+  intended claim called past or superseded; another finding's claim, or
+  another page's, listed; a file `read` lists in full that the agent
+  didn't open, or opened only part of, or a `true` claim citing lines of
+  one that it didn't open; a tree file the finding needs read missing from
+  `read`; and a call that returns no message, unless a person reads its
+  cause as from outside the agent, such as a usage limit, and the run is
+  discarded and made again. Any problem in none of these lists is
+  rejecting too.
+- **Caught, priced:** everything `check-reading` flags, so a finding with
+  no report or two, or a report for none; a unit or named subject missing
+  from `read`, or listed with only part of it; a `true` claim citing a
+  file not in `read`, or lines outside what `read` gives, or naming no
+  file; a report with no claims. So are a claim `not checked` that the
+  finding doesn't expect so, and a claim with no evidence.
+- **Counted, recorded only:** a sentence from the finding's own page
   outside its unit, a true claim returned `false`, any other error of
-  kind, and a finding with no report or two, or a report for none, as
-  when a final message gives a bare object rather than an array. So is a
-  final message holding the array and more, a code fence around it or
-  prose before or after it, recorded as `format`; the reports are still
-  read from the array.
+  kind, and a final message holding the array and more, a code fence
+  around it or prose before or after it, recorded as `format`; the
+  reports are still read from the array.
 
-A call that returns no message is rejecting, unless a person reads its
-cause as from outside the agent, such as a usage limit. Its run is then
-discarded and made again.
+A size passes on two counts. First, the one-sided 95% upper bound on the
+rate of problems not caught, per finding read, is at most 1%, batched and
+for the same findings read alone. The bound resamples whole calls, since
+one call's findings share a context, and is never lower than the bound
+for none observed, the rate per reading with a 5% chance of seeing none
+in that many readings. A failed call counts as a problem in each of its
+findings. Second, a batch spends fewer tokens per finding than reading
+alone does, input, cache and output, once each finding with a caught
+problem in a call is priced as one more reading of it alone, at its mean
+tokens alone.
 
-A size passes with no rejecting problem in at least 60 runs that each
-return a report for every finding, and with the compared problem's rate
-within a margin of its rate alone. The rate alone is measured on the same
-findings, each read alone equally often and at least 60 times in all. A
-run alone that returns no report is no reading: the finding is run alone
-again until it has as many readings as the finding read most, and the
-summary names each finding short of that count. A finding run alone more
-than twice the count leaves the size not accepted. The
-one-sided 95% upper bound on the batched rate less the rate alone has to
-be within the rate alone itself, so a reading batch has it at most twice
-as often, or within 5 percentage points where the rate alone is under 5%.
-The bound resamples whole calls, since one call's findings share a
-context. Resampling a few rare problems bounds them too low, and none at
-all at 0, so the bound is never lower than the one for none. There the
-batched rate is taken as the highest with a 5% chance of seeing none in
-that many calls. Too few runs to bring the bound within the margin is a
-size not accepted. The runs of a size, and the runs alone they are
-compared with, have to agree in model alias, effort, contract digest,
-model ID and Claude Code version: an alias can come to name another
-model, the contract can change, and Claude Code can update itself, part
-way through them. The summary names each that
-differs. A failed call is compared only on what it named, and a size
-none of whose runs names a model ID, or none a version, doesn't pass.
-The runs of a size also have to be of the large root: none rests on the
-small root alone.
+The counts are fixed before any run: 200 batched calls of a size, and 60
+readings alone of each of its findings. A run alone that returns no
+report is no reading: the finding is run alone again until it has as
+many readings as the finding read most, and the summary names each
+finding short of that count. A finding run alone more than twice the
+count leaves the size not accepted. The runs of a size, and the runs
+alone they are compared with, have to agree in model alias, effort,
+contract digest, model ID and Claude Code version: an alias can come to
+name another model, the contract can change, and Claude Code can update
+itself, part way through them. The summary names each that differs. A
+failed call is compared only on what it named, and a size none of whose
+runs names a model ID, or none a version, doesn't pass. The runs of a
+size also have to be of the large root: none rests on the small root
+alone.
+
+Size 5 is run first, and 10 only if 5 passes. The cap becomes the
+largest size that passes, or 1 if 5 fails, and stays at 5 until those
+runs are made. The runs recorded below were made under
+[ADR 0021](../decisions/0021-a-reading-batch-is-only-as-large-as-a-golden-run-proves.md)'s
+earlier bar, and are evidence for nothing under this one.
 
 ### The runs
 

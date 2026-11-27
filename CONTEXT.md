@@ -137,6 +137,12 @@ claim false or unsettled, read a claim at an old tree, or that the session
 had to correct.
 _Avoid_: Interesting finding, flagged finding
 
+**Caught problem**:
+A problem in a reading that the session's own check of the reader's output
+flags before any mark is written, so it costs a re-send or a read rather
+than a wrong mark. A problem that check can't see is **not caught**.
+_Avoid_: Detected problem, minor problem
+
 **Partial mark**:
 A checked mark whose reader read only part of its section or doc comment,
 and said so.

@@ -11,6 +11,15 @@ reached you, not just that one was pushed upstream.
 
 ## [Unreleased]
 
+## [0.38.1] - 2026-11-27
+
+- Changed: the check-claims skill's reading batches stay capped at 5
+  findings. The cap now waits on golden runs under a new bar,
+  [ADR 0022](decisions/0022-a-golden-run-rejects-only-what-the-session-cannot-catch.md)'s,
+  where a problem `check-reading` catches before a mark costs a re-send
+  rather than rejecting a batch size. Nothing changes in how a session
+  reads or marks.
+
 ## [0.38.0] - 2026-11-27
 
 - Added: `python3 -m claims.cli check-reading OUTPUT SENT` checks a
