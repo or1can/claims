@@ -164,6 +164,19 @@ never ends the runs early, and a call that fails on a usage limit is a
 `call` failure from outside the agent, discarded and run again. This
 relaxes nothing in #287's bar.
 
+Amended again by #302's runs, which leave the cap at 5. All 800 ran on
+`claude-sonnet-5-5`, Claude Code 2.1.311, effort medium, under one
+contract digest, and no call failed. Every finding's 60 readings alone
+returned a report, so none was run again, and size 10 ran in two chunks
+of 100. Its bound on the compared problem's difference was 0.015, within
+the 0.050 margin, but 2 of its 200 calls had a rejecting problem: one
+left a named subject out of `read`, and one listed a note of its own as
+a claim, `not checked`. Nothing was run again and no part of the bar was
+changed after the result. A final message holding more than the array
+fell from 85 of 600 readings alone and 48 of 200 batches to 10 and none.
+#308 asks whether a problem the session's own checks catch before
+marking should reject a size. `docs/reading-agent.md` holds the runs.
+
 ## Context
 
 The reading agent took one finding per call, and the skill called it

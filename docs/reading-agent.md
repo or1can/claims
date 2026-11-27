@@ -607,6 +607,58 @@ A finding in a batch of 10 cost 7,110 tokens, 5,329 of them cache reads,
 against 37,090 and 30,070 for the same findings alone, which ranged from
 about 19,100 to 140,700 a reading.
 
+Size 10 was measured a third time, under the contract whose example is
+an unfenced array and which ends by restating that the final message is
+the array alone, with the counts and pins fixed in ADR 0021's Status
+before the first run. The runs were made on 27 November 2026, from the
+merge commit that fixed them, on `claude-sonnet-5-5`, Claude Code
+2.1.311 and medium effort, with auto-update off, and all 800 saved the
+same contract digest. No call failed. Each of the large root's ten
+findings was read alone 60 times, as a chunk of its own, and every
+reading returned a report, so none was run again. Size 10 was then run
+200 times in two chunks of 100. Captured from `python3
+scripts/run_reading_agent_golden.py --saved <chunk> ... --alone
+<alone>/<finding> ...`:
+
+```
+failed runs of 200: 2 rejecting, 1 compared, 20 counted
+    2 x shared_subject_large/01-holds.finding.txt: unit-own-page (counted)
+    1 x shared_subject_large/03-planning.finding.txt: read (rejecting)
+    1 x shared_subject_large/04-audit.finding.txt: unit-own-page (counted)
+    1 x shared_subject_large/04-audit.finding.txt: unresolved (compared)
+    1 x shared_subject_large/04-audit.finding.txt: verdict (rejecting)
+    17 x shared_subject_large/06-hold-length.finding.txt: kind (counted)
+evidence naming no file: 1 reading
+claims listed per finding: 1.78, alone 1.80
+compared problem: batched 0.001, alone 0.002, upper bound on the difference 0.015, margin 0.050
+doesn't pass the bar: 2 of 200 runs with a rejecting problem
+```
+
+So the cap stays at 5. In one batch the planning finding's `read` left
+out the ledger module, one of its subjects. In another the audit finding
+listed, as one of its claims, a note that three modules were only
+searched, and returned it `not checked`. Each is rejecting, and either
+alone rejects the size. Captured from `python3
+scripts/run_reading_agent_golden.py --saved <alone>/<finding> ...` over
+the ten:
+
+```
+failed runs of 600: 0 rejecting, 2 compared, 51 counted
+    4 x shared_subject_large/01-holds.finding.txt: format (counted)
+    5 x shared_subject_large/02-support.finding.txt: format (counted)
+    1 x shared_subject_large/05-privacy.finding.txt: format (counted)
+    41 x shared_subject_large/06-hold-length.finding.txt: kind (counted)
+    1 x shared_subject_large/09-cases.finding.txt: unopened (compared)
+    1 x shared_subject_large/09-cases.finding.txt: unresolved (compared)
+evidence naming no file: 1 reading
+claims listed per finding: 1.80
+```
+
+The amended contract did what it was meant to. A final message holding
+more than the array, 85 of 600 readings alone and 48 of 200 batches of
+10 before, was 10 readings alone and no batch. None of the 10 fenced the
+array; each put a line of prose before it.
+
 The stress pack failed 16 of its 20 runs, in four findings. The decision
 record's undelivered claim came back current rather than intended in 11
 runs, and in two others claims were listed from outside its section. The
