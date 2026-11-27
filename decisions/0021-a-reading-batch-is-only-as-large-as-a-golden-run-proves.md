@@ -149,6 +149,21 @@ reply carries no fence, and the contract ends by restating that the final
 message is the array alone. The prompt the harness sends is unchanged, as
 it has to stay the session's own dispatch.
 
+Amended by #302, before any of its runs. The cap of 5 stands under
+#304's contract. Size 10 is measured again as #296 measured it: 200
+batched calls, against each of the large root's ten findings read alone
+60 times, all on `claude-sonnet-5-5`, Claude Code 2.1.311, at effort
+medium with auto-update off, every run saving the same contract digest.
+Each finding's readings alone are one chunk, and size 10 is run in
+chunks of `--repeat` adding up to 200, each chunk in its own
+`--output-dir`, all summarised together. A finding short of 60 readings
+alone, by a run that returned no report, is run alone again with
+`--only`, each re-run in its own `--output-dir`, until it has 60, and
+never more than 120 times in all. The count is fixed in advance: a pause
+never ends the runs early, and a call that fails on a usage limit is a
+`call` failure from outside the agent, discarded and run again. This
+relaxes nothing in #287's bar.
+
 ## Context
 
 The reading agent took one finding per call, and the skill called it
