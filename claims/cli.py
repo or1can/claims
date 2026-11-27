@@ -18,11 +18,13 @@ which writes checked marks (`claims.checked`) for findings of one run,
 person has reviewed yet, and `fold-approvals` (`claims.fold`), which
 approves them inside the commits that wrote them; and `tree-at` and
 `claim-trees` (`claims.trees`), which name and copy the trees a past or
-superseded claim is read at."""
+superseded claim is read at; and `check-reading` (`claims.reading`), which
+checks a reading agent's output against the findings sent it."""
 
 from __future__ import annotations
 
 import argparse
+import json
 import sys
 from pathlib import Path
 
@@ -48,6 +50,7 @@ from .checked import (
 from .config import ConfigError, load_config
 from .fold import fold_approvals
 from .git import resolve_commit
+from .reading import check_reading, extract_array, load_sent
 from .runner import format_findings, run
 from .trees import TREE_KINDS, claim_trees, tree_copy
 
@@ -376,6 +379,42 @@ def list_claim_trees(argv: list[str]) -> int:
     return 0
 
 
+def check_reading_output(argv: list[str]) -> int:
+    parser = argparse.ArgumentParser(
+        prog="python3 -m claims.cli check-reading",
+        description=(
+            "Check a reading agent's output against the findings sent it, "
+            "and print each item it flags as `<file>:<line> <mode> <type>: "
+            "<detail>`, `(not sent)` for an object naming no finding sent; "
+            "exit 1 while any are flagged. Types: matching, read, cited, "
+            "no-file, no-claims, not-checked."
+        ),
+    )
+    parser.add_argument("output", type=Path, help="The agent's final message, the JSON array it returned.")
+    parser.add_argument(
+        "sent",
+        type=Path,
+        help=(
+            "A JSON array of the findings sent, each an object with `finding`, "
+            "the finding line verbatim, `subjects`, `root` and optionally "
+            "`trees`, the lines claim-trees printed for it."
+        ),
+    )
+    args = parser.parse_args(argv)
+    try:
+        output = args.output.read_text(encoding="utf-8")
+        sent = load_sent(json.loads(args.sent.read_text(encoding="utf-8")))
+    except (OSError, UnicodeDecodeError, ValueError) as e:
+        print(f"can't read the output or the findings sent: {e}", file=sys.stderr)
+        return 2
+    reports, _ = extract_array(output)
+    flags = check_reading(reports, sent)
+    for flag in flags:
+        print(flag)
+    print(f"{len(flags)} item(s) flagged")
+    return 1 if flags else 0
+
+
 def main(argv: list[str] | None = None) -> int:
     argv = sys.argv[1:] if argv is None else argv
     if argv[:1] == ["mark-checked"]:
@@ -390,6 +429,8 @@ def main(argv: list[str] | None = None) -> int:
         return tree_at(argv[1:])
     if argv[:1] == ["claim-trees"]:
         return list_claim_trees(argv[1:])
+    if argv[:1] == ["check-reading"]:
+        return check_reading_output(argv[1:])
     args = parse_args(argv)
     repo_root: Path = args.repo_root.resolve()
     try:

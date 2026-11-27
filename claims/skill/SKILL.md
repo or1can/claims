@@ -234,12 +234,26 @@ step's detail follows it.
    it read in full, what it only searched, and a draft note. It never
    marks anything.
 
-4. **Check each reading batch's output.** It holds exactly one object
-   per finding you sent, matched by its `finding` field, the finding's
-   `file:line` and mode. An object naming a finding you didn't send
+4. **Check each reading batch's output.** Save the agent's final
+   message to a file, and write the findings you sent to another, a
+   JSON array of one object per finding: `finding`, its finding line
+   verbatim, `subjects`, the subjects you named, `root`, and `trees`,
+   the lines `claim-trees` printed for it, when you sent any. Then run
+
+   ```bash
+   PYTHONPATH="${CLAUDE_PLUGIN_ROOT}" python3 -m claims.cli check-reading <output> <findings sent>
+   ```
+
+   which prints each item it flags, one per line, as `<file>:<line>
+   <mode> <type>: <detail>`, then a count, and exits 1 while it flags
+   any. The output has to hold exactly one object per finding you sent,
+   matched by its `finding` field, the finding's `file:line` and mode;
+   `matching` flags a finding with no object or two, and, as `(not
+   sent) matching`, an object naming a finding you didn't send, which
    counts for none of yours: set it aside. Re-send alone each finding
-   with no object or two, and mark nothing from that reading batch
-   until every finding in it has exactly one object.
+   flagged `matching`, and mark nothing from that reading batch until
+   every finding in it has exactly one object. Step 6 works from the
+   command's other lines.
 
 5. **Re-send the findings that need trees.** The agent has no shell, so
    it reads a past or superseded claim in a copy of the tree its kind
@@ -268,32 +282,44 @@ step's detail follows it.
    the costly mistake, since it holds there and its mark no longer
    expires with its subjects.
 
-   Then compare each `true` claim's `evidence` with the `read` of the
-   same object. The agent sometimes returns `true` from a search alone.
-   These are **unsettled**, for step 7 to settle:
+   The agent sometimes returns `true` from a search alone, so step 4's
+   `check-reading` compares each `true` claim's `evidence` with the
+   `read` of the same object. Each line it prints is **unsettled**, for
+   step 7 to settle, by its type:
 
-   - **a named subject not opened in full:** one the finding names that
-     `read` lacks, or gives only part of, whatever its claims cite. A
-     subject opened before a step 5 re-send stays opened, and one the
-     root no longer holds can't be;
-   - **a claim citing a file that isn't in `read`**, at the claim's own
-     tree, or lines outside the lines or section its `read` entry gives,
-     even where its other cited files were read;
-   - **a claim whose evidence names no file;**
-   - **a claim that something is absent or unused** ("nothing reads X")
-     resting on a search, whatever else was read.
+   - **`read`, a named subject or the unit not opened in full:** one the
+     finding names that `read` lacks, or gives only part of, whatever
+     its claims cite. A subject the root no longer holds can't be
+     opened, and isn't flagged. The command reads one output at a time,
+     so a subject it flags in a step 5 re-send's output that the first
+     pass's `read` gave in full, at the same tree, stays opened;
+   - **`cited`, a claim citing a file that isn't in `read`**, at the
+     claim's own tree, or lines outside the lines or section its `read`
+     entry gives, even where its other cited files were read;
+   - **`no-file`, a claim whose evidence names no file:** a bare file
+     name, such as `store.py` for `src/store.py` <!-- example -->, names none;
+   - **`no-claims`, an object listing no claims:** nothing in its unit
+     was read, so re-send the finding alone, as for `matching`;
+   - **`not-checked`, a claim the agent reports `not checked`,** with
+     its reasoning and any `tree_line`, for step 7 to route.
+
+   One more is yours to find, since only judgement tells it: **a claim
+   that something is absent or unused** ("nothing reads X") resting on
+   a search, whatever else was read.
 
 7. **Settle what the agent couldn't reach or didn't open.** For each
    unsettled item from step 6, in this order:
 
-   - **a named subject not opened in full:** hand the agent the finding
-     again, alone, with any trees it had, and go back to step 4 with what
-     it returns, whose verdict on a claim replaces the earlier one. Or
-     read the subject in full yourself, against each claim that rests on
-     it, as you do when a re-send leaves it unopened again;
-   - **a file or lines it didn't open:** open the cited lines yourself,
-     with enough around them to settle the claim;
-   - **no file named:** find what settles the claim and open that;
+   - **`read`, a named subject or the unit not opened in full:** hand
+     the agent the finding again, alone, with any trees it had, and go
+     back to step 4 with what it returns, whose verdict on a claim
+     replaces the earlier one. Or read the subject in full yourself,
+     against each claim that rests on it, as you do when a re-send
+     leaves it unopened again;
+   - **`cited`, a file or lines it didn't open:** open the cited lines
+     yourself, with enough around them to settle the claim;
+   - **`no-file`, no file named:** find what settles the claim and open
+     that;
    - **something absent or unused:** search the tracked files yourself,
      such as with `git grep`, which takes a commit for an old tree, open
      every hit, and name the search in the note.
@@ -303,7 +329,8 @@ step's detail follows it.
    Decision, or wording that decides, has kind `intended`. A claim you
    can't settle is `not checked`.
 
-   A claim the agent itself reports `not checked` is one it couldn't
+   A claim the agent itself reports `not checked`, flagged
+   `not-checked`, is one it couldn't
    read, not one found wanting, and its reasoning says what it would
    need. Route each by that:
 

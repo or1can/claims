@@ -11,6 +11,15 @@ reached you, not just that one was pushed upstream.
 
 ## [Unreleased]
 
+## [0.38.0] - 2026-11-27
+
+- Added: `python3 -m claims.cli check-reading OUTPUT SENT` checks a
+  reading agent's output against the findings sent it, and prints each
+  finding left with no object or two, a unit or subject not read in full,
+  a `true` claim citing a file or lines not in `read` or naming no file,
+  and each `not checked` claim. The check-claims skill runs it after every
+  reading batch, before marking, in place of comparing these by eye.
+
 ## [0.37.8] - 2026-11-27
 
 - Fixed: the reading agent's contract shows its output as an unfenced

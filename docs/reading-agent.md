@@ -168,8 +168,40 @@ and leaves that to the session.
 The `check-claims` skill hands each markable finding to the reading
 agent, in its reading batch, before marking it, and marks only after
 reading the agent's evidence and comparing it with what the agent lists
-as read. The agent sometimes returns `true` from a search alone, so
-before marking:
+as read. The comparison is a command, run on the agent's output and the
+findings the session sent it:
+
+```sh
+python3 -m claims.cli check-reading OUTPUT SENT
+```
+
+`OUTPUT` is the agent's final message. `SENT` is a JSON array the
+session writes, one object per finding it sent: `finding`, the finding
+line verbatim, `subjects`, the subjects it named, `root`, and `trees`,
+the lines `claim-trees` printed for it, if any. The subjects are given
+as sent rather than read back out of the finding line, since a session
+can name one the line doesn't. The command prints one line per item it
+flags, as `<file>:<line> <mode> <type>: <detail>`, then a count, and
+exits 1 when it flags any, 0 when it flags none, and 2 when it can't
+read either file. An object naming no finding sent is flagged as `(not
+sent)`. A path in the output is read from the root, or in a tree under
+`.claims/trees/`, or beside the tree's role or commit; a bare file name,
+such as `store.py` for `src/store.py` <!-- example -->, names no file. Its types are:
+
+- `matching`: a finding with no object or two, or an object naming a
+  finding not sent. The finding is re-sent alone.
+- `read`: the unit, or a subject the root holds, missing from `read` or
+  listed with only some of its lines or another section.
+- `cited`: a `true` claim citing a file not in `read` at the claim's own
+  tree, or lines outside what its `read` entry gives.
+- `no-file`: a `true` claim whose evidence names no file.
+- `no-claims`: an object listing no claims. The finding is re-sent
+  alone.
+- `not-checked`: a claim the agent reports `not checked`, with its
+  reasoning, for the session to route.
+
+The agent sometimes returns `true` from a search alone, so before
+marking:
 
 - A finding naming a subject that wasn't opened in full is unsettled. It
   is re-sent alone, and a claim's verdict then replaces its earlier one,
@@ -220,9 +252,9 @@ reading is one a person should see before approving its mark: a claim
 that came back `false`, so the prose was fixed; one nobody could
 check, so the mark is partial or absent; a claim whose kind isn't current, read at
 an old tree or held as not delivered; a mark written despite a `false`
-claim; one that came back with a claim unsettled or a named subject not
-opened in full, saying what was then opened; and a verdict the session
-overrode, read again or settled itself. Every other reading is
+claim; one that came back with a claim unsettled or a named subject or
+the unit not opened in full, saying what was then opened; and a verdict
+the session overrode, read again or settled itself. Every other reading is
 **routine**. The notable ones come first, each with its reason, and go
 in the pull request's description, where the person approving sees them.
 
