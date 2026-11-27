@@ -191,9 +191,9 @@ sufficient — merge it yourself once CI passes, the same way any other
 merge lands.
 
 An agent marks the findings a commit raises with `--pending`, in that
-same commit, after handing each to `claims:reading-agent` and reading
-its evidence, so `by` names the reader (the plugin skill's "Marking a
-finding as checked"). The maintainer's approval is folded into the
+same commit, after handing each to `claims:reading-agent`, running
+`check-reading` on what it returns and reading its evidence, so `by`
+names the reader (the plugin skill's "Marking a finding as checked"). The maintainer's approval is folded into the
 commit that holds the marks, not left as a commit of its own, and
 records them in `approved_by`, leaving `by` as it was: preview with
 `fold-approvals main --by <name>`, read each commit's listed marks and

@@ -128,6 +128,10 @@ digest.
 
 Each call is isolated (`_claude_args`) and its root is a temporary
 directory outside this repository.
+
+A finding line, the object naming it, a `read` entry and a claim's
+evidence are parsed by `claims.reading`, the code `claims.cli
+check-reading` runs in a session (#299).
 """
 
 from __future__ import annotations
@@ -149,9 +153,14 @@ from dataclasses import asdict, dataclass, replace
 from pathlib import Path
 from typing import Any
 
-from run_judgment_agent_golden import _tool_calls
-
 REPO_ROOT = Path(__file__).resolve().parent.parent
+# Run as a script, the repo root is not on `sys.path` yet.
+sys.path.insert(0, str(REPO_ROOT))
+
+from claims.reading import FINDING_RE, TREE_RE, TREES, cited, listing, names_finding, relative  # noqa: E402
+from claims.reading import extract_array as _extract_array  # noqa: E402
+from run_judgment_agent_golden import _tool_calls  # noqa: E402
+
 SUBAGENT_PROMPT = REPO_ROOT / "claims" / "subagent" / "reading_agent.md"
 FIXTURES_DIR = REPO_ROOT / "tests" / "fixtures" / "reading_agent_golden"
 # The fixtures a realistic batch is drawn from, in its findings' order.
@@ -172,8 +181,6 @@ MIN_MARGIN = 0.05
 RESAMPLES = 5000
 # The batch sizes the cap is measured at (#284).
 SIZES = (2, 3, 5, 10)
-# Where `claims claim-trees` copies a commit's tree, under the root.
-TREES = ".claims/trees/"
 # What a problem weighs: whether one rejects a batch size, is compared with
 # its rate alone, or is only recorded.
 REJECTING = "rejecting"
@@ -181,19 +188,7 @@ COMPARED = "compared"
 COUNTED = "counted"
 # What a problem no one finding owns is reported against.
 BATCH = "the whole call"
-_UNIT_RE = re.compile(r"^\[advisory\] (\S+):(\d+) \(([^)]+)\)", re.M)
 _SUBJECTS_RE = re.compile(r"^Subjects: (.*)$", re.M)
-_SPAN = r"L?\d+(?:\s*[-–]\s*L?\d+)?"
-# What comes between two spans of one file's lines: "9-13 (put), 20 and 31".
-_NEXT = r"(?:\s*\([^()]*\))?(?:\s*[,;]\s*(?:and\s+|plus\s+)?|\s+and\s+|\s+plus\s+)"
-_SPANS = rf"{_SPAN}(?:{_NEXT}{_SPAN})*"
-# A file a claim's evidence cites, and the lines of it, if it gives any.
-_CITED_RE = re.compile(
-    rf"(?:\blines?\s+(?P<before>{_SPANS})\s+(?:of|in)\s+`?)?"
-    rf"(?<![\w./-])(?P<path>[\w./-]*[\w-]\.[A-Za-z]\w*)`?"
-    rf"(?:(?P<mark>[:#]|[\s,(]*\blines?\s+)(?P<after>{_SPANS}))?"
-)
-_TREE_RE = re.compile(r"^(written|before) (\w+) ", re.M)
 
 
 @dataclass(frozen=True)
@@ -231,7 +226,7 @@ def _findings(fixture_dir: Path) -> list[Finding]:
     for finding_file in sorted(fixture_dir.glob("*finding.txt")):
         text = finding_file.read_text(encoding="utf-8").strip()
         expected_file = fixture_dir / finding_file.name.replace("finding.txt", "expected.json")
-        unit = _UNIT_RE.search(text)
+        unit = FINDING_RE.search(text)
         subjects = _SUBJECTS_RE.search(text)
         assert unit and subjects, f"{fixture_dir.name}/{finding_file.name} has no finding or Subjects: line"
         expected = json.loads(expected_file.read_text(encoding="utf-8"))
@@ -268,22 +263,6 @@ def _prefixed(finding: Finding, prefix: str) -> Finding:
 
 def _fixture_dirs() -> list[Path]:
     return sorted(p for p in FIXTURES_DIR.iterdir() if p.is_dir())
-
-
-def _extract_array(text: str) -> tuple[Any, bool]:
-    """The JSON array the agent's final message holds, or `None` when the
-    first JSON value in it is not an array: a bare object's own `"claims": [`
-    is not an array of reports. Beside it, whether the message is that array
-    alone, with nothing before or after it but whitespace: no fence, no prose."""
-
-    starts = [i for i in (text.find("["), text.find("{")) if i != -1]
-    if not starts or text[min(starts)] != "[":
-        return None, False
-    try:
-        array, end = json.JSONDecoder().raw_decode(text, min(starts))
-    except ValueError:
-        return None, False
-    return array, not text[: min(starts)].strip() and not text[end:].strip()
 
 
 def _one_line(text: str) -> str:
@@ -362,25 +341,16 @@ def _system_prompt() -> str:
     return body.strip()
 
 
-def _relative(path: str, root: Path) -> str:
-    """`path`, as a `Read` call or a report gives it, relative to `root` when it is inside it."""
+def _trees(finding: Finding) -> list[tuple[str, str]]:
+    """The trees `finding` carries, each `(role, commit)`, as its text gives them."""
 
-    return os.path.relpath(path, root) if path.startswith(f"{root}/") else os.path.normpath(path)
+    return TREE_RE.findall(finding.text)
 
 
 def _listed(path: str, read: list[str], finding: Finding) -> bool:
-    """Whether a report's `read` names `path`: a file of the root by its
-    path, in an entry that isn't a tree's alone; a file in a tree by its
-    path, or by its relative path beside its tree's commit or role."""
+    """Whether a report's `read` names `path`, as `claims.reading.listing` reads it."""
 
-    entries = [entry.replace(f"{finding.repo}/", "") for entry in read]
-    named = re.compile(rf"(?<![\w./-])(?:\./)?{re.escape(path)}(?![\w/-])")
-    trees = [(commit, re.compile(rf"\b{role}\b|{commit[:7]}")) for role, commit in _TREE_RE.findall(finding.text)]
-    if path.startswith(TREES):
-        commit, _, inner = path.removeprefix(TREES).partition("/")
-        marks = [mark for c, mark in trees if c == commit] or [re.compile(commit[:7])]
-        return any(named.search(e) or (inner in e and any(m.search(e) for m in marks)) for e in entries)
-    return any(named.search(e) and ("root" in e or not any(m.search(e) for _, m in trees)) for e in entries)
+    return bool(listing(path, read, finding.repo, _trees(finding)))
 
 
 def _judge(report: dict[str, Any], finding: Finding) -> list[Problem]:
@@ -449,10 +419,7 @@ def _named_finding(report: dict[str, Any], batch: list[Finding]) -> Finding | No
     """The finding in `batch` whose `file:line` and mode `report`'s `finding` field names, or `None`."""
 
     named = str(report.get("finding", ""))
-    for finding in batch:
-        if re.search(rf"(?<![\w./-]){re.escape(f'{finding.path}:{finding.line}')}(?!\d)", named) and finding.mode in named:
-            return finding
-    return None
+    return next((f for f in batch if names_finding(named, f.path, f.line, f.mode)), None)
 
 
 def _matched(reports: Any, batch: list[Finding]) -> tuple[dict[Finding, dict[str, Any]], list[Problem]]:
@@ -586,7 +553,7 @@ def _opened(reads: list[dict[str, Any]], root: Path) -> dict[str, set[int]]:
     for read in reads:
         if "lines" in read:
             first, last = read["lines"]
-            opened.setdefault(_relative(str(read["file_path"]), root), set()).update(range(first, last + 1))
+            opened.setdefault(relative(str(read["file_path"]), root), set()).update(range(first, last + 1))
     return opened
 
 
@@ -611,33 +578,9 @@ def _unread(batch: list[Finding], opened: dict[str, set[int]]) -> list[Problem]:
 
 
 def _cited(evidence: str, tree: str, finding: Finding) -> tuple[list[tuple[list[str], set[int]]], list[str]]:
-    """Each file `evidence` cites, with the lines of it, if it gives any, and
-    each path it cites lines of that is no file. A file is every path it may
-    be at: in each tree of `finding`'s that `tree` names, in the root when
-    it names that or no tree, or else in the root, for a file the trees
-    don't hold."""
+    """What `evidence` cites, at `finding`'s trees, as `claims.reading.cited` reads it."""
 
-    named = [c for role, c in _TREE_RE.findall(finding.text) if re.search(rf"\b{role}\b|{c[:7]}", tree)]
-    places = [f"{TREES}{commit}/" for commit in named]
-    if "root" in tree or not named:
-        places.append("")
-    cited: list[tuple[list[str], set[int]]] = []
-    missing: list[str] = []
-    for match in _CITED_RE.finditer(evidence):
-        path = _relative(match["path"], finding.repo)
-        paths = [p + path for p in places if (finding.repo / p / path).is_file()]
-        if not paths and (finding.repo / path).is_file():
-            paths = [path]
-        if not paths or path.startswith(("/", "..")):
-            if match["mark"] in {":", "#"}:
-                missing.append(path)
-            continue
-        lines: set[int] = set()
-        for span in re.findall(_SPAN, re.sub(r"\([^()]*\)", "", f"{match['before'] or ''} {match['after'] or ''}")):
-            numbers = [int(n) for n in re.findall(r"\d+", span)]
-            lines.update(range(numbers[0], numbers[-1] + 1))
-        cited.append((paths, lines))
-    return cited, missing
+    return cited(evidence, tree, finding.repo, _trees(finding))
 
 
 def _unopened(report: dict[str, Any], finding: Finding, opened: dict[str, set[int]]) -> list[Problem]:

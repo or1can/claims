@@ -1,5 +1,14 @@
 # TODO
 
+- `check-reading` reads a claim's evidence through `claims.reading.cited`,
+  the golden harness's parsing, so three things pass it unflagged. A
+  section cited as `page.md#anchor` counts as the whole file, so a `read`
+  entry giving other lines of the page covers it. An object matches a
+  finding whose mode its `finding` field only contains, as
+  `stale-claims` is in `stale-claims-extra`. A claim whose verdict is
+  none of the three, or that isn't an object, is passed over. Tightening
+  the first two changes the harness's grading too, which is #308's to
+  change. Found reviewing #299.
 - A symlink whose target leaves the repository and comes back in, by
   a `..` path through the repository's own directory or an absolute
   path into it, is read in the working tree, where
