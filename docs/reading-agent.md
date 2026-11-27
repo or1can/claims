@@ -328,9 +328,15 @@ reads a field, which another file does.
 `python3 scripts/run_reading_agent_golden.py --model <model>` runs each
 of the thirty findings alone against the real model, one API call each.
 `--only` runs just the fixture or the finding it names, and may be repeated.
-`--batch-size`, with 2, 3, 5 or 10, hands that many of the large root's
-findings, the first in order, to one call, or of the small root's with
-`--root small`. `--stress` hands the ten
+`--batch`, with `5a`, `5b` or `10`, hands one named batch of the large
+root's findings to one call. These are the batches a cap rests on:
+`5a` holds `01`, `02`, `04`, `05` and `06`, which all name the ledger,
+`5b` holds `03`, `07`, `08`, `09` and `10`, joined through `03`, which
+names both files, and `10` holds all ten. Each is one the check-claims
+skill would send, and a size's batches together hold every finding
+once. `--batch-size`, with 2, 3, 5 or 10, hands that many of the large
+root's findings, the first in order, to one call, or of the small root's
+with `--root small`; no cap rests on it. `--stress` hands the ten
 findings of the other fixtures to one call, each fixture's files under a
 prefix of their own. Those are from eight unrelated roots, which no
 reading batch is, so a stress run is recorded and never sets the cap.
@@ -350,8 +356,9 @@ the ID of each model that answered and the Claude Code version, both as
 the call's own output names them, a digest of the contract the call ran
 with, its system prompt, and the root it ran in. `--saved` summarises
 runs saved earlier, and makes no call. It grades each again from its
-final message and the files it opened, so runs saved under an earlier
-bar are summarised under this one. A run saved without its model ID,
+final message and the files it opened, in the batch rebuilt from the
+run's own findings, so runs saved under an earlier bar are summarised
+under this one. A run saved without its model ID,
 version or digest is refused. `--alone` names saved runs of the same
 findings alone. The summary then gives their rate and bound too, the
 tokens per finding batched and alone, and whether the size passes the
@@ -400,8 +407,11 @@ alone does, input, cache and output, once each finding with a caught
 problem in a call is priced as one more reading of it alone, at its mean
 tokens alone.
 
-The counts are fixed before any run: 200 batched calls of a size, and 60
-readings alone of each of its findings. A run alone that returns no
+The counts are fixed before any run: 200 batched calls of a size, split
+evenly between its batches, so 100 of `5a` and 100 of `5b` for size 5,
+and 200 of `10` for size 10; and 60 readings alone of each of the ten
+findings, 600 in all, which serve every size. With none observed, 600
+readings alone bound the rate at about 0.0050. A run alone that returns no
 report is no reading: the finding is run alone again until it has as
 many readings as the finding read most, and the summary names each
 finding short of that count. A finding run alone more than twice the
@@ -412,12 +422,26 @@ name another model, the contract can change, and Claude Code can update
 itself, part way through them. The summary names each that differs. A
 failed call is compared only on what it named, and a size none of whose
 runs names a model ID, or none a version, doesn't pass. The runs of a
-size also have to be of the large root: none rests on the small root
-alone.
+size also have to be its named batches of the large root, each run as
+often as the other: none rests on the small root, or on the first N
+findings `--batch-size` takes.
 
 Size 5 is run first, and 10 only if 5 passes. The cap becomes the
 largest size that passes, or 1 if 5 fails, and stays at 5 until those
-runs are made. The runs recorded below were made under
+runs are made. Size 5's runs are the ten findings alone, then each of
+its batches, then the summary over them all. A line may be run in
+chunks with a smaller `--repeat`, each into a new `--output-dir`, every
+one of which the last line is then given:
+
+```sh
+python3 scripts/run_reading_agent_golden.py --only shared_subject_large --repeat 60 --output-dir <alone>
+python3 scripts/run_reading_agent_golden.py --batch 5a --repeat 100 --output-dir <5a>
+python3 scripts/run_reading_agent_golden.py --batch 5b --repeat 100 --output-dir <5b>
+python3 scripts/run_reading_agent_golden.py --saved <5a> --saved <5b> --alone <alone>
+```
+
+Size 10, if 5 passes, is `--batch 10 --repeat 200`, graded against the
+same `<alone>`. The runs recorded below were made under
 [ADR 0021](../decisions/0021-a-reading-batch-is-only-as-large-as-a-golden-run-proves.md)'s
 earlier bar, and are evidence for nothing under this one.
 

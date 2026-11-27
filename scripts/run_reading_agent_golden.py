@@ -20,7 +20,7 @@ deterministic across model versions, so this is not collected by
 `unittest discover`.
 
     python3 scripts/run_reading_agent_golden.py [--model sonnet|haiku|...]
-        [--batch-size 2|3|5|10 [--root large|small] | --stress |
+        [--batch 5a|5b|10 | --batch-size 2|3|5|10 [--root large|small] | --stress |
         --only NAME ... | --saved DIR ...] [--repeat N] [--output-dir DIR]
         [--alone DIR ...]
 
@@ -87,15 +87,17 @@ A run is labelled by its worst class.
 With no mode, each finding of every fixture is run alone. `--only`, which
 may be repeated, runs alone only the findings of the fixture it names, or
 the one finding, named as a run prints it, such as
-`shared_subject_batch/02-faq.finding.txt`. `--batch-size`
-runs the first that many findings of one root in one call, a reading
-batch as the check-claims skill forms one: findings from one root that
-share subjects. The root is `shared_subject_large`, whose subjects are
-hundreds of lines, or with `--root small` `shared_subject_batch`, which
-no cap may rest on alone. One thing differs in the small root: its third
-finding carries trees, where the skill re-sends a finding with trees
-apart from the rest, so that the same path at two trees meets in one
-call. `--stress` runs
+`shared_subject_batch/02-faq.finding.txt`. `--batch` runs one of
+`BATCHES` in one call, the named reading batches of `shared_subject_large`,
+whose subjects are hundreds of lines, which a cap rests on: `5a` and `5b`,
+which together hold all ten of its findings, and `10`, which is all ten.
+Each is a reading batch as the check-claims skill forms one: findings from
+one root joined by shared subjects. `--batch-size` runs the first that
+many findings of one root in one call, the large root, or with `--root
+small` `shared_subject_batch`, and no cap rests on either. One thing
+differs in the small root: its third finding carries trees, where the
+skill re-sends a finding with trees apart from the rest, so that the same
+path at two trees meets in one call. `--stress` runs
 every other fixture's findings in one call, each fixture's `repo/` copied
 under its own prefix, `f01/` and on, in one root, and the paths each
 finding names moved with it. Those fixtures are unrelated, which no
@@ -127,7 +129,8 @@ failed call is compared only on what it names, and runs none of which
 names a model ID, or none a version, don't pass.
 `--saved` makes no call, and summarises runs saved earlier, each graded
 again from its final message and `Read` calls by this harness, not by
-the problems it was saved with (`_regraded`). It and
+the problems it was saved with, in the batch rebuilt from the run's own
+findings (`_regraded`). It and
 `--alone` refuse a run saved without its model ID, version or contract
 digest. The command exits 1 when the runs don't pass the bar, or, given
 no `--alone`, when any run has a problem not caught.
@@ -155,7 +158,7 @@ import subprocess
 import sys
 import tempfile
 from collections import Counter
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
 from dataclasses import asdict, dataclass, replace
 from pathlib import Path
 from typing import Any
@@ -181,8 +184,9 @@ EFFORT = "medium"
 IDENTITY = {"model ID": "model_id", "Claude Code version": "claude_code_version"}
 # The field of a saved run holding the digest of the system prompt it ran with.
 CONTRACT = "contract"
-# The batched calls of a size, and the readings alone of each of its
-# findings, its bar is judged on, both fixed before any run (ADR 0022).
+# The batched calls of a size, and the readings alone of each of the large
+# root's findings, which serve every size, that its bar is judged on, both
+# fixed before any run (ADR 0022 and its amendment).
 BATCHED_RUNS = 200
 ALONE_COUNT = 60
 # The most a one-sided 95% upper bound on the rate of problems not caught,
@@ -193,6 +197,33 @@ RESAMPLES = 5000
 TOKENS = ("input_tokens", "cache_creation_input_tokens", "cache_read_input_tokens", "output_tokens")
 # The batch sizes the cap is measured at (#284).
 SIZES = (2, 3, 5, 10)
+
+
+def _large(*stems: str) -> tuple[str, ...]:
+    return tuple(f"{ROOTS['large'].name}/{stem}.finding.txt" for stem in stems)
+
+
+# The reading batches of the large root a size's cap rests on, by name
+# (ADR 0022's amendment): each joined by shared subjects, as the
+# check-claims skill's step 2 joins one, and a size's batches together
+# holding each of the root's findings once. Each is run as often as the
+# others of its size, `BATCHED_RUNS` between them.
+BATCHES = {
+    "5a": _large("01-holds", "02-support", "04-audit", "05-privacy", "06-hold-length"),
+    "5b": _large("03-planning", "07-stock-totalising", "08-stock-temporal", "09-cases", "10-planner-totalising"),
+    "10": _large(
+        "01-holds",
+        "02-support",
+        "03-planning",
+        "04-audit",
+        "05-privacy",
+        "06-hold-length",
+        "07-stock-totalising",
+        "08-stock-temporal",
+        "09-cases",
+        "10-planner-totalising",
+    ),
+}
 # What a problem weighs: whether the session's own check would not catch
 # it, and it rejects a batch size; would catch it, and it costs a re-send;
 # or it is only recorded.
@@ -326,11 +357,18 @@ def _claims_outside(finding: Finding, findings: list[Finding]) -> list[str]:
 
 
 def _realistic_batch(root: Path, size: int, fixture_dir: Path) -> list[Finding]:
-    """The first `size` findings of `fixture_dir`, copied to
-    `root`. The others' claims are `elsewhere` for each, though one page
+    """The first `size` findings of `fixture_dir`, copied to `root`, as `_named_batch` builds them."""
+
+    return _named_batch(root, [f.name for f in _findings(fixture_dir)][:size], fixture_dir)
+
+
+def _named_batch(root: Path, names: Sequence[str], fixture_dir: Path) -> list[Finding]:
+    """The findings of `fixture_dir` named `names`, in that order, copied
+    to `root`. The others' claims are `elsewhere` for each, though one page
     hold both."""
 
-    batch = _copied(fixture_dir, root)[:size]
+    found = {f.name: f for f in _copied(fixture_dir, root)}
+    batch = [found[name] for name in names]
     for f in batch:
         f.expected["elsewhere"].extend(_claims_outside(f, batch))
     return batch
@@ -687,12 +725,15 @@ def _run(batch: list[Finding], system_prompt: str, model: str) -> dict[str, Any]
 
 def _rebuilt(names: list[str], root: Path) -> list[Finding]:
     """The batch a run of the findings `names` was built as, in `root`:
-    one finding alone, the first of a root's, or the stress pack."""
+    one finding alone, a named batch, the first of a root's, or the stress
+    pack."""
 
     dirs = {d.name: d for d in _fixture_dirs()}
     fixtures = {name.partition("/")[0] for name in names}
     if len(names) == 1:
         return [f for f in _copied(dirs[names[0].partition("/")[0]], root) if f.name == names[0]]
+    if tuple(names) in BATCHES.values():
+        return _named_batch(root, names, ROOTS["large"])
     if len(fixtures) == 1 and dirs[next(iter(fixtures))] in ROOTS.values():
         return _realistic_batch(root, len(names), dirs[next(iter(fixtures))])
     return _stress_batch(root)
@@ -845,18 +886,26 @@ def _short_of_the_bar(runs: list[dict[str, Any]], alone: list[dict[str, Any]]) -
     """Each way `runs`, of one size, fall short of ADR 0022's bar against `alone`."""
 
     alone = _same_findings(runs, alone)
-    values: dict[str, set[Any]] = {"findings": {tuple(r["findings"]) for r in runs}}
+    values: dict[str, set[Any]] = {}
     for name, field in (("model alias", "model"), ("effort", "effort"), ("contract digest", CONTRACT), *IDENTITY.items()):
         # A call that failed may name neither its model ID nor its version.
         values[name] = {r[field] for r in runs + alone if r[field] or all(p["type"] != "call" for p in r["problems"])}
     if differing := [name for name, found in values.items() if len(found) > 1]:
         return [f"the runs differ in their {' and '.join(differing)}"]
     short = [f"the runs don't say their {name}" for name, found in values.items() if found == {""}]
-    findings: list[str] = runs[0]["findings"]
-    if len(findings) not in SIZES or not all(name.startswith(f"{ROOTS['large'].name}/") for name in findings):
-        short.append("they aren't a reading batch of the large root, which a cap has to rest on")
+    findings = list(dict.fromkeys(name for run in runs for name in run["findings"]))
+    calls = Counter(tuple(r["findings"]) for r in runs)
+    of_size = {name: b for name, b in BATCHES.items() if len(b) == len(runs[0]["findings"])}
+    batches = set(calls) == set(of_size.values())
+    if not batches:
+        short.append("they aren't a size's reading batches of the large root, which a cap has to rest on")
     if len(runs) != BATCHED_RUNS:
         short.append(f"{len(runs)} batched calls, where the count is fixed at {BATCHED_RUNS}")
+    elif batches and len(of_size) > 1:
+        per = BATCHED_RUNS // len(of_size)
+        short += [
+            f"{calls[b]} calls of batch {name}, where the count is fixed at {per}" for name, b in of_size.items() if calls[b] != per
+        ]
     short += _short_of_the_count(findings, alone)
     readings = Counter(name for run in alone for name in run["claims"])
     count = max(readings[name] for name in findings)
@@ -927,6 +976,8 @@ def _modes(args: argparse.Namespace) -> list[tuple[str, Callable[[Path], list[Fi
 
     if args.stress:
         return [("stress", _stress_batch)]
+    if args.batch:
+        return [(f"large-batch-{args.batch}", lambda root: _named_batch(root, BATCHES[args.batch], ROOTS["large"]))]
     if args.batch_size:
         return [
             (
@@ -951,6 +1002,11 @@ def main(argv: list[str] | None = None) -> int:
     )
     parser.add_argument(
         "--root", choices=sorted(ROOTS), default="large", help="The root --batch-size draws from (default: large)."
+    )
+    mode.add_argument(
+        "--batch",
+        choices=BATCHES,
+        help="Hand one call this named reading batch of the large root's findings, which a cap rests on.",
     )
     mode.add_argument("--stress", action="store_true", help="Hand one call the unrelated fixtures' findings.")
     mode.add_argument(

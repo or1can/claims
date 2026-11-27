@@ -294,10 +294,10 @@ file = "README.md"
 mode = "claim-words-counts"
 unit = "dcb39abe9bfde926"
 copies = 1
-note = "The cap is 5 findings sharing subjects (docs/reading-agent.md:54, SKILL.md step 2), every unit and subject is read in full, and the agent reports per-claim verdicts with evidence and never marks"
+note = "batched read against docs/reading-agent.md, SKILL.md and the contract: a reading batch is findings sharing subjects, at most five; the unit and every subject are read in full; a verdict and evidence per claim, and the session decides the mark"
 by = "claims:reading-agent (sonnet)"
 approved_by = "Kevin Rogers"
-subjects = { "docs/reading-agent.md" = "c51ddfdea8cce913" }
+subjects = { "docs/reading-agent.md" = "33b4fa4bf33fdfb1" }
 
 [[mark]]
 file = "README.md"
@@ -334,10 +334,10 @@ file = "README.md"
 mode = "claim-words-totalising"
 unit = "dcb39abe9bfde926"
 copies = 1
-note = "The cap is 5 findings sharing subjects (docs/reading-agent.md:54, SKILL.md step 2), every unit and subject is read in full, and the agent reports per-claim verdicts with evidence and never marks"
+note = "batched read against docs/reading-agent.md, SKILL.md and the contract: a reading batch is findings sharing subjects, at most five; the unit and every subject are read in full; a verdict and evidence per claim, and the session decides the mark"
 by = "claims:reading-agent (sonnet)"
 approved_by = "Kevin Rogers"
-subjects = { "docs/reading-agent.md" = "c51ddfdea8cce913" }
+subjects = { "docs/reading-agent.md" = "33b4fa4bf33fdfb1" }
 
 [[mark]]
 file = "README.md"
@@ -364,11 +364,10 @@ file = "README.md"
 mode = "stale-claims"
 unit = "4abe336640ffcdc1"
 copies = 1
-note = "All eleven claims came back true against docs/reading-agent.md, docs/installation.md, docs/checks/judgment-agent.md and reading_agent.md. Partly read: the claims citing claims/gate.py, claims/checked.py, claims/cli.py and SKILL.md rest on parts of those files the agent's read doesn't list in full"
-by = "claims:reading-agent (sonnet)"
+note = "batched read: the five surfaces, the hook, the skill and the reading-agent bullet hold against installation.md, SKILL.md and the contract; Claude Code read docs/configuring.md's fail_on_unmarked section and checks/judgment-agent.md for the judgment-agent bullet, and claims/cli.py, an adapter over claims.runner.run, for the run() seam; current and true"
+by = "claims:reading-agent (sonnet), with Claude Code (claude-opus-5-5)"
 approved_by = "Kevin Rogers"
-extent = "partial"
-subjects = { "docs/installation.md" = "2afa94cb7e216b34", "docs/reading-agent.md" = "c51ddfdea8cce913" }
+subjects = { "docs/installation.md" = "2afa94cb7e216b34", "docs/reading-agent.md" = "33b4fa4bf33fdfb1" }
 
 [[mark]]
 file = "README.md"
@@ -805,10 +804,10 @@ file = "claims/skill/SKILL.md"
 mode = "claim-words-counts"
 unit = "d37952a9e4748617"
 copies = 1
-note = "docs/reading-agent.md and ADR 0021's Status record a batch of 5 passing 0021's bar in 60 runs (bound 0.049) and a batch of 10 not (0.052)"
+note = "batched read against docs/reading-agent.md and ADR 0021: a batch of 5 passed ADR 0021's bar in 60 runs and a batch of 10 did not; the page records the runs"
 by = "claims:reading-agent (sonnet)"
 approved_by = "Kevin Rogers"
-subjects = { "docs/reading-agent.md" = "c51ddfdea8cce913" }
+subjects = { "docs/reading-agent.md" = "33b4fa4bf33fdfb1" }
 
 [[mark]]
 file = "claims/skill/SKILL.md"
@@ -1174,10 +1173,10 @@ file = "claims/skill/SKILL.md"
 mode = "stale-claims"
 unit = "fddcda6e930f8c54"
 copies = 1
-note = "the agent read steps 1-9 and the closing paragraphs against reading_agent.md, docs/reading-agent.md, checked-marks.md, cli.py and the golden harness: all hold; Claude Code ran git grep for batch over the judgment harness, no match, so it has no batched run; current and true"
+note = "batched read against docs/reading-agent.md, checked-marks.md and the contract: grouping, the cap, the output, check-reading, claim-trees, marking and reporting hold; Claude Code read cli.py's check-reading, which takes one output, and git.range_base, which diffs a lone revision against the working tree, for the two the agent left; current and true"
 by = "claims:reading-agent (sonnet), with Claude Code (claude-opus-5-5)"
 approved_by = "Kevin Rogers"
-subjects = { "claims/subagent/reading_agent.md" = "4a8f393aaafd8e10", "docs/checked-marks.md" = "976d132e765cbdfe", "docs/reading-agent.md" = "d7e1943ab1690bf3" }
+subjects = { "claims/subagent/reading_agent.md" = "4a8f393aaafd8e10", "claims/trees.py" = "81cf84596a61a0a6", "docs/checked-marks.md" = "976d132e765cbdfe", "docs/reading-agent.md" = "33b4fa4bf33fdfb1" }
 
 [[mark]]
 file = "claims/subagent/reading_agent.md"
@@ -2158,6 +2157,16 @@ subjects = { "scripts/run_reading_agent_golden.py" = "801cbef92d34e8b3" }
 [[mark]]
 file = "decisions/0021-a-reading-batch-is-only-as-large-as-a-golden-run-proves.md"
 mode = "restatement-ngram"
+unit = "893d2bb69af48f37-3c2320be8935adf9"
+copies = 1
+note = "batched read against docs/reading-agent.md: the cap of 5 rests on the large root's named batches, and the page says none rests on the small root, so the ADR's sentence still holds"
+by = "claims:reading-agent (sonnet)"
+approved_by = "Kevin Rogers"
+subjects = {}
+
+[[mark]]
+file = "decisions/0021-a-reading-batch-is-only-as-large-as-a-golden-run-proves.md"
+mode = "restatement-ngram"
 unit = "896bce4d7af2672d-f25eef4d42e0526a"
 copies = 1
 note = "superseded by ADR 0022; at before 2817b0e the unit, a subject or a tree not opened or partly read is rejecting"
@@ -2333,22 +2342,31 @@ file = "decisions/0021-a-reading-batch-is-only-as-large-as-a-golden-run-proves.m
 mode = "stale-claims"
 unit = "073c1634c496cdb6"
 copies = 1
-note = "read with trees: Accepted and builds-on current; #281's, #284's, #287's, #289's, #296's, #304's and #302's amendments past, true at each paragraph's written tree and just before; #281's any-failure rule superseded by #287, true at 828a266; #290's rule current; Claude Code read #302 and #308; not checked: that nothing was run again after #296's and #302's results, and #296's installed-version clause, history no tree settles"
+note = "read with trees: Accepted and builds-on past, true at a08d4ed; #281's amendment past, true at 40b473f and 398a9b3; #284, #287, #289 (both), #296 (both), #304 and #302 (both) past, true at each written tree, Claude Code reading issue #302 and the commit order for #304's lead-in and the diffs for nothing changing after each result; #287's bar superseded by 0022, true at 2817b0e; #290's rule and the 0022 line current. Not checked: #281's account of the four failed runs' outcomes, which only the project's own prose records"
 by = "claims:reading-agent (sonnet), with Claude Code (claude-opus-5-5)"
 approved_by = "Kevin Rogers"
 extent = "partial"
-subjects = { "decisions/0018-the-reader-and-the-approver-are-recorded-apart.md" = "50487915a0cbd9ae", "decisions/0019-claims-are-intended-current-superseded-or-past.md" = "f27ce5ba82baa739", "docs/reading-agent.md" = "577e5bbe19b1c986" }
+subjects = { "decisions/0018-the-reader-and-the-approver-are-recorded-apart.md" = "50487915a0cbd9ae", "decisions/0019-claims-are-intended-current-superseded-or-past.md" = "f27ce5ba82baa739", "decisions/0022-a-golden-run-rejects-only-what-the-session-cannot-catch.md" = "906ad3802abb8731", "docs/reading-agent.md" = "33b4fa4bf33fdfb1" }
 
 [[mark]]
 file = "decisions/0021-a-reading-batch-is-only-as-large-as-a-golden-run-proves.md"
 mode = "stale-claims"
 unit = "de00163e80311042"
 copies = 1
-note = "The contract takes a list and returns a bare array; SKILL.md's nine numbered steps (opened by the session) match; CONTEXT.md:129 and 134 define Reading batch and Notable reading; 85 marks in claims.checked.toml keep \", batched\". Not checked: the --batched and \"until it passes\" sentences, which 0021's Status replaces, not read at a before tree"
-by = "claims:reading-agent (sonnet), with Claude Code session (claude-opus-5-5)"
+note = "read with trees: the contract and the nine-step skill procedure and CONTEXT.md's two entries hold, current; the --batched sentence is superseded by #281's Status line, true at 398a9b3, where the harness had --batched and the docs set the cap by that run; Claude Code settled the batched-suffix claim with git grep, no .py file reads it"
+by = "claims:reading-agent (sonnet), with Claude Code (claude-opus-5-5)"
 approved_by = "Kevin Rogers"
-extent = "partial"
-subjects = { "CONTEXT.md" = "845dbf913360cf61", "claims/subagent/reading_agent.md" = "4a8f393aaafd8e10", "docs/reading-agent.md" = "c51ddfdea8cce913", "scripts/run_reading_agent_golden.py" = "5ceea65fda4a55c5" }
+subjects = { "CONTEXT.md" = "845dbf913360cf61", "claims/subagent/reading_agent.md" = "4a8f393aaafd8e10", "docs/reading-agent.md" = "33b4fa4bf33fdfb1", "scripts/run_reading_agent_golden.py" = "c2cee47c435be81f" }
+
+[[mark]]
+file = "decisions/0022-a-golden-run-rejects-only-what-the-session-cannot-catch.md"
+mode = "stale-claims"
+unit = "de00163e80311042"
+copies = 1
+note = "read against the harness, claims/reading.py, docs/reading-agent.md and CONTEXT.md: the three classes, the bound and cost in the summary, exit 1, the saved root, Flag's file, the docs bar and the Caught problem entry all hold; current and true"
+by = "claims:reading-agent (sonnet)"
+approved_by = "Kevin Rogers"
+subjects = { "CONTEXT.md" = "845dbf913360cf61", "docs/reading-agent.md" = "33b4fa4bf33fdfb1", "scripts/run_reading_agent_golden.py" = "c2cee47c435be81f" }
 
 [[mark]]
 file = "docs/SUMMARY.md"
@@ -3026,11 +3044,11 @@ file = "docs/reading-agent.md"
 mode = "stale-claims"
 unit = "5917f9beccd79b00"
 copies = 1
-note = "The isolation of each call (contract as system prompt, three tools, pinned effort, root outside the repository), the counted class of that failure under the old bar, and the root-relative paths hold. Not checked: what --safe-mode loads (third-party), and every past run's recorded result, count and token figure, which no tree settles without the saved runs"
+note = "read with trees: the isolation flags the harness passes, paths given from the root, the counted unit-own-page class, the token fields, the unfenced contract example, the sonnet default and the line the harness no longer prints, now a finding short of the count, hold, current. Not checked: what Claude Code's --safe-mode and a real project's call load (third-party), and every past run's results, counts, captures, tables and tokens, which no tree holds"
 by = "claims:reading-agent (sonnet)"
 approved_by = "Kevin Rogers"
 extent = "partial"
-subjects = { "CLAUDE.md" = "0d7c6a8e46000be3", "scripts/run_reading_agent_golden.py" = "5ceea65fda4a55c5", "tests/fixtures/reading_agent_golden/shared_subject_large/repo/depot/ledger.py" = "3943c2f51fabb069" }
+subjects = { "CLAUDE.md" = "0d7c6a8e46000be3", "scripts/run_reading_agent_golden.py" = "c2cee47c435be81f", "tests/fixtures/reading_agent_golden/shared_subject_large/repo/depot/ledger.py" = "3943c2f51fabb069" }
 
 [[mark]]
 file = "docs/reading-agent.md"
