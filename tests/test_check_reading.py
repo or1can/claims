@@ -28,6 +28,7 @@ from pathlib import Path
 from typing import Any
 
 from claims.cli import main
+from claims.reading import check_reading, load_sent
 
 GUIDE = "# Guide\n\nThe cache has one reader, `get`.\n\n## Next\n\nOther prose.\n"
 CACHE = "".join(f"line {n}\n" for n in range(1, 21))
@@ -111,6 +112,12 @@ class CheckReadingTests(unittest.TestCase):
     def test_a_subject_listed_with_only_part_of_it_is_flagged(self) -> None:
         for entry in ("src/cache.py:1-10", "src/cache.py lines 1-19", "lines 2-20 of src/cache.py"):
             self.assertEqual(self._types([_report(read=["docs/guide.md", entry])]), ["read", "cited"], entry)
+
+    def test_a_read_flag_names_the_file_it_is_about(self) -> None:
+        sent = load_sent(self.sent)
+        for read, path in ((["src/cache.py"], "docs/guide.md"), (["docs/guide.md", "src/cache.py:1-10"], "src/cache.py")):
+            flags = [f for f in check_reading([_report(read=read)], sent) if f.type == "read"]
+            self.assertEqual([f.path for f in flags], [path], read)
 
     def test_a_subject_listed_with_every_line_is_read(self) -> None:
         for entry in ("src/cache.py:1-20", "src/cache.py lines 1-10 and 11-20"):

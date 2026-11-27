@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Golden-fixture harness for the reading-agent subagent (#259, #281, #287, #293, #296, #304).
+"""Golden-fixture harness for the reading-agent subagent (#259, #281, #287, #293, #296, #304, #308).
 
 Run by hand, like `scripts/run_judgment_agent_golden.py`: each run is a
 live `claude -p` call, which costs a real API call and is not guaranteed
@@ -51,39 +51,38 @@ each with the verdicts and kinds it has to have and its unit, subjects
 and `reads` in `read`. The agent has to have opened every line of each of
 those with `Read`.
 Every problem in every finding is reported, each of a type and a class,
-which ADR 0021's Status settles. One rejecting problem rejects a batch
-size, a compared one is weighed against its rate alone, and a counted one
-is only recorded:
+which ADR 0022 settles by whether the session's own check of the
+reading would catch it before a mark. A problem not caught is rejecting,
+and weighs on the bar's bound; a caught one costs a re-send of its
+finding, and weighs on the bar's cost; a counted one is only recorded:
 
-- `verdict`: a claim not reported, or reported with another verdict, or
-  with no evidence. Rejecting, but counted for a true claim returned
-  `false`.
+- `verdict`: a claim not reported, or reported with another verdict.
+  Rejecting, but counted for a true claim returned `false`.
 - `kind`: rejecting for a claim not reported, and for a current or
   intended one called past or superseded. Any other is counted.
-- `read`: a unit, subject or `reads` file not opened, only partly read,
-  or not in the object's own `read`. Rejecting.
+- `read`: a unit, subject or `reads` file listed in `read` in full that
+  no `Read` call opened, or opened only in part, or a `reads` file not in
+  `read`. Rejecting. A unit or subject missing from `read`, or listed
+  with only part of it, is caught.
 - `unit-other`: a claim of another finding in the call, or of another
   page. Rejecting.
 - `unit-own-page`: a sentence of the finding's own page outside its unit.
   Counted. In a stress run, so is another finding's claim on that page.
 - `unopened`: a `true` verdict none of whose cited files was opened, or
-  citing lines of an opened one that no `Read` returned. Compared.
-- `unresolved`: a `true` verdict whose evidence names no file in the
-  root, or lines of one that isn't there, so it can't be judged
-  `unopened` or not. Compared, and reported
-  apart: it weighs against a batch, and not for the rate alone.
-- `matching`: a finding with no object or two, or an object for none.
-  Counted. So is a final message whose first JSON value isn't an array,
-  such as a bare object.
-- `format`: a final message holding the array, and more: a Markdown
-  fence around it, or prose before or after it. The array is still read
-  from it. Counted.
+  citing lines of an opened one that no `Read` returned, where `read`
+  gives what it cites. Rejecting.
 - `call`: the call returned no message to judge. Rejecting, unless a
   person reads it as from outside the agent, such as a usage limit, and
   discards the run.
+- `matching`, `read`, `cited`, `no-file` and `no-claims`: whatever
+  `claims.reading.check_reading`, the session's own check, flags. Each is
+  caught. So are a claim with no evidence, as `no-file`, and a claim
+  `not checked` that the fixture doesn't expect so, as `not-checked`.
+- `format`: a final message holding the array, and more: a Markdown
+  fence around it, or prose before or after it. The array is still read
+  from it. Counted.
 
-A run is labelled by its worst class, and the command exits 1 when any
-run has a rejecting problem.
+A run is labelled by its worst class.
 
 With no mode, each finding of every fixture is run alone. `--only`, which
 may be repeated, runs alone only the findings of the fixture it names, or
@@ -108,11 +107,15 @@ output names: the ID of each model that answered, which the alias
 `--model` gives may resolve to at one time and not at another, and the
 Claude Code version. A call that failed may name neither. Beside them
 it saves the digest of the system prompt the call ran with, the contract,
-which every run has.
+which every run has, and the root it ran in.
 
-The summary counts the failed runs by class. With `--alone`, the saved
-runs of the same findings alone, it says whether the runs pass the bar,
-or each way they fall short of it (`_short_of_the_bar`). A run alone
+The summary counts the failed runs by class, and gives, per finding read,
+the rate of problems not caught and its bound (`_bound`). With
+`--alone`, the saved runs of the same findings alone, it gives that rate
+and bound alone too, and the tokens per finding a batch spends, its
+re-sends priced at each finding's tokens alone, beside the tokens per
+finding alone (`_cost`), and says whether the runs pass ADR 0022's bar, or each way they fall
+short of it (`_short_of_the_bar`). A run alone
 that returned no report is no reading, and each finding has to be read
 alone as often as the one read most, the count: one short of it is to be
 run alone again, and one run alone more than twice the count leaves the
@@ -122,16 +125,20 @@ model ID or Claude Code version don't pass, and the summary names each
 that differs. A
 failed call is compared only on what it names, and runs none of which
 names a model ID, or none a version, don't pass.
-`--saved` makes no call, and summarises runs saved earlier. It and
+`--saved` makes no call, and summarises runs saved earlier, each graded
+again from its final message and `Read` calls by this harness, not by
+the problems it was saved with (`_regraded`). It and
 `--alone` refuse a run saved without its model ID, version or contract
-digest.
+digest. The command exits 1 when the runs don't pass the bar, or, given
+no `--alone`, when any run has a problem not caught.
 
 Each call is isolated (`_claude_args`) and its root is a temporary
 directory outside this repository.
 
 A finding line, the object naming it, a `read` entry and a claim's
-evidence are parsed by `claims.reading`, the code `claims.cli
-check-reading` runs in a session (#299).
+evidence are parsed by `claims.reading`, and what is caught is what
+`claims.reading.check_reading` flags: the code `claims.cli check-reading`
+runs in a session (#299).
 """
 
 from __future__ import annotations
@@ -157,7 +164,7 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 # Run as a script, the repo root is not on `sys.path` yet.
 sys.path.insert(0, str(REPO_ROOT))
 
-from claims.reading import FINDING_RE, TREE_RE, TREES, cited, listing, names_finding, relative  # noqa: E402
+from claims.reading import FINDING_RE, TREE_RE, TREES, Sent, check_reading, cited, listing, matched, relative  # noqa: E402
 from claims.reading import extract_array as _extract_array  # noqa: E402
 from run_judgment_agent_golden import _tool_calls  # noqa: E402
 
@@ -174,17 +181,23 @@ EFFORT = "medium"
 IDENTITY = {"model ID": "model_id", "Claude Code version": "claude_code_version"}
 # The field of a saved run holding the digest of the system prompt it ran with.
 CONTRACT = "contract"
-# The fewest runs of a size, and readings alone, its bar is judged on, and
-# the margin on the compared problem's rate when its alone rate is below it.
-MIN_RUNS = 60
-MIN_MARGIN = 0.05
+# The batched calls of a size, and the readings alone of each of its
+# findings, its bar is judged on, both fixed before any run (ADR 0022).
+BATCHED_RUNS = 200
+ALONE_COUNT = 60
+# The most a one-sided 95% upper bound on the rate of problems not caught,
+# per finding read, may be.
+LIMIT = 0.01
 RESAMPLES = 5000
+# The fields of a call's usage that its tokens are the sum of.
+TOKENS = ("input_tokens", "cache_creation_input_tokens", "cache_read_input_tokens", "output_tokens")
 # The batch sizes the cap is measured at (#284).
 SIZES = (2, 3, 5, 10)
-# What a problem weighs: whether one rejects a batch size, is compared with
-# its rate alone, or is only recorded.
+# What a problem weighs: whether the session's own check would not catch
+# it, and it rejects a batch size; would catch it, and it costs a re-send;
+# or it is only recorded.
 REJECTING = "rejecting"
-COMPARED = "compared"
+CAUGHT = "caught"
 COUNTED = "counted"
 # What a problem no one finding owns is reported against.
 BATCH = "the whole call"
@@ -195,7 +208,7 @@ _SUBJECTS_RE = re.compile(r"^Subjects: (.*)$", re.M)
 class Problem:
     """One way a run went wrong: the finding it is in, or `BATCH`, its type,
     which the module docstring lists, and its class, `REJECTING` unless a
-    list in ADR 0021's Status puts it elsewhere."""
+    list in ADR 0022's Decision puts it elsewhere."""
 
     finding: str
     type: str
@@ -353,9 +366,23 @@ def _listed(path: str, read: list[str], finding: Finding) -> bool:
     return bool(listing(path, read, finding.repo, _trees(finding)))
 
 
+def _read_of(report: dict[str, Any]) -> list[str]:
+    listed_read = report.get("read")
+    return [str(r) for r in listed_read] if isinstance(listed_read, list) else []
+
+
+def _sent(finding: Finding) -> Sent:
+    """`finding` as the session sends it, for `claims.reading.check_reading`."""
+
+    return Sent(finding.path, finding.line, finding.mode, tuple(finding.subjects), finding.repo, tuple(_trees(finding)))
+
+
 def _judge(report: dict[str, Any], finding: Finding) -> list[Problem]:
-    """Every way `report` differs from what `finding` expects: a verdict, a
-    kind, a claim from outside the unit, or a path missing from `read`."""
+    """Every way `report` differs from what `finding` expects that the
+    session's own check doesn't flag: a verdict, a kind, a claim from
+    outside the unit, or a `reads` file missing from `read`. Beside them,
+    as caught, a claim `not checked` the fixture doesn't expect, and one
+    with no evidence."""
 
     problems: list[Problem] = []
 
@@ -367,14 +394,14 @@ def _judge(report: dict[str, Any], finding: Finding) -> list[Problem]:
     not_checked: list[str] = expected.get("not_checked", [])
     outside_unit: list[str] = expected["outside_unit"]
     elsewhere: list[str] = expected.get("elsewhere", [])
-    listed_read = report.get("read")
-    read = [str(r) for r in listed_read] if isinstance(listed_read, list) else []
-    for path in finding.must_read:
+    read = _read_of(report)
+    # The unit and the subjects are held to `read` by `check_reading`.
+    for path in expected.get("reads", []):
         if not _listed(path, read, finding):
             problem("read", f"{path!r} not in read: {read!r}")
     reported = report.get("claims")
     if not isinstance(reported, list) or not reported:
-        problem("verdict", f"no claims listed: {report!r}")
+        # `check_reading` flags a report listing no claims.
         return problems
     claims: list[dict[str, Any]] = []
     for item in reported:
@@ -390,7 +417,7 @@ def _judge(report: dict[str, Any], finding: Finding) -> list[Problem]:
             continue
         claims.append(claim)
         if not claim.get("evidence"):
-            problem("verdict", f"no evidence cited: {claim!r}")
+            problem("no-file", f"no evidence cited: {claim!r}", CAUGHT)
     verdicts = {**dict.fromkeys(false_claims, "false"), **dict.fromkeys(not_checked, "not checked")}
     for field, needed, default in (("verdict", verdicts, "true"), ("kind", expected.get("kinds", {}), "current")):
         for fragment, value in needed.items():
@@ -398,9 +425,13 @@ def _judge(report: dict[str, Any], finding: Finding) -> list[Problem]:
                 problem(field, f"no claim holding {fragment!r}, which has to be {value}: {claims!r}")
         for claim in claims:
             values = {value for fragment, value in needed.items() if fragment in claim["claim"]} or {default}
-            if {str(claim.get(field))} != values:
+            reported_value = str(claim.get(field))
+            if {reported_value} != values:
                 detail = f"expected {' and '.join(sorted(values))}: {claim!r}"
-                problem(field, detail, _mismatch_class(field, values, str(claim.get(field))))
+                if field == "verdict" and reported_value == "not checked":
+                    problem("not-checked", detail, CAUGHT)
+                else:
+                    problem(field, detail, _mismatch_class(field, values, reported_value))
     return problems
 
 
@@ -415,38 +446,27 @@ def _mismatch_class(field: str, expected: set[str], reported: str) -> str:
     return REJECTING if to_old_tree else COUNTED
 
 
-def _named_finding(report: dict[str, Any], batch: list[Finding]) -> Finding | None:
-    """The finding in `batch` whose `file:line` and mode `report`'s `finding` field names, or `None`."""
+def _objects(reports: Any, batch: list[Finding]) -> dict[Finding, dict[str, Any]]:
+    """The one object in `reports`, the final message's array, for each
+    finding in `batch` that has exactly one, as `claims.reading.matched`
+    pairs them. A finding with none or two is re-sent, and not judged."""
 
-    named = str(report.get("finding", ""))
-    return next((f for f in batch if names_finding(named, f.path, f.line, f.mode)), None)
-
-
-def _matched(reports: Any, batch: list[Finding]) -> tuple[dict[Finding, dict[str, Any]], list[Problem]]:
-    """The object in `reports`, the final message's array, for each finding
-    in `batch`, and every way they fall short of exactly one for each."""
-
-    if not isinstance(reports, list):
-        return {}, [Problem(BATCH, "matching", f"not a JSON array: {reports!r}", COUNTED)]
-    problems: list[Problem] = []
-    matched: dict[Finding, dict[str, Any]] = {}
-    for report in reports:
-        finding = _named_finding(report, batch) if isinstance(report, dict) else None
-        if finding is None:
-            problems.append(Problem(BATCH, "matching", f"an object for no finding in the batch: {report!r}", COUNTED))
-        elif finding in matched:
-            problems.append(Problem(finding.name, "matching", f"a second object for it: {report!r}", COUNTED))
-        else:
-            matched[finding] = report
-    problems += [Problem(f.name, "matching", "no object for it", COUNTED) for f in batch if f not in matched]
-    return matched, problems
+    found, _ = matched(reports, [_sent(f) for f in batch])
+    return {f: objects[0] for f, objects in zip(batch, found.values(), strict=True) if len(objects) == 1}
 
 
 def _judge_batch(reports: Any, batch: list[Finding]) -> list[Problem]:
-    """Every way `reports` falls short of one object per finding in `batch`, each passing `_judge`."""
+    """Every item `claims.reading.check_reading` flags in `reports`, each
+    caught, but a `not checked` claim, which `_judge` holds to the fixture;
+    then every problem `_judge` finds in each finding's one object."""
 
-    matched, problems = _matched(reports, batch)
-    return problems + [p for finding, report in matched.items() for p in _judge(report, finding)]
+    names = {_sent(f).name: f.name for f in batch}
+    problems = [
+        Problem(names.get(flag.finding, BATCH), flag.type, flag.detail, CAUGHT)
+        for flag in check_reading(reports, [_sent(f) for f in batch])
+        if flag.type != "not-checked"
+    ]
+    return problems + [p for finding, report in _objects(reports, batch).items() for p in _judge(report, finding)]
 
 
 def _claude_args(prompt: str, system_prompt: str, model: str) -> list[str]:
@@ -557,18 +577,25 @@ def _opened(reads: list[dict[str, Any]], root: Path) -> dict[str, set[int]]:
     return opened
 
 
-def _unread(batch: list[Finding], opened: dict[str, set[int]]) -> list[Problem]:
+def _unread(batch: list[Finding], opened: dict[str, set[int]], reports: Any) -> list[Problem]:
     """Each unit, and each other file a finding in `batch` needs read, that
-    no `Read` call opened, or that they opened only part of."""
+    its one object in `reports` lists as read in full, but that no `Read`
+    call opened, or that they opened only part of. One its object doesn't
+    list so, `check_reading` flags, or `_judge` does for a `reads` file."""
 
+    objects = _objects(reports, batch)
+    flagged = {(flag.finding, flag.path) for flag in check_reading(reports, [_sent(f) for f in batch]) if flag.type == "read"}
     problems: list[Problem] = []
-    for finding in batch:
+    for finding in (f for f in batch if f in objects):
         unit = range(finding.line, finding.line + len(_unit_lines(finding)))
         needed = [(finding.path, unit)]
         for path in finding.must_read[1:]:
             lines = (finding.repo / path).read_text(encoding="utf-8").splitlines()
             needed.append((path, range(1, len(lines) + 1)))
+        read = _read_of(objects[finding])
         for path, lines in needed:
+            if (_sent(finding).name, path) in flagged or not _listed(path, read, finding):
+                continue
             unread = sorted(set(lines) - opened.get(path, set()))
             if path not in opened:
                 problems.append(Problem(finding.name, "read", f"no Read call opened {path!r}; opened: {sorted(opened)!r}"))
@@ -583,27 +610,65 @@ def _cited(evidence: str, tree: str, finding: Finding) -> tuple[list[tuple[list[
     return cited(evidence, tree, finding.repo, _trees(finding))
 
 
+def _caught_citing(report: dict[str, Any], claim: dict[str, Any], finding: Finding) -> bool:
+    """Whether `check_reading` flags `claim` of `report` for citing a file,
+    or lines of one, that `report`'s `read` doesn't give."""
+
+    sent = _sent(finding)
+    alone = {"finding": f"{sent.path}:{sent.line} ({sent.mode})", "read": report.get("read"), "claims": [claim]}
+    return any(flag.type == "cited" for flag in check_reading([alone], [sent]))
+
+
 def _unopened(report: dict[str, Any], finding: Finding, opened: dict[str, set[int]]) -> list[Problem]:
-    """Each claim of `report`'s returned `true` on evidence no `Read` opened:
-    none of the files it cites, or lines it cites of one that was. Evidence
-    naming no file there is, or lines of one that isn't, can't be judged so,
-    and is a type of its own."""
+    """Each claim of `report`'s returned `true` on evidence no `Read` opened,
+    none of the files it cites, or lines it cites of one that was, where
+    `report`'s `read` gives what it cites, so `check_reading` doesn't flag
+    it. Evidence naming no file `check_reading` flags itself."""
 
     reported = report.get("claims")
     problems: list[Problem] = []
     for claim in reported if isinstance(reported, list) else []:
         if not isinstance(claim, dict) or claim.get("verdict") != "true" or not claim.get("evidence"):
             continue
-        cited, missing = _cited(str(claim["evidence"]), str(claim.get("tree", "")), finding)
+        if _caught_citing(report, claim, finding):
+            continue
+        cited, _ = _cited(str(claim["evidence"]), str(claim.get("tree", "")), finding)
         read = [(set[int]().union(*(opened[p] for p in paths if p in opened)), lines) for paths, lines in cited]
         read = [(have, lines) for have, lines in read if have]
-        if missing or not cited:
-            problems.append(Problem(finding.name, "unresolved", f"evidence names no file: {claim!r}", COMPARED))
         if cited and not read:
-            problems.append(Problem(finding.name, "unopened", f"no cited file was opened: {claim!r}", COMPARED))
+            problems.append(Problem(finding.name, "unopened", f"no cited file was opened: {claim!r}"))
         elif any(lines - have for have, lines in read):
-            problems.append(Problem(finding.name, "unopened", f"cites lines that weren't opened: {claim!r}", COMPARED))
+            problems.append(Problem(finding.name, "unopened", f"cites lines that weren't opened: {claim!r}"))
     return problems
+
+
+def _graded(batch: list[Finding], reply: Reply) -> dict[str, Any]:
+    """What `reply` to `batch` came to: every problem in it, the claims
+    each finding with one object listed, and the reply itself."""
+
+    root = batch[0].repo
+    problems = [Problem(BATCH, "call", reply.error)]
+    objects: dict[Finding, dict[str, Any]] = {}
+    if not reply.error:
+        reports, bare = _extract_array(reply.message)
+        reports = reply.message if reports is None else reports
+        opened = _opened(reply.reads, root)
+        objects = _objects(reports, batch)
+        problems = _judge_batch(reports, batch) + _unread(batch, opened, reports)
+        if isinstance(reports, list) and not bare:
+            problems.append(Problem(BATCH, "format", "the final message holds the array, and more", COUNTED))
+        for finding, report in objects.items():
+            problems += _unopened(report, finding, opened)
+    if len(batch) == 1:
+        problems = [replace(p, finding=batch[0].name) for p in problems]
+    listed = {f.name: report.get("claims") for f, report in objects.items()}
+    return {
+        "root": str(root),
+        "findings": [f.name for f in batch],
+        "problems": [asdict(p) for p in problems],
+        "claims": {name: len(claims) if isinstance(claims, list) else 0 for name, claims in listed.items()},
+        **asdict(reply),
+    }
 
 
 def _run(batch: list[Finding], system_prompt: str, model: str) -> dict[str, Any]:
@@ -612,75 +677,136 @@ def _run(batch: list[Finding], system_prompt: str, model: str) -> dict[str, Any]
     these = "this finding. Its root" if len(batch) == 1 else f"these {len(batch)} findings. Their root"
     findings = "\n\n".join(f.text for f in batch)
     reply = _call(f"Read {these} is this working directory.\n\n{findings}", system_prompt, model, batch[0].repo)
-    problems = [Problem(BATCH, "call", reply.error)]
-    matched: dict[Finding, dict[str, Any]] = {}
-    if not reply.error:
-        reports, bare = _extract_array(reply.message)
-        reports = reply.message if reports is None else reports
-        opened = _opened(reply.reads, batch[0].repo)
-        matched, _ = _matched(reports, batch)
-        problems = _judge_batch(reports, batch) + _unread(batch, opened)
-        if isinstance(reports, list) and not bare:
-            problems.append(Problem(BATCH, "format", "the final message holds the array, and more", COUNTED))
-        for finding, report in matched.items():
-            problems += _unopened(report, finding, opened)
-    if len(batch) == 1:
-        problems = [replace(p, finding=batch[0].name) for p in problems]
-    listed = {f.name: report.get("claims") for f, report in matched.items()}
     return {
         "model": model,
         "effort": EFFORT,
         CONTRACT: hashlib.sha256(system_prompt.encode("utf-8")).hexdigest(),
-        "findings": [f.name for f in batch],
-        "problems": [asdict(p) for p in problems],
-        "claims": {name: len(claims) if isinstance(claims, list) else 0 for name, claims in listed.items()},
-        **asdict(reply),
+        **_graded(batch, reply),
     }
 
 
-def _bound(batched: list[tuple[int, int]], alone: list[tuple[int, int]]) -> float:
-    """The one-sided 95% upper bound on the batched rate less the alone
-    rate. Each call is its readings with the compared problem, and its
-    readings. Calls are resampled whole, since one call's readings aren't
+def _rebuilt(names: list[str], root: Path) -> list[Finding]:
+    """The batch a run of the findings `names` was built as, in `root`:
+    one finding alone, the first of a root's, or the stress pack."""
+
+    dirs = {d.name: d for d in _fixture_dirs()}
+    fixtures = {name.partition("/")[0] for name in names}
+    if len(names) == 1:
+        return [f for f in _copied(dirs[names[0].partition("/")[0]], root) if f.name == names[0]]
+    if len(fixtures) == 1 and dirs[next(iter(fixtures))] in ROOTS.values():
+        return _realistic_batch(root, len(names), dirs[next(iter(fixtures))])
+    return _stress_batch(root)
+
+
+def _old_root(run: dict[str, Any], batch: list[Finding]) -> str:
+    """The root `run` was made in: as saved, or, for a run saved before
+    the root was, the part of a `Read` call's path before a file the batch
+    needs read."""
+
+    if run.get("root"):
+        return str(run["root"])
+    for read in run["reads"]:
+        file_path = str(read.get("file_path", ""))
+        for path in (p for f in batch for p in f.must_read):
+            if file_path.endswith(f"/{path}"):
+                return file_path.removesuffix(f"/{path}")
+    return ""
+
+
+def _regraded(run: dict[str, Any]) -> dict[str, Any] | None:
+    """`run`, saved earlier, graded again from its final message and `Read`
+    calls, in a new root: its problems and claims as this harness finds
+    them. `None` when its findings are no batch this harness builds."""
+
+    known = {f.name for d in _fixture_dirs() for f in _findings(d)}
+    if not run["findings"] or not set(run["findings"]) <= known:
+        return None
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp).resolve()
+        batch = _rebuilt(list(run["findings"]), root)
+        if [f.name for f in batch] != run["findings"]:
+            return None
+        old = _old_root(run, batch)
+
+        def moved(text: str) -> str:
+            return text.replace(old, str(root)) if old else text
+
+        reply = Reply(
+            moved(str(run["message"])),
+            [{**r, **({"file_path": moved(str(r["file_path"]))} if "file_path" in r else {})} for r in run["reads"]],
+            run.get("usage", {}),
+            str(run.get("error", "")),
+        )
+        graded = _graded(batch, reply)
+    return {**run, "problems": graded["problems"], "claims": graded["claims"]}
+
+
+def _bound(calls: list[tuple[int, int]]) -> float:
+    """The one-sided 95% upper bound on the rate of readings with a problem
+    not caught. Each call is its readings with one, and its readings.
+    Calls are resampled whole, since one call's readings aren't
     independent. Resampling a few rare readings bounds them too low, and
-    none at all at 0, so the bound is never below the one for none: there
-    the batched rate is the highest with a 5% chance of none in that many
-    calls."""
+    none at all at 0, so the bound is never below the one for none: the
+    rate per reading with a 5% chance of none in that many readings."""
 
+    none = 1 - 0.05 ** (1 / sum(readings for _, readings in calls))
+    if not any(flagged for flagged, _ in calls):
+        return none
     draw = random.Random(0)
-
-    def rate(calls: list[tuple[int, int]]) -> float:
-        return sum(flagged for flagged, _ in calls) / sum(readings for _, readings in calls)
-
-    unseen = 1 - 0.05 ** (1 / len(batched))
-    resampled: list[float] = []
-    if_none: list[float] = []
-    for _ in range(RESAMPLES):
-        alone_rate = rate(draw.choices(alone, k=len(alone)))
-        resampled.append(rate(draw.choices(batched, k=len(batched))) - alone_rate)
-        if_none.append(unseen - alone_rate)
-    return max(sorted(differences)[math.ceil(0.95 * RESAMPLES) - 1] for differences in (resampled, if_none))
+    rates = sorted(
+        sum(flagged for flagged, _ in drawn) / sum(readings for _, readings in drawn)
+        for drawn in (draw.choices(calls, k=len(calls)) for _ in range(RESAMPLES))
+    )
+    return max(rates[math.ceil(0.95 * RESAMPLES) - 1], none)
 
 
-def _calls(runs: list[dict[str, Any]], types: set[str]) -> list[tuple[int, int]]:
-    """For each of `runs`, its readings with a problem of `types`, and its readings."""
+def _calls(runs: list[dict[str, Any]]) -> list[tuple[int, int]]:
+    """For each of `runs` with a reading, its readings with a problem not
+    caught, and its readings. A failed call is each of its findings read
+    with one."""
 
-    return [
-        (len({p["finding"] for p in run["problems"] if p["type"] in types} & run["claims"].keys()), len(run["claims"]))
+    calls: list[tuple[int, int]] = []
+    for run in runs:
+        if any(p["type"] == "call" for p in run["problems"]):
+            calls.append((len(run["findings"]), len(run["findings"])))
+        elif run["claims"]:
+            flagged = {p["finding"] for p in run["problems"] if p["problem_class"] == REJECTING}
+            calls.append((len(flagged & run["claims"].keys()), len(run["claims"])))
+    return calls
+
+
+def _rate(calls: list[tuple[int, int]]) -> float:
+    return sum(flagged for flagged, _ in calls) / sum(readings for _, readings in calls)
+
+
+def _tokens(run: dict[str, Any]) -> int:
+    """The tokens `run`'s call spent: input, cache and output."""
+
+    usage = run.get("usage", {})
+    return sum(int(usage.get(field) or 0) for field in TOKENS)
+
+
+def _cost(runs: list[dict[str, Any]], alone: list[dict[str, Any]]) -> tuple[float, float, int] | None:
+    """The mean tokens per finding of `runs`, with a re-send for each
+    finding a run has a caught problem in, priced at that finding's mean
+    tokens alone; the mean per finding of `alone`'s readings; and how many
+    re-sends.
+    `None` when a finding of `runs` has no run alone to price it."""
+
+    names = dict.fromkeys(name for run in runs for name in run["findings"])
+    # A run alone with no report is no reading, so it prices nothing.
+    spent = {name: [_tokens(r) for r in alone if r["findings"] == [name] and r["claims"]] for name in names}
+    if not names or not all(spent.values()):
+        return None
+    mean = {name: sum(tokens) / len(tokens) for name, tokens in spent.items()}
+    resends = [
+        name
         for run in runs
-        if run["claims"]
+        for name in {p["finding"] for p in run["problems"] if p["problem_class"] == CAUGHT}
+        if name in mean
     ]
-
-
-def _compared(runs: list[dict[str, Any]], alone: list[dict[str, Any]]) -> tuple[float, float, float, float]:
-    """The compared problem's rate in `runs` and in `alone`, the bound on the
-    difference, and the margin it has to be within. Evidence naming no file
-    weighs against the batch, and not for the rate alone."""
-
-    batched_calls = _calls(runs, {"unopened", "unresolved"})
-    alone_calls = _calls(alone, {"unopened"})
-    batched_rate, alone_rate = (sum(f for f, _ in c) / sum(n for _, n in c) for c in (batched_calls, alone_calls))
-    return batched_rate, alone_rate, _bound(batched_calls, alone_calls), max(alone_rate, MIN_MARGIN)
+    batched = (sum(_tokens(r) for r in runs) + sum(mean[name] for name in resends)) / sum(len(r["findings"]) for r in runs)
+    return batched, sum(mean.values()) / len(mean), len(resends)
 
 
 def _same_findings(runs: list[dict[str, Any]], alone: list[dict[str, Any]]) -> list[dict[str, Any]]:
@@ -716,7 +842,7 @@ def _short_of_the_count(findings: list[str], alone: list[dict[str, Any]]) -> lis
 
 
 def _short_of_the_bar(runs: list[dict[str, Any]], alone: list[dict[str, Any]]) -> list[str]:
-    """Each way `runs`, of one size, fall short of ADR 0021's bar against `alone`."""
+    """Each way `runs`, of one size, fall short of ADR 0022's bar against `alone`."""
 
     alone = _same_findings(runs, alone)
     values: dict[str, set[Any]] = {"findings": {tuple(r["findings"]) for r in runs}}
@@ -729,42 +855,43 @@ def _short_of_the_bar(runs: list[dict[str, Any]], alone: list[dict[str, Any]]) -
     findings: list[str] = runs[0]["findings"]
     if len(findings) not in SIZES or not all(name.startswith(f"{ROOTS['large'].name}/") for name in findings):
         short.append("they aren't a reading batch of the large root, which a cap has to rest on")
-    judged = [run for run in runs if len(run["claims"]) == len(findings)]
-    if len(judged) < MIN_RUNS:
-        short.append(f"{len(judged)} runs with an object for every finding, of the {MIN_RUNS} needed")
-    if rejected := _failed(runs, REJECTING):
-        short.append(f"{rejected} of {len(runs)} runs with a rejecting problem")
+    if len(runs) != BATCHED_RUNS:
+        short.append(f"{len(runs)} batched calls, where the count is fixed at {BATCHED_RUNS}")
     short += _short_of_the_count(findings, alone)
     readings = Counter(name for run in alone for name in run["claims"])
-    if readings.total() < MIN_RUNS:
-        short.append(f"{readings.total()} readings alone, of the {MIN_RUNS} needed")
-    if readings and any(run["claims"] for run in runs):
-        *_, bound, margin = _compared(runs, alone)
-        if bound > margin:
-            short.append(f"the bound {bound:.3f} on the compared problem's difference is over its margin {margin:.3f}")
+    count = max(readings[name] for name in findings)
+    if count != ALONE_COUNT:
+        short.append(f"{count} readings alone of a finding, where the count is fixed at {ALONE_COUNT}")
+    for which, calls in (("batched", _calls(runs)), ("alone", _calls(alone))):
+        if calls and (bound := _bound(calls)) > LIMIT:
+            short.append(f"the bound {bound:.4f} on problems not caught {which} is over {LIMIT}")
+    cost = _cost(runs, alone)
+    if cost and cost[0] >= cost[1]:
+        short.append(f"a batch spends {cost[0]:.0f} tokens per finding with its re-sends, not below {cost[1]:.0f} alone")
     return short
 
 
 def _summary(runs: list[dict[str, Any]], alone: list[dict[str, Any]]) -> list[str]:
     """What `runs` came to, and, given runs `alone` to compare them with, whether they pass the bar."""
 
-    failed = ", ".join(f"{_failed(runs, class_)} {class_}" for class_ in (REJECTING, COMPARED, COUNTED))
+    failed = ", ".join(f"{_failed(runs, class_)} {class_}" for class_ in (REJECTING, CAUGHT, COUNTED))
     lines = [f"failed runs of {len(runs)}: {failed}"]
     failures = Counter(
         failure for run in runs for failure in {(p["finding"], p["type"], p["problem_class"]) for p in run["problems"]}
     )
     lines += [f"    {n} x {finding}: {type_} ({class_})" for (finding, type_, class_), n in sorted(failures.items())]
-    unresolved = sum(flagged for flagged, _ in _calls(runs, {"unresolved"}))
-    if unresolved:
-        lines.append(f"evidence naming no file: {unresolved} reading{'s' if unresolved > 1 else ''}")
     alone = _same_findings(runs, alone)
     lines.append(f"claims listed per finding: {_claims_listed(runs)}" + (f", alone {_claims_listed(alone)}" if alone else ""))
-    if alone and _calls(runs, set()) and _calls(alone, set()):
-        batched_rate, alone_rate, bound, margin = _compared(runs, alone)
-        lines.append(
-            f"compared problem: batched {batched_rate:.3f}, alone {alone_rate:.3f}, "
-            f"upper bound on the difference {bound:.3f}, margin {margin:.3f}"
-        )
+    bounds = [
+        f"{which} {_rate(calls):.4f}, bound {_bound(calls):.4f}"
+        for which, calls in (("batched", _calls(runs)), ("alone", _calls(alone)))
+        if calls
+    ]
+    if bounds:
+        lines.append(f"not caught per finding read: {'; '.join(bounds)}; limit {LIMIT}")
+    if cost := _cost(runs, alone):
+        batched, by_itself, resends = cost
+        lines.append(f"tokens per finding: batched {batched:.0f}, with {resends} re-sends; alone {by_itself:.0f}")
     if alone:
         short = _short_of_the_bar(runs, alone)
         lines += [f"doesn't pass the bar: {reason}" for reason in short] or ["passes the bar"]
@@ -777,7 +904,7 @@ def _claims_listed(runs: list[dict[str, Any]]) -> str:
 
 
 def _saved(directories: list[Path], parser: argparse.ArgumentParser) -> list[dict[str, Any]]:
-    """The runs saved in `directories`."""
+    """The runs saved in `directories`, each graded again by this harness."""
 
     runs: list[dict[str, Any]] = []
     for directory in directories:
@@ -786,9 +913,12 @@ def _saved(directories: list[Path], parser: argparse.ArgumentParser) -> list[dic
             parser.error(f"{directory} holds no saved run")
         for file in files:
             run = json.loads(file.read_text(encoding="utf-8"))
-            if not {"claims", CONTRACT, *IDENTITY.values()} <= run.keys():
+            if not {"claims", "findings", "message", "reads", CONTRACT, *IDENTITY.values()} <= run.keys():
                 parser.error(f"{file} was saved by an earlier harness, whose runs aren't judged by this bar")
-            runs.append(run)
+            regraded = _regraded(run)
+            if regraded is None:
+                parser.error(f"{file} is of findings that are no batch this harness builds")
+            runs.append(regraded)
     return runs
 
 
@@ -857,7 +987,7 @@ def main(argv: list[str] | None = None) -> int:
     if args.saved:
         runs = _saved(args.saved, parser)
         print("\n".join(_summary(runs, alone)))
-        return _exit_code(runs)
+        return _exit_code(runs, alone)
     if args.output_dir is not None:
         if args.output_dir.exists() and (not args.output_dir.is_dir() or any(args.output_dir.iterdir())):
             parser.error(f"--output-dir {args.output_dir} is not a new or empty directory")
@@ -873,7 +1003,7 @@ def main(argv: list[str] | None = None) -> int:
                 run = _run(build(Path(tmp).resolve()), system_prompt, args.model)
             runs.append(run)
             classes = {p["problem_class"] for p in run["problems"]}
-            worst = next((c for c in (REJECTING, COMPARED, COUNTED) if c in classes), "pass")
+            worst = next((c for c in (REJECTING, CAUGHT, COUNTED) if c in classes), "pass")
             print(f"[{worst.upper()}] {args.model} {label} {repeat}/{args.repeat}", flush=True)
             for p in run["problems"]:
                 print(f"    {p['finding']}: {p['type']}: {p['detail']}", flush=True)
@@ -881,12 +1011,15 @@ def main(argv: list[str] | None = None) -> int:
                 name = f"{re.sub(r'[ /]+', '-', label)}-{repeat:02d}.json"
                 (args.output_dir / name).write_text(json.dumps(run, indent=2) + "\n", encoding="utf-8")
     print("\n".join(_summary(runs, alone)))
-    return _exit_code(runs)
+    return _exit_code(runs, alone)
 
 
-def _exit_code(runs: list[dict[str, Any]]) -> int:
-    """1 when any run has a rejecting problem, else 0."""
+def _exit_code(runs: list[dict[str, Any]], alone: list[dict[str, Any]]) -> int:
+    """1 when `runs` don't pass the bar against `alone`, or, with no runs
+    alone to judge the bar by, when any run has a problem not caught."""
 
+    if alone:
+        return int(bool(_short_of_the_bar(runs, alone)))
     return int(_failed(runs, REJECTING) > 0)
 
 
