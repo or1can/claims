@@ -11,6 +11,14 @@ reached you, not just that one was pushed upstream.
 
 ## [Unreleased]
 
+## [0.37.8] - 2026-11-27
+
+- Fixed: the reading agent's contract shows its output as an unfenced
+  array of one report, where it showed a fenced single object, and ends
+  by restating that its final message is the array alone, so it should
+  less often wrap its reply in a code fence or prose, or give a bare
+  object the session can't read as a reading batch.
+
 ## [0.37.7] - 2026-11-26
 
 - Changed: the reading agent gives every path in its report from the

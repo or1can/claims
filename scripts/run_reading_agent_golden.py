@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Golden-fixture harness for the reading-agent subagent (#259, #281, #287, #293, #296).
+"""Golden-fixture harness for the reading-agent subagent (#259, #281, #287, #293, #296, #304).
 
 Run by hand, like `scripts/run_judgment_agent_golden.py`: each run is a
 live `claude -p` call, which costs a real API call and is not guaranteed
@@ -73,7 +73,11 @@ is only recorded:
   `unopened` or not. Compared, and reported
   apart: it weighs against a batch, and not for the rate alone.
 - `matching`: a finding with no object or two, or an object for none.
-  Counted.
+  Counted. So is a final message whose first JSON value isn't an array,
+  such as a bare object.
+- `format`: a final message holding the array, and more: a Markdown
+  fence around it, or prose before or after it. The array is still read
+  from it. Counted.
 - `call`: the call returned no message to judge. Rejecting, unless a
   person reads it as from outside the agent, such as a usage limit, and
   discards the run.
@@ -108,7 +112,11 @@ which every run has.
 
 The summary counts the failed runs by class. With `--alone`, the saved
 runs of the same findings alone, it says whether the runs pass the bar,
-or each way they fall short of it (`_short_of_the_bar`). Runs, batched and
+or each way they fall short of it (`_short_of_the_bar`). A run alone
+that returned no report is no reading, and each finding has to be read
+alone as often as the one read most, the count: one short of it is to be
+run alone again, and one run alone more than twice the count leaves the
+size not accepted (`_short_of_the_count`). Runs, batched and
 alone together, that differ in model alias, effort, contract digest,
 model ID or Claude Code version don't pass, and the summary names each
 that differs. A
@@ -262,18 +270,20 @@ def _fixture_dirs() -> list[Path]:
     return sorted(p for p in FIXTURES_DIR.iterdir() if p.is_dir())
 
 
-def _extract_array(text: str) -> Any:
+def _extract_array(text: str) -> tuple[Any, bool]:
     """The JSON array the agent's final message holds, or `None` when the
     first JSON value in it is not an array: a bare object's own `"claims": [`
-    is not an array of reports."""
+    is not an array of reports. Beside it, whether the message is that array
+    alone, with nothing before or after it but whitespace: no fence, no prose."""
 
     starts = [i for i in (text.find("["), text.find("{")) if i != -1]
     if not starts or text[min(starts)] != "[":
-        return None
+        return None, False
     try:
-        return json.JSONDecoder().raw_decode(text[min(starts) :])[0]
+        array, end = json.JSONDecoder().raw_decode(text, min(starts))
     except ValueError:
-        return None
+        return None, False
+    return array, not text[: min(starts)].strip() and not text[end:].strip()
 
 
 def _one_line(text: str) -> str:
@@ -662,11 +672,13 @@ def _run(batch: list[Finding], system_prompt: str, model: str) -> dict[str, Any]
     problems = [Problem(BATCH, "call", reply.error)]
     matched: dict[Finding, dict[str, Any]] = {}
     if not reply.error:
-        reports = _extract_array(reply.message)
+        reports, bare = _extract_array(reply.message)
         reports = reply.message if reports is None else reports
         opened = _opened(reply.reads, batch[0].repo)
         matched, _ = _matched(reports, batch)
         problems = _judge_batch(reports, batch) + _unread(batch, opened)
+        if isinstance(reports, list) and not bare:
+            problems.append(Problem(BATCH, "format", "the final message holds the array, and more", COUNTED))
         for finding, report in matched.items():
             problems += _unopened(report, finding, opened)
     if len(batch) == 1:
@@ -741,6 +753,25 @@ def _failed(runs: list[dict[str, Any]], problem_class: str) -> int:
     return sum(any(p["problem_class"] == problem_class for p in run["problems"]) for run in runs)
 
 
+def _short_of_the_count(findings: list[str], alone: list[dict[str, Any]]) -> list[str]:
+    """Each of `findings` not read alone as often as the others, by `alone`.
+    A run alone with no report is no reading. The count is the most readings
+    any finding has, and a finding short of it is run alone again, up to
+    twice the count; one run more often than that leaves the size not
+    accepted."""
+
+    readings = Counter(name for run in alone for name in run["claims"])
+    runs = Counter(run["findings"][0] for run in alone)
+    count = max(readings[name] for name in findings)
+    short: list[str] = []
+    for name in findings:
+        if count and runs[name] > 2 * count:
+            short.append(f"{name} was run alone {runs[name]} times, over twice the count of {count}, so the size isn't accepted")
+        elif readings[name] < count:
+            short.append(f"{name} has {readings[name]} readings alone, short of the count of {count}: run it alone again")
+    return short
+
+
 def _short_of_the_bar(runs: list[dict[str, Any]], alone: list[dict[str, Any]]) -> list[str]:
     """Each way `runs`, of one size, fall short of ADR 0021's bar against `alone`."""
 
@@ -760,9 +791,8 @@ def _short_of_the_bar(runs: list[dict[str, Any]], alone: list[dict[str, Any]]) -
         short.append(f"{len(judged)} runs with an object for every finding, of the {MIN_RUNS} needed")
     if rejected := _failed(runs, REJECTING):
         short.append(f"{rejected} of {len(runs)} runs with a rejecting problem")
+    short += _short_of_the_count(findings, alone)
     readings = Counter(name for run in alone for name in run["claims"])
-    if len({readings[name] for name in findings}) > 1:
-        short.append("the findings were not each read alone as often")
     if readings.total() < MIN_RUNS:
         short.append(f"{readings.total()} readings alone, of the {MIN_RUNS} needed")
     if readings and any(run["claims"] for run in runs):

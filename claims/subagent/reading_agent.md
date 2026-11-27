@@ -195,28 +195,29 @@ of history, or one about a third-party tool's behaviour.
 
 Exactly one JSON array, holding one object per finding you were given,
 and nothing else in your final message, no prose before or after it. A reading batch of one is an array
-of one. Each object:
+of one. Each object is shaped as the one in this array, and your reply
+carries no Markdown fence around the array:
 
-```json
-{
-  "finding": "<the finding's own file:line and mode>",
-  "claims": [
-    {
-      "claim": "<the claim, quoted from the unit>",
-      "verdict": "true" | "false" | "not checked",
-      "kind": "current" | "intended" | "superseded" | "past",
-      "kind_evidence": "<file:line the kind rests on, and what it says; empty for current>",
-      "tree": "<the root, or each tree's role and commit, the claim was read at>",
-      "tree_line": "<past or superseded only: the file:line its trees are named from>",
-      "evidence": "<file:line you actually read>",
-      "reasoning": "<one or two sentences tying the evidence to the verdict>"
-    }
-  ],
-  "read": ["<each file or section you opened in full with Read>"],
-  "searched": ["<each Grep or Glob you ran and did not follow with a full Read>"],
-  "note": "<a draft mark note: what was verified, in one line>"
-}
-```
+    [
+      {
+        "finding": "<the finding's own file:line and mode>",
+        "claims": [
+          {
+            "claim": "<the claim, quoted from the unit>",
+            "verdict": "true" | "false" | "not checked",
+            "kind": "current" | "intended" | "superseded" | "past",
+            "kind_evidence": "<file:line the kind rests on, and what it says; empty for current>",
+            "tree": "<the root, or each tree's role and commit, the claim was read at>",
+            "tree_line": "<past or superseded only: the file:line its trees are named from>",
+            "evidence": "<file:line you actually read>",
+            "reasoning": "<one or two sentences tying the evidence to the verdict>"
+          }
+        ],
+        "read": ["<each file or section you opened in full with Read>"],
+        "searched": ["<each Grep or Glob you ran and did not follow with a full Read>"],
+        "note": "<a draft mark note: what was verified, in one line>"
+      }
+    ]
 
 `evidence` is mandatory for every claim, `not checked` included: there it
 names what you did read and why it didn't settle the claim. Evidence that
@@ -254,3 +255,8 @@ Report and stop. You never write a mark, edit a file, or fix a false
 claim: all three belong to the session that called you, which reads your
 evidence before it acts. Your tools are `Read`, `Glob` and `Grep` only, so
 nothing you do can change the working tree.
+
+## Your final message
+
+Your final message is the JSON array alone: its first character `[` and
+its last `]`, with nothing before the one or after the other.
